@@ -1,0 +1,60 @@
+{
+  "manifest_id": "smoke.gobook_preferred_window",
+  "name": "Smoke Test - GoBook Preferred Time Window",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "date",
+    "start",
+    "end",
+    "requested_time"
+  ],
+  "steps": [
+    {
+      "id": "check_open_courts",
+      "when": {
+        "all": [
+          {
+            "input": "requested_time",
+            "between_time": ["17:00", "20:00"]
+          },
+          {
+            "input": "date",
+            "on_or_after_date": "2026-01-01"
+          }
+        ]
+      },
+      "command": "[t:gb/open_courts -> open_slots] date=$inputs.date; start=$inputs.start; end=$inputs.end; slowmo=100"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "preferred_time_condition_true",
+      "type": "condition_true",
+      "condition": {
+        "input": "requested_time",
+        "between_time": ["17:00", "20:00"]
+      }
+    },
+    {
+      "id": "open_courts_step_completed",
+      "type": "step_completed",
+      "step": "check_open_courts"
+    },
+    {
+      "id": "open_slots_output_exists",
+      "type": "output_exists",
+      "output": "open_slots"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["open_slots"],
+    "acceptable_empty_outputs": ["open_slots"]
+  }
+}

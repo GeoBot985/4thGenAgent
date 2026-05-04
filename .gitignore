@@ -1,0 +1,45 @@
+# Python bytecode / test caches
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local editor / OS files
+.DS_Store
+Thumbs.db
+
+# Local secrets and auth material
+credentials.json
+client_secret*.json
+google_token.json
+token.json
+secrets.json
+bits/secrets.json
+
+# Repo-local generated artifacts
+consolidated_sources_part_*.txt
+tmp-e2e/
+
+# Runtime artifacts and local browser/session state
+runtime_data/audit/
+runtime_data/runs/
+runtime_data/absa_workflow_profile/
+runtime_data/absa_profile_clone/
+runtime_data/chrome_user_data_absa_clone/
+runtime_data/*/cache/
+runtime_data/*/tmp/
+absa_profile_clone/
+
+# Optional local ABSA config with spreadsheet identifiers
+config/absa_messages_sheet.json

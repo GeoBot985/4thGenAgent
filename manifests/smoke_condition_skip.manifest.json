@@ -1,0 +1,54 @@
+{
+  "manifest_id": "smoke.condition_skip",
+  "name": "Smoke Test - Condition Skip",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "channel"
+  ],
+  "steps": [
+    {
+      "id": "set_whatsapp_memory",
+      "when": {
+        "input": "channel",
+        "equals": "whatsapp"
+      },
+      "command": "[m:set -> saved_channel] key=\"test.channel\"; value=$inputs.channel"
+    },
+    {
+      "id": "set_fallback_memory",
+      "when": {
+        "input": "channel",
+        "not_equals": "whatsapp"
+      },
+      "command": "[m:set -> fallback_channel] key=\"test.fallback_channel\"; value=$inputs.channel"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "whatsapp_step_skipped",
+      "type": "step_status",
+      "step": "set_whatsapp_memory",
+      "status": "SKIPPED"
+    },
+    {
+      "id": "fallback_step_completed",
+      "type": "step_completed",
+      "step": "set_fallback_memory"
+    },
+    {
+      "id": "fallback_output_exists",
+      "type": "output_exists",
+      "output": "fallback_channel"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["fallback_channel"]
+  }
+}

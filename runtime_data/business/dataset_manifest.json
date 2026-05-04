@@ -1,0 +1,17 @@
+{
+  "dataset_version": 2,
+  "name": "Mock Company Dataset v2",
+  "record_counts": {
+    "customer_messages": 8,
+    "customers": 5,
+    "inventory": 8,
+    "order_items": 12,
+    "orders": 8,
+    "payments": 8,
+    "purchase_orders": 4,
+    "shipments": 5,
+    "supplier_invoices": 4,
+    "suppliers": 4
+  },
+  "seeded_at": "2026-05-01T00:00:00Z"
+}

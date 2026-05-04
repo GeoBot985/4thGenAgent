@@ -1,0 +1,39 @@
+{
+  "manifest_id": "smoke.reject_pending_action",
+  "name": "Smoke Test - Reject Pending Action",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "frame_id",
+    "action_id",
+    "rejected_by",
+    "reason"
+  ],
+  "steps": [
+    {
+      "id": "reject_action",
+      "command": "[a:reject -> rejection_result] frame_id=$inputs.frame_id; action_id=$inputs.action_id; rejected_by=$inputs.rejected_by; reason=$inputs.reason"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "reject_step_completed",
+      "type": "step_completed",
+      "step": "reject_action"
+    },
+    {
+      "id": "rejection_result_exists",
+      "type": "output_exists",
+      "output": "rejection_result"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["rejection_result"]
+  }
+}

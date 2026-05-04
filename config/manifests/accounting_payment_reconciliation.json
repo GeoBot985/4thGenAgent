@@ -1,0 +1,30 @@
+{
+  "id": "accounting.payment_reconciliation",
+  "name": "Accounting Payment Reconciliation",
+  "trigger_type": "event",
+  "inputs": {
+    "required": ["spreadsheet_id", "payments_range", "orders_range", "invoices_range", "ledger_range", "recon_runs_range", "recon_exceptions_range"]
+  },
+  "steps": [
+    {"step_id": "read_payments_sheet", "kind": "tool", "command": "[t:sheet/read_range -> payments_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.payments_range"},
+    {"step_id": "read_orders_sheet", "kind": "tool", "command": "[t:sheet/read_range -> orders_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.orders_range"},
+    {"step_id": "read_invoices_sheet", "kind": "tool", "command": "[t:sheet/read_range -> invoices_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.invoices_range"},
+    {"step_id": "read_ledger_sheet", "kind": "tool", "command": "[t:sheet/read_range -> ledger_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.ledger_range"},
+    {"step_id": "load_payments", "kind": "tool", "command": "[t:acct/load_payments -> payments] sheet_rows=$payments_sheet.rows"},
+    {"step_id": "load_orders", "kind": "tool", "command": "[t:acct/load_orders -> accounting_orders] sheet_rows=$orders_sheet.rows"},
+    {"step_id": "load_invoices", "kind": "tool", "command": "[t:acct/load_invoices -> invoices] sheet_rows=$invoices_sheet.rows"},
+    {"step_id": "load_ledger", "kind": "tool", "command": "[t:acct/load_ledger -> ledger_entries] sheet_rows=$ledger_sheet.rows"},
+    {"step_id": "match_payments", "kind": "tool", "command": "[t:recon/match_payments -> reconciliation_result] payments=$payments.payments; orders=$accounting_orders.orders; invoices=$invoices.invoices; ledger_entries=$ledger_entries.ledger_entries"},
+    {"step_id": "validate_reconciliation", "kind": "tool", "command": "[t:recon/validate_result -> reconciliation_validation] reconciliation_result=$reconciliation_result"},
+    {"step_id": "draft_exception_summary", "kind": "llm", "command": "[q:draft_reconciliation_exception_summary -> exception_summary] reconciliation_result=$reconciliation_result"},
+    {"step_id": "build_recon_sheet_rows", "when": {"all": [{"output": "reconciliation_validation", "field": "ok", "equals": true}, {"output": "exception_summary", "field": "invented_facts", "equals": false}]}, "kind": "tool", "command": "[t:acct/build_recon_sheet_rows -> recon_sheet_rows] reconciliation_result=$reconciliation_result; exception_summary=$exception_summary"},
+    {"step_id": "stage_recon_run_write", "kind": "pending", "command": "[t:sheet/prepare_write_rows -> recon_run_write] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.recon_runs_range; rows=$recon_sheet_rows.recon_run_rows; mode=\"append\""},
+    {"step_id": "stage_recon_exception_write", "kind": "pending", "command": "[t:sheet/prepare_write_rows -> recon_exception_write] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.recon_exceptions_range; rows=$recon_sheet_rows.recon_exception_rows; mode=\"append\""}
+  ],
+  "validations": [],
+  "completion": {
+    "success_pending_actions": ["recon_run_write", "recon_exception_write"],
+    "allow_pending_approval": true,
+    "continue_after_pending": true
+  }
+}

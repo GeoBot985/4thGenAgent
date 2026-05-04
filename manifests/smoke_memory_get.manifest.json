@@ -1,0 +1,41 @@
+{
+  "manifest_id": "smoke.memory_get",
+  "name": "Smoke Test - Memory Get",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "key"
+  ],
+  "steps": [
+    {
+      "id": "get_memory",
+      "command": "[m:get -> memory_value] key=$inputs.key"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "get_memory_step_completed",
+      "type": "step_completed",
+      "step": "get_memory"
+    },
+    {
+      "id": "memory_value_output_exists",
+      "type": "output_exists",
+      "output": "memory_value"
+    },
+    {
+      "id": "memory_value_found",
+      "type": "memory_output_found",
+      "output": "memory_value"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["memory_value"]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "manifest_id": "smoke.reload_pending_action_flow",
+  "name": "Smoke Test - Reload Pending Action Flow",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "frame_id",
+    "action_id",
+    "approved_by",
+    "reason"
+  ],
+  "steps": [
+    {
+      "id": "list_before",
+      "command": "[a:list_pending -> pending_before] frame_id=$inputs.frame_id"
+    },
+    {
+      "id": "approve_and_execute",
+      "command": "[a:approve_and_execute -> approval_execution_result] frame_id=$inputs.frame_id; action_id=$inputs.action_id; approved_by=$inputs.approved_by; reason=$inputs.reason"
+    },
+    {
+      "id": "list_after",
+      "command": "[a:list_pending -> pending_after] frame_id=$inputs.frame_id"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "list_before_completed",
+      "type": "step_completed",
+      "step": "list_before"
+    },
+    {
+      "id": "approve_execute_completed",
+      "type": "step_completed",
+      "step": "approve_and_execute"
+    },
+    {
+      "id": "list_after_completed",
+      "type": "step_completed",
+      "step": "list_after"
+    },
+    {
+      "id": "approval_execution_result_exists",
+      "type": "output_exists",
+      "output": "approval_execution_result"
+    }
+  ],
+  "completion": {
+    "success_outputs": [
+      "pending_before",
+      "approval_execution_result",
+      "pending_after"
+    ]
+  }
+}

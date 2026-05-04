@@ -1,0 +1,40 @@
+{
+  "manifest_id": "smoke.cleanup_dry_run",
+  "name": "Smoke Test - Cleanup Dry Run",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "plan_cleanup",
+      "command": "[c:plan -> cleanup_plan] mode=\"derived_artifacts_only\"; max_report_age_days=0; max_temp_age_days=0"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "plan_cleanup_completed",
+      "type": "step_completed",
+      "step": "plan_cleanup"
+    },
+    {
+      "id": "cleanup_plan_output_exists",
+      "type": "output_exists",
+      "output": "cleanup_plan"
+    },
+    {
+      "id": "cleanup_plan_has_fields",
+      "type": "output_has_fields",
+      "output": "cleanup_plan",
+      "fields": ["cleanup_id", "dry_run", "summary", "report_path"]
+    }
+  ],
+  "completion": {
+    "success_outputs": ["cleanup_plan"]
+  }
+}

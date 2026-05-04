@@ -1,0 +1,81 @@
+{
+  "manifest_id": "smoke.channel_branch_reply",
+  "name": "Smoke Test - Channel Branch Reply",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message",
+    "channel",
+    "chat",
+    "email"
+  ],
+  "steps": [
+    {
+      "id": "draft_reply",
+      "command": "[q:draft -> reply] instruction=\"Draft a short reply\"; context=$inputs.message; tone=\"plain\""
+    },
+    {
+      "id": "stage_whatsapp_reply",
+      "when": {
+        "all": [
+          {
+            "input": "channel",
+            "equals": "whatsapp"
+          },
+          {
+            "output": "reply",
+            "exists": true
+          }
+        ]
+      },
+      "command": "[t:wa/send -> sent_reply] chat=$inputs.chat; message=$reply"
+    },
+    {
+      "id": "stage_email_reply",
+      "when": {
+        "all": [
+          {
+            "input": "channel",
+            "equals": "email"
+          },
+          {
+            "output": "reply",
+            "exists": true
+          }
+        ]
+      },
+      "command": "[t:g/send -> sent_reply] to=$inputs.email; subject=\"Reply\"; body=$reply"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "reply_output_exists",
+      "type": "output_exists",
+      "output": "reply"
+    },
+    {
+      "id": "one_channel_reply_branch_completed",
+      "type": "one_of_steps_completed",
+      "steps": [
+        "stage_whatsapp_reply",
+        "stage_email_reply"
+      ]
+    },
+    {
+      "id": "reply_pending_action_created",
+      "type": "pending_action_exists",
+      "output": "sent_reply"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["reply"],
+    "success_pending_actions": ["sent_reply"],
+    "allow_pending_approval": true
+  }
+}

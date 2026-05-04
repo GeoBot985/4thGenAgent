@@ -1,0 +1,29 @@
+{
+  "manifest_id": "llm.classify_customer_message",
+  "name": "LLM Classify Customer Message",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "classify_message",
+      "command": "[q:classify_customer_message -> category] text=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "category_exists",
+      "type": "output_exists",
+      "output": "category"
+    }
+  ],
+  "completion": {
+    "success_outputs": [
+      "category"
+    ]
+  }
+}

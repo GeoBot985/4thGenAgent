@@ -1,0 +1,138 @@
+[
+  {
+    "channel": "callcentre",
+    "completed_at": "",
+    "customer_id": "CUST-1001",
+    "customer_name": "Alex",
+    "failure_reason": "",
+    "linked_frame_id": "",
+    "message": "Where is my order ORD-10042?",
+    "message_id": "msg_001",
+    "metadata": {
+      "scenario": "order_status_happy_path"
+    },
+    "pending_action_id": "",
+    "processed_at": "",
+    "received_at": "2026-05-01T08:00:00Z",
+    "status": "NEW"
+  },
+  {
+    "channel": "callcentre",
+    "completed_at": "",
+    "customer_id": "CUST-1002",
+    "customer_name": "Bianca",
+    "failure_reason": "",
+    "linked_frame_id": "",
+    "message": "I want a refund for order ORD-10043.",
+    "message_id": "msg_002",
+    "metadata": {
+      "scenario": "refund_request"
+    },
+    "pending_action_id": "",
+    "processed_at": "",
+    "received_at": "2026-05-01T08:05:00Z",
+    "status": "NEW"
+  },
+  {
+    "channel": "callcentre",
+    "completed_at": "",
+    "customer_id": "CUST-1003",
+    "customer_name": "Chris",
+    "failure_reason": "",
+    "linked_frame_id": "",
+    "message": "Do you have stock of SKU-CHAIR-01?",
+    "message_id": "msg_003",
+    "metadata": {
+      "scenario": "stock_query"
+    },
+    "pending_action_id": "",
+    "processed_at": "",
+    "received_at": "2026-05-01T08:10:00Z",
+    "status": "NEW"
+  },
+  {
+    "channel": "callcentre",
+    "completed_at": "",
+    "customer_id": "CUST-9999",
+    "customer_name": "Unknown",
+    "failure_reason": "",
+    "linked_frame_id": "",
+    "message": "Where is my order ORD-99999?",
+    "message_id": "msg_004",
+    "metadata": {
+      "scenario": "missing_customer_and_order"
+    },
+    "pending_action_id": "",
+    "processed_at": "",
+    "received_at": "2026-05-01T08:15:00Z",
+    "status": "NEW"
+  },
+  {
+    "channel": "callcentre",
+    "completed_at": "",
+    "customer_id": "CUST-1001",
+    "customer_name": "Alex",
+    "failure_reason": "",
+    "linked_frame_id": "",
+    "message": "Where is order ORD-10044?",
+    "message_id": "msg_005",
+    "metadata": {
+      "scenario": "wrong_customer_order_pairing"
+    },
+    "pending_action_id": "",
+    "processed_at": "",
+    "received_at": "2026-05-01T08:20:00Z",
+    "status": "NEW"
+  },
+  {
+    "channel": "callcentre",
+    "completed_at": "",
+    "customer_id": "CUST-1004",
+    "customer_name": "Dana",
+    "failure_reason": "",
+    "linked_frame_id": "",
+    "message": "Is SKU-LAMP-01 still available?",
+    "message_id": "msg_006",
+    "metadata": {
+      "scenario": "stock_query"
+    },
+    "pending_action_id": "",
+    "processed_at": "",
+    "received_at": "2026-05-01T08:25:00Z",
+    "status": "NEW"
+  },
+  {
+    "channel": "email",
+    "completed_at": "",
+    "customer_id": "CUST-1002",
+    "customer_name": "Bianca",
+    "failure_reason": "",
+    "linked_frame_id": "",
+    "message": "Please reconcile payment for ORD-10043.",
+    "message_id": "msg_007",
+    "metadata": {
+      "scenario": "payment_reconciliation"
+    },
+    "pending_action_id": "",
+    "processed_at": "",
+    "received_at": "2026-05-01T08:30:00Z",
+    "status": "NEW"
+  },
+  {
+    "channel": "email",
+    "completed_at": "",
+    "customer_id": "CUST-1003",
+    "customer_name": "Chris",
+    "failure_reason": "",
+    "linked_frame_id": "",
+    "message": "Need supplier invoice match for PO-5001.",
+    "message_id": "msg_008",
+    "metadata": {
+      "scenario": "supplier_invoice"
+    },
+    "pending_action_id": "",
+    "processed_at": "",
+    "received_at": "2026-05-01T08:35:00Z",
+    "status": "NEW"
+  }
+]

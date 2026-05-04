@@ -1,0 +1,39 @@
+{
+  "manifest_id": "smoke.approve_pending_action",
+  "name": "Smoke Test - Approve Pending Action",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "frame_id",
+    "action_id",
+    "approved_by",
+    "reason"
+  ],
+  "steps": [
+    {
+      "id": "approve_action",
+      "command": "[a:approve -> approval_result] frame_id=$inputs.frame_id; action_id=$inputs.action_id; approved_by=$inputs.approved_by; reason=$inputs.reason"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "approve_step_completed",
+      "type": "step_completed",
+      "step": "approve_action"
+    },
+    {
+      "id": "approval_result_exists",
+      "type": "output_exists",
+      "output": "approval_result"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["approval_result"]
+  }
+}

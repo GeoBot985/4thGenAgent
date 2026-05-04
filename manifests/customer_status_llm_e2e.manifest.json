@@ -1,0 +1,267 @@
+{
+  "id": "customer.status_llm_e2e",
+  "name": "Customer Status - LLM Assisted E2E",
+  "trigger_type": "event",
+  "side_effect": true,
+  "inputs": {
+    "required": ["event_id", "customer_id", "message", "channel", "received_at"]
+  },
+  "steps": [
+    {
+      "step_id": "extract_order_ref",
+      "kind": "llm",
+      "command": "[q:extract_order_ref -> order_ref] text=$inputs.message"
+    },
+    {
+      "step_id": "classify_message",
+      "kind": "llm",
+      "command": "[q:classify_customer_message -> category] text=$inputs.message"
+    },
+    {
+      "step_id": "validate_order_ref",
+      "kind": "validate",
+      "command": "[validate:order_ref_has_value]"
+    },
+    {
+      "step_id": "lookup_customer",
+      "kind": "tool",
+      "command": "[t:customer/read -> customer] customer_id=$inputs.customer_id"
+    },
+    {
+      "step_id": "lookup_order",
+      "kind": "tool",
+      "command": "[t:order/read -> order] order_ref=$order_ref.order_ref"
+    },
+    {
+      "step_id": "lookup_shipment",
+      "kind": "tool",
+      "command": "[t:shipment/read -> shipment] order_ref=$order_ref.order_ref"
+    },
+    {
+      "step_id": "read_payment",
+      "kind": "tool",
+      "command": "[t:payment/read_by_order -> payment] order_ref=$order_ref.order_ref"
+    },
+    {
+      "step_id": "build_order_context",
+      "kind": "tool",
+      "command": "[t:order_context/build -> order_context] customer=$customer; order=$order; shipment=$shipment; payment=$payment"
+    },
+    {
+      "step_id": "validate_customer_owns_order",
+      "kind": "tool",
+      "command": "[t:customer/validate_owns_order -> ownership_check] customer=$customer; order=$order"
+    },
+    {
+      "step_id": "build_status_context",
+      "kind": "tool",
+      "command": "[t:customer/build_status_context -> status_context] customer=$customer; order=$order; shipment=$shipment"
+    },
+    {
+      "step_id": "draft_reply",
+      "when": {
+        "all": [
+          {
+            "output": "category",
+            "field": "label",
+            "equals": "order_status"
+          },
+          {
+            "output": "ownership_check",
+            "field": "ok",
+            "equals": true
+          }
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "output": "category",
+            "field": "label",
+            "equals": "order_status"
+          },
+          {
+            "output": "ownership_check",
+            "field": "ok",
+            "equals": true
+          }
+        ]
+      },
+      "kind": "llm",
+      "command": "[q:draft_customer_status_reply -> draft_reply] facts=$status_context.facts; customer=$order_context.customer; order=$order_context.order; shipment=$order_context.shipment"
+    },
+    {
+      "step_id": "check_reply_against_facts",
+      "kind": "llm",
+      "command": "[q:compare_reply_to_facts -> reply_check] reply=$draft_reply; facts=$status_context.facts"
+    },
+    {
+      "step_id": "validate_status_reply",
+      "kind": "tool",
+      "command": "[t:message/validate_customer_status_reply -> reply_validation] draft_reply=$draft_reply; order_context=$order_context"
+    },
+    {
+      "step_id": "stage_customer_reply",
+      "when": {
+        "all": [
+          {
+            "output": "reply_validation",
+            "field": "ok",
+            "equals": true
+          },
+          {
+            "output": "reply_check",
+            "field": "ok",
+            "equals": true
+          },
+          {
+            "output": "category",
+            "field": "label",
+            "equals": "order_status"
+          },
+          {
+            "output": "ownership_check",
+            "field": "ok",
+            "equals": true
+          }
+        ]
+      },
+      "kind": "tool",
+      "command": "[t:customer/prepare_message_action -> customer_reply_send] customer=$customer; channel=$customer.preferred_channel; message=$draft_reply"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "order_ref_has_value",
+      "type": "output_has_fields",
+      "output": "order_ref",
+      "fields": ["order_ref", "confidence", "reason"]
+    },
+    {
+      "id": "order_ref_confidence_ok",
+      "type": "output_field_in",
+      "output": "order_ref",
+      "field": "confidence",
+      "values": ["high", "medium"]
+    },
+    {
+      "id": "category_is_order_status",
+      "type": "output_field_equals",
+      "output": "category",
+      "field": "label",
+      "value": "order_status"
+    },
+    {
+      "id": "customer_exists",
+      "type": "output_has_fields",
+      "output": "customer",
+      "fields": ["customer_id", "name", "preferred_channel"]
+    },
+    {
+      "id": "order_exists",
+      "type": "output_has_fields",
+      "output": "order",
+      "fields": ["order_ref", "customer_id", "status", "created_date", "total_amount"]
+    },
+    {
+      "id": "shipment_exists",
+      "type": "output_has_fields",
+      "output": "shipment",
+      "fields": ["order_ref", "shipment_id", "status", "carrier", "tracking_ref", "estimated_delivery"]
+    },
+    {
+      "id": "order_belongs_to_customer",
+      "type": "output_field_equals",
+      "output": "order",
+      "field": "customer_id",
+      "value": "CUST-1001"
+    },
+    {
+      "id": "shipment_matches_order",
+      "type": "output_field_equals",
+      "output": "shipment",
+      "field": "order_ref",
+      "value": "ORD-10042"
+    },
+    {
+      "id": "status_context_exists",
+      "type": "output_exists",
+      "output": "status_context"
+    },
+    {
+      "id": "draft_reply_includes_order_ref",
+      "type": "output_field_equals",
+      "output": "draft_reply",
+      "field": "included_order_ref",
+      "value": true
+    },
+    {
+      "id": "draft_reply_includes_status",
+      "type": "output_field_equals",
+      "output": "draft_reply",
+      "field": "included_status",
+      "value": true
+    },
+    {
+      "id": "draft_reply_has_no_compensation",
+      "type": "output_field_equals",
+      "output": "draft_reply",
+      "field": "invented_compensation",
+      "value": false
+    },
+    {
+      "id": "reply_check_ok",
+      "type": "output_field_equals",
+      "output": "reply_check",
+      "field": "ok",
+      "value": true
+    },
+    {
+      "id": "reply_check_matches_facts",
+      "type": "output_field_equals",
+      "output": "reply_check",
+      "field": "matches_facts",
+      "value": true
+    },
+    {
+      "id": "reply_check_no_unsupported_claims",
+      "type": "output_field_equals",
+      "output": "reply_check",
+      "field": "unsupported_claims",
+      "value": []
+    },
+    {
+      "id": "reply_validation_exists",
+      "type": "output_exists",
+      "output": "reply_validation"
+    },
+    {
+      "id": "customer_reply_pending",
+      "type": "pending_action_exists",
+      "tool": "wa/send",
+      "output": "customer_reply_send"
+    }
+  ],
+  "completion": {
+    "success_outputs": [
+      "order_ref",
+      "category",
+      "customer",
+      "order",
+      "shipment",
+      "order_context",
+      "status_context",
+      "draft_reply",
+      "reply_check",
+      "reply_validation"
+    ],
+    "success_pending_actions": [
+      "customer_reply_send"
+    ],
+    "allow_pending_approval": true
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "id": "customer.message_status_check",
+  "name": "Customer Message Status Check",
+  "command": null,
+  "trigger_type": "event",
+  "side_effect": true,
+  "inputs": {
+    "required": ["event_id", "customer_id", "message", "channel", "received_at"]
+  },
+  "steps": [
+    {"step_id": "validate_input", "kind": "validate_required_inputs", "required_inputs": ["event_id", "customer_id", "message", "channel", "received_at"]},
+    {"step_id": "extract_order_ref", "kind": "tool", "command": "[t:order/extract_ref_from_text -> order_ref] text=$inputs.message"},
+    {"step_id": "validate_order_ref", "kind": "validate", "command": "[validate:order_ref_exists]"},
+    {"step_id": "classify_customer_message", "kind": "llm", "command": "[q:classify_customer_message -> category] message=$inputs.message"},
+    {"step_id": "read_customer", "kind": "tool", "command": "[t:customer/read -> customer] customer_id=$inputs.customer_id"},
+    {"step_id": "read_order", "kind": "tool", "command": "[t:order/read -> order] order_ref=$order_ref.order_ref"},
+    {"step_id": "read_shipment", "kind": "tool", "command": "[t:shipment/read -> shipment] order_ref=$order_ref.order_ref"},
+    {"step_id": "read_payment", "kind": "tool", "command": "[t:payment/read_by_order -> payment] order_ref=$order_ref.order_ref"},
+    {"step_id": "validate_customer_owns_order", "kind": "tool", "command": "[t:customer/validate_owns_order -> ownership_check] customer=$customer; order=$order"},
+    {"step_id": "build_status_context", "kind": "tool", "command": "[t:customer/build_status_context -> status_context] customer=$customer; order=$order; shipment=$shipment; payment=$payment"},
+    {"step_id": "draft_customer_status_reply", "when": {"all": [{"output": "category", "field": "label", "equals": "order_status"}, {"output": "ownership_check", "field": "ok", "equals": true}]}, "kind": "llm", "command": "[q:draft_customer_status_reply -> draft_reply] facts=$status_context.facts; customer=$customer; order=$order; shipment=$shipment"},
+    {"step_id": "compare_reply_to_facts", "kind": "llm", "command": "[q:compare_reply_to_facts -> reply_check] reply=$draft_reply.reply; facts=$status_context.facts"},
+    {"step_id": "validate_status_reply", "kind": "tool", "command": "[t:message/validate_customer_status_reply -> reply_validation] draft_reply=$draft_reply; order_context=$status_context"},
+    {"step_id": "prepare_pending_send", "when": {"all": [{"output": "reply_validation", "field": "ok", "equals": true}, {"output": "reply_check", "field": "ok", "equals": true}, {"output": "category", "field": "label", "equals": "order_status"}, {"output": "ownership_check", "field": "ok", "equals": true}]}, "kind": "tool", "command": "[t:customer/prepare_message_action -> customer_reply_send] customer=$customer; channel=$customer.preferred_channel; message=$draft_reply"}
+  ],
+  "validations": [
+    {"id": "order_ref_exists", "type": "output_exists", "output": "order_ref"},
+    {"id": "category_is_order_status", "type": "output_field_equals", "output": "category", "field": "label", "value": "order_status"},
+    {"id": "customer_owns_order_ok", "type": "output_field_equals", "output": "ownership_check", "field": "ok", "value": true}
+  ],
+  "completion": {
+    "required_outputs": ["order_ref", "category", "customer", "order", "shipment", "order_context", "status_context", "ownership_check", "draft_reply", "reply_check", "reply_validation", "customer_reply_send"],
+    "required_pending_actions": ["customer_reply_send"],
+    "success_pending_actions": ["customer_reply_send"],
+    "allow_pending_approval": true,
+    "required_state": "WAITING_FOR_EXECUTE"
+  }
+}

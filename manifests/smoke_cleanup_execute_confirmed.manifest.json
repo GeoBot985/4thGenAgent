@@ -1,0 +1,32 @@
+{
+  "manifest_id": "smoke.cleanup_execute_confirmed",
+  "name": "Smoke Test - Cleanup Execute Confirmed",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "confirm_cleanup"
+  ],
+  "steps": [
+    {
+      "id": "execute_cleanup",
+      "command": "[c:execute -> cleanup_result] mode=\"reports_only\"; dry_run=false; confirm_cleanup=$inputs.confirm_cleanup; max_report_age_days=0"
+    }
+  ],
+  "validations": [
+    {
+      "id": "execute_cleanup_completed",
+      "type": "step_completed",
+      "step": "execute_cleanup"
+    },
+    {
+      "id": "cleanup_result_output_exists",
+      "type": "output_exists",
+      "output": "cleanup_result"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["cleanup_result"]
+  }
+}

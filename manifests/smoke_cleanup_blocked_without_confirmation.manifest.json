@@ -1,0 +1,26 @@
+{
+  "manifest_id": "smoke.cleanup_blocked_without_confirmation",
+  "name": "Smoke Test - Cleanup Blocked Without Confirmation",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "execute_cleanup_without_confirmation",
+      "command": "[c:execute -> cleanup_result] mode=\"reports_only\"; dry_run=false; confirm_cleanup=false; max_report_age_days=0"
+    }
+  ],
+  "validations": [
+    {
+      "id": "cleanup_step_failed",
+      "type": "step_status",
+      "step": "execute_cleanup_without_confirmation",
+      "status": "FAILED"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["cleanup_result"]
+  }
+}

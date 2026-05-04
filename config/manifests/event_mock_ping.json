@@ -1,0 +1,40 @@
+{
+  "id": "event.mock_ping",
+  "name": "Mock Event Ping Workflow",
+  "command": null,
+  "trigger_type": "event",
+  "side_effect": false,
+  "inputs": {
+    "required": [
+      "message",
+      "event_id",
+      "event_source",
+      "event_type",
+      "received_at"
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "validate_input",
+      "kind": "validate_required_inputs",
+      "required_inputs": [
+        "message",
+        "event_id",
+        "event_source",
+        "event_type",
+        "received_at"
+      ]
+    },
+    {
+      "step_id": "build_mock_response",
+      "kind": "tool",
+      "command": "[t:test/echo -> mock_response] message=$inputs.message; event_id=$inputs.event_id"
+    }
+  ],
+  "completion": {
+    "required_outputs": [
+      "mock_response"
+    ],
+    "required_state": "COMPLETED"
+  }
+}

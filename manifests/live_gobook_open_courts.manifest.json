@@ -1,0 +1,53 @@
+{
+  "manifest_id": "live.gobook_open_courts",
+  "name": "Live GoBook Open Courts",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "date",
+    "start",
+    "end"
+  ],
+  "steps": [
+    {
+      "id": "check_open_courts",
+      "command": "[t:gb/open_courts -> open_slots] date=$inputs.date; start=$inputs.start; end=$inputs.end; slowmo=100"
+    }
+  ],
+  "validations": [
+    {
+      "id": "date_input_exists",
+      "type": "required_input_exists",
+      "input": "date"
+    },
+    {
+      "id": "start_input_exists",
+      "type": "required_input_exists",
+      "input": "start"
+    },
+    {
+      "id": "end_input_exists",
+      "type": "required_input_exists",
+      "input": "end"
+    },
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "no_step_failed",
+      "type": "no_step_failed"
+    },
+    {
+      "id": "open_slots_output_exists",
+      "type": "output_exists",
+      "output": "open_slots"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["open_slots"],
+    "acceptable_empty_outputs": ["open_slots"]
+  }
+}

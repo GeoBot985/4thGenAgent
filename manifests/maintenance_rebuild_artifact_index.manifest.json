@@ -1,0 +1,40 @@
+{
+  "manifest_id": "maintenance.artifact_index_rebuild",
+  "name": "Maintenance - Rebuild Artifact Index",
+  "version": 1,
+  "trigger": {
+    "type": "maintenance"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "rebuild_index",
+      "command": "[mt:index_rebuild -> index_result]"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "rebuild_index_completed",
+      "type": "step_completed",
+      "step": "rebuild_index"
+    },
+    {
+      "id": "index_result_exists",
+      "type": "output_exists",
+      "output": "index_result"
+    },
+    {
+      "id": "index_result_has_fields",
+      "type": "output_has_fields",
+      "output": "index_result",
+      "fields": ["action", "index_path", "record_count", "generated_at", "ok"]
+    }
+  ],
+  "completion": {
+    "success_outputs": ["index_result"]
+  }
+}

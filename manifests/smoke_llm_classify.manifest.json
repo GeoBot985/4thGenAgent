@@ -1,0 +1,61 @@
+{
+  "manifest_id": "smoke.llm_classify",
+  "name": "Smoke Test - LLM Classify",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "classify_message",
+      "command": "[q:classify -> category] labels=\"order_status,refund,complaint,other\"; text=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "classify_step_completed",
+      "type": "step_completed",
+      "step": "classify_message"
+    },
+    {
+      "id": "category_output_exists",
+      "type": "output_exists",
+      "output": "category"
+    },
+    {
+      "id": "category_has_required_fields",
+      "type": "output_has_fields",
+      "output": "category",
+      "fields": ["label", "confidence"]
+    },
+    {
+      "id": "category_label_is_order_status",
+      "type": "output_field_equals",
+      "output": "category",
+      "field": "label",
+      "value": "order_status"
+    },
+    {
+      "id": "category_label_allowed",
+      "type": "output_in_allowed_values",
+      "output": "category",
+      "field": "label",
+      "allowed": ["order_status", "refund", "complaint", "other"]
+    },
+    {
+      "id": "llm_classify_call_ok",
+      "type": "llm_call_ok",
+      "output": "category"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["category"]
+  }
+}

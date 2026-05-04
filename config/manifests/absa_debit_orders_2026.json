@@ -1,0 +1,49 @@
+{
+  "id": "messages.absa_debit_orders_2026",
+  "name": "ABSA Debit Orders 2026 Capture",
+  "trigger_type": "event",
+  "live_execution": {
+    "enabled": true,
+    "allowed_tools": ["sheet/write_rows"],
+    "requires_approval": true
+  },
+  "inputs": {
+    "required": ["spreadsheet_id"],
+    "optional": [
+      "search_query",
+      "year",
+      "output_range",
+      "runtime_root",
+      "max_scrolls",
+      "browser_user_data_dir",
+      "browser_profile_dir",
+      "browser_cdp_url"
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "extract_absa_transactions",
+      "kind": "tool",
+      "command": "[t:messages/extract_absa_transactions -> absa_transactions] year=$inputs.year; search_query=$inputs.search_query; runtime_root=$inputs.runtime_root; max_scrolls=$inputs.max_scrolls; browser_user_data_dir=$inputs.browser_user_data_dir; browser_profile_dir=$inputs.browser_profile_dir; browser_cdp_url=$inputs.browser_cdp_url"
+    },
+    {
+      "step_id": "stage_sheet_write",
+      "kind": "pending",
+      "command": "[t:sheet/prepare_write_rows -> absa_sheet_write] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.output_range; rows=$absa_transactions.rows; mode=\"append\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "absa_transactions_output_exists",
+      "type": "output_exists",
+      "output": "absa_transactions"
+    }
+  ],
+  "completion": {
+    "success_pending_actions": ["absa_sheet_write"],
+    "success_executed_actions": ["absa_sheet_write"],
+    "success_outputs": ["absa_sheet_write"],
+    "allow_pending_approval": true,
+    "continue_after_pending": true
+  }
+}

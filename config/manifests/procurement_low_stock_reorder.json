@@ -1,0 +1,74 @@
+{
+  "id": "procurement.low_stock_reorder",
+  "name": "Procurement Low Stock Reorder",
+  "trigger_type": "event",
+  "inputs": {
+    "required": []
+  },
+  "steps": [
+    {
+      "step_id": "search_low_stock_inventory",
+      "kind": "tool",
+      "command": "[t:inventory/search_low_stock -> low_stock_items]"
+    },
+    {
+      "step_id": "filter_reorder_candidates",
+      "kind": "tool",
+      "command": "[t:inventory/filter_reorder_candidates -> reorder_candidates] items=$low_stock_items.items"
+    },
+    {
+      "step_id": "check_duplicate_open_pos",
+      "kind": "tool",
+      "command": "[t:po/check_duplicate_open -> duplicate_po_check] candidates=$reorder_candidates.candidates"
+    },
+    {
+      "step_id": "select_supplier",
+      "kind": "tool",
+      "command": "[t:supplier/select_for_sku -> selected_supplier] candidates=$duplicate_po_check.valid_candidates"
+    },
+    {
+      "step_id": "build_draft_po",
+      "kind": "tool",
+      "command": "[t:po/build_draft -> draft_po] supplier=$selected_supplier.supplier; candidates=$selected_supplier.selected_candidates"
+    },
+    {
+      "step_id": "validate_draft_po",
+      "kind": "tool",
+      "command": "[t:po/validate_draft -> po_validation] draft_po=$draft_po"
+    },
+    {
+      "step_id": "draft_supplier_message",
+      "kind": "llm",
+      "command": "[q:draft_supplier_reorder_message -> supplier_message] supplier=$selected_supplier.supplier; draft_po=$draft_po"
+    },
+    {
+      "step_id": "prepare_supplier_send",
+      "kind": "tool",
+      "when": {
+        "all": [
+          {
+            "output": "po_validation",
+            "field": "ok",
+            "equals": true
+          },
+          {
+            "output": "supplier_message",
+            "field": "invented_terms",
+            "equals": false
+          }
+        ]
+      },
+      "command": "[t:supplier/prepare_message_action -> supplier_message_send] supplier=$selected_supplier.supplier; draft_po=$draft_po; message=$supplier_message"
+    }
+  ],
+  "validations": [],
+  "completion": {
+    "required_outputs": [
+      "supplier_message_send"
+    ],
+    "success_pending_actions": [
+      "supplier_message_send"
+    ],
+    "allow_pending_approval": true
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "manifest_id": "smoke.inspect_run_pending_actions",
+  "name": "Smoke Test - Inspect Run Pending Actions",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "frame_id"
+  ],
+  "steps": [
+    {
+      "id": "load_pending_actions",
+      "command": "[i:pending_actions -> run_pending_actions] frame_id=$inputs.frame_id"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "load_pending_actions_completed",
+      "type": "step_completed",
+      "step": "load_pending_actions"
+    },
+    {
+      "id": "run_pending_actions_output_exists",
+      "type": "output_exists",
+      "output": "run_pending_actions"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["run_pending_actions"],
+    "acceptable_empty_outputs": ["run_pending_actions"]
+  }
+}

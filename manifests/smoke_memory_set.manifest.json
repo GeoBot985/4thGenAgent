@@ -1,0 +1,37 @@
+{
+  "manifest_id": "smoke.memory_set",
+  "name": "Smoke Test - Memory Set",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "key",
+    "value"
+  ],
+  "steps": [
+    {
+      "id": "set_memory",
+      "command": "[m:set -> saved_memory] key=$inputs.key; value=$inputs.value"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "set_memory_step_completed",
+      "type": "step_completed",
+      "step": "set_memory"
+    },
+    {
+      "id": "saved_memory_output_exists",
+      "type": "output_exists",
+      "output": "saved_memory"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["saved_memory"]
+  }
+}

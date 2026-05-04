@@ -1,0 +1,34 @@
+{
+  "manifest_id": "live.calendar_next",
+  "name": "Live Calendar Next Events",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "get_next_events",
+      "command": "[t:cal/next -> next_events] max_results=5"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "no_step_failed",
+      "type": "no_step_failed"
+    },
+    {
+      "id": "next_events_output_exists",
+      "type": "output_exists",
+      "output": "next_events"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["next_events"],
+    "acceptable_empty_outputs": ["next_events"]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "manifest_id": "smoke.condition_any",
+  "name": "Smoke Test - Compound Condition Any",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "priority",
+    "category"
+  ],
+  "steps": [
+    {
+      "id": "set_escalation_flag",
+      "when": {
+        "any": [
+          {
+            "input": "priority",
+            "equals": "urgent"
+          },
+          {
+            "input": "category",
+            "equals": "complaint"
+          }
+        ]
+      },
+      "command": "[m:set -> escalation_flag] key=\"test.escalation\"; value=\"true\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "set_escalation_flag_completed",
+      "type": "step_completed",
+      "step": "set_escalation_flag"
+    },
+    {
+      "id": "escalation_flag_output_exists",
+      "type": "output_exists",
+      "output": "escalation_flag"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["escalation_flag"]
+  }
+}

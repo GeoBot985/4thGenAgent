@@ -1,0 +1,19 @@
+{
+  "manifest_id": "event.stub",
+  "name": "External Event Stub",
+  "version": 1,
+  "trigger": {
+    "type": "event"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "inspect_cleanup_reports",
+      "command": "[i:cleanup_reports -> cleanup_reports]"
+    }
+  ],
+  "validations": [],
+  "completion": {
+    "success_outputs": ["cleanup_reports"]
+  }
+}

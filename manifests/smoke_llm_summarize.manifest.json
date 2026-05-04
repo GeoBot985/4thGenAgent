@@ -1,0 +1,46 @@
+{
+  "manifest_id": "smoke.llm_summarize",
+  "name": "Smoke Test - LLM Summarize",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "summarize_message",
+      "command": "[q:summarize -> summary] text=$inputs.message; max_words=30"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "summarize_step_completed",
+      "type": "step_completed",
+      "step": "summarize_message"
+    },
+    {
+      "id": "summary_output_exists",
+      "type": "output_exists",
+      "output": "summary"
+    },
+    {
+      "id": "llm_summary_call_exists",
+      "type": "llm_call_exists",
+      "output": "summary"
+    },
+    {
+      "id": "llm_summary_call_ok",
+      "type": "llm_call_ok",
+      "output": "summary"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["summary"]
+  }
+}

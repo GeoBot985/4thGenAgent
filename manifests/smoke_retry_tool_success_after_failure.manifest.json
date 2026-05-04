@@ -1,0 +1,39 @@
+{
+  "manifest_id": "smoke.retry_tool_success_after_failure",
+  "name": "Smoke Test - Retry Tool Success After Failure",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "run_flaky_tool",
+      "retry": {
+        "max_attempts": 2,
+        "delay_seconds": 0,
+        "retry_on": ["any"]
+      },
+      "command": "[t:fake/flaky -> result]"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_step_failed",
+      "type": "no_step_failed"
+    },
+    {
+      "id": "flaky_step_completed",
+      "type": "step_completed",
+      "step": "run_flaky_tool"
+    },
+    {
+      "id": "result_output_exists",
+      "type": "output_exists",
+      "output": "result"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["result"]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "manifest_id": "smoke.inspect_recent_runs",
+  "name": "Smoke Test - Inspect Recent Runs",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "list_runs",
+      "command": "[i:list_runs -> runs] limit=10"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "list_runs_completed",
+      "type": "step_completed",
+      "step": "list_runs"
+    },
+    {
+      "id": "runs_output_exists",
+      "type": "output_exists",
+      "output": "runs"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["runs"],
+    "acceptable_empty_outputs": ["runs"]
+  }
+}

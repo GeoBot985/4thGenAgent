@@ -1,0 +1,46 @@
+{
+  "manifest_id": "smoke.llm_draft",
+  "name": "Smoke Test - LLM Draft",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "draft_reply",
+      "command": "[q:draft -> reply] instruction=\"Draft a short plain reply\"; context=$inputs.message; tone=\"plain\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "draft_step_completed",
+      "type": "step_completed",
+      "step": "draft_reply"
+    },
+    {
+      "id": "reply_output_exists",
+      "type": "output_exists",
+      "output": "reply"
+    },
+    {
+      "id": "reply_not_empty",
+      "type": "output_not_empty",
+      "output": "reply"
+    },
+    {
+      "id": "llm_draft_call_ok",
+      "type": "llm_call_ok",
+      "output": "reply"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["reply"]
+  }
+}

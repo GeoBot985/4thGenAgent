@@ -1,0 +1,11 @@
+{
+  "spreadsheet_id": "",
+  "tabs": {
+    "payments": "Payments!A:I",
+    "orders": "Orders!A:F",
+    "invoices": "CustomerInvoices!A:H",
+    "ledger": "Ledger!A:I",
+    "recon_runs": "ReconRuns!A:J",
+    "recon_exceptions": "ReconExceptions!A:M"
+  }
+}

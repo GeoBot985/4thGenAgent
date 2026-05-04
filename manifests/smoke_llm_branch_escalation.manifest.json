@@ -1,0 +1,78 @@
+{
+  "manifest_id": "smoke.llm_branch_escalation",
+  "name": "Smoke Test - LLM Branch Escalation",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message",
+    "support_chat"
+  ],
+  "steps": [
+    {
+      "id": "classify_message",
+      "command": "[q:classify -> category] labels=\"order_status,refund,complaint,other\"; text=$inputs.message"
+    },
+    {
+      "id": "validate_category_allowed",
+      "command": "[validate:category_label_allowed]"
+    },
+    {
+      "id": "draft_reply",
+      "command": "[q:draft -> reply] instruction=\"Draft a short support reply\"; context=$inputs.message; tone=\"plain\""
+    },
+    {
+      "id": "stage_escalation",
+      "when": {
+        "any": [
+          {
+            "output": "category",
+            "field": "label",
+            "equals": "complaint"
+          },
+          {
+            "output": "category",
+            "field": "confidence",
+            "equals": "low"
+          }
+        ]
+      },
+      "command": "[t:wa/send -> escalation_msg] chat=$inputs.support_chat; message=$reply"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "category_label_allowed",
+      "type": "output_in_allowed_values",
+      "output": "category",
+      "field": "label",
+      "allowed": ["order_status", "refund", "complaint", "other"]
+    },
+    {
+      "id": "draft_reply_completed",
+      "type": "step_completed",
+      "step": "draft_reply"
+    },
+    {
+      "id": "reply_output_exists",
+      "type": "output_exists",
+      "output": "reply"
+    },
+    {
+      "id": "escalation_staged",
+      "type": "pending_action_exists",
+      "tool": "wa/send",
+      "output": "escalation_msg"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["reply"],
+    "success_pending_actions": ["escalation_msg"],
+    "allow_pending_approval": true
+  }
+}

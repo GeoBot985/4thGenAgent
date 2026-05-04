@@ -1,0 +1,49 @@
+{
+  "manifest_id": "smoke.condition_all",
+  "name": "Smoke Test - Compound Condition All",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "channel",
+    "priority"
+  ],
+  "steps": [
+    {
+      "id": "set_priority_channel",
+      "when": {
+        "all": [
+          {
+            "input": "channel",
+            "equals": "whatsapp"
+          },
+          {
+            "input": "priority",
+            "equals": "urgent"
+          }
+        ]
+      },
+      "command": "[m:set -> saved_branch] key=\"test.branch\"; value=\"urgent_whatsapp\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "set_priority_channel_completed",
+      "type": "step_completed",
+      "step": "set_priority_channel"
+    },
+    {
+      "id": "saved_branch_output_exists",
+      "type": "output_exists",
+      "output": "saved_branch"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["saved_branch"]
+  }
+}

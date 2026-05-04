@@ -1,0 +1,31 @@
+{
+  "manifest_id": "smoke.gobook_open_courts",
+  "name": "Smoke Test - GoBook Open Courts",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "date",
+    "start",
+    "end"
+  ],
+  "steps": [
+    {
+      "id": "check_open_courts",
+      "command": "[t:gb/open_courts -> open_slots] date=$event.date; start=$event.start; end=$event.end; slowmo=100"
+    }
+  ],
+  "validations": [
+    {
+      "id": "open_slots_output_exists",
+      "type": "output_exists",
+      "output": "open_slots"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["open_slots"],
+    "acceptable_empty_outputs": ["open_slots"]
+  }
+}
+

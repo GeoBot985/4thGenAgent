@@ -1,0 +1,23 @@
+flowchart TD
+    A[Operator UI] --> B[Cross-Workflow Demo Pack]
+    A --> C[Event Routes]
+    B --> C
+    C --> D[Manifests]
+    D --> E[TaskFrame]
+    E --> F[Generic Orchestrator / State Machine]
+    F --> G[Tool Registry]
+    F --> H[LLM Adapter]
+    F --> I[Validation Layer]
+    G --> J[Business Tools]
+    G --> K[Google Sheets]
+    I --> L[Pending Actions / Approval Gate]
+    L --> M[Dry-Run Executor]
+    M --> N[Reports / Evidence Bundle]
+    N --> O[Runtime Data]
+    O --> A
+
+    subgraph Principle["Architecture Principle"]
+      P[Business logic lives in manifests + tools]
+      Q[Not in the orchestrator]
+    end
+    D -.-> Principle

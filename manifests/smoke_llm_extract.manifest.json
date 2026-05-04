@@ -1,0 +1,47 @@
+{
+  "manifest_id": "smoke.llm_extract",
+  "name": "Smoke Test - LLM Extract",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "extract_order_ref",
+      "command": "[q:extract -> extracted] schema=\"order_ref\"; fields=\"order_ref,confidence\"; text=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "extract_step_completed",
+      "type": "step_completed",
+      "step": "extract_order_ref"
+    },
+    {
+      "id": "extracted_output_exists",
+      "type": "output_exists",
+      "output": "extracted"
+    },
+    {
+      "id": "extracted_has_required_fields",
+      "type": "output_has_fields",
+      "output": "extracted",
+      "fields": ["order_ref", "confidence"]
+    },
+    {
+      "id": "llm_extract_call_ok",
+      "type": "llm_call_ok",
+      "output": "extracted"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["extracted"]
+  }
+}

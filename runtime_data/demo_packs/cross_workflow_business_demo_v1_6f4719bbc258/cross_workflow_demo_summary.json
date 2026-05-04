@@ -1,0 +1,760 @@
+{
+  "ok": false,
+  "pack_id": "cross_workflow_business_demo_v1",
+  "label": "Cross-Workflow Business Automation Demo v1",
+  "started_at": "2026-05-04T10:56:56.146129Z",
+  "ended_at": "2026-05-04T10:56:59.082719Z",
+  "duration_ms": 2936,
+  "dry_run_only": true,
+  "requires_real_llm": true,
+  "workflow_results": [
+    {
+      "lane": "customer_support",
+      "scenario_id": "customer_status_approve_execute_dry_run",
+      "ok": true,
+      "frame_id": "frame_c60c07d944144678a6c92bc192adec6c",
+      "manifest_id": "customer.status_llm_e2e",
+      "state": "FAILED_EXECUTION",
+      "pending_action_count": 0,
+      "executed_action_count": 0,
+      "report_result": {
+        "ok": true,
+        "frame_id": "frame_c60c07d944144678a6c92bc192adec6c",
+        "report_type": "operator_run_report",
+        "markdown_path": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\run_report.md",
+        "html_path": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\run_report.html",
+        "evidence_bundle_path": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\evidence_bundle.json",
+        "generated_at": "2026-05-04T10:56:59Z",
+        "rebuild": true,
+        "error": "",
+        "bundle": {
+          "bundle_version": 1,
+          "generated_at": "2026-05-04T10:56:59Z",
+          "frame_id": "frame_c60c07d944144678a6c92bc192adec6c",
+          "manifest_id": "customer.status_llm_e2e",
+          "state": "FAILED_EXECUTION",
+          "summary": {
+            "completed_steps": 0,
+            "completion_status": "",
+            "created_at": "2026-05-04T10:56:56Z",
+            "current_step_id": "extract_order_ref",
+            "error_count": 1,
+            "executed_action_count": 0,
+            "failed_steps": 1,
+            "frame_id": "frame_c60c07d944144678a6c92bc192adec6c",
+            "manifest_id": "customer.status_llm_e2e",
+            "output_keys": [],
+            "pending_action_count": 0,
+            "skipped_steps": 0,
+            "state": "FAILED_EXECUTION",
+            "step_count": 14,
+            "updated_at": "2026-05-04T10:56:58Z",
+            "validation_count": 0,
+            "validation_failed_count": 0
+          },
+          "trigger": {
+            "channel": "callcentre",
+            "customer_id": "CUST-1001",
+            "event_id": "evt_1a5b0a4b07be4dc0b256f37d7ac93a83",
+            "event_type": "manual.customer_status_llm_e2e",
+            "message": "Where is my order ORD-10042?",
+            "source": "operator_scenario_pack"
+          },
+          "inputs": {
+            "channel": "callcentre",
+            "customer_id": "CUST-1001",
+            "message": "Where is my order ORD-10042?"
+          },
+          "steps": [
+            {
+              "action": "extract_order_ref",
+              "attempts": 1,
+              "command": "[q:extract_order_ref -> order_ref] text=$inputs.message",
+              "duration_ms": 2766.0000000614673,
+              "ended_at": "2026-05-04T10:56:58Z",
+              "error": "Missing required field: order_ref",
+              "kind": "llm",
+              "last_error": "Missing required field: order_ref",
+              "max_attempts": 1,
+              "namespace": "q",
+              "output_alias": "order_ref",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "2026-05-04T10:56:56Z",
+              "status": "FAILED",
+              "step_id": "extract_order_ref",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "classify_customer_message",
+              "attempts": 0,
+              "command": "[q:classify_customer_message -> category] text=$inputs.message",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "llm",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "q",
+              "output_alias": "category",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "classify_message",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "order_ref_has_value",
+              "attempts": 0,
+              "command": "[validate:order_ref_has_value]",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "validate",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": null,
+              "output_alias": null,
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "validate_order_ref",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "read",
+              "attempts": 0,
+              "command": "[t:customer/read -> customer] customer_id=$inputs.customer_id",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "tool",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "customer",
+              "output_alias": "customer",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "lookup_customer",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "read",
+              "attempts": 0,
+              "command": "[t:order/read -> order] order_ref=$order_ref.order_ref",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "tool",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "order",
+              "output_alias": "order",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "lookup_order",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "read",
+              "attempts": 0,
+              "command": "[t:shipment/read -> shipment] order_ref=$order_ref.order_ref",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "tool",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "shipment",
+              "output_alias": "shipment",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "lookup_shipment",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "read_by_order",
+              "attempts": 0,
+              "command": "[t:payment/read_by_order -> payment] order_ref=$order_ref.order_ref",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "tool",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "payment",
+              "output_alias": "payment",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "read_payment",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "build",
+              "attempts": 0,
+              "command": "[t:order_context/build -> order_context] customer=$customer; order=$order; shipment=$shipment; payment=$payment",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "tool",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "order_context",
+              "output_alias": "order_context",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "build_order_context",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "validate_owns_order",
+              "attempts": 0,
+              "command": "[t:customer/validate_owns_order -> ownership_check] customer=$customer; order=$order",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "tool",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "customer",
+              "output_alias": "ownership_check",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "validate_customer_owns_order",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "build_status_context",
+              "attempts": 0,
+              "command": "[t:customer/build_status_context -> status_context] customer=$customer; order=$order; shipment=$shipment",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "tool",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "customer",
+              "output_alias": "status_context",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "build_status_context",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "draft_customer_status_reply",
+              "attempts": 0,
+              "command": "[q:draft_customer_status_reply -> draft_reply] facts=$status_context.facts; customer=$order_context.customer; order=$order_context.order; shipment=$order_context.shipment",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "llm",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "q",
+              "output_alias": "draft_reply",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "draft_reply",
+              "timeout_seconds": null,
+              "when": {
+                "all": [
+                  {
+                    "equals": "order_status",
+                    "field": "label",
+                    "output": "category"
+                  },
+                  {
+                    "equals": true,
+                    "field": "ok",
+                    "output": "ownership_check"
+                  }
+                ]
+              }
+            },
+            {
+              "action": "compare_reply_to_facts",
+              "attempts": 0,
+              "command": "[q:compare_reply_to_facts -> reply_check] reply=$draft_reply; facts=$status_context.facts",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "llm",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "q",
+              "output_alias": "reply_check",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "check_reply_against_facts",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "validate_customer_status_reply",
+              "attempts": 0,
+              "command": "[t:message/validate_customer_status_reply -> reply_validation] draft_reply=$draft_reply; order_context=$order_context",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "tool",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "message",
+              "output_alias": "reply_validation",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "validate_status_reply",
+              "timeout_seconds": null,
+              "when": null
+            },
+            {
+              "action": "prepare_message_action",
+              "attempts": 0,
+              "command": "[t:customer/prepare_message_action -> customer_reply_send] customer=$customer; channel=$customer.preferred_channel; message=$draft_reply",
+              "duration_ms": 0.0,
+              "ended_at": "",
+              "error": "",
+              "kind": "tool",
+              "last_error": "",
+              "max_attempts": 1,
+              "namespace": "customer",
+              "output_alias": "customer_reply_send",
+              "result_ref": null,
+              "retry": {
+                "delay_seconds": 0,
+                "fail_on_exhausted": true,
+                "max_attempts": 1,
+                "retry_on": [
+                  "any"
+                ]
+              },
+              "started_at": "",
+              "status": "PENDING",
+              "step_id": "stage_customer_reply",
+              "timeout_seconds": null,
+              "when": {
+                "all": [
+                  {
+                    "equals": true,
+                    "field": "ok",
+                    "output": "reply_validation"
+                  },
+                  {
+                    "equals": true,
+                    "field": "ok",
+                    "output": "reply_check"
+                  },
+                  {
+                    "equals": "order_status",
+                    "field": "label",
+                    "output": "category"
+                  },
+                  {
+                    "equals": true,
+                    "field": "ok",
+                    "output": "ownership_check"
+                  }
+                ]
+              }
+            }
+          ],
+          "outputs": {},
+          "evidence": [],
+          "validations": [],
+          "errors": [
+            {
+              "data": {
+                "action": "extract_order_ref",
+                "error_type": "LLM_OUTPUT_SCHEMA_INVALID",
+                "output_alias": "order_ref",
+                "step_id": "extract_order_ref"
+              },
+              "message": "Missing required field: order_ref",
+              "timestamp": "2026-05-04T10:56:58Z",
+              "type": "llm_micro_tool_failed"
+            }
+          ],
+          "pending_actions": [],
+          "executed_actions": [],
+          "tool_calls": [],
+          "llm_calls": [
+            {
+              "action": "extract_order_ref",
+              "args": {
+                "text": "Where is my order ORD-10042?"
+              },
+              "error": "Missing required field: order_ref",
+              "error_type": "LLM_OUTPUT_SCHEMA_INVALID",
+              "model": "granite3.3:8b",
+              "ok": false,
+              "output_alias": "order_ref",
+              "parsed_output": {},
+              "provider": "ollama",
+              "raw_output": "{\n  \"orderID\": \"ORD-10042\",\n  \"status\": \"Not found in the provided database\"\n}",
+              "result_type": "llm_extract_order_ref_result",
+              "step_id": "extract_order_ref",
+              "timestamp": "2026-05-04T10:56:58Z"
+            }
+          ],
+          "completion_gate_result": null,
+          "failure_summary": {
+            "ok": true,
+            "frame_id": "frame_c60c07d944144678a6c92bc192adec6c",
+            "manifest_id": "customer.status_llm_e2e",
+            "state": "FAILED_EXECUTION",
+            "failed_step_id": "extract_order_ref",
+            "failure_type": "execution_failed",
+            "failure_message": "Missing required field: order_ref",
+            "blocking_errors": [
+              {
+                "data": {
+                  "action": "extract_order_ref",
+                  "error_type": "LLM_OUTPUT_SCHEMA_INVALID",
+                  "output_alias": "order_ref",
+                  "step_id": "extract_order_ref"
+                },
+                "message": "Missing required field: order_ref",
+                "timestamp": "2026-05-04T10:56:58Z",
+                "type": "llm_micro_tool_failed"
+              }
+            ],
+            "failed_validations": [
+              {
+                "validation_id": "",
+                "type": "llm_micro_tool_failed",
+                "ok": false,
+                "message": "Missing required field: order_ref",
+                "data": {
+                  "action": "extract_order_ref",
+                  "error_type": "LLM_OUTPUT_SCHEMA_INVALID",
+                  "output_alias": "order_ref",
+                  "step_id": "extract_order_ref"
+                }
+              }
+            ],
+            "pending_action_count": 0,
+            "executed_action_count": 0,
+            "safe_to_retry": false,
+            "operator_explanation": "The runtime stopped during execution because missing required field: order_ref"
+          },
+          "approval_pack": {
+            "ok": true,
+            "frame_id": "frame_c60c07d944144678a6c92bc192adec6c",
+            "manifest_id": "customer.status_llm_e2e",
+            "state": "FAILED_EXECUTION",
+            "pending_action_count": 0,
+            "approval_packs": [],
+            "error": "",
+            "message": "No pending approval actions for this TaskFrame."
+          },
+          "artifact_paths": {
+            "taskframe_json": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\taskframe.json",
+            "summary_json": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\summary.json",
+            "outputs_json": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\outputs.json",
+            "audit_json": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\audit.json",
+            "run_report_md": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\run_report.md",
+            "run_report_html": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\run_report.html",
+            "approval_pack_report_md": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\approval_pack_report.md",
+            "approval_pack_report_html": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\approval_pack_report.html",
+            "failure_report_md": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\failure_report.md",
+            "failure_report_html": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\failure_report.html",
+            "evidence_bundle_json": "runtime_data\\runs\\frame_c60c07d944144678a6c92bc192adec6c\\reports\\evidence_bundle.json"
+          }
+        }
+      },
+      "failure_summary": {
+        "ok": true,
+        "frame_id": "frame_c60c07d944144678a6c92bc192adec6c",
+        "manifest_id": "customer.status_llm_e2e",
+        "state": "FAILED_EXECUTION",
+        "failed_step_id": "extract_order_ref",
+        "failure_type": "execution_failed",
+        "failure_message": "Missing required field: order_ref",
+        "blocking_errors": [
+          {
+            "data": {
+              "action": "extract_order_ref",
+              "error_type": "LLM_OUTPUT_SCHEMA_INVALID",
+              "output_alias": "order_ref",
+              "step_id": "extract_order_ref"
+            },
+            "message": "Missing required field: order_ref",
+            "timestamp": "2026-05-04T10:56:58Z",
+            "type": "llm_micro_tool_failed"
+          }
+        ],
+        "failed_validations": [
+          {
+            "validation_id": "",
+            "type": "llm_micro_tool_failed",
+            "ok": false,
+            "message": "Missing required field: order_ref",
+            "data": {
+              "action": "extract_order_ref",
+              "error_type": "LLM_OUTPUT_SCHEMA_INVALID",
+              "output_alias": "order_ref",
+              "step_id": "extract_order_ref"
+            }
+          }
+        ],
+        "pending_action_count": 0,
+        "executed_action_count": 0,
+        "safe_to_retry": false,
+        "operator_explanation": "The runtime stopped during execution because missing required field: order_ref"
+      },
+      "scenario_validation": {
+        "verdict": "FAIL",
+        "passed": false,
+        "check_count": 6,
+        "passed_count": 0,
+        "failed_count": 6,
+        "warn_count": 0,
+        "checks": [
+          {
+            "id": "final_state",
+            "level": "required",
+            "ok": false,
+            "expected": "COMPLETED",
+            "actual": "FAILED_EXECUTION",
+            "message": ""
+          },
+          {
+            "id": "required_output:customer_reply_send",
+            "level": "required",
+            "ok": false,
+            "expected": true,
+            "actual": false,
+            "message": ""
+          },
+          {
+            "id": "pending_action_count",
+            "level": "required",
+            "ok": false,
+            "expected": 1,
+            "actual": 0,
+            "message": ""
+          },
+          {
+            "id": "executed_action_count",
+            "level": "required",
+            "ok": false,
+            "expected": 1,
+            "actual": 0,
+            "message": ""
+          },
+          {
+            "id": "pending_action_status",
+            "level": "required",
+            "ok": false,
+            "expected": "EXECUTED",
+            "actual": [],
+            "message": ""
+          },
+          {
+            "id": "must_have_approval_pack",
+            "level": "required",
+            "ok": false,
+            "expected": true,
+            "actual": false,
+            "message": ""
+          }
+        ]
+      },
+      "summary": {
+        "completed_steps": 0,
+        "completion_status": "",
+        "created_at": "2026-05-04T10:56:56Z",
+        "current_step_id": "extract_order_ref",
+        "error_count": 1,
+        "executed_action_count": 0,
+        "failed_steps": 1,
+        "frame_id": "frame_c60c07d944144678a6c92bc192adec6c",
+        "manifest_id": "customer.status_llm_e2e",
+        "output_keys": [],
+        "pending_action_count": 0,
+        "skipped_steps": 0,
+        "state": "FAILED_EXECUTION",
+        "step_count": 14,
+        "updated_at": "2026-05-04T10:56:58Z",
+        "validation_count": 0,
+        "validation_failed_count": 0
+      }
+    },
+    {
+      "lane": "procurement",
+      "scenario_id": "procurement_low_stock_approve_execute_dry_run",
+      "ok": false,
+      "frame_id": "",
+      "manifest_id": "",
+      "state": "NOT_RUN",
+      "pending_action_count": 0,
+      "executed_action_count": 0,
+      "report_result": {},
+      "failure_summary": {},
+      "scenario_validation": {
+        "verdict": "FAIL",
+        "checks": []
+      },
+      "summary": {}
+    },
+    {
+      "lane": "accounting",
+      "scenario_id": "accounting_payment_reconciliation_approve_execute_dry_run",
+      "ok": false,
+      "frame_id": "",
+      "manifest_id": "",
+      "state": "NOT_RUN",
+      "pending_action_count": 0,
+      "executed_action_count": 0,
+      "report_result": {},
+      "failure_summary": {},
+      "scenario_validation": {
+        "verdict": "FAIL",
+        "checks": []
+      },
+      "summary": {}
+    }
+  ],
+  "summary": {
+    "workflow_count": 3,
+    "completed_count": 0,
+    "failed_count": 1,
+    "not_run_count": 2,
+    "total_pending_actions": 0,
+    "total_executed_actions": 0,
+    "reports_generated": 1,
+    "evidence_bundles_generated": 1
+  },
+  "aggregate_report": {
+    "ok": true,
+    "markdown_path": "runtime_data\\demo_packs\\cross_workflow_business_demo_v1_6f4719bbc258\\cross_workflow_demo_report.md",
+    "html_path": "runtime_data\\demo_packs\\cross_workflow_business_demo_v1_6f4719bbc258\\cross_workflow_demo_report.html",
+    "summary_json_path": "runtime_data\\demo_packs\\cross_workflow_business_demo_v1_6f4719bbc258\\cross_workflow_demo_summary.json"
+  },
+  "failed_lane": "customer_support",
+  "failed_scenario_id": "customer_status_approve_execute_dry_run",
+  "error": "Missing required field: order_ref"
+}

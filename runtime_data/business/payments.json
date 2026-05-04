@@ -1,0 +1,82 @@
+[
+  {
+    "amount": 1299.99,
+    "currency": "ZAR",
+    "customer_id": "CUST-1001",
+    "order_ref": "ORD-10042",
+    "paid_at": "2026-04-25T10:00:00Z",
+    "payment_id": "PAY-7001",
+    "provider_ref": "BANK-001",
+    "status": "matched"
+  },
+  {
+    "amount": 499.5,
+    "currency": "ZAR",
+    "customer_id": "CUST-1002",
+    "order_ref": "ORD-10043",
+    "paid_at": "2026-04-20T09:00:00Z",
+    "payment_id": "PAY-7002",
+    "provider_ref": "BANK-002",
+    "status": "matched"
+  },
+  {
+    "amount": 799.0,
+    "currency": "ZAR",
+    "customer_id": "CUST-1004",
+    "order_ref": "ORD-10044",
+    "paid_at": "2026-04-29T11:00:00Z",
+    "payment_id": "PAY-7003",
+    "provider_ref": "BANK-003",
+    "status": "amount_mismatch"
+  },
+  {
+    "amount": 300.0,
+    "currency": "ZAR",
+    "customer_id": "CUST-1003",
+    "order_ref": "ORD-99998",
+    "paid_at": "2026-04-30T12:00:00Z",
+    "payment_id": "PAY-7004",
+    "provider_ref": "BANK-004",
+    "status": "unmatched_order"
+  },
+  {
+    "amount": 150.0,
+    "currency": "ZAR",
+    "customer_id": "CUST-1001",
+    "order_ref": "ORD-10046",
+    "paid_at": "2026-04-12T09:10:00Z",
+    "payment_id": "PAY-7005",
+    "provider_ref": "BANK-005",
+    "status": "matched"
+  },
+  {
+    "amount": 250.0,
+    "currency": "ZAR",
+    "customer_id": "CUST-1002",
+    "order_ref": "ORD-10047",
+    "paid_at": "2026-04-27T09:10:00Z",
+    "payment_id": "PAY-7006",
+    "provider_ref": "BANK-006",
+    "status": "matched"
+  },
+  {
+    "amount": 1200.0,
+    "currency": "ZAR",
+    "customer_id": "CUST-1004",
+    "order_ref": "ORD-10048",
+    "paid_at": "2026-04-30T10:10:00Z",
+    "payment_id": "PAY-7007",
+    "provider_ref": "BANK-007",
+    "status": "matched"
+  },
+  {
+    "amount": 199.0,
+    "currency": "ZAR",
+    "customer_id": "CUST-1001",
+    "order_ref": "ORD-10049",
+    "paid_at": "2026-04-11T09:10:00Z",
+    "payment_id": "PAY-7008",
+    "provider_ref": "BANK-008",
+    "status": "matched"
+  }
+]

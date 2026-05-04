@@ -1,0 +1,36 @@
+{
+  "manifest_id": "smoke.inspect_run_summary",
+  "name": "Smoke Test - Inspect Run Summary",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "frame_id"
+  ],
+  "steps": [
+    {
+      "id": "load_summary",
+      "command": "[i:summary -> run_summary] frame_id=$inputs.frame_id"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "load_summary_completed",
+      "type": "step_completed",
+      "step": "load_summary"
+    },
+    {
+      "id": "run_summary_output_exists",
+      "type": "output_exists",
+      "output": "run_summary"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["run_summary"]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "manifest_id": "maintenance.cleanup_dry_run",
+  "name": "Maintenance - Cleanup Dry Run",
+  "version": 1,
+  "trigger": {
+    "type": "maintenance"
+  },
+  "inputs": [
+    "mode",
+    "max_report_age_days",
+    "max_temp_age_days"
+  ],
+  "steps": [
+    {
+      "id": "cleanup_dry_run",
+      "command": "[mt:cleanup_dry_run -> cleanup_plan] mode=$inputs.mode; max_report_age_days=$inputs.max_report_age_days; max_temp_age_days=$inputs.max_temp_age_days"
+    }
+  ],
+  "validations": [
+    {
+      "id": "cleanup_step_completed",
+      "type": "step_completed",
+      "step": "cleanup_dry_run"
+    },
+    {
+      "id": "cleanup_plan_exists",
+      "type": "output_exists",
+      "output": "cleanup_plan"
+    },
+    {
+      "id": "cleanup_plan_has_fields",
+      "type": "output_has_fields",
+      "output": "cleanup_plan",
+      "fields": ["action", "cleanup_id", "dry_run", "summary", "report_path"]
+    }
+  ],
+  "completion": {
+    "success_outputs": ["cleanup_plan"]
+  }
+}

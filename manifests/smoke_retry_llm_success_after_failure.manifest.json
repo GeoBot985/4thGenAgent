@@ -1,0 +1,38 @@
+{
+  "manifest_id": "smoke.retry_llm_success_after_failure",
+  "name": "Smoke Test - Retry LLM Success After Failure",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "extract_order_ref",
+      "retry": {
+        "max_attempts": 2,
+        "delay_seconds": 0,
+        "retry_on": ["LLMOutputParseError", "any"]
+      },
+      "command": "[q:extract -> extracted] schema=\"order_ref\"; fields=\"order_ref,confidence\"; text=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "extract_step_completed",
+      "type": "step_completed",
+      "step": "extract_order_ref"
+    },
+    {
+      "id": "extracted_has_required_fields",
+      "type": "output_has_fields",
+      "output": "extracted",
+      "fields": ["order_ref", "confidence"]
+    }
+  ],
+  "completion": {
+    "success_outputs": ["extracted"]
+  }
+}

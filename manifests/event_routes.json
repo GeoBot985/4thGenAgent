@@ -1,0 +1,385 @@
+{
+  "routes": [
+    {
+      "event_type": "manual.gmail_check",
+      "manifest_id": "smoke.gmail_check",
+      "enabled": true
+    },
+    {
+      "event_type": "customer_message",
+      "manifest_id": "customer.message_status_check",
+      "enabled": true,
+      "input_map": {
+        "event_id": "payload.event_id",
+        "customer_id": "payload.customer_id",
+        "message": "payload.message",
+        "channel": "payload.channel",
+        "received_at": "payload.received_at"
+      }
+    },
+    {
+      "event_type": "manual.customer_message_status_check",
+      "manifest_id": "customer.message_status_check",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.mock_ping",
+      "manifest_id": "event.mock_ping",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.live_gmail_check",
+      "manifest_id": "live.gmail_check",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.live_calendar_next",
+      "manifest_id": "live.calendar_next",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.gobook_open_courts",
+      "manifest_id": "smoke.gobook_open_courts",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.whatsapp_stage_send",
+      "manifest_id": "smoke.whatsapp_stage_send",
+      "enabled": true
+    },
+    {
+      "event_type": "schedule.gmail_check",
+      "manifest_id": "smoke.gmail_check",
+      "enabled": true
+    },
+    {
+      "event_type": "schedule.calendar_next",
+      "manifest_id": "live.calendar_next",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.memory_set",
+      "manifest_id": "smoke.memory_set",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.memory_get",
+      "manifest_id": "smoke.memory_get",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.memory_get_missing",
+      "manifest_id": "smoke.memory_get_missing",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_summarize",
+      "manifest_id": "smoke.llm_summarize",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_extract",
+      "manifest_id": "smoke.llm_extract",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_classify",
+      "manifest_id": "smoke.llm_classify",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_draft",
+      "manifest_id": "smoke.llm_draft",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_extract_order_ref",
+      "manifest_id": "llm.extract_order_ref",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_classify_customer_message",
+      "manifest_id": "llm.classify_customer_message",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_customer_status_reply",
+      "manifest_id": "llm.customer_status_reply",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.customer_status_llm_e2e",
+      "manifest_id": "customer.status_llm_e2e",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.procurement_low_stock_reorder",
+      "manifest_id": "procurement.low_stock_reorder",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.accounting_payment_reconciliation",
+      "manifest_id": "accounting.payment_reconciliation",
+      "enabled": true,
+      "input_map": {
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type",
+        "received_at": "received_at",
+        "spreadsheet_id": "payload.spreadsheet_id",
+        "payments_range": "payload.payments_range",
+        "orders_range": "payload.orders_range",
+        "invoices_range": "payload.invoices_range",
+        "ledger_range": "payload.ledger_range",
+        "recon_runs_range": "payload.recon_runs_range",
+        "recon_exceptions_range": "payload.recon_exceptions_range"
+      }
+    },
+    {
+      "event_type": "manual.messages_absa_debit_orders_2026",
+      "manifest_id": "messages.absa_debit_orders_2026",
+      "enabled": true,
+      "input_map": {
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type",
+        "received_at": "received_at",
+        "spreadsheet_id": "payload.spreadsheet_id",
+        "output_range": "payload.output_range",
+        "search_query": "payload.search_query",
+        "year": "payload.year",
+        "runtime_root": "payload.runtime_root"
+      }
+    },
+    {
+      "event_type": "daily.low_stock_check",
+      "manifest_id": "procurement.low_stock_reorder",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.validate_step_output_exists",
+      "manifest_id": "smoke.validate_step_output_exists",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.validate_step_fail_fast",
+      "manifest_id": "smoke.validate_step_fail_fast",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_classify_with_validation_step",
+      "manifest_id": "smoke.llm_classify_with_validation_step",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.condition_equals",
+      "manifest_id": "smoke.condition_equals",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.condition_skip",
+      "manifest_id": "smoke.condition_skip",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_classify_conditional_reply",
+      "manifest_id": "smoke.llm_classify_conditional_reply",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.condition_all",
+      "manifest_id": "smoke.condition_all",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.condition_any",
+      "manifest_id": "smoke.condition_any",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.condition_not",
+      "manifest_id": "smoke.condition_not",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.llm_branch_escalation",
+      "manifest_id": "smoke.llm_branch_escalation",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.channel_branch_reply",
+      "manifest_id": "smoke.channel_branch_reply",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.condition_numeric_comparison",
+      "manifest_id": "smoke.condition_numeric_comparison",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.condition_time_window",
+      "manifest_id": "smoke.condition_time_window",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.condition_date_window",
+      "manifest_id": "smoke.condition_date_window",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.gobook_preferred_window",
+      "manifest_id": "smoke.gobook_preferred_window",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.retry_tool_success_after_failure",
+      "manifest_id": "smoke.retry_tool_success_after_failure",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.retry_tool_exhausted",
+      "manifest_id": "smoke.retry_tool_exhausted",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.retry_llm_success_after_failure",
+      "manifest_id": "smoke.retry_llm_success_after_failure",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.retry_no_retry_on_validation",
+      "manifest_id": "smoke.retry_no_retry_on_validation",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.timeout_success",
+      "manifest_id": "smoke.timeout_success",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.timeout_exceeded",
+      "manifest_id": "smoke.timeout_exceeded",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.timeout_retry_success",
+      "manifest_id": "smoke.timeout_retry_success",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.inspect_recent_runs",
+      "manifest_id": "smoke.inspect_recent_runs",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.inspect_run_summary",
+      "manifest_id": "smoke.inspect_run_summary",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.inspect_run_outputs",
+      "manifest_id": "smoke.inspect_run_outputs",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.inspect_run_pending_actions",
+      "manifest_id": "smoke.inspect_run_pending_actions",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.approve_pending_action",
+      "manifest_id": "smoke.approve_pending_action",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.reject_pending_action",
+      "manifest_id": "smoke.reject_pending_action",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.execute_approved_pending_actions",
+      "manifest_id": "smoke.execute_approved_pending_actions",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.reload_pending_action_flow",
+      "manifest_id": "smoke.reload_pending_action_flow",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.live_sheet_create_allowed",
+      "manifest_id": "smoke.live_sheet_create_allowed",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.live_sheet_write_allowed",
+      "manifest_id": "smoke.live_sheet_write_allowed",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.live_side_effect_blocked_by_manifest",
+      "manifest_id": "smoke.live_side_effect_blocked_by_manifest",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.live_side_effect_blocked_by_tool",
+      "manifest_id": "smoke.live_side_effect_blocked_by_tool",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.cleanup_dry_run",
+      "manifest_id": "smoke.cleanup_dry_run",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.cleanup_reports_dry_run",
+      "manifest_id": "smoke.cleanup_reports_dry_run",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.cleanup_execute_confirmed",
+      "manifest_id": "smoke.cleanup_execute_confirmed",
+      "enabled": true
+    },
+    {
+      "event_type": "manual.cleanup_blocked_without_confirmation",
+      "manifest_id": "smoke.cleanup_blocked_without_confirmation",
+      "enabled": true
+    },
+    {
+      "event_type": "maintenance.artifact_index_rebuild",
+      "manifest_id": "maintenance.artifact_index_rebuild",
+      "enabled": true
+    },
+    {
+      "event_type": "maintenance.cleanup_dry_run",
+      "manifest_id": "maintenance.cleanup_dry_run",
+      "enabled": true
+    },
+    {
+      "event_type": "maintenance.report_failed_runs",
+      "manifest_id": "maintenance.report_failed_runs",
+      "enabled": true
+    },
+    {
+      "event_type": "maintenance.report_pending_runs",
+      "manifest_id": "maintenance.report_pending_runs",
+      "enabled": true
+    },
+    {
+      "event_type": "maintenance.report_live_packs",
+      "manifest_id": "maintenance.report_live_packs",
+      "enabled": true
+    },
+    {
+      "event_type": "external.stub",
+      "manifest_id": "event.stub",
+      "enabled": true
+    },
+    {
+      "event_type": "schedule.maintenance_due",
+      "manifest_id": "maintenance.scheduled",
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "manifest_id": "smoke.condition_equals",
+  "name": "Smoke Test - Condition Equals",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "channel"
+  ],
+  "steps": [
+    {
+      "id": "set_whatsapp_memory",
+      "when": {
+        "input": "channel",
+        "equals": "whatsapp"
+      },
+      "command": "[m:set -> saved_channel] key=\"test.channel\"; value=$inputs.channel"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "set_whatsapp_memory_completed",
+      "type": "step_completed",
+      "step": "set_whatsapp_memory"
+    },
+    {
+      "id": "saved_channel_output_exists",
+      "type": "output_exists",
+      "output": "saved_channel"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["saved_channel"]
+  }
+}

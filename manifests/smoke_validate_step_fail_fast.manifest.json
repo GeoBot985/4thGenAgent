@@ -1,0 +1,30 @@
+{
+  "manifest_id": "smoke.validate_step_fail_fast",
+  "name": "Smoke Test - Executable Validation Step Fail Fast",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "validate_missing_output",
+      "command": "[validate:missing_output_exists]"
+    },
+    {
+      "id": "should_not_run",
+      "command": "[t:g/check -> unread_mail] max_results=5"
+    }
+  ],
+  "validations": [
+    {
+      "id": "missing_output_exists",
+      "type": "output_exists",
+      "output": "does_not_exist"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["unread_mail"],
+    "acceptable_empty_outputs": ["unread_mail"]
+  }
+}

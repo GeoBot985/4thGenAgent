@@ -1,0 +1,42 @@
+{
+  "manifest_id": "smoke.condition_not",
+  "name": "Smoke Test - Compound Condition Not",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "channel"
+  ],
+  "steps": [
+    {
+      "id": "set_non_whatsapp_channel",
+      "when": {
+        "not": {
+          "input": "channel",
+          "equals": "whatsapp"
+        }
+      },
+      "command": "[m:set -> saved_branch] key=\"test.non_whatsapp\"; value=$inputs.channel"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "set_non_whatsapp_channel_completed",
+      "type": "step_completed",
+      "step": "set_non_whatsapp_channel"
+    },
+    {
+      "id": "saved_branch_output_exists",
+      "type": "output_exists",
+      "output": "saved_branch"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["saved_branch"]
+  }
+}

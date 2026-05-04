@@ -1,0 +1,153 @@
+{
+  "manifest_id": "llm.customer_status_reply",
+  "name": "LLM Customer Status Reply",
+  "version": 2,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message",
+    "customer_id",
+    "channel",
+    "received_at"
+  ],
+  "steps": [
+    {
+      "id": "extract_order_ref",
+      "command": "[q:extract_order_ref -> order_ref] message=$inputs.message"
+    },
+    {
+      "id": "classify_message",
+      "command": "[q:classify_customer_message -> category] message=$inputs.message"
+    },
+    {
+      "id": "read_customer",
+      "command": "[t:customer/read -> customer] customer_id=$inputs.customer_id"
+    },
+    {
+      "id": "read_order",
+      "command": "[t:order/read -> order] order_ref=$order_ref.order_ref"
+    },
+    {
+      "id": "read_shipment",
+      "command": "[t:shipment/read -> shipment] order_ref=$order_ref.order_ref"
+    },
+    {
+      "id": "read_payment",
+      "command": "[t:payment/read_by_order -> payment] order_ref=$order_ref.order_ref"
+    },
+    {
+      "id": "validate_customer_owns_order",
+      "command": "[t:customer/validate_owns_order -> ownership_check] customer=$customer; order=$order"
+    },
+    {
+      "id": "build_status_context",
+      "command": "[t:customer/build_status_context -> order_context] customer=$customer; order=$order; shipment=$shipment; payment=$payment"
+    },
+    {
+      "id": "draft_reply",
+      "when": {
+        "all": [
+          {
+            "output": "category",
+            "field": "label",
+            "equals": "order_status"
+          },
+          {
+            "output": "ownership_check",
+            "field": "ok",
+            "equals": true
+          }
+        ]
+      },
+      "command": "[q:draft_customer_status_reply -> draft_reply] facts=$order_context.facts; customer=$customer; order=$order; shipment=$shipment"
+    },
+    {
+      "id": "compare_reply_to_facts",
+      "command": "[q:compare_reply_to_facts -> reply_check] reply=$draft_reply.reply; facts=$order_context.facts"
+    },
+    {
+      "id": "validate_status_reply",
+      "command": "[t:message/validate_customer_status_reply -> reply_validation] draft_reply=$draft_reply; order_context=$order_context"
+    },
+    {
+      "id": "prepare_pending_send",
+      "when": {
+        "all": [
+          {
+            "output": "reply_validation",
+            "field": "ok",
+            "equals": true
+          },
+          {
+            "output": "reply_check",
+            "field": "ok",
+            "equals": true
+          }
+        ]
+      },
+      "command": "[t:customer/prepare_message_action -> customer_reply_send] customer=$customer; channel=$customer.preferred_channel; message=$draft_reply"
+    }
+  ],
+  "validations": [
+    {
+      "id": "order_ref_exists",
+      "type": "output_exists",
+      "output": "order_ref"
+    },
+    {
+      "id": "category_exists",
+      "type": "output_exists",
+      "output": "category"
+    },
+    {
+      "id": "customer_exists",
+      "type": "output_exists",
+      "output": "customer"
+    },
+    {
+      "id": "order_exists",
+      "type": "output_exists",
+      "output": "order"
+    },
+    {
+      "id": "shipment_exists",
+      "type": "output_exists",
+      "output": "shipment"
+    },
+    {
+      "id": "order_context_exists",
+      "type": "output_exists",
+      "output": "order_context"
+    },
+    {
+      "id": "draft_reply_exists",
+      "type": "output_exists",
+      "output": "draft_reply"
+    },
+    {
+      "id": "reply_check_exists",
+      "type": "output_exists",
+      "output": "reply_check"
+    }
+  ],
+  "completion": {
+    "success_outputs": [
+      "order_ref",
+      "category",
+      "customer",
+      "order",
+      "shipment",
+      "order_context",
+      "draft_reply",
+      "reply_check",
+      "reply_validation",
+      "customer_reply_send"
+    ],
+    "success_pending_actions": [
+      "customer_reply_send"
+    ],
+    "allow_pending_approval": true,
+    "required_state": "WAITING_FOR_EXECUTE"
+  }
+}

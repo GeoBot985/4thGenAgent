@@ -1,0 +1,48 @@
+{
+  "manifest_id": "smoke.condition_numeric_comparison",
+  "name": "Smoke Test - Numeric Comparison Condition",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "amount"
+  ],
+  "steps": [
+    {
+      "id": "set_high_value_flag",
+      "when": {
+        "input": "amount",
+        "greater_than": 1000
+      },
+      "command": "[m:set -> high_value_flag] key=\"test.high_value\"; value=\"true\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "amount_above_threshold",
+      "type": "condition_true",
+      "condition": {
+        "input": "amount",
+        "greater_than": 1000
+      }
+    },
+    {
+      "id": "high_value_step_completed",
+      "type": "step_completed",
+      "step": "set_high_value_flag"
+    },
+    {
+      "id": "high_value_output_exists",
+      "type": "output_exists",
+      "output": "high_value_flag"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["high_value_flag"]
+  }
+}

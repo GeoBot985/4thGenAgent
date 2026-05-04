@@ -1,0 +1,11 @@
+{
+  "event_id": "evt-demo-customer-001",
+  "source": "callcenter",
+  "event_type": "customer_message",
+  "payload": {
+    "customer_id": "CUST-1001",
+    "channel": "callcenter",
+    "message": "Where is my order ORD-10042?"
+  },
+  "received_at": "2026-05-01T10:00:00Z"
+}

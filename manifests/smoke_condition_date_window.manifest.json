@@ -1,0 +1,48 @@
+{
+  "manifest_id": "smoke.condition_date_window",
+  "name": "Smoke Test - Date Window Condition",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "requested_date"
+  ],
+  "steps": [
+    {
+      "id": "set_may_window",
+      "when": {
+        "input": "requested_date",
+        "between_dates": ["2026-05-01", "2026-05-31"]
+      },
+      "command": "[m:set -> date_window] key=\"test.date_window\"; value=\"may_2026\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "requested_date_in_window",
+      "type": "condition_true",
+      "condition": {
+        "input": "requested_date",
+        "between_dates": ["2026-05-01", "2026-05-31"]
+      }
+    },
+    {
+      "id": "date_window_step_completed",
+      "type": "step_completed",
+      "step": "set_may_window"
+    },
+    {
+      "id": "date_window_output_exists",
+      "type": "output_exists",
+      "output": "date_window"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["date_window"]
+  }
+}

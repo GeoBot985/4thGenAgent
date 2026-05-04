@@ -1,0 +1,29 @@
+{
+  "manifest_id": "llm.extract_order_ref",
+  "name": "LLM Extract Order Reference",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "extract_order_ref",
+      "command": "[q:extract_order_ref -> order_ref] text=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "order_ref_exists",
+      "type": "output_exists",
+      "output": "order_ref"
+    }
+  ],
+  "completion": {
+    "success_outputs": [
+      "order_ref"
+    ]
+  }
+}

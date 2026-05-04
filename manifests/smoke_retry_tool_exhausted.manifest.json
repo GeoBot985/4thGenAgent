@@ -1,0 +1,31 @@
+{
+  "manifest_id": "smoke.retry_tool_exhausted",
+  "name": "Smoke Test - Retry Tool Exhausted",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "run_always_fail_tool",
+      "retry": {
+        "max_attempts": 3,
+        "delay_seconds": 0,
+        "retry_on": ["any"]
+      },
+      "command": "[t:fake/always_fail -> result]"
+    }
+  ],
+  "validations": [
+    {
+      "id": "always_fail_step_failed",
+      "type": "step_status",
+      "step": "run_always_fail_tool",
+      "status": "FAILED"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["result"]
+  }
+}

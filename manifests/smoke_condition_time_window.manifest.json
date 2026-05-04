@@ -1,0 +1,48 @@
+{
+  "manifest_id": "smoke.condition_time_window",
+  "name": "Smoke Test - Time Window Condition",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "requested_time"
+  ],
+  "steps": [
+    {
+      "id": "set_evening_window",
+      "when": {
+        "input": "requested_time",
+        "between_time": ["17:00", "20:00"]
+      },
+      "command": "[m:set -> evening_window] key=\"test.time_window\"; value=\"evening\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "requested_time_in_window",
+      "type": "condition_true",
+      "condition": {
+        "input": "requested_time",
+        "between_time": ["17:00", "20:00"]
+      }
+    },
+    {
+      "id": "evening_window_step_completed",
+      "type": "step_completed",
+      "step": "set_evening_window"
+    },
+    {
+      "id": "evening_window_output_exists",
+      "type": "output_exists",
+      "output": "evening_window"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["evening_window"]
+  }
+}

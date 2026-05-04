@@ -1,0 +1,44 @@
+{
+  "manifest_id": "smoke.validate_step_output_exists",
+  "name": "Smoke Test - Executable Validation Step Output Exists",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "check_mail",
+      "command": "[t:g/check -> unread_mail] max_results=5"
+    },
+    {
+      "id": "validate_mail_output",
+      "command": "[validate:unread_mail_output_exists]"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "check_mail_step_completed",
+      "type": "step_completed",
+      "step": "check_mail"
+    },
+    {
+      "id": "unread_mail_output_exists",
+      "type": "output_exists",
+      "output": "unread_mail"
+    },
+    {
+      "id": "validate_step_completed",
+      "type": "step_completed",
+      "step": "validate_mail_output"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["unread_mail"],
+    "acceptable_empty_outputs": ["unread_mail"]
+  }
+}

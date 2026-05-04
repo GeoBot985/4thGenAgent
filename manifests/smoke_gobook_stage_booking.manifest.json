@@ -1,0 +1,53 @@
+{
+  "manifest_id": "smoke.gobook_stage_booking",
+  "name": "Smoke Test - GoBook Stage Booking",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "date",
+    "time_value",
+    "court"
+  ],
+  "steps": [
+    {
+      "id": "stage_booking",
+      "command": "[pending:gb/book -> booking] date=$inputs.date; time_value=$inputs.time_value; court=$inputs.court; confirm=false; slowmo=100"
+    }
+  ],
+  "validations": [
+    {
+      "id": "date_input_exists",
+      "type": "required_input_exists",
+      "input": "date"
+    },
+    {
+      "id": "time_value_input_exists",
+      "type": "required_input_exists",
+      "input": "time_value"
+    },
+    {
+      "id": "court_input_exists",
+      "type": "required_input_exists",
+      "input": "court"
+    },
+    {
+      "id": "booking_step_staged",
+      "type": "step_staged",
+      "step": "stage_booking"
+    },
+    {
+      "id": "booking_pending_action_created",
+      "type": "pending_action_exists",
+      "tool": "gb/book",
+      "output": "booking"
+    }
+  ],
+  "completion": {
+    "success_pending_actions": ["booking"],
+    "success_executed_actions": ["booking"],
+    "success_outputs": ["booking"],
+    "allow_pending_approval": true
+  }
+}

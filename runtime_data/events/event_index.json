@@ -1,0 +1,62 @@
+{
+  "evt-demo-customer-001": {
+    "event_id": "evt-demo-customer-001",
+    "first_seen_at": "2026-05-01T08:15:55Z",
+    "last_seen_at": "2026-05-04T10:20:18Z",
+    "linked_frame_id": "frame_ec94f92b85904fc784b01d79924dabe4",
+    "manifest_id": "customer.message_status_check",
+    "route_id": "callcenter.customer_message",
+    "seen_count": 4,
+    "status": "DUPLICATE_EVENT"
+  },
+  "evt-ui-demo-1c9bf215": {
+    "event_id": "evt-ui-demo-1c9bf215",
+    "first_seen_at": "2026-05-01T08:54:49Z",
+    "last_seen_at": "2026-05-01T08:54:49Z",
+    "linked_frame_id": "frame_26dc6c7f75b847fbac87ae24e326e470",
+    "manifest_id": "customer.message_status_check",
+    "route_id": "callcenter.customer_message",
+    "seen_count": 1,
+    "status": "FRAME_CREATED"
+  },
+  "evt-ui-demo-1dcd4f68": {
+    "event_id": "evt-ui-demo-1dcd4f68",
+    "first_seen_at": "2026-05-01T09:09:19Z",
+    "last_seen_at": "2026-05-01T09:09:19Z",
+    "linked_frame_id": "frame_e11adc6b00cf422aa76d1b6073d06c81",
+    "manifest_id": "customer.message_status_check",
+    "route_id": "callcenter.customer_message",
+    "seen_count": 1,
+    "status": "FRAME_CREATED"
+  },
+  "evt-ui-demo-382e9fda": {
+    "event_id": "evt-ui-demo-382e9fda",
+    "first_seen_at": "2026-05-01T08:54:50Z",
+    "last_seen_at": "2026-05-01T08:54:50Z",
+    "linked_frame_id": "frame_c2f45bb2a4a74a2c84715c22e363b0ac",
+    "manifest_id": "customer.message_status_check",
+    "route_id": "callcenter.customer_message",
+    "seen_count": 1,
+    "status": "FRAME_CREATED"
+  },
+  "evt-ui-demo-5447ff63": {
+    "event_id": "evt-ui-demo-5447ff63",
+    "first_seen_at": "2026-05-01T08:54:47Z",
+    "last_seen_at": "2026-05-01T08:54:47Z",
+    "linked_frame_id": "frame_fdbabfd7d28c43f49ba91d2f477260f9",
+    "manifest_id": "customer.message_status_check",
+    "route_id": "callcenter.customer_message",
+    "seen_count": 1,
+    "status": "FRAME_CREATED"
+  },
+  "evt-ui-demo-cea4bcfc": {
+    "event_id": "evt-ui-demo-cea4bcfc",
+    "first_seen_at": "2026-05-01T08:54:50Z",
+    "last_seen_at": "2026-05-01T08:54:50Z",
+    "linked_frame_id": "frame_bf555262867c410a82fc51dc284ded18",
+    "manifest_id": "customer.message_status_check",
+    "route_id": "callcenter.customer_message",
+    "seen_count": 1,
+    "status": "FRAME_CREATED"
+  }
+}

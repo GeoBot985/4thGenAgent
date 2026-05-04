@@ -1,0 +1,30 @@
+{
+  "manifest_id": "smoke.cleanup_reports_dry_run",
+  "name": "Smoke Test - Cleanup Reports Dry Run",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "plan_report_cleanup",
+      "command": "[c:reports_plan -> report_cleanup_plan] max_report_age_days=0"
+    }
+  ],
+  "validations": [
+    {
+      "id": "plan_report_cleanup_completed",
+      "type": "step_completed",
+      "step": "plan_report_cleanup"
+    },
+    {
+      "id": "report_cleanup_plan_output_exists",
+      "type": "output_exists",
+      "output": "report_cleanup_plan"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["report_cleanup_plan"]
+  }
+}

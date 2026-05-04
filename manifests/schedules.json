@@ -1,0 +1,82 @@
+{
+  "schedules": [
+    {
+      "schedule_id": "daily.gmail_check",
+      "event_type": "schedule.gmail_check",
+      "source": "scheduler",
+      "enabled": true,
+      "description": "Daily Gmail check smoke route",
+      "payload": {},
+      "mode": "manual_tick"
+    },
+    {
+      "schedule_id": "daily.calendar_next",
+      "event_type": "schedule.calendar_next",
+      "source": "scheduler",
+      "enabled": true,
+      "description": "Daily next calendar entries route",
+      "payload": {
+        "max_results": 5
+      },
+      "mode": "manual_tick"
+    },
+    {
+      "schedule_id": "maintenance.artifact_index_rebuild",
+      "event_type": "maintenance.artifact_index_rebuild",
+      "source": "scheduler",
+      "enabled": true,
+      "description": "Rebuild artifact index on manual maintenance tick",
+      "payload": {},
+      "mode": "manual_tick"
+    },
+    {
+      "schedule_id": "maintenance.cleanup_dry_run",
+      "event_type": "maintenance.cleanup_dry_run",
+      "source": "scheduler",
+      "enabled": true,
+      "description": "Run cleanup dry-run on manual maintenance tick",
+      "payload": {
+        "mode": "derived_artifacts_only",
+        "max_report_age_days": 30,
+        "max_temp_age_days": 7
+      },
+      "mode": "manual_tick"
+    },
+    {
+      "schedule_id": "maintenance.report_failed_runs",
+      "event_type": "maintenance.report_failed_runs",
+      "source": "scheduler",
+      "enabled": true,
+      "description": "Generate reports for failed runs on manual maintenance tick",
+      "payload": {
+        "limit": 20,
+        "rebuild": true
+      },
+      "mode": "manual_tick"
+    },
+    {
+      "schedule_id": "maintenance.report_pending_runs",
+      "event_type": "maintenance.report_pending_runs",
+      "source": "scheduler",
+      "enabled": true,
+      "description": "Generate pending-action reports on manual maintenance tick",
+      "payload": {
+        "limit": 20,
+        "rebuild": true
+      },
+      "mode": "manual_tick"
+    },
+    {
+      "schedule_id": "maintenance.report_live_packs",
+      "event_type": "maintenance.report_live_packs",
+      "source": "scheduler",
+      "enabled": true,
+      "description": "Generate approval-pack reports on manual maintenance tick",
+      "payload": {
+        "limit": 20,
+        "rebuild": true
+      },
+      "mode": "manual_tick"
+    }
+  ]
+}

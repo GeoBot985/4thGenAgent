@@ -1,0 +1,42 @@
+[
+  {
+    "customer_id": "CUST-1001",
+    "email": "alex@example.test",
+    "name": "Alex",
+    "preferred_channel": "whatsapp",
+    "status": "active",
+    "whatsapp_chat": "Alex Customer"
+  },
+  {
+    "customer_id": "CUST-1002",
+    "email": "bianca@example.test",
+    "name": "Bianca",
+    "preferred_channel": "email",
+    "status": "active",
+    "whatsapp_chat": "Bianca Customer"
+  },
+  {
+    "customer_id": "CUST-1003",
+    "email": "chris@example.test",
+    "name": "Chris",
+    "preferred_channel": "callcentre",
+    "status": "active",
+    "whatsapp_chat": "Chris Customer"
+  },
+  {
+    "customer_id": "CUST-1004",
+    "email": "dana@example.test",
+    "name": "Dana",
+    "preferred_channel": "whatsapp",
+    "status": "active",
+    "whatsapp_chat": "Dana Customer"
+  },
+  {
+    "customer_id": "CUST-1005",
+    "email": "evan@example.test",
+    "name": "Evan",
+    "preferred_channel": "email",
+    "status": "inactive",
+    "whatsapp_chat": "Evan Customer"
+  }
+]

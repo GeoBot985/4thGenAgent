@@ -1,0 +1,32 @@
+{
+  "manifest_id": "smoke.timeout_exceeded",
+  "name": "Smoke Test - Timeout Exceeded",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "run_slow_tool",
+      "timeout_seconds": 0.001,
+      "command": "[t:fake/slow -> result]"
+    }
+  ],
+  "validations": [
+    {
+      "id": "slow_step_failed",
+      "type": "step_status",
+      "step": "run_slow_tool",
+      "status": "FAILED"
+    },
+    {
+      "id": "slow_step_timed_out",
+      "type": "step_timed_out",
+      "step": "run_slow_tool"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["result"]
+  }
+}

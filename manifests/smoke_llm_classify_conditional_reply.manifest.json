@@ -1,0 +1,85 @@
+{
+  "manifest_id": "smoke.llm_classify_conditional_reply",
+  "name": "Smoke Test - LLM Classify Conditional Reply",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "classify_message",
+      "command": "[q:classify -> category] labels=\"order_status,refund,complaint,other\"; text=$inputs.message"
+    },
+    {
+      "id": "validate_category_allowed",
+      "command": "[validate:category_label_allowed]"
+    },
+    {
+      "id": "draft_order_status_reply",
+      "when": {
+        "output": "category",
+        "field": "label",
+        "equals": "order_status"
+      },
+      "command": "[q:draft -> reply] instruction=\"Draft a short order status reply\"; context=$inputs.message; tone=\"plain\""
+    },
+    {
+      "id": "draft_refund_reply",
+      "when": {
+        "output": "category",
+        "field": "label",
+        "equals": "refund"
+      },
+      "command": "[q:draft -> reply] instruction=\"Draft a short refund reply\"; context=$inputs.message; tone=\"plain\""
+    },
+    {
+      "id": "draft_generic_reply",
+      "when": {
+        "output": "category",
+        "field": "label",
+        "in": ["complaint", "other"]
+      },
+      "command": "[q:draft -> reply] instruction=\"Draft a short generic support reply\"; context=$inputs.message; tone=\"plain\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "classify_step_completed",
+      "type": "step_completed",
+      "step": "classify_message"
+    },
+    {
+      "id": "category_output_exists",
+      "type": "output_exists",
+      "output": "category"
+    },
+    {
+      "id": "category_has_required_fields",
+      "type": "output_has_fields",
+      "output": "category",
+      "fields": ["label", "confidence"]
+    },
+    {
+      "id": "category_label_allowed",
+      "type": "output_in_allowed_values",
+      "output": "category",
+      "field": "label",
+      "allowed": ["order_status", "refund", "complaint", "other"]
+    },
+    {
+      "id": "reply_output_exists",
+      "type": "output_exists",
+      "output": "reply"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["reply"]
+  }
+}

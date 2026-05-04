@@ -1,0 +1,34 @@
+{
+  "manifest_id": "maintenance.report_live_packs",
+  "name": "Maintenance - Report Live Approval Packs",
+  "version": 1,
+  "trigger": {
+    "type": "maintenance"
+  },
+  "inputs": [
+    "limit",
+    "rebuild"
+  ],
+  "steps": [
+    {
+      "id": "generate_live_pack_reports",
+      "command": "[mt:report_live_packs -> report_result] limit=$inputs.limit; rebuild=$inputs.rebuild"
+    }
+  ],
+  "validations": [
+    {
+      "id": "generate_live_pack_reports_completed",
+      "type": "step_completed",
+      "step": "generate_live_pack_reports"
+    },
+    {
+      "id": "report_result_exists",
+      "type": "output_exists",
+      "output": "report_result"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["report_result"],
+    "acceptable_empty_outputs": ["report_result"]
+  }
+}

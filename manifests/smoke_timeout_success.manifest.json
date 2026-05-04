@@ -1,0 +1,40 @@
+{
+  "manifest_id": "smoke.timeout_success",
+  "name": "Smoke Test - Timeout Success",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "run_fast_tool",
+      "timeout_seconds": 1,
+      "command": "[t:fake/fast -> result]"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "fast_step_completed",
+      "type": "step_completed",
+      "step": "run_fast_tool"
+    },
+    {
+      "id": "fast_step_not_timed_out",
+      "type": "step_not_timed_out",
+      "step": "run_fast_tool"
+    },
+    {
+      "id": "result_output_exists",
+      "type": "output_exists",
+      "output": "result"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["result"]
+  }
+}

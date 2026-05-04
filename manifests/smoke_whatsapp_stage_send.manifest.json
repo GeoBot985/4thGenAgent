@@ -1,0 +1,38 @@
+{
+  "manifest_id": "smoke.whatsapp_stage_send",
+  "name": "Smoke Test - WhatsApp Stage Send",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "stage_message",
+      "command": "[t:wa/send -> sent_msg] chat=\"Cornelia\"; message=\"Runtime smoke test\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_runtime_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "stage_message_step_staged",
+      "type": "step_staged",
+      "step": "stage_message"
+    },
+    {
+      "id": "pending_action_created",
+      "type": "pending_action_exists",
+      "tool": "wa/send",
+      "output": "sent_msg"
+    }
+  ],
+  "completion": {
+    "success_pending_actions": ["sent_msg"],
+    "success_executed_actions": ["sent_msg"],
+    "success_outputs": ["sent_msg"],
+    "allow_pending_approval": true
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "manifest_id": "maintenance.scheduled",
+  "name": "Maintenance - Scheduled Intake Stub",
+  "version": 1,
+  "trigger": {
+    "type": "event"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "maintenance_summary",
+      "command": "[mt:summary -> maintenance_summary]"
+    }
+  ],
+  "validations": [
+    {
+      "id": "summary_output_exists",
+      "type": "output_exists",
+      "output": "maintenance_summary"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["maintenance_summary"]
+  }
+}

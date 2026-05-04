@@ -1,0 +1,30 @@
+{
+  "manifest_id": "smoke.retry_no_retry_on_validation",
+  "name": "Smoke Test - No Retry On Validation Step",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "validate_missing_output",
+      "retry": {
+        "max_attempts": 3,
+        "delay_seconds": 0,
+        "retry_on": ["any"]
+      },
+      "command": "[validate:missing_output_exists]"
+    }
+  ],
+  "validations": [
+    {
+      "id": "missing_output_exists",
+      "type": "output_exists",
+      "output": "does_not_exist"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["does_not_exist"]
+  }
+}
