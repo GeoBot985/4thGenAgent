@@ -1,0 +1,251 @@
+[
+  {
+    "data": {
+      "manifest_id": "smoke.execute_approved_pending_actions"
+    },
+    "event_type": "TASKFRAME_CREATED",
+    "message": "TaskFrame created from manifest.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "manifest_id": "smoke.execute_approved_pending_actions"
+    },
+    "event_type": "ORCHESTRATOR_FRAME_CREATED",
+    "message": "Orchestrator created TaskFrame from manifest.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "event_id": "evt_5592376fd8234cd880d04bf32ca4596c",
+      "event_type": "manual.execute_approved_pending_actions",
+      "source": "operator_ui"
+    },
+    "event_type": "EVENT_RECEIVED",
+    "message": "Runtime event received.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "event_id": "evt_5592376fd8234cd880d04bf32ca4596c",
+      "event_type": "manual.execute_approved_pending_actions",
+      "manifest_id": "smoke.execute_approved_pending_actions"
+    },
+    "event_type": "EVENT_ROUTED",
+    "message": "Runtime event routed to manifest.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "dry_run": true,
+      "event_id": "evt_5592376fd8234cd880d04bf32ca4596c",
+      "event_type": "manual.execute_approved_pending_actions",
+      "manifest_id": "smoke.execute_approved_pending_actions"
+    },
+    "event_type": "RUNTIME_ENGINE_STARTED",
+    "message": "Runtime engine started processing event.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "from": "CREATED",
+      "to": "VALIDATING"
+    },
+    "event_type": "STATE_CHANGED",
+    "message": "CREATED -> VALIDATING",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "from": "VALIDATING",
+      "to": "READY"
+    },
+    "event_type": "STATE_CHANGED",
+    "message": "VALIDATING -> READY",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {},
+    "event_type": "FRAME_READY",
+    "message": "TaskFrame is ready for execution.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "from": "READY",
+      "to": "RUNNING"
+    },
+    "event_type": "STATE_CHANGED",
+    "message": "READY -> RUNNING",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "attempt": 1,
+      "max_attempts": 1,
+      "retry_policy": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:14Z",
+      "step_id": "execute_approved",
+      "timeout_seconds": null
+    },
+    "event_type": "STEP_ATTEMPT_STARTED",
+    "message": "Step attempt started.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "action": "execute_approved",
+      "args": {
+        "frame_id": "frame_07380b8c5bb9466fa3f18b850deb3206"
+      },
+      "output_alias": "execution_result",
+      "step_id": "execute_approved"
+    },
+    "event_type": "APPROVAL_COMMAND_STARTED",
+    "message": "Approval command started.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "action": "execute_approved",
+      "output_alias": "execution_result",
+      "step_id": "execute_approved"
+    },
+    "event_type": "APPROVAL_COMMAND_COMPLETED",
+    "message": "Approval command completed.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "attempt": 1,
+      "duration_ms": 30.999999959021807,
+      "ended_at": "2026-05-05T07:09:14Z",
+      "max_attempts": 1,
+      "retry_policy": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:14Z",
+      "step_id": "execute_approved",
+      "timed_out": false,
+      "timeout_seconds": null
+    },
+    "event_type": "STEP_TIMING_RECORDED",
+    "message": "Step timing recorded.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "attempt": 1,
+      "duration_ms": 30.999999959021807,
+      "ended_at": "2026-05-05T07:09:14Z",
+      "max_attempts": 1,
+      "retry_policy": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:14Z",
+      "step_id": "execute_approved",
+      "timed_out": false,
+      "timeout_seconds": null
+    },
+    "event_type": "STEP_ATTEMPT_SUCCEEDED",
+    "message": "Step attempt succeeded.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "from": "RUNNING",
+      "to": "VERIFYING"
+    },
+    "event_type": "STATE_CHANGED",
+    "message": "RUNNING -> VERIFYING",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "ok": true,
+      "type": "no_errors",
+      "validation_id": "no_runtime_errors"
+    },
+    "event_type": "VALIDATION_PASSED",
+    "message": "No runtime errors.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "ok": true,
+      "type": "step_completed",
+      "validation_id": "execute_step_completed"
+    },
+    "event_type": "VALIDATION_PASSED",
+    "message": "Step completed: execute_approved",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "ok": true,
+      "type": "output_exists",
+      "validation_id": "execution_result_exists"
+    },
+    "event_type": "VALIDATION_PASSED",
+    "message": "Output exists: execution_result",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "from": "VERIFYING",
+      "to": "COMPLETED"
+    },
+    "event_type": "STATE_CHANGED",
+    "message": "VERIFYING -> COMPLETED",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "errors": [],
+      "failed_steps": [],
+      "final_state": "COMPLETED",
+      "message": "Completion gate passed.",
+      "missing_executed_actions": [],
+      "missing_outputs": [],
+      "missing_pending_actions": [],
+      "ok": true,
+      "status": "COMPLETED",
+      "validation_summary": {
+        "failed": 0,
+        "passed": 3
+      }
+    },
+    "event_type": "COMPLETION_GATE_PASSED",
+    "message": "Completion gate passed.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  },
+  {
+    "data": {
+      "dry_run": true,
+      "event_id": "evt_5592376fd8234cd880d04bf32ca4596c",
+      "event_type": "manual.execute_approved_pending_actions",
+      "manifest_id": "smoke.execute_approved_pending_actions",
+      "state": "COMPLETED"
+    },
+    "event_type": "RUNTIME_ENGINE_COMPLETED",
+    "message": "Runtime engine completed event processing.",
+    "timestamp": "2026-05-05T07:09:14Z"
+  }
+]

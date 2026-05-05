@@ -1,16 +1,36 @@
 # Release Candidate Evidence Index
 
-- Verification JSON: `D:\Projects\4thGenAgent\runtime_data\audit\release_candidate_verification.json`
-- Verification Report: `D:\Projects\4thGenAgent\docs\release_candidate_verification.md`
-- Known Limitations: `D:\Projects\4thGenAgent\docs\known_limitations.md`
-- README: `D:\Projects\4thGenAgent\README.md`
-- Architecture Overview: `D:\Projects\4thGenAgent\docs\architecture_overview.md`
-- Architecture Diagram: `D:\Projects\4thGenAgent\docs\architecture_diagram.svg`
-- Demo Walkthrough: `D:\Projects\4thGenAgent\docs\demo_walkthrough.md`
-- Demo Script: `D:\Projects\4thGenAgent\docs\demo_script.md`
-- Portfolio Summary: `D:\Projects\4thGenAgent\docs\portfolio_summary.md`
-- Capture Screenshots: `D:\Projects\4thGenAgent\docs\capture_screenshots.md`
-- Screenshot Folder: `D:\Projects\4thGenAgent\docs\screenshots`
+- Verification JSON: `runtime_data\audit\release_candidate_verification.json`
+- Verification Report: `docs\release_candidate_verification.md`
+- Known Limitations: `docs\known_limitations.md`
+- Current Release Status: `docs\current_release_status.md`
+- Release Evidence Pack: `docs\release_evidence_pack.md`
+- Runtime Contracts: `docs\runtime_contracts.md`
+- Tool Onboarding Guide: `docs\adding_new_tools.md`
+- Tool Contract Checklist: `docs\tool_contract_checklist.md`
+- Default Demo Boundary: `docs\default_demo_boundary.md`
+- README: `README.md`
+- Architecture Overview: `docs\architecture_overview.md`
+- Architecture Diagram: `docs\architecture_diagram.svg`
+- Demo Walkthrough: `docs\demo_walkthrough.md`
+- Demo Script: `docs\demo_script.md`
+- Portfolio Summary: `docs\portfolio_summary.md`
+- Capture Screenshots: `docs\capture_screenshots.md`
+- Screenshot Folder: `docs\screenshots`
 
 ## Runtime Reports
-- runtime_data/runs/frame_1/reports/run_report.md
+- runtime_data\outputs\reports\golden_demo_report.md
+- runtime_data\outputs\reports\golden_demo_report.html
+- runtime_data\outputs\audit\golden_demo_audit.json
+- runtime_data\audit\release_candidate_verification.json
+- docs\release_candidate_verification.md
+- docs\release_candidate_evidence_index.md
+- docs\current_release_status.md
+- docs\release_evidence_pack.md
+- docs\runtime_contracts.md
+- docs\adding_new_tools.md
+- docs\tool_contract_checklist.md
+- docs\default_demo_boundary.md
+- docs\known_limitations.md
+- runtime_data\audit\release_status_latest.json
+- runtime_data\audit\release_evidence_pack.json

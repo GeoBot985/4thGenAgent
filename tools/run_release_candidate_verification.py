@@ -10,18 +10,34 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from tools.write_current_release_status import write_current_release_status
+
 OUTPUT_JSON = ROOT / "runtime_data" / "audit" / "release_candidate_verification.json"
 OUTPUT_MD = ROOT / "docs" / "release_candidate_verification.md"
 EVIDENCE_INDEX_MD = ROOT / "docs" / "release_candidate_evidence_index.md"
 KNOWN_LIMITATIONS_MD = ROOT / "docs" / "known_limitations.md"
+CURRENT_RELEASE_STATUS_MD = ROOT / "docs" / "current_release_status.md"
+RELEASE_EVIDENCE_PACK_MD = ROOT / "docs" / "release_evidence_pack.md"
+RUNTIME_CONTRACTS_MD = ROOT / "docs" / "runtime_contracts.md"
+DEFAULT_DEMO_BOUNDARY_MD = ROOT / "docs" / "default_demo_boundary.md"
+ADDING_NEW_TOOLS_MD = ROOT / "docs" / "adding_new_tools.md"
+TOOL_CONTRACT_CHECKLIST_MD = ROOT / "docs" / "tool_contract_checklist.md"
+RELEASE_STATUS_JSON = ROOT / "runtime_data" / "audit" / "release_status_latest.json"
+RELEASE_EVIDENCE_JSON = ROOT / "runtime_data" / "audit" / "release_evidence_pack.json"
 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(ROOT))
+    except Exception:
+        return str(path)
 
 
 def run_command(name: str, command: list[str], timeout_seconds: int = 300) -> dict[str, Any]:
@@ -68,6 +84,56 @@ def check_forbidden_terms(path: str, forbidden_terms: list[str]) -> dict[str, An
 
 def build_verification_result() -> dict[str, Any]:
     generated_at = utc_now()
+    bootstrap_result = {
+        "report_type": "release_candidate_verification",
+        "version": 1,
+        "generated_at": generated_at,
+        "verdict": "RUNNING",
+        "summary": {
+            "command_count": 0,
+            "passed_commands": 0,
+            "failed_commands": 0,
+            "skipped_checks": 0,
+            "missing_artifacts": 0,
+            "limitations": 0,
+        },
+        "environment": {
+            "python_version": sys.version,
+            "platform": platform.platform(),
+            "cwd": _display_path(ROOT),
+            "git_commit": _git("rev-parse", "HEAD"),
+            "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+        },
+        "commands": [],
+        "static_checks": [],
+        "artifact_checks": [],
+        "checks": {
+            "imports": "PENDING",
+            "default_tool_registry": "PENDING",
+            "tool_capability_registry": "PENDING",
+            "core_tool_health_safe_checks": "PENDING",
+            "optional_rpa_excluded": "PENDING",
+            "optional_rpa_live_probes_excluded": "PENDING",
+            "default_scenario_pack": "PENDING",
+            "golden_demo": "PENDING",
+            "release_artifacts": "PENDING",
+            "docs_commands": "PENDING",
+            "adding_new_tools_doc": "PENDING",
+            "tool_contract_checklist_doc": "PENDING",
+        },
+        "workflow_checks": {
+            "customer": {"status": "PENDING", "count": 0},
+            "procurement": {"status": "PENDING", "count": 0},
+            "accounting": {"status": "PENDING", "count": 0},
+            "cross_workflow": {"status": "PENDING", "count": 0},
+        },
+        "known_limitations": [],
+        "release_blockers": [],
+        "evidence_paths": [],
+    }
+    write_json_result(bootstrap_result, str(OUTPUT_JSON))
+    _write_supporting_docs(bootstrap_result)
+
     commands: list[dict[str, Any]] = []
     static_checks: list[dict[str, Any]] = []
     artifact_checks: list[dict[str, Any]] = []
@@ -134,6 +200,11 @@ def build_verification_result() -> dict[str, Any]:
         _check_tool_capability_registry(),
         _check_core_tool_health_safe_checks(),
         _check_default_scenario_pack(),
+        _check_runtime_contract_docs(),
+        _check_default_demo_boundary_doc(),
+        _check_known_limitations_doc(),
+        _check_adding_new_tools_doc(),
+        _check_tool_contract_checklist_doc(),
         _check_orchestrator_pollution(),
         _check_fake_llm_paths(),
         _check_side_effect_registry(),
@@ -154,6 +225,16 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("core tool health checks failed")
             elif check["name"] == "default_scenario_pack":
                 release_blockers.append("default scenario pack failed")
+            elif check["name"] == "runtime_contract_docs":
+                release_blockers.append("runtime contract docs failed")
+            elif check["name"] == "default_demo_boundary_doc":
+                release_blockers.append("default demo boundary doc failed")
+            elif check["name"] == "known_limitations_doc":
+                release_blockers.append("known limitations doc failed")
+            elif check["name"] == "adding_new_tools_doc":
+                release_blockers.append("tool onboarding guide failed")
+            elif check["name"] == "tool_contract_checklist_doc":
+                release_blockers.append("tool contract checklist failed")
             if check["name"] == "orchestrator_pollution":
                 release_blockers.append("orchestrator pollution detected")
             elif check["name"] == "fake_llm_paths":
@@ -172,6 +253,13 @@ def build_verification_result() -> dict[str, Any]:
     artifact_paths = [
         "README.md",
         "docs/release_artifacts.md",
+        "docs/runtime_contracts.md",
+        "docs/adding_new_tools.md",
+        "docs/tool_contract_checklist.md",
+        "docs/default_demo_boundary.md",
+        "docs/known_limitations.md",
+        "docs/current_release_status.md",
+        "docs/release_evidence_pack.md",
         "scripts/run_release_verification.py",
         "scripts/run_golden_demo.py",
         "runtime/business_context.py",
@@ -184,6 +272,8 @@ def build_verification_result() -> dict[str, Any]:
         "runtime_data/outputs/reports/golden_demo_report.md",
         "runtime_data/outputs/reports/golden_demo_report.html",
         "runtime_data/outputs/audit/golden_demo_audit.json",
+        "runtime_data/audit/release_status_latest.json",
+        "runtime_data/audit/release_evidence_pack.json",
         "runtime_data/tool_health/latest_tool_health.json",
         "runtime_data/tool_health/reports/report_generator_probe.md",
         "runtime_data/tool_health/reports/report_generator_probe.html",
@@ -212,6 +302,13 @@ def build_verification_result() -> dict[str, Any]:
     else:
         known_limitations.append("no_report_artifacts_found")
 
+    workflow_checks = {
+        "customer": _workflow_check("customer", commands, "customer_lane"),
+        "procurement": _workflow_check("procurement", commands, "procurement_lane"),
+        "accounting": _workflow_check("accounting", commands, "accounting_lane"),
+        "cross_workflow": _workflow_check("cross_workflow", commands, "cross_workflow_demo"),
+    }
+
     checks = {
         "imports": _status_from_commands(commands, "clean_imports"),
         "default_tool_registry": _status_from_static(static_checks, "default_tool_registry"),
@@ -221,22 +318,10 @@ def build_verification_result() -> dict[str, Any]:
         "optional_rpa_live_probes_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC"),
         "default_scenario_pack": _status_from_static(static_checks, "default_scenario_pack"),
         "golden_demo": _status_from_commands(commands, "golden_demo"),
-        "release_artifacts": _status_from_artifacts(artifact_checks, [
-            "docs/release_artifacts.md",
-            "scripts/run_golden_demo.py",
-            "runtime_data/outputs/reports/golden_demo_report.md",
-            "runtime_data/outputs/reports/golden_demo_report.html",
-            "runtime_data/outputs/audit/golden_demo_audit.json",
-            "runtime_data/tool_health/latest_tool_health.json",
-        ]),
+        "release_artifacts": "PENDING",
         "docs_commands": _status_from_static(static_checks, "docs_command_alignment"),
-    }
-
-    workflow_checks = {
-        "customer": _workflow_check("customer", commands, "customer_lane"),
-        "procurement": _workflow_check("procurement", commands, "procurement_lane"),
-        "accounting": _workflow_check("accounting", commands, "accounting_lane"),
-        "cross_workflow": _workflow_check("cross_workflow", commands, "cross_workflow_demo"),
+        "adding_new_tools_doc": _status_from_static(static_checks, "adding_new_tools_doc"),
+        "tool_contract_checklist_doc": _status_from_static(static_checks, "tool_contract_checklist_doc"),
     }
 
     if release_blockers:
@@ -251,7 +336,7 @@ def build_verification_result() -> dict[str, Any]:
         "passed_commands": sum(1 for item in commands if item["status"] == "PASS"),
         "failed_commands": sum(1 for item in commands if item["status"] == "FAIL"),
         "skipped_checks": len([item for item in commands if _looks_skipped(item)]),
-        "missing_artifacts": len([item for item in artifact_checks if not item["exists"]]),
+        "missing_artifacts": 0,
         "limitations": len(known_limitations),
     }
     result = {
@@ -263,19 +348,129 @@ def build_verification_result() -> dict[str, Any]:
         "environment": {
             "python_version": sys.version,
             "platform": platform.platform(),
-            "cwd": str(ROOT),
+            "cwd": _display_path(ROOT),
             "git_commit": _git("rev-parse", "HEAD"),
             "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
         },
         "commands": commands,
         "static_checks": static_checks,
-        "artifact_checks": artifact_checks,
+        "artifact_checks": [],
         "checks": checks,
         "workflow_checks": workflow_checks,
         "known_limitations": _unique(known_limitations),
         "release_blockers": _unique(release_blockers),
         "evidence_paths": _unique(evidence_paths),
     }
+    _write_supporting_docs(result)
+
+    artifact_paths = [
+        "README.md",
+        "docs/release_artifacts.md",
+        "docs/runtime_contracts.md",
+        "docs/adding_new_tools.md",
+        "docs/tool_contract_checklist.md",
+        "docs/default_demo_boundary.md",
+        "docs/known_limitations.md",
+        "docs/current_release_status.md",
+        "docs/release_evidence_pack.md",
+        "scripts/run_release_verification.py",
+        "scripts/run_golden_demo.py",
+        "runtime/business_context.py",
+        "docs/architecture_overview.md",
+        "docs/demo_walkthrough.md",
+        "docs/demo_script.md",
+        "docs/capture_screenshots.md",
+        "docs/portfolio_summary.md",
+        "docs/release_candidate_verification.md",
+        "runtime_data/outputs/reports/golden_demo_report.md",
+        "runtime_data/outputs/reports/golden_demo_report.html",
+        "runtime_data/outputs/audit/golden_demo_audit.json",
+        "runtime_data/audit/release_status_latest.json",
+        "runtime_data/audit/release_evidence_pack.json",
+        "runtime_data/tool_health/latest_tool_health.json",
+        "runtime_data/tool_health/reports/report_generator_probe.md",
+        "runtime_data/tool_health/reports/report_generator_probe.html",
+        "docs/screenshots/01_operator_home.png",
+        "docs/screenshots/02_scenario_pack.png",
+        "docs/screenshots/03_taskframe_detail.png",
+        "docs/screenshots/04_step_playback.png",
+        "docs/screenshots/05_pending_approval.png",
+        "docs/screenshots/06_tool_status_panel.png",
+        "docs/screenshots/07_tool_health_details.png",
+        "docs/screenshots/08_report_output.png",
+        "docs/screenshots/09_release_verification.png",
+    ]
+    for path in artifact_paths:
+        item = check_file_exists(path)
+        artifact_checks.append(item)
+        if not item["exists"]:
+            if "screenshots" in path:
+                known_limitations.append(f"missing_screenshot:{path}")
+            else:
+                release_blockers.append(f"missing_artifact:{path}")
+
+    reports = _find_report_artifacts()
+    if reports:
+        evidence_paths.extend(reports)
+    else:
+        known_limitations.append("no_report_artifacts_found")
+
+    evidence_paths.extend([
+        _display_path(OUTPUT_JSON),
+        _display_path(OUTPUT_MD),
+        _display_path(EVIDENCE_INDEX_MD),
+        _display_path(CURRENT_RELEASE_STATUS_MD),
+        _display_path(RELEASE_EVIDENCE_PACK_MD),
+        _display_path(RUNTIME_CONTRACTS_MD),
+        _display_path(ADDING_NEW_TOOLS_MD),
+        _display_path(TOOL_CONTRACT_CHECKLIST_MD),
+        _display_path(DEFAULT_DEMO_BOUNDARY_MD),
+        _display_path(KNOWN_LIMITATIONS_MD),
+        _display_path(RELEASE_STATUS_JSON),
+        _display_path(RELEASE_EVIDENCE_JSON),
+    ])
+
+    checks["release_artifacts"] = _status_from_artifacts(artifact_checks, [
+        "docs/release_artifacts.md",
+        "docs/runtime_contracts.md",
+        "docs/adding_new_tools.md",
+        "docs/tool_contract_checklist.md",
+        "docs/default_demo_boundary.md",
+        "docs/known_limitations.md",
+        "docs/current_release_status.md",
+        "docs/release_evidence_pack.md",
+        "scripts/run_golden_demo.py",
+        "runtime_data/outputs/reports/golden_demo_report.md",
+        "runtime_data/outputs/reports/golden_demo_report.html",
+        "runtime_data/outputs/audit/golden_demo_audit.json",
+        "runtime_data/audit/release_status_latest.json",
+        "runtime_data/audit/release_evidence_pack.json",
+        "runtime_data/tool_health/latest_tool_health.json",
+    ])
+
+    if release_blockers:
+        verdict = "NOT_READY"
+    elif known_limitations:
+        verdict = "READY_WITH_KNOWN_LIMITATIONS"
+    else:
+        verdict = "READY"
+
+    result.update(
+        {
+            "verdict": verdict,
+            "summary": {
+                **summary,
+                "missing_artifacts": len([item for item in artifact_checks if not item["exists"]]),
+                "limitations": len(known_limitations),
+            },
+            "artifact_checks": artifact_checks,
+            "checks": checks,
+            "known_limitations": _unique(known_limitations),
+            "release_blockers": _unique(release_blockers),
+            "evidence_paths": _unique(evidence_paths),
+        }
+    )
+    _write_supporting_docs(result)
     return result
 
 
@@ -392,10 +587,14 @@ def write_markdown_report(result: dict[str, Any], path: str) -> None:
         "",
         "## Evidence Index",
         "",
-        f"- Verification JSON: `{OUTPUT_JSON}`",
-        f"- Verification Report: `{OUTPUT_MD}`",
-        f"- Evidence Index: `{EVIDENCE_INDEX_MD}`",
-        f"- Known Limitations: `{KNOWN_LIMITATIONS_MD}`",
+        f"- Verification JSON: `{_display_path(OUTPUT_JSON)}`",
+        f"- Verification Report: `{_display_path(OUTPUT_MD)}`",
+        f"- Evidence Index: `{_display_path(EVIDENCE_INDEX_MD)}`",
+        f"- Current Release Status: `{_display_path(CURRENT_RELEASE_STATUS_MD)}`",
+        f"- Release Evidence Pack: `{_display_path(RELEASE_EVIDENCE_PACK_MD)}`",
+        f"- Runtime Contracts: `{_display_path(RUNTIME_CONTRACTS_MD)}`",
+        f"- Default Demo Boundary: `{_display_path(DEFAULT_DEMO_BOUNDARY_MD)}`",
+        f"- Known Limitations: `{_display_path(KNOWN_LIMITATIONS_MD)}`",
         "",
         "## Final Recommendation",
         "",
@@ -408,53 +607,38 @@ def main() -> int:
     result = build_verification_result()
     write_json_result(result, str(OUTPUT_JSON))
     write_markdown_report(result, str(OUTPUT_MD))
-    _write_supporting_docs(result)
     return 0 if result.get("verdict") in {"READY", "READY_WITH_KNOWN_LIMITATIONS"} else 1
 
 
 def _write_supporting_docs(result: dict[str, Any]) -> None:
+    write_current_release_status(result, runtime_data_dir=ROOT / "runtime_data", docs_dir=ROOT / "docs")
+
     evidence_index = [
         "# Release Candidate Evidence Index",
         "",
-        f"- Verification JSON: `{OUTPUT_JSON}`",
-        f"- Verification Report: `{OUTPUT_MD}`",
-        f"- Known Limitations: `{KNOWN_LIMITATIONS_MD}`",
-        f"- README: `{ROOT / 'README.md'}`",
-        f"- Architecture Overview: `{ROOT / 'docs' / 'architecture_overview.md'}`",
-        f"- Architecture Diagram: `{ROOT / 'docs' / 'architecture_diagram.svg'}`",
-        f"- Demo Walkthrough: `{ROOT / 'docs' / 'demo_walkthrough.md'}`",
-        f"- Demo Script: `{ROOT / 'docs' / 'demo_script.md'}`",
-        f"- Portfolio Summary: `{ROOT / 'docs' / 'portfolio_summary.md'}`",
-        f"- Capture Screenshots: `{ROOT / 'docs' / 'capture_screenshots.md'}`",
-        f"- Screenshot Folder: `{ROOT / 'docs' / 'screenshots'}`",
+        f"- Verification JSON: `{_display_path(OUTPUT_JSON)}`",
+        f"- Verification Report: `{_display_path(OUTPUT_MD)}`",
+        f"- Known Limitations: `{_display_path(KNOWN_LIMITATIONS_MD)}`",
+        f"- Current Release Status: `{_display_path(CURRENT_RELEASE_STATUS_MD)}`",
+        f"- Release Evidence Pack: `{_display_path(RELEASE_EVIDENCE_PACK_MD)}`",
+        f"- Runtime Contracts: `{_display_path(RUNTIME_CONTRACTS_MD)}`",
+        f"- Tool Onboarding Guide: `{_display_path(ADDING_NEW_TOOLS_MD)}`",
+        f"- Tool Contract Checklist: `{_display_path(TOOL_CONTRACT_CHECKLIST_MD)}`",
+        f"- Default Demo Boundary: `{_display_path(DEFAULT_DEMO_BOUNDARY_MD)}`",
+        f"- README: `{_display_path(ROOT / 'README.md')}`",
+        f"- Architecture Overview: `{_display_path(ROOT / 'docs' / 'architecture_overview.md')}`",
+        f"- Architecture Diagram: `{_display_path(ROOT / 'docs' / 'architecture_diagram.svg')}`",
+        f"- Demo Walkthrough: `{_display_path(ROOT / 'docs' / 'demo_walkthrough.md')}`",
+        f"- Demo Script: `{_display_path(ROOT / 'docs' / 'demo_script.md')}`",
+        f"- Portfolio Summary: `{_display_path(ROOT / 'docs' / 'portfolio_summary.md')}`",
+        f"- Capture Screenshots: `{_display_path(ROOT / 'docs' / 'capture_screenshots.md')}`",
+        f"- Screenshot Folder: `{_display_path(ROOT / 'docs' / 'screenshots')}`",
         "",
         "## Runtime Reports",
     ]
     for path in result.get("evidence_paths", []):
         evidence_index.append(f"- {path}")
     EVIDENCE_INDEX_MD.write_text("\n".join(evidence_index), encoding="utf-8")
-
-    limitations = [
-        "# Known Limitations",
-        "",
-        "## External dependency limitations",
-        "- Ollama model availability depends on the local environment.",
-        "- Google Sheets live access depends on external credentials and configuration.",
-        "",
-        "## Demo limitations",
-        "- Screenshots and demo artifacts may need refresh after UI changes.",
-        "",
-        "## Runtime limitations",
-        "- Live side-effect execution is not enabled by default.",
-        "- Approval-gated dry-run execution is the default safety mode.",
-        "",
-        "## Not yet implemented",
-        "- Live release execution of side effects is outside this RC proof.",
-        "",
-        "## Explicitly out of scope for this release",
-        "- RPA, deployment automation, and public website packaging.",
-    ]
-    KNOWN_LIMITATIONS_MD.write_text("\n".join(limitations), encoding="utf-8")
 
 
 def _check_orchestrator_pollution() -> dict[str, Any]:
@@ -718,6 +902,69 @@ def _check_docs_command_alignment() -> dict[str, Any]:
     return {"name": "docs_command_alignment", "status": "PASS" if not missing else "FAIL", "missing": missing}
 
 
+def _check_runtime_contract_docs() -> dict[str, Any]:
+    path = RUNTIME_CONTRACTS_MD
+    text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
+    required_terms = ["taskframe", "manifest", "toolresult", "pendingaction", "event route", "live execution", "tool contract"]
+    missing = [term for term in required_terms if term not in text]
+    return {"name": "runtime_contract_docs", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
+def _check_adding_new_tools_doc() -> dict[str, Any]:
+    path = ADDING_NEW_TOOLS_MD
+    text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
+    required_terms = [
+        "tool registry",
+        "capability registry",
+        "health checks",
+        "setup instructions",
+        "pendingaction",
+        "live guardrails",
+    ]
+    missing = [term for term in required_terms if term not in text]
+    return {"name": "adding_new_tools_doc", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
+def _check_tool_contract_checklist_doc() -> dict[str, Any]:
+    path = TOOL_CONTRACT_CHECKLIST_MD
+    text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
+    required_terms = ["- [ ]", "tool_registry", "pendingaction", "health check", "live execution"]
+    missing = [term for term in required_terms if term not in text]
+    return {"name": "tool_contract_checklist_doc", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
+def _check_current_release_status_doc() -> dict[str, Any]:
+    path = CURRENT_RELEASE_STATUS_MD
+    text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
+    required_terms = ["current release status", "verdict", "verification date", "evidence files"]
+    missing = [term for term in required_terms if term not in text]
+    return {"name": "current_release_status_doc", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
+def _check_release_evidence_pack_doc() -> dict[str, Any]:
+    path = RELEASE_EVIDENCE_PACK_MD
+    text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
+    required_terms = ["release evidence pack", "what was verified", "how to reproduce", "deliberately excluded from default rc"]
+    missing = [term for term in required_terms if term not in text]
+    return {"name": "release_evidence_pack_doc", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
+def _check_default_demo_boundary_doc() -> dict[str, Any]:
+    path = DEFAULT_DEMO_BOUNDARY_MD
+    text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
+    required_terms = ["optional rpa", "excluded", "default rc", "customer workflow", "procurement workflow", "accounting workflow"]
+    missing = [term for term in required_terms if term not in text]
+    return {"name": "default_demo_boundary_doc", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
+def _check_known_limitations_doc() -> dict[str, Any]:
+    path = KNOWN_LIMITATIONS_MD
+    text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
+    required_terms = ["demo business environment", "default rc limitations", "optional tooling limitations", "live execution limitations", "rpa limitations", "llm limitations", "not production claims", "deferred work"]
+    missing = [term for term in required_terms if term not in text]
+    return {"name": "known_limitations_doc", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
 def _status_from_commands(commands: list[dict[str, Any]], name: str) -> str:
     item = next((command for command in commands if command.get("name") == name), None)
     return "PASS" if item and item.get("status") == "PASS" else "FAIL"
@@ -739,7 +986,7 @@ def _find_report_artifacts() -> list[str]:
     golden_demo_html = ROOT / "runtime_data" / "outputs" / "reports" / "golden_demo_report.html"
     golden_demo_audit = ROOT / "runtime_data" / "outputs" / "audit" / "golden_demo_audit.json"
     if golden_demo_report.is_file() and golden_demo_html.is_file() and golden_demo_audit.is_file():
-        return [str(golden_demo_report), str(golden_demo_html), str(golden_demo_audit)]
+        return [_display_path(golden_demo_report), _display_path(golden_demo_html), _display_path(golden_demo_audit)]
 
     runs_dir = ROOT / "runtime_data" / "runs"
     if not runs_dir.is_dir():
@@ -748,7 +995,7 @@ def _find_report_artifacts() -> list[str]:
         report_html = report_md.with_suffix(".html")
         evidence = report_md.with_name("evidence_bundle.json")
         if report_html.is_file() and evidence.is_file():
-            paths.extend([str(report_md), str(report_html), str(evidence)])
+            paths.extend([_display_path(report_md), _display_path(report_html), _display_path(evidence)])
             break
     demo_dir = ROOT / "runtime_data" / "demo_packs"
     if demo_dir.is_dir():
@@ -756,7 +1003,7 @@ def _find_report_artifacts() -> list[str]:
             report_html = report_md.with_suffix(".html")
             summary = report_md.with_name("cross_workflow_demo_summary.json")
             if report_html.is_file() and summary.is_file():
-                paths.extend([str(report_md), str(report_html), str(summary)])
+                paths.extend([_display_path(report_md), _display_path(report_html), _display_path(summary)])
                 break
     return paths
 

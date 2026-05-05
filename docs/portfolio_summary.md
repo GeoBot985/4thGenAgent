@@ -1,4 +1,4 @@
-# TaskFrame Runtime Portfolio Summary
+# Automation Agent Portfolio Summary
 
 ## What It Is
 TaskFrame Runtime is a TaskFrame-centered autonomous business automation runtime for AI-assisted company operations. It executes manifest-defined workflows through deterministic tools, bounded LLM calls, approval gates, dry-run execution, and durable reporting.
@@ -43,9 +43,16 @@ python scripts/run_release_verification.py
 This path uses deterministic demo data and local fixtures. It intentionally excludes optional browser-backed RPA from the default portfolio verification flow.
 
 ## Demo Materials
+- [Adding New Tools](adding_new_tools.md)
+- [Tool Contract Checklist](tool_contract_checklist.md)
 - [Demo Walkthrough](demo_walkthrough.md)
 - [Demo Script](demo_script.md)
 - [Screenshot Folder](screenshots/)
 - [Core Concepts](core_concepts.md)
+- [Runtime Contracts](runtime_contracts.md)
+- [Current Release Status](current_release_status.md)
+- [Release Evidence Pack](release_evidence_pack.md)
+- [Default Demo Boundary](default_demo_boundary.md)
+- [Known Limitations](known_limitations.md)
 - [Release Verification](release_candidate_verification.md)
 - [Release Artifacts](release_artifacts.md)

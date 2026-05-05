@@ -1,4 +1,6 @@
-# TaskFrame-Centered Autonomous Business Automation Runtime
+# Automation Agent
+
+TaskFrame-Centered Autonomous Business Automation Runtime
 
 ## 30-Second Summary
 This project demonstrates controlled AI-assisted business automation without open-ended agent behavior. Work is routed through explicit commands or events, executed through manifest-defined steps, recorded in TaskFrames, validated through deterministic acceptance gates, and paused for approval before side effects. The LLM is used only as a bounded helper for fuzzy tasks such as extraction, drafting, summarisation, and classification.
@@ -143,6 +145,13 @@ Browser-backed RPA tools are treated as optional, high-risk, live-environment-de
 6. Expanded business scenario packs
 
 ## Supporting Docs
+- [Adding New Tools](docs/adding_new_tools.md)
+- [Tool Contract Checklist](docs/tool_contract_checklist.md)
+- [Runtime Contracts](docs/runtime_contracts.md)
+- [Current Release Status](docs/current_release_status.md)
+- [Release Evidence Pack](docs/release_evidence_pack.md)
+- [Default Demo Boundary](docs/default_demo_boundary.md)
+- [Known Limitations](docs/known_limitations.md)
 - [Release Verification](docs/release_candidate_verification.md)
 - [Release Artifacts](docs/release_artifacts.md)
 - [Core Concepts](docs/core_concepts.md)

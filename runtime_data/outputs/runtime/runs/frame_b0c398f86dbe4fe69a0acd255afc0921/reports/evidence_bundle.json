@@ -1,0 +1,1251 @@
+{
+  "approval_pack": {
+    "approval_packs": [
+      {
+        "action": "prepare_message_action",
+        "action_id": "pa_af4407fddab74e03b899777a73e19029",
+        "args": {
+          "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+          "draft_po": {
+            "currency": "ZAR",
+            "lines": [
+              {
+                "line_total": 4410.0,
+                "name": "Keyboard",
+                "quantity": 21,
+                "sku": "SKU-1002",
+                "unit_cost": 210.0
+              }
+            ],
+            "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+            "status": "draft",
+            "supplier_id": "SUP-1001",
+            "supplier_name": "Cape Tech Supplies",
+            "total": 4410.0
+          },
+          "message": {
+            "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+            "included_po_id": true,
+            "included_sku_lines": true,
+            "included_supplier_name": true,
+            "invented_terms": false,
+            "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+            "tone": "professional"
+          },
+          "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+          "supplier": {
+            "email": "orders@capetech.example",
+            "lead_time_days": 5,
+            "name": "Cape Tech Supplies",
+            "supplier_id": "SUP-1001"
+          },
+          "to": "orders@capetech.example"
+        },
+        "errors": [],
+        "evidence": [],
+        "guardrails": [
+          "Requires explicit approval before execution.",
+          "UI live execution is disabled in this spec.",
+          "Dry-run mode only."
+        ],
+        "human_summary": "This action would execute tool \"supplier/send_message\" with the listed arguments.",
+        "namespace": "supplier",
+        "output_alias": "supplier_message_send",
+        "related_outputs": {
+          "supplier_message_send": {
+            "action": "supplier_send_message",
+            "body_preview": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confi",
+            "dry_run": true,
+            "message": "Supplier message dry-run execution completed.",
+            "ok": true,
+            "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+            "sent": false,
+            "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+            "to": "orders@capetech.example"
+          }
+        },
+        "related_to_selected_step": false,
+        "requires_approval": true,
+        "risk_class": "side_effect_unknown",
+        "side_effect": true,
+        "status": "EXECUTED",
+        "step_id": "prepare_supplier_send",
+        "tool": "supplier/send_message",
+        "validations": []
+      }
+    ],
+    "error": "",
+    "frame_id": "frame_b0c398f86dbe4fe69a0acd255afc0921",
+    "manifest_id": "procurement.low_stock_reorder",
+    "message": "",
+    "ok": true,
+    "pending_action_count": 1,
+    "state": "COMPLETED"
+  },
+  "artifact_paths": {
+    "approval_pack_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\reports\\approval_pack_report.html",
+    "approval_pack_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\reports\\approval_pack_report.md",
+    "audit_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\audit.json",
+    "evidence_bundle_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\reports\\evidence_bundle.json",
+    "failure_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\reports\\failure_report.html",
+    "failure_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\reports\\failure_report.md",
+    "outputs_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\outputs.json",
+    "run_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\reports\\run_report.html",
+    "run_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\reports\\run_report.md",
+    "summary_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\summary.json",
+    "taskframe_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b0c398f86dbe4fe69a0acd255afc0921\\taskframe.json"
+  },
+  "bundle_version": 1,
+  "completion_gate_result": {
+    "errors": [],
+    "failed_steps": [],
+    "final_state": "COMPLETED",
+    "message": "Completion gate passed.",
+    "missing_executed_actions": [],
+    "missing_outputs": [],
+    "missing_pending_actions": [],
+    "ok": true,
+    "status": "COMPLETED",
+    "validation_summary": {
+      "failed": 0,
+      "passed": 8
+    }
+  },
+  "errors": [],
+  "evidence": [],
+  "executed_actions": [
+    {
+      "action": "prepare_message_action",
+      "action_id": "pa_af4407fddab74e03b899777a73e19029",
+      "args": {
+        "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+        "draft_po": {
+          "currency": "ZAR",
+          "lines": [
+            {
+              "line_total": 4410.0,
+              "name": "Keyboard",
+              "quantity": 21,
+              "sku": "SKU-1002",
+              "unit_cost": 210.0
+            }
+          ],
+          "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+          "status": "draft",
+          "supplier_id": "SUP-1001",
+          "supplier_name": "Cape Tech Supplies",
+          "total": 4410.0
+        },
+        "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+        "to": "orders@capetech.example"
+      },
+      "dry_run": true,
+      "executed_at": "2026-05-05T06:54:25Z",
+      "namespace": "supplier",
+      "output_alias": "supplier_message_send",
+      "result_type": "supplier_send_result",
+      "status": "EXECUTED",
+      "step_id": "prepare_supplier_send",
+      "tool": "supplier/send_message"
+    }
+  ],
+  "failure_summary": {
+    "blocking_errors": [],
+    "executed_action_count": 1,
+    "failed_step_id": "",
+    "failed_validations": [],
+    "failure_message": "",
+    "failure_type": "",
+    "frame_id": "frame_b0c398f86dbe4fe69a0acd255afc0921",
+    "manifest_id": "procurement.low_stock_reorder",
+    "ok": true,
+    "operator_explanation": "",
+    "pending_action_count": 1,
+    "safe_to_retry": true,
+    "state": "COMPLETED"
+  },
+  "frame_id": "frame_b0c398f86dbe4fe69a0acd255afc0921",
+  "generated_at": "2026-05-05T06:54:25Z",
+  "inputs": {},
+  "llm_calls": [
+    {
+      "action": "draft_supplier_reorder_message",
+      "args": {
+        "draft_po": {
+          "currency": "ZAR",
+          "lines": [
+            {
+              "line_total": 4410.0,
+              "name": "Keyboard",
+              "quantity": 21,
+              "sku": "SKU-1002",
+              "unit_cost": 210.0
+            }
+          ],
+          "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+          "status": "draft",
+          "supplier_id": "SUP-1001",
+          "supplier_name": "Cape Tech Supplies",
+          "total": 4410.0
+        },
+        "supplier": {
+          "email": "orders@capetech.example",
+          "lead_time_days": 5,
+          "name": "Cape Tech Supplies",
+          "supplier_id": "SUP-1001"
+        }
+      },
+      "error": "",
+      "error_type": "",
+      "metadata": {
+        "micro_tool": true
+      },
+      "model": "fake",
+      "ok": true,
+      "output_alias": "supplier_message",
+      "parsed_output": {
+        "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+        "included_po_id": true,
+        "included_sku_lines": true,
+        "included_supplier_name": true,
+        "invented_terms": false,
+        "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+        "tone": "professional"
+      },
+      "prompt_ref": "supplier_message",
+      "provider": "fake",
+      "raw_output": "{\"subject\": \"Purchase Order PO-DRAFT-20260505-065424-2B5FA4\", \"body\": \"Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.\", \"tone\": \"professional\", \"included_po_id\": true, \"included_supplier_name\": true, \"included_sku_lines\": true, \"invented_terms\": false}",
+      "result_type": "llm_draft_supplier_reorder_message_result",
+      "step_id": "draft_supplier_message",
+      "timestamp": "2026-05-05T06:54:24Z"
+    }
+  ],
+  "manifest_id": "procurement.low_stock_reorder",
+  "outputs": {
+    "draft_po": {
+      "currency": "ZAR",
+      "lines": [
+        {
+          "line_total": 4410.0,
+          "name": "Keyboard",
+          "quantity": 21,
+          "sku": "SKU-1002",
+          "unit_cost": 210.0
+        }
+      ],
+      "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+      "status": "draft",
+      "supplier_id": "SUP-1001",
+      "supplier_name": "Cape Tech Supplies",
+      "total": 4410.0
+    },
+    "duplicate_po_check": {
+      "blocked_count": 1,
+      "duplicates": [
+        {
+          "po_id": "PO-9001",
+          "sku": "SKU-1001",
+          "status": "open"
+        }
+      ],
+      "valid_candidates": [
+        {
+          "available_stock": 9,
+          "currency": "ZAR",
+          "name": "Keyboard",
+          "preferred_supplier_id": "SUP-1001",
+          "reorder_qty": 21,
+          "reorder_threshold": 10,
+          "sku": "SKU-1002",
+          "target_stock_level": 30,
+          "unit_cost": 210.0
+        }
+      ],
+      "valid_count": 1
+    },
+    "low_stock_items": {
+      "count": 6,
+      "items": [
+        {
+          "available_stock": 2,
+          "name": "LED desk lamp",
+          "reorder_quantity": 20,
+          "reorder_threshold": 5,
+          "reserved_stock": 1,
+          "sku": "SKU-LAMP-01",
+          "status": "active",
+          "stock_on_hand": 3,
+          "supplier_id": "SUP-002"
+        },
+        {
+          "available_stock": 0,
+          "name": "Ergonomic office chair",
+          "reorder_quantity": 8,
+          "reorder_threshold": 3,
+          "reserved_stock": 0,
+          "sku": "SKU-CHAIR-01",
+          "status": "active",
+          "stock_on_hand": 0,
+          "supplier_id": "SUP-001"
+        },
+        {
+          "available_stock": 2,
+          "name": "Compact printer",
+          "reorder_quantity": 5,
+          "reorder_threshold": 3,
+          "reserved_stock": 0,
+          "sku": "SKU-PRINTER-01",
+          "status": "active",
+          "stock_on_hand": 2,
+          "supplier_id": "SUP-002"
+        },
+        {
+          "available_stock": 4,
+          "name": "Monitor stand",
+          "reorder_quantity": 10,
+          "reorder_threshold": 4,
+          "reserved_stock": 2,
+          "sku": "SKU-STAND-01",
+          "status": "active",
+          "stock_on_hand": 6,
+          "supplier_id": "SUP-001"
+        },
+        {
+          "available_stock": 4,
+          "currency": "ZAR",
+          "name": "Wireless Mouse",
+          "preferred_supplier_id": "SUP-1001",
+          "reorder_threshold": 10,
+          "sku": "SKU-1001",
+          "target_stock_level": 40,
+          "unit_cost": 125.5
+        },
+        {
+          "available_stock": 9,
+          "currency": "ZAR",
+          "name": "Keyboard",
+          "preferred_supplier_id": "SUP-1001",
+          "reorder_threshold": 10,
+          "sku": "SKU-1002",
+          "target_stock_level": 30,
+          "unit_cost": 210.0
+        }
+      ]
+    },
+    "po_validation": {
+      "checks": [
+        {
+          "id": "po_has_id",
+          "message": "Draft PO has a po_id.",
+          "ok": true
+        },
+        {
+          "id": "po_has_supplier_id",
+          "message": "Draft PO has a supplier_id.",
+          "ok": true
+        },
+        {
+          "id": "po_status_draft",
+          "message": "Draft PO status is draft.",
+          "ok": true
+        },
+        {
+          "id": "po_has_lines",
+          "message": "Draft PO has at least one line.",
+          "ok": true
+        },
+        {
+          "id": "po_line_sku",
+          "message": "Each line has a sku.",
+          "ok": true
+        },
+        {
+          "id": "po_line_qty_positive",
+          "message": "Each line quantity is greater than zero.",
+          "ok": true
+        },
+        {
+          "id": "po_line_unit_cost_non_negative",
+          "message": "Each line unit_cost is non-negative.",
+          "ok": true
+        },
+        {
+          "id": "po_line_total_matches",
+          "message": "Each line_total matches quantity * unit_cost.",
+          "ok": true
+        },
+        {
+          "id": "po_total_matches",
+          "message": "PO total matches sum of line totals.",
+          "ok": true
+        },
+        {
+          "id": "po_single_currency",
+          "message": "Draft PO uses a single currency.",
+          "ok": true
+        }
+      ],
+      "errors": [],
+      "ok": true
+    },
+    "reorder_candidates": {
+      "candidates": [
+        {
+          "available_stock": 4,
+          "currency": "ZAR",
+          "name": "Wireless Mouse",
+          "preferred_supplier_id": "SUP-1001",
+          "reorder_qty": 36,
+          "reorder_threshold": 10,
+          "sku": "SKU-1001",
+          "target_stock_level": 40,
+          "unit_cost": 125.5
+        },
+        {
+          "available_stock": 9,
+          "currency": "ZAR",
+          "name": "Keyboard",
+          "preferred_supplier_id": "SUP-1001",
+          "reorder_qty": 21,
+          "reorder_threshold": 10,
+          "sku": "SKU-1002",
+          "target_stock_level": 30,
+          "unit_cost": 210.0
+        }
+      ],
+      "count": 2,
+      "excluded": [
+        {
+          "available_stock": 2,
+          "name": "LED desk lamp",
+          "reorder_quantity": 20,
+          "reorder_threshold": 5,
+          "reserved_stock": 1,
+          "sku": "SKU-LAMP-01",
+          "status": "active",
+          "stock_on_hand": 3,
+          "supplier_id": "SUP-002"
+        },
+        {
+          "available_stock": 0,
+          "name": "Ergonomic office chair",
+          "reorder_quantity": 8,
+          "reorder_threshold": 3,
+          "reserved_stock": 0,
+          "sku": "SKU-CHAIR-01",
+          "status": "active",
+          "stock_on_hand": 0,
+          "supplier_id": "SUP-001"
+        },
+        {
+          "available_stock": 2,
+          "name": "Compact printer",
+          "reorder_quantity": 5,
+          "reorder_threshold": 3,
+          "reserved_stock": 0,
+          "sku": "SKU-PRINTER-01",
+          "status": "active",
+          "stock_on_hand": 2,
+          "supplier_id": "SUP-002"
+        },
+        {
+          "available_stock": 4,
+          "name": "Monitor stand",
+          "reorder_quantity": 10,
+          "reorder_threshold": 4,
+          "reserved_stock": 2,
+          "sku": "SKU-STAND-01",
+          "status": "active",
+          "stock_on_hand": 6,
+          "supplier_id": "SUP-001"
+        }
+      ]
+    },
+    "selected_supplier": {
+      "excluded_candidates": [],
+      "selected_candidates": [
+        {
+          "available_stock": 9,
+          "currency": "ZAR",
+          "name": "Keyboard",
+          "preferred_supplier_id": "SUP-1001",
+          "reorder_qty": 21,
+          "reorder_threshold": 10,
+          "sku": "SKU-1002",
+          "target_stock_level": 30,
+          "unit_cost": 210.0
+        }
+      ],
+      "selection_reason": "Preferred active supplier selected for first valid supplier group.",
+      "supplier": {
+        "email": "orders@capetech.example",
+        "lead_time_days": 5,
+        "name": "Cape Tech Supplies",
+        "supplier_id": "SUP-1001"
+      }
+    },
+    "supplier_message": {
+      "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+      "included_po_id": true,
+      "included_sku_lines": true,
+      "included_supplier_name": true,
+      "invented_terms": false,
+      "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+      "tone": "professional"
+    },
+    "supplier_message_send": {
+      "action": "supplier_send_message",
+      "body_preview": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confi",
+      "dry_run": true,
+      "message": "Supplier message dry-run execution completed.",
+      "ok": true,
+      "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+      "sent": false,
+      "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+      "to": "orders@capetech.example"
+    }
+  },
+  "pending_actions": [
+    {
+      "action": "prepare_message_action",
+      "action_id": "pa_af4407fddab74e03b899777a73e19029",
+      "action_type": "send_supplier_message",
+      "approval_reason": "Procurement scenario approval dry-run.",
+      "approved_at": "2026-05-05T06:54:24Z",
+      "approved_by": "scenario_pack",
+      "args": {
+        "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+        "draft_po": {
+          "currency": "ZAR",
+          "lines": [
+            {
+              "line_total": 4410.0,
+              "name": "Keyboard",
+              "quantity": 21,
+              "sku": "SKU-1002",
+              "unit_cost": 210.0
+            }
+          ],
+          "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+          "status": "draft",
+          "supplier_id": "SUP-1001",
+          "supplier_name": "Cape Tech Supplies",
+          "total": 4410.0
+        },
+        "message": {
+          "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+          "included_po_id": true,
+          "included_sku_lines": true,
+          "included_supplier_name": true,
+          "invented_terms": false,
+          "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+          "tone": "professional"
+        },
+        "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+        "supplier": {
+          "email": "orders@capetech.example",
+          "lead_time_days": 5,
+          "name": "Cape Tech Supplies",
+          "supplier_id": "SUP-1001"
+        },
+        "to": "orders@capetech.example"
+      },
+      "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+      "created_at": "2026-05-05T06:54:24Z",
+      "dry_run": true,
+      "executed_at": "2026-05-05T06:54:25Z",
+      "namespace": "supplier",
+      "output_alias": "supplier_message_send",
+      "requires_approval": true,
+      "result_type": "supplier_send_result",
+      "side_effect": true,
+      "status": "EXECUTED",
+      "step_id": "prepare_supplier_send",
+      "tool": "supplier/send_message"
+    }
+  ],
+  "state": "COMPLETED",
+  "steps": [
+    {
+      "action": "search_low_stock",
+      "attempts": 1,
+      "command": "[t:inventory/search_low_stock -> low_stock_items]",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T06:54:24Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "inventory",
+      "output_alias": "low_stock_items",
+      "result_ref": "low_stock_items",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T06:54:24Z",
+      "status": "COMPLETED",
+      "step_id": "search_low_stock_inventory",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "filter_reorder_candidates",
+      "attempts": 1,
+      "command": "[t:inventory/filter_reorder_candidates -> reorder_candidates] items=$low_stock_items.items",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T06:54:24Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "inventory",
+      "output_alias": "reorder_candidates",
+      "result_ref": "reorder_candidates",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T06:54:24Z",
+      "status": "COMPLETED",
+      "step_id": "filter_reorder_candidates",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "check_duplicate_open",
+      "attempts": 1,
+      "command": "[t:po/check_duplicate_open -> duplicate_po_check] candidates=$reorder_candidates.candidates",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T06:54:24Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "po",
+      "output_alias": "duplicate_po_check",
+      "result_ref": "duplicate_po_check",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T06:54:24Z",
+      "status": "COMPLETED",
+      "step_id": "check_duplicate_open_pos",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "select_for_sku",
+      "attempts": 1,
+      "command": "[t:supplier/select_for_sku -> selected_supplier] candidates=$duplicate_po_check.valid_candidates",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T06:54:24Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "supplier",
+      "output_alias": "selected_supplier",
+      "result_ref": "selected_supplier",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T06:54:24Z",
+      "status": "COMPLETED",
+      "step_id": "select_supplier",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "build_draft",
+      "attempts": 1,
+      "command": "[t:po/build_draft -> draft_po] supplier=$selected_supplier.supplier; candidates=$selected_supplier.selected_candidates",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T06:54:24Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "po",
+      "output_alias": "draft_po",
+      "result_ref": "draft_po",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T06:54:24Z",
+      "status": "COMPLETED",
+      "step_id": "build_draft_po",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "validate_draft",
+      "attempts": 1,
+      "command": "[t:po/validate_draft -> po_validation] draft_po=$draft_po",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T06:54:24Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "po",
+      "output_alias": "po_validation",
+      "result_ref": "po_validation",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T06:54:24Z",
+      "status": "COMPLETED",
+      "step_id": "validate_draft_po",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "draft_supplier_reorder_message",
+      "attempts": 1,
+      "command": "[q:draft_supplier_reorder_message -> supplier_message] supplier=$selected_supplier.supplier; draft_po=$draft_po",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T06:54:24Z",
+      "error": "",
+      "kind": "llm",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "q",
+      "output_alias": "supplier_message",
+      "result_ref": "supplier_message",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T06:54:24Z",
+      "status": "COMPLETED",
+      "step_id": "draft_supplier_message",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "prepare_message_action",
+      "attempts": 1,
+      "command": "[t:supplier/prepare_message_action -> supplier_message_send] supplier=$selected_supplier.supplier; draft_po=$draft_po; message=$supplier_message",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T06:54:24Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "supplier",
+      "output_alias": "supplier_message_send",
+      "result_ref": "pa_af4407fddab74e03b899777a73e19029",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T06:54:24Z",
+      "status": "STAGED",
+      "step_id": "prepare_supplier_send",
+      "timeout_seconds": null,
+      "when": {
+        "all": [
+          {
+            "equals": true,
+            "field": "ok",
+            "output": "po_validation"
+          },
+          {
+            "equals": false,
+            "field": "invented_terms",
+            "output": "supplier_message"
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "completed_steps": 7,
+    "completion_status": "COMPLETED",
+    "created_at": "2026-05-05T06:54:24Z",
+    "current_step_id": "search_low_stock_inventory",
+    "error_count": 0,
+    "executed_action_count": 1,
+    "failed_steps": 0,
+    "frame_id": "frame_b0c398f86dbe4fe69a0acd255afc0921",
+    "manifest_id": "procurement.low_stock_reorder",
+    "output_keys": [
+      "draft_po",
+      "duplicate_po_check",
+      "low_stock_items",
+      "po_validation",
+      "reorder_candidates",
+      "selected_supplier",
+      "supplier_message",
+      "supplier_message_send"
+    ],
+    "pending_action_count": 1,
+    "skipped_steps": 0,
+    "state": "COMPLETED",
+    "step_count": 8,
+    "updated_at": "2026-05-05T06:54:25Z",
+    "validation_count": 8,
+    "validation_failed_count": 0
+  },
+  "tool_calls": [
+    {
+      "action": "search_low_stock",
+      "args": {},
+      "command": "[t:inventory/search_low_stock -> low_stock_items]",
+      "created_at": "2026-05-05T06:54:24Z",
+      "dry_run": true,
+      "error": "",
+      "function": "inventory_search_low_stock",
+      "kind": "tool",
+      "live": false,
+      "namespace": "inventory",
+      "ok": true,
+      "output_alias": "low_stock_items",
+      "result_type": "low_stock_result",
+      "step_id": "search_low_stock_inventory",
+      "timestamp": "2026-05-05T06:54:24Z",
+      "tool": "inventory/search_low_stock"
+    },
+    {
+      "action": "filter_reorder_candidates",
+      "args": {
+        "items": [
+          {
+            "available_stock": 2,
+            "name": "LED desk lamp",
+            "reorder_quantity": 20,
+            "reorder_threshold": 5,
+            "reserved_stock": 1,
+            "sku": "SKU-LAMP-01",
+            "status": "active",
+            "stock_on_hand": 3,
+            "supplier_id": "SUP-002"
+          },
+          {
+            "available_stock": 0,
+            "name": "Ergonomic office chair",
+            "reorder_quantity": 8,
+            "reorder_threshold": 3,
+            "reserved_stock": 0,
+            "sku": "SKU-CHAIR-01",
+            "status": "active",
+            "stock_on_hand": 0,
+            "supplier_id": "SUP-001"
+          },
+          {
+            "available_stock": 2,
+            "name": "Compact printer",
+            "reorder_quantity": 5,
+            "reorder_threshold": 3,
+            "reserved_stock": 0,
+            "sku": "SKU-PRINTER-01",
+            "status": "active",
+            "stock_on_hand": 2,
+            "supplier_id": "SUP-002"
+          },
+          {
+            "available_stock": 4,
+            "name": "Monitor stand",
+            "reorder_quantity": 10,
+            "reorder_threshold": 4,
+            "reserved_stock": 2,
+            "sku": "SKU-STAND-01",
+            "status": "active",
+            "stock_on_hand": 6,
+            "supplier_id": "SUP-001"
+          },
+          {
+            "available_stock": 4,
+            "currency": "ZAR",
+            "name": "Wireless Mouse",
+            "preferred_supplier_id": "SUP-1001",
+            "reorder_threshold": 10,
+            "sku": "SKU-1001",
+            "target_stock_level": 40,
+            "unit_cost": 125.5
+          },
+          {
+            "available_stock": 9,
+            "currency": "ZAR",
+            "name": "Keyboard",
+            "preferred_supplier_id": "SUP-1001",
+            "reorder_threshold": 10,
+            "sku": "SKU-1002",
+            "target_stock_level": 30,
+            "unit_cost": 210.0
+          }
+        ]
+      },
+      "command": "[t:inventory/filter_reorder_candidates -> reorder_candidates] items=$low_stock_items.items",
+      "created_at": "2026-05-05T06:54:24Z",
+      "dry_run": true,
+      "error": "",
+      "function": "inventory_filter_reorder_candidates",
+      "kind": "tool",
+      "live": false,
+      "namespace": "inventory",
+      "ok": true,
+      "output_alias": "reorder_candidates",
+      "result_type": "reorder_candidates",
+      "step_id": "filter_reorder_candidates",
+      "timestamp": "2026-05-05T06:54:24Z",
+      "tool": "inventory/filter_reorder_candidates"
+    },
+    {
+      "action": "check_duplicate_open",
+      "args": {
+        "candidates": [
+          {
+            "available_stock": 4,
+            "currency": "ZAR",
+            "name": "Wireless Mouse",
+            "preferred_supplier_id": "SUP-1001",
+            "reorder_qty": 36,
+            "reorder_threshold": 10,
+            "sku": "SKU-1001",
+            "target_stock_level": 40,
+            "unit_cost": 125.5
+          },
+          {
+            "available_stock": 9,
+            "currency": "ZAR",
+            "name": "Keyboard",
+            "preferred_supplier_id": "SUP-1001",
+            "reorder_qty": 21,
+            "reorder_threshold": 10,
+            "sku": "SKU-1002",
+            "target_stock_level": 30,
+            "unit_cost": 210.0
+          }
+        ]
+      },
+      "command": "[t:po/check_duplicate_open -> duplicate_po_check] candidates=$reorder_candidates.candidates",
+      "created_at": "2026-05-05T06:54:24Z",
+      "dry_run": true,
+      "error": "",
+      "function": "purchase_order_check_duplicate_open",
+      "kind": "tool",
+      "live": false,
+      "namespace": "po",
+      "ok": true,
+      "output_alias": "duplicate_po_check",
+      "result_type": "duplicate_po_check",
+      "step_id": "check_duplicate_open_pos",
+      "timestamp": "2026-05-05T06:54:24Z",
+      "tool": "po/check_duplicate_open"
+    },
+    {
+      "action": "select_for_sku",
+      "args": {
+        "candidates": [
+          {
+            "available_stock": 9,
+            "currency": "ZAR",
+            "name": "Keyboard",
+            "preferred_supplier_id": "SUP-1001",
+            "reorder_qty": 21,
+            "reorder_threshold": 10,
+            "sku": "SKU-1002",
+            "target_stock_level": 30,
+            "unit_cost": 210.0
+          }
+        ]
+      },
+      "command": "[t:supplier/select_for_sku -> selected_supplier] candidates=$duplicate_po_check.valid_candidates",
+      "created_at": "2026-05-05T06:54:24Z",
+      "dry_run": true,
+      "error": "",
+      "function": "supplier_select_for_sku",
+      "kind": "tool",
+      "live": false,
+      "namespace": "supplier",
+      "ok": true,
+      "output_alias": "selected_supplier",
+      "result_type": "selected_supplier",
+      "step_id": "select_supplier",
+      "timestamp": "2026-05-05T06:54:24Z",
+      "tool": "supplier/select_for_sku"
+    },
+    {
+      "action": "build_draft",
+      "args": {
+        "candidates": [
+          {
+            "available_stock": 9,
+            "currency": "ZAR",
+            "name": "Keyboard",
+            "preferred_supplier_id": "SUP-1001",
+            "reorder_qty": 21,
+            "reorder_threshold": 10,
+            "sku": "SKU-1002",
+            "target_stock_level": 30,
+            "unit_cost": 210.0
+          }
+        ],
+        "supplier": {
+          "email": "orders@capetech.example",
+          "lead_time_days": 5,
+          "name": "Cape Tech Supplies",
+          "supplier_id": "SUP-1001"
+        }
+      },
+      "command": "[t:po/build_draft -> draft_po] supplier=$selected_supplier.supplier; candidates=$selected_supplier.selected_candidates",
+      "created_at": "2026-05-05T06:54:24Z",
+      "dry_run": true,
+      "error": "",
+      "function": "purchase_order_build_draft",
+      "kind": "tool",
+      "live": false,
+      "namespace": "po",
+      "ok": true,
+      "output_alias": "draft_po",
+      "result_type": "draft_po",
+      "step_id": "build_draft_po",
+      "timestamp": "2026-05-05T06:54:24Z",
+      "tool": "po/build_draft"
+    },
+    {
+      "action": "validate_draft",
+      "args": {
+        "draft_po": {
+          "currency": "ZAR",
+          "lines": [
+            {
+              "line_total": 4410.0,
+              "name": "Keyboard",
+              "quantity": 21,
+              "sku": "SKU-1002",
+              "unit_cost": 210.0
+            }
+          ],
+          "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+          "status": "draft",
+          "supplier_id": "SUP-1001",
+          "supplier_name": "Cape Tech Supplies",
+          "total": 4410.0
+        }
+      },
+      "command": "[t:po/validate_draft -> po_validation] draft_po=$draft_po",
+      "created_at": "2026-05-05T06:54:24Z",
+      "dry_run": true,
+      "error": "",
+      "function": "purchase_order_validate_draft",
+      "kind": "tool",
+      "live": false,
+      "namespace": "po",
+      "ok": true,
+      "output_alias": "po_validation",
+      "result_type": "po_validation",
+      "step_id": "validate_draft_po",
+      "timestamp": "2026-05-05T06:54:24Z",
+      "tool": "po/validate_draft"
+    },
+    {
+      "action": "prepare_message_action",
+      "args": {
+        "draft_po": {
+          "currency": "ZAR",
+          "lines": [
+            {
+              "line_total": 4410.0,
+              "name": "Keyboard",
+              "quantity": 21,
+              "sku": "SKU-1002",
+              "unit_cost": 210.0
+            }
+          ],
+          "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+          "status": "draft",
+          "supplier_id": "SUP-1001",
+          "supplier_name": "Cape Tech Supplies",
+          "total": 4410.0
+        },
+        "message": {
+          "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+          "included_po_id": true,
+          "included_sku_lines": true,
+          "included_supplier_name": true,
+          "invented_terms": false,
+          "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+          "tone": "professional"
+        },
+        "supplier": {
+          "email": "orders@capetech.example",
+          "lead_time_days": 5,
+          "name": "Cape Tech Supplies",
+          "supplier_id": "SUP-1001"
+        }
+      },
+      "command": "[t:supplier/prepare_message_action -> supplier_message_send] supplier=$selected_supplier.supplier; draft_po=$draft_po; message=$supplier_message",
+      "created_at": "2026-05-05T06:54:24Z",
+      "dry_run": true,
+      "error": "",
+      "function": "supplier_prepare_message_action",
+      "kind": "tool",
+      "live": false,
+      "namespace": "supplier",
+      "ok": true,
+      "output_alias": "supplier_message_send",
+      "result_type": "pending_action",
+      "step_id": "prepare_supplier_send",
+      "timestamp": "2026-05-05T06:54:24Z",
+      "tool": "supplier/prepare_message_action"
+    },
+    {
+      "action": "prepare_message_action",
+      "action_id": "pa_af4407fddab74e03b899777a73e19029",
+      "args": {
+        "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time.",
+        "draft_po": {
+          "currency": "ZAR",
+          "lines": [
+            {
+              "line_total": 4410.0,
+              "name": "Keyboard",
+              "quantity": 21,
+              "sku": "SKU-1002",
+              "unit_cost": 210.0
+            }
+          ],
+          "po_id": "PO-DRAFT-20260505-065424-2B5FA4",
+          "status": "draft",
+          "supplier_id": "SUP-1001",
+          "supplier_name": "Cape Tech Supplies",
+          "total": 4410.0
+        },
+        "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4",
+        "to": "orders@capetech.example"
+      },
+      "command": "supplier/send_message",
+      "created_at": "2026-05-05T06:54:25Z",
+      "dry_run": true,
+      "error": "",
+      "function": "supplier_send_message",
+      "kind": "pending",
+      "live": false,
+      "namespace": "supplier",
+      "ok": true,
+      "output_alias": "supplier_message_send",
+      "phase": "approved_execution",
+      "result_type": "supplier_send_result",
+      "step_id": "prepare_supplier_send",
+      "timestamp": "2026-05-05T06:54:25Z"
+    }
+  ],
+  "trigger": {
+    "event_id": "evt_2587bd4d593244c489bcdd62f7e2eb67",
+    "event_type": "manual.procurement_low_stock_reorder",
+    "source": "operator_scenario_pack"
+  },
+  "validations": [
+    {
+      "data": {
+        "subject": "Purchase Order PO-DRAFT-20260505-065424-2B5FA4"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_supplier_reorder_message_subject"
+    },
+    {
+      "data": {
+        "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-065424-2B5FA4 for SKU-1002. Please confirm availability and lead time."
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_supplier_reorder_message_body"
+    },
+    {
+      "data": {
+        "tone": "professional"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_supplier_reorder_message_tone"
+    },
+    {
+      "data": {
+        "included_po_id": true
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_supplier_reorder_message_included_po_id"
+    },
+    {
+      "data": {
+        "included_supplier_name": true
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_supplier_reorder_message_included_supplier_name"
+    },
+    {
+      "data": {
+        "included_sku_lines": true
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_supplier_reorder_message_included_sku_lines"
+    },
+    {
+      "data": {
+        "invented_terms": false
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_supplier_reorder_message_invented_terms"
+    },
+    {
+      "data": {
+        "tone": "professional"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_supplier_reorder_message_tone_allowed"
+    }
+  ]
+}

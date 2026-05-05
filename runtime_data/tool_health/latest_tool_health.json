@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-04T20:50:09Z",
+  "generated_at": "2026-05-05T07:15:10Z",
   "include_optional": false,
   "live_rpa": false,
   "results": [
@@ -11,7 +11,7 @@
       "message": "Demo business context loaded and key fixtures are present.",
       "can_auto_resolve": false,
       "recommended_action": null,
-      "checked_at": "2026-05-04T20:50:09Z",
+      "checked_at": "2026-05-05T07:15:10Z",
       "details": {
         "dataset_counts": {
           "customers": 5,
@@ -62,7 +62,7 @@
       "message": "Demo business dataset store is readable.",
       "can_auto_resolve": false,
       "recommended_action": null,
-      "checked_at": "2026-05-04T20:50:09Z",
+      "checked_at": "2026-05-05T07:15:10Z",
       "details": {
         "dataset_counts": {
           "customers": 5,
@@ -102,7 +102,7 @@
       "message": "Memory store opened and local probe completed.",
       "can_auto_resolve": false,
       "recommended_action": null,
-      "checked_at": "2026-05-04T20:50:09Z",
+      "checked_at": "2026-05-05T07:15:10Z",
       "details": {
         "items_count": 0,
         "probe_key": "tool_health/probe",
@@ -132,7 +132,7 @@
       "message": "Local report files were generated successfully.",
       "can_auto_resolve": true,
       "recommended_action": null,
-      "checked_at": "2026-05-04T20:50:09Z",
+      "checked_at": "2026-05-05T07:15:10Z",
       "details": {
         "markdown_path": "runtime_data\\tool_health\\reports\\report_generator_probe.md",
         "html_path": "runtime_data\\tool_health\\reports\\report_generator_probe.html",
@@ -164,7 +164,7 @@
       "message": "Demo business context loaded and key fixtures are present.",
       "can_auto_resolve": false,
       "recommended_action": null,
-      "checked_at": "2026-05-04T20:50:09Z",
+      "checked_at": "2026-05-05T07:15:10Z",
       "details": {
         "dataset_counts": {
           "customers": 5,
@@ -215,7 +215,7 @@
       "message": "Demo business dataset store is readable.",
       "can_auto_resolve": false,
       "recommended_action": null,
-      "checked_at": "2026-05-04T20:50:09Z",
+      "checked_at": "2026-05-05T07:15:10Z",
       "details": {
         "dataset_counts": {
           "customers": 5,
@@ -255,7 +255,7 @@
       "message": "Memory store opened and local probe completed.",
       "can_auto_resolve": false,
       "recommended_action": null,
-      "checked_at": "2026-05-04T20:50:09Z",
+      "checked_at": "2026-05-05T07:15:10Z",
       "details": {
         "items_count": 0,
         "probe_key": "tool_health/probe",
@@ -285,7 +285,7 @@
       "message": "Local report files were generated successfully.",
       "can_auto_resolve": true,
       "recommended_action": null,
-      "checked_at": "2026-05-04T20:50:09Z",
+      "checked_at": "2026-05-05T07:15:10Z",
       "details": {
         "markdown_path": "runtime_data\\tool_health\\reports\\report_generator_probe.md",
         "html_path": "runtime_data\\tool_health\\reports\\report_generator_probe.html",

@@ -1,8 +1,8 @@
 {
   "report_type": "golden_demo_verification",
-  "generated_at": "2026-05-04T20:49:04.541672Z",
-  "started_at": "2026-05-04T20:49:03.566966Z",
-  "ended_at": "2026-05-04T20:49:04.541672Z",
+  "generated_at": "2026-05-05T07:15:09.480258Z",
+  "started_at": "2026-05-05T07:15:08.508757Z",
+  "ended_at": "2026-05-05T07:15:09.480258Z",
   "verdict": "READY",
   "checks": {
     "customer": "PASS",
@@ -15,7 +15,7 @@
     "workflow_count": 3,
     "pass_count": 3,
     "fail_count": 0,
-    "duration_ms": 974
+    "duration_ms": 971
   },
   "workflow_results": [
     {
@@ -24,36 +24,36 @@
       "scenario_id": "customer_status_approve_execute_dry_run",
       "status": "PASS",
       "state": "COMPLETED",
-      "frame_id": "frame_b4170563905e49638e94fa0708e81d4e",
+      "frame_id": "frame_8355ae2442f347d6b2b239492736f582",
       "manifest_id": "customer.status_llm_e2e",
       "pending_action_count": 1,
       "executed_action_count": 1,
       "approval_pack_pending_count": 1,
       "report_result": {
         "ok": true,
-        "frame_id": "frame_b4170563905e49638e94fa0708e81d4e",
+        "frame_id": "frame_8355ae2442f347d6b2b239492736f582",
         "report_type": "operator_run_report",
-        "markdown_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\run_report.md",
-        "html_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\run_report.html",
-        "evidence_bundle_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\evidence_bundle.json",
-        "generated_at": "2026-05-04T20:49:04Z",
+        "markdown_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\run_report.md",
+        "html_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\run_report.html",
+        "evidence_bundle_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\evidence_bundle.json",
+        "generated_at": "2026-05-05T07:15:08Z",
         "rebuild": true,
         "error": "",
         "bundle": {
           "bundle_version": 1,
-          "generated_at": "2026-05-04T20:49:04Z",
-          "frame_id": "frame_b4170563905e49638e94fa0708e81d4e",
+          "generated_at": "2026-05-05T07:15:08Z",
+          "frame_id": "frame_8355ae2442f347d6b2b239492736f582",
           "manifest_id": "customer.status_llm_e2e",
           "state": "COMPLETED",
           "summary": {
             "completed_steps": 13,
             "completion_status": "COMPLETED",
-            "created_at": "2026-05-04T20:49:03Z",
+            "created_at": "2026-05-05T07:15:08Z",
             "current_step_id": "extract_order_ref",
             "error_count": 0,
             "executed_action_count": 1,
             "failed_steps": 0,
-            "frame_id": "frame_b4170563905e49638e94fa0708e81d4e",
+            "frame_id": "frame_8355ae2442f347d6b2b239492736f582",
             "manifest_id": "customer.status_llm_e2e",
             "output_keys": [
               "business_lookups",
@@ -75,14 +75,14 @@
             "skipped_steps": 0,
             "state": "COMPLETED",
             "step_count": 14,
-            "updated_at": "2026-05-04T20:49:03Z",
+            "updated_at": "2026-05-05T07:15:08Z",
             "validation_count": 62,
             "validation_failed_count": 0
           },
           "trigger": {
             "channel": "callcentre",
             "customer_id": "CUST-1001",
-            "event_id": "evt_e041aacfdd534bae814fc0c723385dfa",
+            "event_id": "evt_256c9b6102b14800ada0472af9b85d2a",
             "event_type": "manual.customer_status_llm_e2e",
             "message": "Where is my order ORD-10042?",
             "source": "operator_scenario_pack"
@@ -98,7 +98,7 @@
               "attempts": 1,
               "command": "[q:extract_order_ref -> order_ref] text=$inputs.message",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "llm",
               "last_error": "",
@@ -114,7 +114,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "extract_order_ref",
               "timeout_seconds": null,
@@ -125,7 +125,7 @@
               "attempts": 1,
               "command": "[q:classify_customer_message -> category] text=$inputs.message",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "llm",
               "last_error": "",
@@ -141,7 +141,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "classify_message",
               "timeout_seconds": null,
@@ -152,7 +152,7 @@
               "attempts": 1,
               "command": "[validate:order_ref_has_value]",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "validate",
               "last_error": "",
@@ -168,7 +168,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "validate_order_ref",
               "timeout_seconds": null,
@@ -179,7 +179,7 @@
               "attempts": 1,
               "command": "[t:customer/read -> customer] customer_id=$inputs.customer_id",
               "duration_ms": 16.00000006146729,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -195,7 +195,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "lookup_customer",
               "timeout_seconds": null,
@@ -206,7 +206,7 @@
               "attempts": 1,
               "command": "[t:order/read -> order] order_ref=$order_ref.order_ref",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -222,7 +222,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "lookup_order",
               "timeout_seconds": null,
@@ -233,7 +233,7 @@
               "attempts": 1,
               "command": "[t:shipment/read -> shipment] order_ref=$order_ref.order_ref",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -249,7 +249,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "lookup_shipment",
               "timeout_seconds": null,
@@ -260,7 +260,7 @@
               "attempts": 1,
               "command": "[t:payment/read_by_order -> payment] order_ref=$order_ref.order_ref",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -276,7 +276,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "read_payment",
               "timeout_seconds": null,
@@ -287,7 +287,7 @@
               "attempts": 1,
               "command": "[t:order_context/build -> order_context] customer=$customer; order=$order; shipment=$shipment; payment=$payment",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -303,7 +303,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "build_order_context",
               "timeout_seconds": null,
@@ -314,7 +314,7 @@
               "attempts": 1,
               "command": "[t:customer/validate_owns_order -> ownership_check] customer=$customer; order=$order",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -330,7 +330,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "validate_customer_owns_order",
               "timeout_seconds": null,
@@ -341,7 +341,7 @@
               "attempts": 1,
               "command": "[t:customer/build_status_context -> status_context] customer=$customer; order=$order; shipment=$shipment",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -357,7 +357,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "build_status_context",
               "timeout_seconds": null,
@@ -368,7 +368,7 @@
               "attempts": 1,
               "command": "[q:draft_customer_status_reply -> draft_reply] facts=$status_context.facts; customer=$order_context.customer; order=$order_context.order; shipment=$order_context.shipment",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "llm",
               "last_error": "",
@@ -384,7 +384,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "draft_reply",
               "timeout_seconds": null,
@@ -408,7 +408,7 @@
               "attempts": 1,
               "command": "[q:compare_reply_to_facts -> reply_check] reply=$draft_reply; facts=$status_context.facts",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "llm",
               "last_error": "",
@@ -424,7 +424,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "check_reply_against_facts",
               "timeout_seconds": null,
@@ -435,7 +435,7 @@
               "attempts": 1,
               "command": "[t:message/validate_customer_status_reply -> reply_validation] draft_reply=$draft_reply; order_context=$order_context",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -451,7 +451,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "COMPLETED",
               "step_id": "validate_status_reply",
               "timeout_seconds": null,
@@ -462,14 +462,14 @@
               "attempts": 1,
               "command": "[t:customer/prepare_message_action -> customer_reply_send] customer=$customer; channel=$customer.preferred_channel; message=$draft_reply",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:03Z",
+              "ended_at": "2026-05-05T07:15:08Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
               "max_attempts": 1,
               "namespace": "customer",
               "output_alias": "customer_reply_send",
-              "result_ref": "pa_8011fe8fb6e540e2a0e6cd5fb728fb39",
+              "result_ref": "pa_a4465282d30f4809b2d9ae7f8493c032",
               "retry": {
                 "delay_seconds": 0,
                 "fail_on_exhausted": true,
@@ -478,7 +478,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:03Z",
+              "started_at": "2026-05-05T07:15:08Z",
               "status": "STAGED",
               "step_id": "stage_customer_reply",
               "timeout_seconds": null,
@@ -1469,10 +1469,10 @@
           "pending_actions": [
             {
               "action": "prepare_message_action",
-              "action_id": "pa_8011fe8fb6e540e2a0e6cd5fb728fb39",
+              "action_id": "pa_a4465282d30f4809b2d9ae7f8493c032",
               "action_type": "send_customer_message",
               "approval_reason": "Scenario approval dry-run.",
-              "approved_at": "2026-05-04T20:49:03Z",
+              "approved_at": "2026-05-05T07:15:08Z",
               "approved_by": "scenario_pack",
               "args": {
                 "channel": "whatsapp",
@@ -1498,9 +1498,9 @@
                 "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit."
               },
               "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
-              "executed_at": "2026-05-04T20:49:03Z",
+              "executed_at": "2026-05-05T07:15:08Z",
               "namespace": "customer",
               "output_alias": "customer_reply_send",
               "requires_approval": true,
@@ -1514,7 +1514,7 @@
           "executed_actions": [
             {
               "action": "prepare_message_action",
-              "action_id": "pa_8011fe8fb6e540e2a0e6cd5fb728fb39",
+              "action_id": "pa_a4465282d30f4809b2d9ae7f8493c032",
               "args": {
                 "chat": "Alex Customer",
                 "message": {
@@ -1527,7 +1527,7 @@
                 }
               },
               "dry_run": true,
-              "executed_at": "2026-05-04T20:49:03Z",
+              "executed_at": "2026-05-05T07:15:08Z",
               "namespace": "customer",
               "output_alias": "customer_reply_send",
               "result_type": "whatsapp_send_result",
@@ -1543,7 +1543,7 @@
                 "customer_id": "CUST-1001"
               },
               "command": "[t:customer/read -> customer] customer_id=$inputs.customer_id",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "",
               "function": "customer_read",
@@ -1554,7 +1554,7 @@
               "output_alias": "customer",
               "result_type": "customer_read_result",
               "step_id": "lookup_customer",
-              "timestamp": "2026-05-04T20:49:03Z",
+              "timestamp": "2026-05-05T07:15:08Z",
               "tool": "customer/read"
             },
             {
@@ -1563,7 +1563,7 @@
                 "order_ref": "ORD-10042"
               },
               "command": "[t:order/read -> order] order_ref=$order_ref.order_ref",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "",
               "function": "order_read",
@@ -1574,7 +1574,7 @@
               "output_alias": "order",
               "result_type": "order_read_result",
               "step_id": "lookup_order",
-              "timestamp": "2026-05-04T20:49:03Z",
+              "timestamp": "2026-05-05T07:15:08Z",
               "tool": "order/read"
             },
             {
@@ -1583,7 +1583,7 @@
                 "order_ref": "ORD-10042"
               },
               "command": "[t:shipment/read -> shipment] order_ref=$order_ref.order_ref",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "",
               "function": "shipment_read",
@@ -1594,7 +1594,7 @@
               "output_alias": "shipment",
               "result_type": "shipment_read_result",
               "step_id": "lookup_shipment",
-              "timestamp": "2026-05-04T20:49:03Z",
+              "timestamp": "2026-05-05T07:15:08Z",
               "tool": "shipment/read"
             },
             {
@@ -1603,7 +1603,7 @@
                 "order_ref": "ORD-10042"
               },
               "command": "[t:payment/read_by_order -> payment] order_ref=$order_ref.order_ref",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "",
               "function": "payment_read_by_order",
@@ -1614,7 +1614,7 @@
               "output_alias": "payment",
               "result_type": "payment_record",
               "step_id": "read_payment",
-              "timestamp": "2026-05-04T20:49:03Z",
+              "timestamp": "2026-05-05T07:15:08Z",
               "tool": "payment/read_by_order"
             },
             {
@@ -1655,7 +1655,7 @@
                 }
               },
               "command": "[t:order_context/build -> order_context] customer=$customer; order=$order; shipment=$shipment; payment=$payment",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "",
               "function": "order_context_build",
@@ -1666,7 +1666,7 @@
               "output_alias": "order_context",
               "result_type": "order_context_build_result",
               "step_id": "build_order_context",
-              "timestamp": "2026-05-04T20:49:03Z",
+              "timestamp": "2026-05-05T07:15:08Z",
               "tool": "order_context/build"
             },
             {
@@ -1691,7 +1691,7 @@
                 }
               },
               "command": "[t:customer/validate_owns_order -> ownership_check] customer=$customer; order=$order",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "Customer owns order.",
               "function": "customer_validate_owns_order",
@@ -1702,7 +1702,7 @@
               "output_alias": "ownership_check",
               "result_type": "ownership_check",
               "step_id": "validate_customer_owns_order",
-              "timestamp": "2026-05-04T20:49:03Z",
+              "timestamp": "2026-05-05T07:15:08Z",
               "tool": "customer/validate_owns_order"
             },
             {
@@ -1735,7 +1735,7 @@
                 }
               },
               "command": "[t:customer/build_status_context -> status_context] customer=$customer; order=$order; shipment=$shipment",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "",
               "function": "order_context_build",
@@ -1746,7 +1746,7 @@
               "output_alias": "status_context",
               "result_type": "status_context",
               "step_id": "build_status_context",
-              "timestamp": "2026-05-04T20:49:03Z",
+              "timestamp": "2026-05-05T07:15:08Z",
               "tool": "customer/build_status_context"
             },
             {
@@ -1798,7 +1798,7 @@
                 }
               },
               "command": "[t:message/validate_customer_status_reply -> reply_validation] draft_reply=$draft_reply; order_context=$order_context",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "",
               "function": "message_validate_customer_status_reply",
@@ -1809,7 +1809,7 @@
               "output_alias": "reply_validation",
               "result_type": "reply_validation",
               "step_id": "validate_status_reply",
-              "timestamp": "2026-05-04T20:49:03Z",
+              "timestamp": "2026-05-05T07:15:08Z",
               "tool": "message/validate_customer_status_reply"
             },
             {
@@ -1834,7 +1834,7 @@
                 }
               },
               "command": "[t:customer/prepare_message_action -> customer_reply_send] customer=$customer; channel=$customer.preferred_channel; message=$draft_reply",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "",
               "function": "customer_prepare_message_action",
@@ -1845,12 +1845,12 @@
               "output_alias": "customer_reply_send",
               "result_type": "pending_action",
               "step_id": "stage_customer_reply",
-              "timestamp": "2026-05-04T20:49:03Z",
+              "timestamp": "2026-05-05T07:15:08Z",
               "tool": "customer/prepare_message_action"
             },
             {
               "action": "prepare_message_action",
-              "action_id": "pa_8011fe8fb6e540e2a0e6cd5fb728fb39",
+              "action_id": "pa_a4465282d30f4809b2d9ae7f8493c032",
               "args": {
                 "chat": "Alex Customer",
                 "message": {
@@ -1863,7 +1863,7 @@
                 }
               },
               "command": "wa/send",
-              "created_at": "2026-05-04T20:49:03Z",
+              "created_at": "2026-05-05T07:15:08Z",
               "dry_run": true,
               "error": "",
               "function": "whatsapp_send",
@@ -1875,7 +1875,7 @@
               "phase": "approved_execution",
               "result_type": "whatsapp_send_result",
               "step_id": "stage_customer_reply",
-              "timestamp": "2026-05-04T20:49:03Z"
+              "timestamp": "2026-05-05T07:15:08Z"
             }
           ],
           "llm_calls": [
@@ -1902,7 +1902,7 @@
               "raw_output": "{\"order_ref\": \"ORD-10042\", \"confidence\": \"high\", \"reason\": \"Detected explicit order reference.\"}",
               "result_type": "llm_extract_order_ref_result",
               "step_id": "extract_order_ref",
-              "timestamp": "2026-05-04T20:49:03Z"
+              "timestamp": "2026-05-05T07:15:08Z"
             },
             {
               "action": "classify_customer_message",
@@ -1927,7 +1927,7 @@
               "raw_output": "{\"label\": \"order_status\", \"confidence\": \"high\", \"reason\": \"Customer asks where their order is.\"}",
               "result_type": "llm_classify_customer_message_result",
               "step_id": "classify_message",
-              "timestamp": "2026-05-04T20:49:03Z"
+              "timestamp": "2026-05-05T07:15:08Z"
             },
             {
               "action": "draft_customer_status_reply",
@@ -1985,7 +1985,7 @@
               "raw_output": "{\"reply\": \"Hi Alex, your order ORD-10042 has shipped and is currently in transit.\", \"tone\": \"professional\", \"included_order_ref\": true, \"included_status\": true, \"invented_compensation\": false}",
               "result_type": "llm_draft_customer_status_reply_result",
               "step_id": "draft_reply",
-              "timestamp": "2026-05-04T20:49:03Z"
+              "timestamp": "2026-05-05T07:15:08Z"
             },
             {
               "action": "compare_reply_to_facts",
@@ -2025,7 +2025,7 @@
               "raw_output": "{\"ok\": true, \"matches_facts\": true, \"unsupported_claims\": [], \"missing_required_facts\": [], \"reason\": \"Deterministic fake response.\"}",
               "result_type": "llm_compare_reply_to_facts_result",
               "step_id": "check_reply_against_facts",
-              "timestamp": "2026-05-04T20:49:03Z"
+              "timestamp": "2026-05-05T07:15:08Z"
             }
           ],
           "completion_gate_result": {
@@ -2045,7 +2045,7 @@
           },
           "failure_summary": {
             "ok": true,
-            "frame_id": "frame_b4170563905e49638e94fa0708e81d4e",
+            "frame_id": "frame_8355ae2442f347d6b2b239492736f582",
             "manifest_id": "customer.status_llm_e2e",
             "state": "COMPLETED",
             "failed_step_id": "",
@@ -2060,13 +2060,13 @@
           },
           "approval_pack": {
             "ok": true,
-            "frame_id": "frame_b4170563905e49638e94fa0708e81d4e",
+            "frame_id": "frame_8355ae2442f347d6b2b239492736f582",
             "manifest_id": "customer.status_llm_e2e",
             "state": "COMPLETED",
             "pending_action_count": 1,
             "approval_packs": [
               {
-                "action_id": "pa_8011fe8fb6e540e2a0e6cd5fb728fb39",
+                "action_id": "pa_a4465282d30f4809b2d9ae7f8493c032",
                 "status": "EXECUTED",
                 "step_id": "stage_customer_reply",
                 "tool": "wa/send",
@@ -2134,17 +2134,17 @@
             "message": ""
           },
           "artifact_paths": {
-            "taskframe_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\taskframe.json",
-            "summary_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\summary.json",
-            "outputs_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\outputs.json",
-            "audit_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\audit.json",
-            "run_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\run_report.md",
-            "run_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\run_report.html",
-            "approval_pack_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\approval_pack_report.md",
-            "approval_pack_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\approval_pack_report.html",
-            "failure_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\failure_report.md",
-            "failure_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\failure_report.html",
-            "evidence_bundle_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_b4170563905e49638e94fa0708e81d4e\\reports\\evidence_bundle.json"
+            "taskframe_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\taskframe.json",
+            "summary_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\summary.json",
+            "outputs_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\outputs.json",
+            "audit_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\audit.json",
+            "run_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\run_report.md",
+            "run_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\run_report.html",
+            "approval_pack_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\approval_pack_report.md",
+            "approval_pack_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\approval_pack_report.html",
+            "failure_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\failure_report.md",
+            "failure_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\failure_report.html",
+            "evidence_bundle_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_8355ae2442f347d6b2b239492736f582\\reports\\evidence_bundle.json"
           }
         }
       },
@@ -2170,36 +2170,36 @@
       "scenario_id": "procurement_low_stock_approve_execute_dry_run",
       "status": "PASS",
       "state": "COMPLETED",
-      "frame_id": "frame_f418a7913d83424f9a7685809b11a3b5",
+      "frame_id": "frame_1a5c52137f474a719f24e40641d7cde0",
       "manifest_id": "procurement.low_stock_reorder",
       "pending_action_count": 1,
       "executed_action_count": 1,
       "approval_pack_pending_count": 1,
       "report_result": {
         "ok": true,
-        "frame_id": "frame_f418a7913d83424f9a7685809b11a3b5",
+        "frame_id": "frame_1a5c52137f474a719f24e40641d7cde0",
         "report_type": "operator_run_report",
-        "markdown_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\run_report.md",
-        "html_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\run_report.html",
-        "evidence_bundle_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\evidence_bundle.json",
-        "generated_at": "2026-05-04T20:49:04Z",
+        "markdown_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\run_report.md",
+        "html_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\run_report.html",
+        "evidence_bundle_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\evidence_bundle.json",
+        "generated_at": "2026-05-05T07:15:09Z",
         "rebuild": true,
         "error": "",
         "bundle": {
           "bundle_version": 1,
-          "generated_at": "2026-05-04T20:49:04Z",
-          "frame_id": "frame_f418a7913d83424f9a7685809b11a3b5",
+          "generated_at": "2026-05-05T07:15:09Z",
+          "frame_id": "frame_1a5c52137f474a719f24e40641d7cde0",
           "manifest_id": "procurement.low_stock_reorder",
           "state": "COMPLETED",
           "summary": {
             "completed_steps": 7,
             "completion_status": "COMPLETED",
-            "created_at": "2026-05-04T20:49:04Z",
+            "created_at": "2026-05-05T07:15:09Z",
             "current_step_id": "search_low_stock_inventory",
             "error_count": 0,
             "executed_action_count": 1,
             "failed_steps": 0,
-            "frame_id": "frame_f418a7913d83424f9a7685809b11a3b5",
+            "frame_id": "frame_1a5c52137f474a719f24e40641d7cde0",
             "manifest_id": "procurement.low_stock_reorder",
             "output_keys": [
               "draft_po",
@@ -2215,12 +2215,12 @@
             "skipped_steps": 0,
             "state": "COMPLETED",
             "step_count": 8,
-            "updated_at": "2026-05-04T20:49:04Z",
+            "updated_at": "2026-05-05T07:15:09Z",
             "validation_count": 8,
             "validation_failed_count": 0
           },
           "trigger": {
-            "event_id": "evt_927933c045dc473c8b339818ee86662b",
+            "event_id": "evt_49271b5f469d41a993e65b661ece756a",
             "event_type": "manual.procurement_low_stock_reorder",
             "source": "operator_scenario_pack"
           },
@@ -2231,7 +2231,7 @@
               "attempts": 1,
               "command": "[t:inventory/search_low_stock -> low_stock_items]",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -2247,7 +2247,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "search_low_stock_inventory",
               "timeout_seconds": null,
@@ -2258,7 +2258,7 @@
               "attempts": 1,
               "command": "[t:inventory/filter_reorder_candidates -> reorder_candidates] items=$low_stock_items.items",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -2274,7 +2274,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "filter_reorder_candidates",
               "timeout_seconds": null,
@@ -2285,7 +2285,7 @@
               "attempts": 1,
               "command": "[t:po/check_duplicate_open -> duplicate_po_check] candidates=$reorder_candidates.candidates",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -2301,7 +2301,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "check_duplicate_open_pos",
               "timeout_seconds": null,
@@ -2312,7 +2312,7 @@
               "attempts": 1,
               "command": "[t:supplier/select_for_sku -> selected_supplier] candidates=$duplicate_po_check.valid_candidates",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -2328,7 +2328,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "select_supplier",
               "timeout_seconds": null,
@@ -2339,7 +2339,7 @@
               "attempts": 1,
               "command": "[t:po/build_draft -> draft_po] supplier=$selected_supplier.supplier; candidates=$selected_supplier.selected_candidates",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -2355,7 +2355,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "build_draft_po",
               "timeout_seconds": null,
@@ -2366,7 +2366,7 @@
               "attempts": 1,
               "command": "[t:po/validate_draft -> po_validation] draft_po=$draft_po",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -2382,7 +2382,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "validate_draft_po",
               "timeout_seconds": null,
@@ -2393,7 +2393,7 @@
               "attempts": 1,
               "command": "[q:draft_supplier_reorder_message -> supplier_message] supplier=$selected_supplier.supplier; draft_po=$draft_po",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "llm",
               "last_error": "",
@@ -2409,7 +2409,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "draft_supplier_message",
               "timeout_seconds": null,
@@ -2420,14 +2420,14 @@
               "attempts": 1,
               "command": "[t:supplier/prepare_message_action -> supplier_message_send] supplier=$selected_supplier.supplier; draft_po=$draft_po; message=$supplier_message",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
               "max_attempts": 1,
               "namespace": "supplier",
               "output_alias": "supplier_message_send",
-              "result_ref": "pa_44376dfe7fc440c1bfa294e87014c524",
+              "result_ref": "pa_7c0ae39217254f54939d3837b63e1d30",
               "retry": {
                 "delay_seconds": 0,
                 "fail_on_exhausted": true,
@@ -2436,7 +2436,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "STAGED",
               "step_id": "prepare_supplier_send",
               "timeout_seconds": null,
@@ -2468,7 +2468,7 @@
                   "unit_cost": 210.0
                 }
               ],
-              "po_id": "PO-DRAFT-20260504-204904-17B078",
+              "po_id": "PO-DRAFT-20260505-071509-34E1AB",
               "status": "draft",
               "supplier_id": "SUP-1001",
               "supplier_name": "Cape Tech Supplies",
@@ -2720,23 +2720,23 @@
               }
             },
             "supplier_message": {
-              "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
+              "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
               "included_po_id": true,
               "included_sku_lines": true,
               "included_supplier_name": true,
               "invented_terms": false,
-              "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+              "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
               "tone": "professional"
             },
             "supplier_message_send": {
               "action": "supplier_send_message",
-              "body_preview": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confi",
+              "body_preview": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confi",
               "dry_run": true,
               "message": "Supplier message dry-run execution completed.",
               "ok": true,
-              "po_id": "PO-DRAFT-20260504-204904-17B078",
+              "po_id": "PO-DRAFT-20260505-071509-34E1AB",
               "sent": false,
-              "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+              "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
               "to": "orders@capetech.example"
             }
           },
@@ -2744,7 +2744,7 @@
           "validations": [
             {
               "data": {
-                "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078"
+                "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB"
               },
               "message": "",
               "ok": true,
@@ -2753,7 +2753,7 @@
             },
             {
               "data": {
-                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time."
+                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time."
               },
               "message": "",
               "ok": true,
@@ -2819,13 +2819,13 @@
           "pending_actions": [
             {
               "action": "prepare_message_action",
-              "action_id": "pa_44376dfe7fc440c1bfa294e87014c524",
+              "action_id": "pa_7c0ae39217254f54939d3837b63e1d30",
               "action_type": "send_supplier_message",
               "approval_reason": "Procurement scenario approval dry-run.",
-              "approved_at": "2026-05-04T20:49:04Z",
+              "approved_at": "2026-05-05T07:15:09Z",
               "approved_by": "scenario_pack",
               "args": {
-                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
+                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
                 "draft_po": {
                   "currency": "ZAR",
                   "lines": [
@@ -2837,22 +2837,22 @@
                       "unit_cost": 210.0
                     }
                   ],
-                  "po_id": "PO-DRAFT-20260504-204904-17B078",
+                  "po_id": "PO-DRAFT-20260505-071509-34E1AB",
                   "status": "draft",
                   "supplier_id": "SUP-1001",
                   "supplier_name": "Cape Tech Supplies",
                   "total": 4410.0
                 },
                 "message": {
-                  "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
+                  "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
                   "included_po_id": true,
                   "included_sku_lines": true,
                   "included_supplier_name": true,
                   "invented_terms": false,
-                  "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+                  "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
                   "tone": "professional"
                 },
-                "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+                "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
                 "supplier": {
                   "email": "orders@capetech.example",
                   "lead_time_days": 5,
@@ -2861,10 +2861,10 @@
                 },
                 "to": "orders@capetech.example"
               },
-              "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
-              "created_at": "2026-05-04T20:49:04Z",
+              "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
-              "executed_at": "2026-05-04T20:49:04Z",
+              "executed_at": "2026-05-05T07:15:09Z",
               "namespace": "supplier",
               "output_alias": "supplier_message_send",
               "requires_approval": true,
@@ -2878,9 +2878,9 @@
           "executed_actions": [
             {
               "action": "prepare_message_action",
-              "action_id": "pa_44376dfe7fc440c1bfa294e87014c524",
+              "action_id": "pa_7c0ae39217254f54939d3837b63e1d30",
               "args": {
-                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
+                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
                 "draft_po": {
                   "currency": "ZAR",
                   "lines": [
@@ -2892,17 +2892,17 @@
                       "unit_cost": 210.0
                     }
                   ],
-                  "po_id": "PO-DRAFT-20260504-204904-17B078",
+                  "po_id": "PO-DRAFT-20260505-071509-34E1AB",
                   "status": "draft",
                   "supplier_id": "SUP-1001",
                   "supplier_name": "Cape Tech Supplies",
                   "total": 4410.0
                 },
-                "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+                "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
                 "to": "orders@capetech.example"
               },
               "dry_run": true,
-              "executed_at": "2026-05-04T20:49:04Z",
+              "executed_at": "2026-05-05T07:15:09Z",
               "namespace": "supplier",
               "output_alias": "supplier_message_send",
               "result_type": "supplier_send_result",
@@ -2916,7 +2916,7 @@
               "action": "search_low_stock",
               "args": {},
               "command": "[t:inventory/search_low_stock -> low_stock_items]",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "inventory_search_low_stock",
@@ -2927,7 +2927,7 @@
               "output_alias": "low_stock_items",
               "result_type": "low_stock_result",
               "step_id": "search_low_stock_inventory",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "inventory/search_low_stock"
             },
             {
@@ -3001,7 +3001,7 @@
                 ]
               },
               "command": "[t:inventory/filter_reorder_candidates -> reorder_candidates] items=$low_stock_items.items",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "inventory_filter_reorder_candidates",
@@ -3012,7 +3012,7 @@
               "output_alias": "reorder_candidates",
               "result_type": "reorder_candidates",
               "step_id": "filter_reorder_candidates",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "inventory/filter_reorder_candidates"
             },
             {
@@ -3044,7 +3044,7 @@
                 ]
               },
               "command": "[t:po/check_duplicate_open -> duplicate_po_check] candidates=$reorder_candidates.candidates",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "purchase_order_check_duplicate_open",
@@ -3055,7 +3055,7 @@
               "output_alias": "duplicate_po_check",
               "result_type": "duplicate_po_check",
               "step_id": "check_duplicate_open_pos",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "po/check_duplicate_open"
             },
             {
@@ -3076,7 +3076,7 @@
                 ]
               },
               "command": "[t:supplier/select_for_sku -> selected_supplier] candidates=$duplicate_po_check.valid_candidates",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "supplier_select_for_sku",
@@ -3087,7 +3087,7 @@
               "output_alias": "selected_supplier",
               "result_type": "selected_supplier",
               "step_id": "select_supplier",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "supplier/select_for_sku"
             },
             {
@@ -3114,7 +3114,7 @@
                 }
               },
               "command": "[t:po/build_draft -> draft_po] supplier=$selected_supplier.supplier; candidates=$selected_supplier.selected_candidates",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "purchase_order_build_draft",
@@ -3125,7 +3125,7 @@
               "output_alias": "draft_po",
               "result_type": "draft_po",
               "step_id": "build_draft_po",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "po/build_draft"
             },
             {
@@ -3142,7 +3142,7 @@
                       "unit_cost": 210.0
                     }
                   ],
-                  "po_id": "PO-DRAFT-20260504-204904-17B078",
+                  "po_id": "PO-DRAFT-20260505-071509-34E1AB",
                   "status": "draft",
                   "supplier_id": "SUP-1001",
                   "supplier_name": "Cape Tech Supplies",
@@ -3150,7 +3150,7 @@
                 }
               },
               "command": "[t:po/validate_draft -> po_validation] draft_po=$draft_po",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "purchase_order_validate_draft",
@@ -3161,7 +3161,7 @@
               "output_alias": "po_validation",
               "result_type": "po_validation",
               "step_id": "validate_draft_po",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "po/validate_draft"
             },
             {
@@ -3178,19 +3178,19 @@
                       "unit_cost": 210.0
                     }
                   ],
-                  "po_id": "PO-DRAFT-20260504-204904-17B078",
+                  "po_id": "PO-DRAFT-20260505-071509-34E1AB",
                   "status": "draft",
                   "supplier_id": "SUP-1001",
                   "supplier_name": "Cape Tech Supplies",
                   "total": 4410.0
                 },
                 "message": {
-                  "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
+                  "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
                   "included_po_id": true,
                   "included_sku_lines": true,
                   "included_supplier_name": true,
                   "invented_terms": false,
-                  "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+                  "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
                   "tone": "professional"
                 },
                 "supplier": {
@@ -3201,7 +3201,7 @@
                 }
               },
               "command": "[t:supplier/prepare_message_action -> supplier_message_send] supplier=$selected_supplier.supplier; draft_po=$draft_po; message=$supplier_message",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "supplier_prepare_message_action",
@@ -3212,14 +3212,14 @@
               "output_alias": "supplier_message_send",
               "result_type": "pending_action",
               "step_id": "prepare_supplier_send",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "supplier/prepare_message_action"
             },
             {
               "action": "prepare_message_action",
-              "action_id": "pa_44376dfe7fc440c1bfa294e87014c524",
+              "action_id": "pa_7c0ae39217254f54939d3837b63e1d30",
               "args": {
-                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
+                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
                 "draft_po": {
                   "currency": "ZAR",
                   "lines": [
@@ -3231,17 +3231,17 @@
                       "unit_cost": 210.0
                     }
                   ],
-                  "po_id": "PO-DRAFT-20260504-204904-17B078",
+                  "po_id": "PO-DRAFT-20260505-071509-34E1AB",
                   "status": "draft",
                   "supplier_id": "SUP-1001",
                   "supplier_name": "Cape Tech Supplies",
                   "total": 4410.0
                 },
-                "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+                "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
                 "to": "orders@capetech.example"
               },
               "command": "supplier/send_message",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "supplier_send_message",
@@ -3253,7 +3253,7 @@
               "phase": "approved_execution",
               "result_type": "supplier_send_result",
               "step_id": "prepare_supplier_send",
-              "timestamp": "2026-05-04T20:49:04Z"
+              "timestamp": "2026-05-05T07:15:09Z"
             }
           ],
           "llm_calls": [
@@ -3271,7 +3271,7 @@
                       "unit_cost": 210.0
                     }
                   ],
-                  "po_id": "PO-DRAFT-20260504-204904-17B078",
+                  "po_id": "PO-DRAFT-20260505-071509-34E1AB",
                   "status": "draft",
                   "supplier_id": "SUP-1001",
                   "supplier_name": "Cape Tech Supplies",
@@ -3293,20 +3293,20 @@
               "ok": true,
               "output_alias": "supplier_message",
               "parsed_output": {
-                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
+                "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
                 "included_po_id": true,
                 "included_sku_lines": true,
                 "included_supplier_name": true,
                 "invented_terms": false,
-                "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+                "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
                 "tone": "professional"
               },
               "prompt_ref": "supplier_message",
               "provider": "fake",
-              "raw_output": "{\"subject\": \"Purchase Order PO-DRAFT-20260504-204904-17B078\", \"body\": \"Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.\", \"tone\": \"professional\", \"included_po_id\": true, \"included_supplier_name\": true, \"included_sku_lines\": true, \"invented_terms\": false}",
+              "raw_output": "{\"subject\": \"Purchase Order PO-DRAFT-20260505-071509-34E1AB\", \"body\": \"Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.\", \"tone\": \"professional\", \"included_po_id\": true, \"included_supplier_name\": true, \"included_sku_lines\": true, \"invented_terms\": false}",
               "result_type": "llm_draft_supplier_reorder_message_result",
               "step_id": "draft_supplier_message",
-              "timestamp": "2026-05-04T20:49:04Z"
+              "timestamp": "2026-05-05T07:15:09Z"
             }
           ],
           "completion_gate_result": {
@@ -3326,7 +3326,7 @@
           },
           "failure_summary": {
             "ok": true,
-            "frame_id": "frame_f418a7913d83424f9a7685809b11a3b5",
+            "frame_id": "frame_1a5c52137f474a719f24e40641d7cde0",
             "manifest_id": "procurement.low_stock_reorder",
             "state": "COMPLETED",
             "failed_step_id": "",
@@ -3341,13 +3341,13 @@
           },
           "approval_pack": {
             "ok": true,
-            "frame_id": "frame_f418a7913d83424f9a7685809b11a3b5",
+            "frame_id": "frame_1a5c52137f474a719f24e40641d7cde0",
             "manifest_id": "procurement.low_stock_reorder",
             "state": "COMPLETED",
             "pending_action_count": 1,
             "approval_packs": [
               {
-                "action_id": "pa_44376dfe7fc440c1bfa294e87014c524",
+                "action_id": "pa_7c0ae39217254f54939d3837b63e1d30",
                 "status": "EXECUTED",
                 "step_id": "prepare_supplier_send",
                 "tool": "supplier/send_message",
@@ -3358,7 +3358,7 @@
                 "requires_approval": true,
                 "risk_class": "side_effect_unknown",
                 "args": {
-                  "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
+                  "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
                   "draft_po": {
                     "currency": "ZAR",
                     "lines": [
@@ -3370,22 +3370,22 @@
                         "unit_cost": 210.0
                       }
                     ],
-                    "po_id": "PO-DRAFT-20260504-204904-17B078",
+                    "po_id": "PO-DRAFT-20260505-071509-34E1AB",
                     "status": "draft",
                     "supplier_id": "SUP-1001",
                     "supplier_name": "Cape Tech Supplies",
                     "total": 4410.0
                   },
                   "message": {
-                    "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confirm availability and lead time.",
+                    "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confirm availability and lead time.",
                     "included_po_id": true,
                     "included_sku_lines": true,
                     "included_supplier_name": true,
                     "invented_terms": false,
-                    "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+                    "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
                     "tone": "professional"
                   },
-                  "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+                  "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
                   "supplier": {
                     "email": "orders@capetech.example",
                     "lead_time_days": 5,
@@ -3400,13 +3400,13 @@
                 "related_outputs": {
                   "supplier_message_send": {
                     "action": "supplier_send_message",
-                    "body_preview": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-204904-17B078 for SKU-1002. Please confi",
+                    "body_preview": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260505-071509-34E1AB for SKU-1002. Please confi",
                     "dry_run": true,
                     "message": "Supplier message dry-run execution completed.",
                     "ok": true,
-                    "po_id": "PO-DRAFT-20260504-204904-17B078",
+                    "po_id": "PO-DRAFT-20260505-071509-34E1AB",
                     "sent": false,
-                    "subject": "Purchase Order PO-DRAFT-20260504-204904-17B078",
+                    "subject": "Purchase Order PO-DRAFT-20260505-071509-34E1AB",
                     "to": "orders@capetech.example"
                   }
                 },
@@ -3423,17 +3423,17 @@
             "message": ""
           },
           "artifact_paths": {
-            "taskframe_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\taskframe.json",
-            "summary_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\summary.json",
-            "outputs_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\outputs.json",
-            "audit_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\audit.json",
-            "run_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\run_report.md",
-            "run_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\run_report.html",
-            "approval_pack_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\approval_pack_report.md",
-            "approval_pack_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\approval_pack_report.html",
-            "failure_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\failure_report.md",
-            "failure_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\failure_report.html",
-            "evidence_bundle_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_f418a7913d83424f9a7685809b11a3b5\\reports\\evidence_bundle.json"
+            "taskframe_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\taskframe.json",
+            "summary_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\summary.json",
+            "outputs_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\outputs.json",
+            "audit_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\audit.json",
+            "run_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\run_report.md",
+            "run_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\run_report.html",
+            "approval_pack_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\approval_pack_report.md",
+            "approval_pack_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\approval_pack_report.html",
+            "failure_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\failure_report.md",
+            "failure_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\failure_report.html",
+            "evidence_bundle_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1a5c52137f474a719f24e40641d7cde0\\reports\\evidence_bundle.json"
           }
         }
       },
@@ -3458,36 +3458,36 @@
       "scenario_id": "accounting_payment_reconciliation_approve_execute_dry_run",
       "status": "PASS",
       "state": "COMPLETED",
-      "frame_id": "frame_1773a66d91174f18910d20a5fd37f654",
+      "frame_id": "frame_a612630791d94e5aaa158df9fa8ba55a",
       "manifest_id": "accounting.payment_reconciliation",
       "pending_action_count": 2,
       "executed_action_count": 2,
       "approval_pack_pending_count": 2,
       "report_result": {
         "ok": true,
-        "frame_id": "frame_1773a66d91174f18910d20a5fd37f654",
+        "frame_id": "frame_a612630791d94e5aaa158df9fa8ba55a",
         "report_type": "operator_run_report",
-        "markdown_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\run_report.md",
-        "html_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\run_report.html",
-        "evidence_bundle_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\evidence_bundle.json",
-        "generated_at": "2026-05-04T20:49:04Z",
+        "markdown_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\run_report.md",
+        "html_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\run_report.html",
+        "evidence_bundle_path": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\evidence_bundle.json",
+        "generated_at": "2026-05-05T07:15:09Z",
         "rebuild": true,
         "error": "",
         "bundle": {
           "bundle_version": 1,
-          "generated_at": "2026-05-04T20:49:04Z",
-          "frame_id": "frame_1773a66d91174f18910d20a5fd37f654",
+          "generated_at": "2026-05-05T07:15:09Z",
+          "frame_id": "frame_a612630791d94e5aaa158df9fa8ba55a",
           "manifest_id": "accounting.payment_reconciliation",
           "state": "COMPLETED",
           "summary": {
             "completed_steps": 12,
             "completion_status": "COMPLETED",
-            "created_at": "2026-05-04T20:49:04Z",
+            "created_at": "2026-05-05T07:15:09Z",
             "current_step_id": "read_payments_sheet",
             "error_count": 0,
             "executed_action_count": 2,
             "failed_steps": 0,
-            "frame_id": "frame_1773a66d91174f18910d20a5fd37f654",
+            "frame_id": "frame_a612630791d94e5aaa158df9fa8ba55a",
             "manifest_id": "accounting.payment_reconciliation",
             "output_keys": [
               "accounting_orders",
@@ -3509,12 +3509,12 @@
             "skipped_steps": 0,
             "state": "COMPLETED",
             "step_count": 14,
-            "updated_at": "2026-05-04T20:49:04Z",
+            "updated_at": "2026-05-05T07:15:09Z",
             "validation_count": 8,
             "validation_failed_count": 0
           },
           "trigger": {
-            "event_id": "evt_dad8fb221bc04583a21aef4c9abceb28",
+            "event_id": "evt_0e8d5de679f14dcfb093e4d8d16611c8",
             "event_type": "manual.accounting_payment_reconciliation",
             "invoices_range": "CustomerInvoices!A:H",
             "ledger_range": "Ledger!A:I",
@@ -3556,7 +3556,7 @@
               "attempts": 1,
               "command": "[t:sheet/read_range -> payments_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.payments_range",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3572,7 +3572,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "read_payments_sheet",
               "timeout_seconds": null,
@@ -3583,7 +3583,7 @@
               "attempts": 1,
               "command": "[t:sheet/read_range -> orders_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.orders_range",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3599,7 +3599,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "read_orders_sheet",
               "timeout_seconds": null,
@@ -3610,7 +3610,7 @@
               "attempts": 1,
               "command": "[t:sheet/read_range -> invoices_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.invoices_range",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3626,7 +3626,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "read_invoices_sheet",
               "timeout_seconds": null,
@@ -3637,7 +3637,7 @@
               "attempts": 1,
               "command": "[t:sheet/read_range -> ledger_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.ledger_range",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3653,7 +3653,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "read_ledger_sheet",
               "timeout_seconds": null,
@@ -3663,8 +3663,8 @@
               "action": "load_payments",
               "attempts": 1,
               "command": "[t:acct/load_payments -> payments] sheet_rows=$payments_sheet.rows",
-              "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "duration_ms": 15.000000013969839,
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3680,7 +3680,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "load_payments",
               "timeout_seconds": null,
@@ -3691,7 +3691,7 @@
               "attempts": 1,
               "command": "[t:acct/load_orders -> accounting_orders] sheet_rows=$orders_sheet.rows",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3707,7 +3707,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "load_orders",
               "timeout_seconds": null,
@@ -3718,7 +3718,7 @@
               "attempts": 1,
               "command": "[t:acct/load_invoices -> invoices] sheet_rows=$invoices_sheet.rows",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3734,7 +3734,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "load_invoices",
               "timeout_seconds": null,
@@ -3745,7 +3745,7 @@
               "attempts": 1,
               "command": "[t:acct/load_ledger -> ledger_entries] sheet_rows=$ledger_sheet.rows",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3761,7 +3761,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "load_ledger",
               "timeout_seconds": null,
@@ -3772,7 +3772,7 @@
               "attempts": 1,
               "command": "[t:recon/match_payments -> reconciliation_result] payments=$payments.payments; orders=$accounting_orders.orders; invoices=$invoices.invoices; ledger_entries=$ledger_entries.ledger_entries",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3788,7 +3788,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "match_payments",
               "timeout_seconds": null,
@@ -3799,7 +3799,7 @@
               "attempts": 1,
               "command": "[t:recon/validate_result -> reconciliation_validation] reconciliation_result=$reconciliation_result",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3815,7 +3815,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "validate_reconciliation",
               "timeout_seconds": null,
@@ -3826,7 +3826,7 @@
               "attempts": 1,
               "command": "[q:draft_reconciliation_exception_summary -> exception_summary] reconciliation_result=$reconciliation_result",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "llm",
               "last_error": "",
@@ -3842,7 +3842,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "draft_exception_summary",
               "timeout_seconds": null,
@@ -3853,7 +3853,7 @@
               "attempts": 1,
               "command": "[t:acct/build_recon_sheet_rows -> recon_sheet_rows] reconciliation_result=$reconciliation_result; exception_summary=$exception_summary",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
@@ -3869,7 +3869,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "COMPLETED",
               "step_id": "build_recon_sheet_rows",
               "timeout_seconds": null,
@@ -3893,14 +3893,14 @@
               "attempts": 1,
               "command": "[t:sheet/prepare_write_rows -> recon_run_write] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.recon_runs_range; rows=$recon_sheet_rows.recon_run_rows; mode=\"append\"",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
               "max_attempts": 1,
               "namespace": "sheet",
               "output_alias": "recon_run_write",
-              "result_ref": "pa_05277a9fc066412b90803e4e0ee16942",
+              "result_ref": "pa_d07e3d79895149d8821cd8f0e6e3ffd7",
               "retry": {
                 "delay_seconds": 0,
                 "fail_on_exhausted": true,
@@ -3909,7 +3909,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "STAGED",
               "step_id": "stage_recon_run_write",
               "timeout_seconds": null,
@@ -3920,14 +3920,14 @@
               "attempts": 1,
               "command": "[t:sheet/prepare_write_rows -> recon_exception_write] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.recon_exceptions_range; rows=$recon_sheet_rows.recon_exception_rows; mode=\"append\"",
               "duration_ms": 0.0,
-              "ended_at": "2026-05-04T20:49:04Z",
+              "ended_at": "2026-05-05T07:15:09Z",
               "error": "",
               "kind": "tool",
               "last_error": "",
               "max_attempts": 1,
               "namespace": "sheet",
               "output_alias": "recon_exception_write",
-              "result_ref": "pa_d6bbfa4b234b437b97a307f65c3fbacc",
+              "result_ref": "pa_e2bdd889130b4c708e4cef92da5451d7",
               "retry": {
                 "delay_seconds": 0,
                 "fail_on_exhausted": true,
@@ -3936,7 +3936,7 @@
                   "any"
                 ]
               },
-              "started_at": "2026-05-04T20:49:04Z",
+              "started_at": "2026-05-05T07:15:09Z",
               "status": "STAGED",
               "step_id": "stage_recon_exception_write",
               "timeout_seconds": null,
@@ -4411,8 +4411,8 @@
               "ok": true,
               "recon_exception_rows": [
                 [
-                  "RECON-20260504-204904",
-                  "EXC-FFC54473",
+                  "RECON-20260505-071509",
+                  "EXC-6EE3D2DB",
                   "already_posted",
                   "EFT-9001",
                   "PAY-1001",
@@ -4426,8 +4426,8 @@
                   ""
                 ],
                 [
-                  "RECON-20260504-204904",
-                  "EXC-2759DE14",
+                  "RECON-20260505-071509",
+                  "EXC-0CFC2A91",
                   "amount_mismatch",
                   "EFT-9002",
                   "PAY-1002",
@@ -4441,8 +4441,8 @@
                   ""
                 ],
                 [
-                  "RECON-20260504-204904",
-                  "EXC-10E91B6B",
+                  "RECON-20260505-071509",
+                  "EXC-77F412CD",
                   "duplicate_payment_ref",
                   "EFT-9005",
                   "PAY-1004",
@@ -4456,8 +4456,8 @@
                   ""
                 ],
                 [
-                  "RECON-20260504-204904",
-                  "EXC-74053642",
+                  "RECON-20260505-071509",
+                  "EXC-C13BF7AC",
                   "duplicate_payment_ref",
                   "EFT-9005",
                   "PAY-1005",
@@ -4471,10 +4471,10 @@
                   ""
                 ]
               ],
-              "recon_run_id": "RECON-20260504-204904",
+              "recon_run_id": "RECON-20260505-071509",
               "recon_run_rows": [
                 [
-                  "RECON-20260504-204904",
+                  "RECON-20260505-071509",
                   "",
                   1,
                   1,
@@ -4492,7 +4492,7 @@
                 {
                   "actual_amount": 0.0,
                   "currency": "ZAR",
-                  "exception_id": "EXC-FFC54473",
+                  "exception_id": "EXC-6EE3D2DB",
                   "exception_type": "already_posted",
                   "expected_amount": 0.0,
                   "invoice_id": "",
@@ -4505,7 +4505,7 @@
                 {
                   "actual_amount": 450.0,
                   "currency": "ZAR",
-                  "exception_id": "EXC-2759DE14",
+                  "exception_id": "EXC-0CFC2A91",
                   "exception_type": "amount_mismatch",
                   "expected_amount": 500.0,
                   "invoice_id": "",
@@ -4518,7 +4518,7 @@
                 {
                   "actual_amount": 0.0,
                   "currency": "ZAR",
-                  "exception_id": "EXC-10E91B6B",
+                  "exception_id": "EXC-77F412CD",
                   "exception_type": "duplicate_payment_ref",
                   "expected_amount": 0.0,
                   "invoice_id": "",
@@ -4531,7 +4531,7 @@
                 {
                   "actual_amount": 0.0,
                   "currency": "ZAR",
-                  "exception_id": "EXC-74053642",
+                  "exception_id": "EXC-C13BF7AC",
                   "exception_type": "duplicate_payment_ref",
                   "expected_amount": 0.0,
                   "invoice_id": "",
@@ -4556,7 +4556,7 @@
               ],
               "ok": true,
               "payments_checked": 5,
-              "recon_run_id": "RECON-20260504-204904",
+              "recon_run_id": "RECON-20260505-071509",
               "summary": {
                 "already_posted_count": 1,
                 "amount_mismatch_count": 1,
@@ -4662,10 +4662,10 @@
           "pending_actions": [
             {
               "action": "prepare_write_rows",
-              "action_id": "pa_05277a9fc066412b90803e4e0ee16942",
+              "action_id": "pa_d07e3d79895149d8821cd8f0e6e3ffd7",
               "action_type": "sheet_write_rows",
               "approval_reason": "Accounting scenario approval dry-run.",
-              "approved_at": "2026-05-04T20:49:04Z",
+              "approved_at": "2026-05-05T07:15:09Z",
               "approved_by": "scenario_pack",
               "args": {
                 "dry_run": true,
@@ -4673,7 +4673,7 @@
                 "range_name": "ReconRuns!A:J",
                 "rows": [
                   [
-                    "RECON-20260504-204904",
+                    "RECON-20260505-071509",
                     "",
                     1,
                     1,
@@ -4688,9 +4688,9 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "body": "",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
-              "executed_at": "2026-05-04T20:49:04Z",
+              "executed_at": "2026-05-05T07:15:09Z",
               "namespace": "sheet",
               "output_alias": "recon_run_write",
               "requires_approval": true,
@@ -4702,10 +4702,10 @@
             },
             {
               "action": "prepare_write_rows",
-              "action_id": "pa_d6bbfa4b234b437b97a307f65c3fbacc",
+              "action_id": "pa_e2bdd889130b4c708e4cef92da5451d7",
               "action_type": "sheet_write_rows",
               "approval_reason": "Accounting scenario approval dry-run.",
-              "approved_at": "2026-05-04T20:49:04Z",
+              "approved_at": "2026-05-05T07:15:09Z",
               "approved_by": "scenario_pack",
               "args": {
                 "dry_run": true,
@@ -4713,8 +4713,8 @@
                 "range_name": "ReconExceptions!A:M",
                 "rows": [
                   [
-                    "RECON-20260504-204904",
-                    "EXC-FFC54473",
+                    "RECON-20260505-071509",
+                    "EXC-6EE3D2DB",
                     "already_posted",
                     "EFT-9001",
                     "PAY-1001",
@@ -4728,8 +4728,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-2759DE14",
+                    "RECON-20260505-071509",
+                    "EXC-0CFC2A91",
                     "amount_mismatch",
                     "EFT-9002",
                     "PAY-1002",
@@ -4743,8 +4743,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-10E91B6B",
+                    "RECON-20260505-071509",
+                    "EXC-77F412CD",
                     "duplicate_payment_ref",
                     "EFT-9005",
                     "PAY-1004",
@@ -4758,8 +4758,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-74053642",
+                    "RECON-20260505-071509",
+                    "EXC-C13BF7AC",
                     "duplicate_payment_ref",
                     "EFT-9005",
                     "PAY-1005",
@@ -4776,9 +4776,9 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "body": "",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
-              "executed_at": "2026-05-04T20:49:04Z",
+              "executed_at": "2026-05-05T07:15:09Z",
               "namespace": "sheet",
               "output_alias": "recon_exception_write",
               "requires_approval": true,
@@ -4792,14 +4792,14 @@
           "executed_actions": [
             {
               "action": "prepare_write_rows",
-              "action_id": "pa_05277a9fc066412b90803e4e0ee16942",
+              "action_id": "pa_d07e3d79895149d8821cd8f0e6e3ffd7",
               "args": {
                 "dry_run": true,
                 "mode": "append",
                 "range_name": "ReconRuns!A:J",
                 "rows": [
                   [
-                    "RECON-20260504-204904",
+                    "RECON-20260505-071509",
                     "",
                     1,
                     1,
@@ -4814,7 +4814,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "dry_run": true,
-              "executed_at": "2026-05-04T20:49:04Z",
+              "executed_at": "2026-05-05T07:15:09Z",
               "namespace": "sheet",
               "output_alias": "recon_run_write",
               "result_type": "sheet_write_rows_result",
@@ -4824,15 +4824,15 @@
             },
             {
               "action": "prepare_write_rows",
-              "action_id": "pa_d6bbfa4b234b437b97a307f65c3fbacc",
+              "action_id": "pa_e2bdd889130b4c708e4cef92da5451d7",
               "args": {
                 "dry_run": true,
                 "mode": "append",
                 "range_name": "ReconExceptions!A:M",
                 "rows": [
                   [
-                    "RECON-20260504-204904",
-                    "EXC-FFC54473",
+                    "RECON-20260505-071509",
+                    "EXC-6EE3D2DB",
                     "already_posted",
                     "EFT-9001",
                     "PAY-1001",
@@ -4846,8 +4846,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-2759DE14",
+                    "RECON-20260505-071509",
+                    "EXC-0CFC2A91",
                     "amount_mismatch",
                     "EFT-9002",
                     "PAY-1002",
@@ -4861,8 +4861,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-10E91B6B",
+                    "RECON-20260505-071509",
+                    "EXC-77F412CD",
                     "duplicate_payment_ref",
                     "EFT-9005",
                     "PAY-1004",
@@ -4876,8 +4876,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-74053642",
+                    "RECON-20260505-071509",
+                    "EXC-C13BF7AC",
                     "duplicate_payment_ref",
                     "EFT-9005",
                     "PAY-1005",
@@ -4894,7 +4894,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "dry_run": true,
-              "executed_at": "2026-05-04T20:49:04Z",
+              "executed_at": "2026-05-05T07:15:09Z",
               "namespace": "sheet",
               "output_alias": "recon_exception_write",
               "result_type": "sheet_write_rows_result",
@@ -4911,7 +4911,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "command": "[t:sheet/read_range -> payments_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.payments_range",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "sheet_read_range",
@@ -4922,7 +4922,7 @@
               "output_alias": "payments_sheet",
               "result_type": "sheet_read_range_result",
               "step_id": "read_payments_sheet",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "sheet/read_range"
             },
             {
@@ -4932,7 +4932,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "command": "[t:sheet/read_range -> orders_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.orders_range",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "sheet_read_range",
@@ -4943,7 +4943,7 @@
               "output_alias": "orders_sheet",
               "result_type": "sheet_read_range_result",
               "step_id": "read_orders_sheet",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "sheet/read_range"
             },
             {
@@ -4953,7 +4953,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "command": "[t:sheet/read_range -> invoices_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.invoices_range",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "sheet_read_range",
@@ -4964,7 +4964,7 @@
               "output_alias": "invoices_sheet",
               "result_type": "sheet_read_range_result",
               "step_id": "read_invoices_sheet",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "sheet/read_range"
             },
             {
@@ -4974,7 +4974,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "command": "[t:sheet/read_range -> ledger_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.ledger_range",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "sheet_read_range",
@@ -4985,7 +4985,7 @@
               "output_alias": "ledger_sheet",
               "result_type": "sheet_read_range_result",
               "step_id": "read_ledger_sheet",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "sheet/read_range"
             },
             {
@@ -5061,7 +5061,7 @@
                 ]
               },
               "command": "[t:acct/load_payments -> payments] sheet_rows=$payments_sheet.rows",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "accounting_load_payments",
@@ -5072,7 +5072,7 @@
               "output_alias": "payments",
               "result_type": "accounting_payments",
               "step_id": "load_payments",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "acct/load_payments"
             },
             {
@@ -5130,7 +5130,7 @@
                 ]
               },
               "command": "[t:acct/load_orders -> accounting_orders] sheet_rows=$orders_sheet.rows",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "accounting_load_orders",
@@ -5141,7 +5141,7 @@
               "output_alias": "accounting_orders",
               "result_type": "accounting_orders",
               "step_id": "load_orders",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "acct/load_orders"
             },
             {
@@ -5211,7 +5211,7 @@
                 ]
               },
               "command": "[t:acct/load_invoices -> invoices] sheet_rows=$invoices_sheet.rows",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "accounting_load_invoices",
@@ -5222,7 +5222,7 @@
               "output_alias": "invoices",
               "result_type": "accounting_invoices",
               "step_id": "load_invoices",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "acct/load_invoices"
             },
             {
@@ -5254,7 +5254,7 @@
                 ]
               },
               "command": "[t:acct/load_ledger -> ledger_entries] sheet_rows=$ledger_sheet.rows",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "accounting_load_ledger",
@@ -5265,7 +5265,7 @@
               "output_alias": "ledger_entries",
               "result_type": "accounting_ledger",
               "step_id": "load_ledger",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "acct/load_ledger"
             },
             {
@@ -5453,7 +5453,7 @@
                 ]
               },
               "command": "[t:recon/match_payments -> reconciliation_result] payments=$payments.payments; orders=$accounting_orders.orders; invoices=$invoices.invoices; ledger_entries=$ledger_entries.ledger_entries",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "reconciliation_match_payments",
@@ -5464,7 +5464,7 @@
               "output_alias": "reconciliation_result",
               "result_type": "reconciliation_result",
               "step_id": "match_payments",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "recon/match_payments"
             },
             {
@@ -5475,7 +5475,7 @@
                     {
                       "actual_amount": 0.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-FFC54473",
+                      "exception_id": "EXC-6EE3D2DB",
                       "exception_type": "already_posted",
                       "expected_amount": 0.0,
                       "invoice_id": "",
@@ -5488,7 +5488,7 @@
                     {
                       "actual_amount": 450.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-2759DE14",
+                      "exception_id": "EXC-0CFC2A91",
                       "exception_type": "amount_mismatch",
                       "expected_amount": 500.0,
                       "invoice_id": "",
@@ -5501,7 +5501,7 @@
                     {
                       "actual_amount": 0.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-10E91B6B",
+                      "exception_id": "EXC-77F412CD",
                       "exception_type": "duplicate_payment_ref",
                       "expected_amount": 0.0,
                       "invoice_id": "",
@@ -5514,7 +5514,7 @@
                     {
                       "actual_amount": 0.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-74053642",
+                      "exception_id": "EXC-C13BF7AC",
                       "exception_type": "duplicate_payment_ref",
                       "expected_amount": 0.0,
                       "invoice_id": "",
@@ -5539,7 +5539,7 @@
                   ],
                   "ok": true,
                   "payments_checked": 5,
-                  "recon_run_id": "RECON-20260504-204904",
+                  "recon_run_id": "RECON-20260505-071509",
                   "summary": {
                     "already_posted_count": 1,
                     "amount_mismatch_count": 1,
@@ -5552,7 +5552,7 @@
                 }
               },
               "command": "[t:recon/validate_result -> reconciliation_validation] reconciliation_result=$reconciliation_result",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "reconciliation_validate_result",
@@ -5563,7 +5563,7 @@
               "output_alias": "reconciliation_validation",
               "result_type": "reconciliation_validation",
               "step_id": "validate_reconciliation",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "recon/validate_result"
             },
             {
@@ -5585,7 +5585,7 @@
                     {
                       "actual_amount": 0.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-FFC54473",
+                      "exception_id": "EXC-6EE3D2DB",
                       "exception_type": "already_posted",
                       "expected_amount": 0.0,
                       "invoice_id": "",
@@ -5598,7 +5598,7 @@
                     {
                       "actual_amount": 450.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-2759DE14",
+                      "exception_id": "EXC-0CFC2A91",
                       "exception_type": "amount_mismatch",
                       "expected_amount": 500.0,
                       "invoice_id": "",
@@ -5611,7 +5611,7 @@
                     {
                       "actual_amount": 0.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-10E91B6B",
+                      "exception_id": "EXC-77F412CD",
                       "exception_type": "duplicate_payment_ref",
                       "expected_amount": 0.0,
                       "invoice_id": "",
@@ -5624,7 +5624,7 @@
                     {
                       "actual_amount": 0.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-74053642",
+                      "exception_id": "EXC-C13BF7AC",
                       "exception_type": "duplicate_payment_ref",
                       "expected_amount": 0.0,
                       "invoice_id": "",
@@ -5649,7 +5649,7 @@
                   ],
                   "ok": true,
                   "payments_checked": 5,
-                  "recon_run_id": "RECON-20260504-204904",
+                  "recon_run_id": "RECON-20260505-071509",
                   "summary": {
                     "already_posted_count": 1,
                     "amount_mismatch_count": 1,
@@ -5662,7 +5662,7 @@
                 }
               },
               "command": "[t:acct/build_recon_sheet_rows -> recon_sheet_rows] reconciliation_result=$reconciliation_result; exception_summary=$exception_summary",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "accounting_build_recon_sheet_rows",
@@ -5673,7 +5673,7 @@
               "output_alias": "recon_sheet_rows",
               "result_type": "recon_sheet_rows",
               "step_id": "build_recon_sheet_rows",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "acct/build_recon_sheet_rows"
             },
             {
@@ -5683,7 +5683,7 @@
                 "range_name": "ReconRuns!A:J",
                 "rows": [
                   [
-                    "RECON-20260504-204904",
+                    "RECON-20260505-071509",
                     "",
                     1,
                     1,
@@ -5698,7 +5698,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "command": "[t:sheet/prepare_write_rows -> recon_run_write] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.recon_runs_range; rows=$recon_sheet_rows.recon_run_rows; mode=\"append\"",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "sheet_prepare_write_rows",
@@ -5709,7 +5709,7 @@
               "output_alias": "recon_run_write",
               "result_type": "pending_action",
               "step_id": "stage_recon_run_write",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "sheet/prepare_write_rows"
             },
             {
@@ -5719,8 +5719,8 @@
                 "range_name": "ReconExceptions!A:M",
                 "rows": [
                   [
-                    "RECON-20260504-204904",
-                    "EXC-FFC54473",
+                    "RECON-20260505-071509",
+                    "EXC-6EE3D2DB",
                     "already_posted",
                     "EFT-9001",
                     "PAY-1001",
@@ -5734,8 +5734,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-2759DE14",
+                    "RECON-20260505-071509",
+                    "EXC-0CFC2A91",
                     "amount_mismatch",
                     "EFT-9002",
                     "PAY-1002",
@@ -5749,8 +5749,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-10E91B6B",
+                    "RECON-20260505-071509",
+                    "EXC-77F412CD",
                     "duplicate_payment_ref",
                     "EFT-9005",
                     "PAY-1004",
@@ -5764,8 +5764,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-74053642",
+                    "RECON-20260505-071509",
+                    "EXC-C13BF7AC",
                     "duplicate_payment_ref",
                     "EFT-9005",
                     "PAY-1005",
@@ -5782,7 +5782,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "command": "[t:sheet/prepare_write_rows -> recon_exception_write] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.recon_exceptions_range; rows=$recon_sheet_rows.recon_exception_rows; mode=\"append\"",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "sheet_prepare_write_rows",
@@ -5793,19 +5793,19 @@
               "output_alias": "recon_exception_write",
               "result_type": "pending_action",
               "step_id": "stage_recon_exception_write",
-              "timestamp": "2026-05-04T20:49:04Z",
+              "timestamp": "2026-05-05T07:15:09Z",
               "tool": "sheet/prepare_write_rows"
             },
             {
               "action": "prepare_write_rows",
-              "action_id": "pa_05277a9fc066412b90803e4e0ee16942",
+              "action_id": "pa_d07e3d79895149d8821cd8f0e6e3ffd7",
               "args": {
                 "dry_run": true,
                 "mode": "append",
                 "range_name": "ReconRuns!A:J",
                 "rows": [
                   [
-                    "RECON-20260504-204904",
+                    "RECON-20260505-071509",
                     "",
                     1,
                     1,
@@ -5820,7 +5820,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "command": "sheet/write_rows",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "sheet_write_rows",
@@ -5832,19 +5832,19 @@
               "phase": "approved_execution",
               "result_type": "sheet_write_rows_result",
               "step_id": "stage_recon_run_write",
-              "timestamp": "2026-05-04T20:49:04Z"
+              "timestamp": "2026-05-05T07:15:09Z"
             },
             {
               "action": "prepare_write_rows",
-              "action_id": "pa_d6bbfa4b234b437b97a307f65c3fbacc",
+              "action_id": "pa_e2bdd889130b4c708e4cef92da5451d7",
               "args": {
                 "dry_run": true,
                 "mode": "append",
                 "range_name": "ReconExceptions!A:M",
                 "rows": [
                   [
-                    "RECON-20260504-204904",
-                    "EXC-FFC54473",
+                    "RECON-20260505-071509",
+                    "EXC-6EE3D2DB",
                     "already_posted",
                     "EFT-9001",
                     "PAY-1001",
@@ -5858,8 +5858,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-2759DE14",
+                    "RECON-20260505-071509",
+                    "EXC-0CFC2A91",
                     "amount_mismatch",
                     "EFT-9002",
                     "PAY-1002",
@@ -5873,8 +5873,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-10E91B6B",
+                    "RECON-20260505-071509",
+                    "EXC-77F412CD",
                     "duplicate_payment_ref",
                     "EFT-9005",
                     "PAY-1004",
@@ -5888,8 +5888,8 @@
                     ""
                   ],
                   [
-                    "RECON-20260504-204904",
-                    "EXC-74053642",
+                    "RECON-20260505-071509",
+                    "EXC-C13BF7AC",
                     "duplicate_payment_ref",
                     "EFT-9005",
                     "PAY-1005",
@@ -5906,7 +5906,7 @@
                 "spreadsheet_id": "demo-sheet-local"
               },
               "command": "sheet/write_rows",
-              "created_at": "2026-05-04T20:49:04Z",
+              "created_at": "2026-05-05T07:15:09Z",
               "dry_run": true,
               "error": "",
               "function": "sheet_write_rows",
@@ -5918,7 +5918,7 @@
               "phase": "approved_execution",
               "result_type": "sheet_write_rows_result",
               "step_id": "stage_recon_exception_write",
-              "timestamp": "2026-05-04T20:49:04Z"
+              "timestamp": "2026-05-05T07:15:09Z"
             }
           ],
           "llm_calls": [
@@ -5930,7 +5930,7 @@
                     {
                       "actual_amount": 0.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-FFC54473",
+                      "exception_id": "EXC-6EE3D2DB",
                       "exception_type": "already_posted",
                       "expected_amount": 0.0,
                       "invoice_id": "",
@@ -5943,7 +5943,7 @@
                     {
                       "actual_amount": 450.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-2759DE14",
+                      "exception_id": "EXC-0CFC2A91",
                       "exception_type": "amount_mismatch",
                       "expected_amount": 500.0,
                       "invoice_id": "",
@@ -5956,7 +5956,7 @@
                     {
                       "actual_amount": 0.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-10E91B6B",
+                      "exception_id": "EXC-77F412CD",
                       "exception_type": "duplicate_payment_ref",
                       "expected_amount": 0.0,
                       "invoice_id": "",
@@ -5969,7 +5969,7 @@
                     {
                       "actual_amount": 0.0,
                       "currency": "ZAR",
-                      "exception_id": "EXC-74053642",
+                      "exception_id": "EXC-C13BF7AC",
                       "exception_type": "duplicate_payment_ref",
                       "expected_amount": 0.0,
                       "invoice_id": "",
@@ -5994,7 +5994,7 @@
                   ],
                   "ok": true,
                   "payments_checked": 5,
-                  "recon_run_id": "RECON-20260504-204904",
+                  "recon_run_id": "RECON-20260505-071509",
                   "summary": {
                     "already_posted_count": 1,
                     "amount_mismatch_count": 1,
@@ -6030,7 +6030,7 @@
               "raw_output": "{\"summary\": \"Payments were reconciled against orders, invoices, and ledger entries. Exceptions require operator review before posting.\", \"risk_level\": \"high\", \"key_exceptions\": [\"One payment has an amount mismatch.\", \"One payment reference appears more than once.\", \"One payment appears to already be posted.\"], \"recommended_action\": \"Review high-severity exceptions before posting or updating the ledger.\", \"invented_facts\": false}",
               "result_type": "llm_draft_reconciliation_exception_summary_result",
               "step_id": "draft_exception_summary",
-              "timestamp": "2026-05-04T20:49:04Z"
+              "timestamp": "2026-05-05T07:15:09Z"
             }
           ],
           "completion_gate_result": {
@@ -6050,7 +6050,7 @@
           },
           "failure_summary": {
             "ok": true,
-            "frame_id": "frame_1773a66d91174f18910d20a5fd37f654",
+            "frame_id": "frame_a612630791d94e5aaa158df9fa8ba55a",
             "manifest_id": "accounting.payment_reconciliation",
             "state": "COMPLETED",
             "failed_step_id": "",
@@ -6065,13 +6065,13 @@
           },
           "approval_pack": {
             "ok": true,
-            "frame_id": "frame_1773a66d91174f18910d20a5fd37f654",
+            "frame_id": "frame_a612630791d94e5aaa158df9fa8ba55a",
             "manifest_id": "accounting.payment_reconciliation",
             "state": "COMPLETED",
             "pending_action_count": 2,
             "approval_packs": [
               {
-                "action_id": "pa_05277a9fc066412b90803e4e0ee16942",
+                "action_id": "pa_d07e3d79895149d8821cd8f0e6e3ffd7",
                 "status": "EXECUTED",
                 "step_id": "stage_recon_run_write",
                 "tool": "sheet/write_rows",
@@ -6087,7 +6087,7 @@
                   "range_name": "ReconRuns!A:J",
                   "rows": [
                     [
-                      "RECON-20260504-204904",
+                      "RECON-20260505-071509",
                       "",
                       1,
                       1,
@@ -6125,7 +6125,7 @@
                 "related_to_selected_step": false
               },
               {
-                "action_id": "pa_d6bbfa4b234b437b97a307f65c3fbacc",
+                "action_id": "pa_e2bdd889130b4c708e4cef92da5451d7",
                 "status": "EXECUTED",
                 "step_id": "stage_recon_exception_write",
                 "tool": "sheet/write_rows",
@@ -6141,8 +6141,8 @@
                   "range_name": "ReconExceptions!A:M",
                   "rows": [
                     [
-                      "RECON-20260504-204904",
-                      "EXC-FFC54473",
+                      "RECON-20260505-071509",
+                      "EXC-6EE3D2DB",
                       "already_posted",
                       "EFT-9001",
                       "PAY-1001",
@@ -6156,8 +6156,8 @@
                       ""
                     ],
                     [
-                      "RECON-20260504-204904",
-                      "EXC-2759DE14",
+                      "RECON-20260505-071509",
+                      "EXC-0CFC2A91",
                       "amount_mismatch",
                       "EFT-9002",
                       "PAY-1002",
@@ -6171,8 +6171,8 @@
                       ""
                     ],
                     [
-                      "RECON-20260504-204904",
-                      "EXC-10E91B6B",
+                      "RECON-20260505-071509",
+                      "EXC-77F412CD",
                       "duplicate_payment_ref",
                       "EFT-9005",
                       "PAY-1004",
@@ -6186,8 +6186,8 @@
                       ""
                     ],
                     [
-                      "RECON-20260504-204904",
-                      "EXC-74053642",
+                      "RECON-20260505-071509",
+                      "EXC-C13BF7AC",
                       "duplicate_payment_ref",
                       "EFT-9005",
                       "PAY-1005",
@@ -6231,17 +6231,17 @@
             "message": ""
           },
           "artifact_paths": {
-            "taskframe_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\taskframe.json",
-            "summary_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\summary.json",
-            "outputs_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\outputs.json",
-            "audit_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\audit.json",
-            "run_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\run_report.md",
-            "run_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\run_report.html",
-            "approval_pack_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\approval_pack_report.md",
-            "approval_pack_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\approval_pack_report.html",
-            "failure_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\failure_report.md",
-            "failure_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\failure_report.html",
-            "evidence_bundle_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_1773a66d91174f18910d20a5fd37f654\\reports\\evidence_bundle.json"
+            "taskframe_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\taskframe.json",
+            "summary_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\summary.json",
+            "outputs_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\outputs.json",
+            "audit_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\audit.json",
+            "run_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\run_report.md",
+            "run_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\run_report.html",
+            "approval_pack_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\approval_pack_report.md",
+            "approval_pack_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\approval_pack_report.html",
+            "failure_report_md": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\failure_report.md",
+            "failure_report_html": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\failure_report.html",
+            "evidence_bundle_json": "D:\\Projects\\4thGenAgent\\runtime_data\\outputs\\runtime\\runs\\frame_a612630791d94e5aaa158df9fa8ba55a\\reports\\evidence_bundle.json"
           }
         }
       },

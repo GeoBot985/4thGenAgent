@@ -1,0 +1,4176 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "extract_order_ref",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "classify_message",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "validate_order_ref",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 15.999999945051968,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "lookup_customer",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "lookup_order",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "lookup_shipment",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "read_payment",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "build_order_context",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "validate_customer_owns_order",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "build_status_context",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "draft_reply",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "check_reply_against_facts",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "validate_status_reply",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "attempt": 1,
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error_tag": "none",
+      "error_type": "",
+      "max_attempts": 1,
+      "message": "",
+      "retryable": false,
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "STAGED",
+      "step_id": "stage_customer_reply",
+      "timed_out": false,
+      "timeout_seconds": null,
+      "timestamp": "2026-05-05T07:09:13Z"
+    }
+  ],
+  "audit": [
+    {
+      "data": {
+        "manifest_id": "customer.status_llm_e2e"
+      },
+      "event_type": "TASKFRAME_CREATED",
+      "message": "TaskFrame created from manifest.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "manifest_id": "customer.status_llm_e2e"
+      },
+      "event_type": "ORCHESTRATOR_FRAME_CREATED",
+      "message": "Orchestrator created TaskFrame from manifest.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "event_id": "evt_68a19803a9794e83b79f862c48f0f14a",
+        "event_type": "manual.customer_status_llm_e2e",
+        "source": "operator_scenario_pack"
+      },
+      "event_type": "EVENT_RECEIVED",
+      "message": "Runtime event received.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "event_id": "evt_68a19803a9794e83b79f862c48f0f14a",
+        "event_type": "manual.customer_status_llm_e2e",
+        "manifest_id": "customer.status_llm_e2e"
+      },
+      "event_type": "EVENT_ROUTED",
+      "message": "Runtime event routed to manifest.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "dry_run": true,
+        "event_id": "evt_68a19803a9794e83b79f862c48f0f14a",
+        "event_type": "manual.customer_status_llm_e2e",
+        "manifest_id": "customer.status_llm_e2e"
+      },
+      "event_type": "RUNTIME_ENGINE_STARTED",
+      "message": "Runtime engine started processing event.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "from": "CREATED",
+        "to": "VALIDATING"
+      },
+      "event_type": "STATE_CHANGED",
+      "message": "CREATED -> VALIDATING",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "from": "VALIDATING",
+        "to": "READY"
+      },
+      "event_type": "STATE_CHANGED",
+      "message": "VALIDATING -> READY",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {},
+      "event_type": "FRAME_READY",
+      "message": "TaskFrame is ready for execution.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "from": "READY",
+        "to": "RUNNING"
+      },
+      "event_type": "STATE_CHANGED",
+      "message": "READY -> RUNNING",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "extract_order_ref",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action": "extract_order_ref",
+        "output_alias": "order_ref",
+        "step_id": "extract_order_ref"
+      },
+      "event_type": "LLM_MICRO_TOOL_STARTED",
+      "message": "LLM micro-tool started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action": "extract_order_ref",
+        "output_alias": "order_ref",
+        "step_id": "extract_order_ref"
+      },
+      "event_type": "LLM_MICRO_TOOL_COMPLETED",
+      "message": "LLM micro-tool completed.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "extract_order_ref",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "extract_order_ref",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "classify_message",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action": "classify_customer_message",
+        "output_alias": "category",
+        "step_id": "classify_message"
+      },
+      "event_type": "LLM_MICRO_TOOL_STARTED",
+      "message": "LLM micro-tool started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action": "classify_customer_message",
+        "output_alias": "category",
+        "step_id": "classify_message"
+      },
+      "event_type": "LLM_MICRO_TOOL_COMPLETED",
+      "message": "LLM micro-tool completed.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "classify_message",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "classify_message",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "validate_order_ref",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_has_fields",
+        "validation_id": "order_ref_has_value"
+      },
+      "event_type": "VALIDATION_STEP_PASSED",
+      "message": "Output has fields: order_ref",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "validate_order_ref",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "validate_order_ref",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "lookup_customer",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "args": {
+          "customer_id": "CUST-1001"
+        },
+        "function": "customer_read",
+        "step_id": "lookup_customer",
+        "tool": "customer/read"
+      },
+      "event_type": "TOOL_DRY_RUN_READONLY_EXECUTION_STARTED",
+      "message": "Read-only tool executed during dry-run.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 15.999999945051968,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "lookup_customer",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 15.999999945051968,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "lookup_customer",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "lookup_order",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "args": {
+          "order_ref": "ORD-10042"
+        },
+        "function": "order_read",
+        "step_id": "lookup_order",
+        "tool": "order/read"
+      },
+      "event_type": "TOOL_DRY_RUN_READONLY_EXECUTION_STARTED",
+      "message": "Read-only tool executed during dry-run.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "lookup_order",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "lookup_order",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "lookup_shipment",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "args": {
+          "order_ref": "ORD-10042"
+        },
+        "function": "shipment_read",
+        "step_id": "lookup_shipment",
+        "tool": "shipment/read"
+      },
+      "event_type": "TOOL_DRY_RUN_READONLY_EXECUTION_STARTED",
+      "message": "Read-only tool executed during dry-run.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "lookup_shipment",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "lookup_shipment",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "read_payment",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "output_alias": "payment",
+        "step_id": "read_payment",
+        "tool": "payment/read_by_order"
+      },
+      "event_type": "TOOL_STEP_COMPLETED",
+      "message": "Step completed in dry-run mode.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "read_payment",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "read_payment",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "build_order_context",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "args": {
+          "customer": {
+            "customer_id": "CUST-1001",
+            "email": "alex@example.test",
+            "name": "Alex",
+            "preferred_channel": "whatsapp",
+            "status": "active",
+            "whatsapp_chat": "Alex Customer"
+          },
+          "order": {
+            "created_date": "2026-04-25",
+            "currency": "ZAR",
+            "customer_id": "CUST-1001",
+            "order_id": "ORD-10042",
+            "order_ref": "ORD-10042",
+            "status": "shipped",
+            "total_amount": 1299.99
+          },
+          "payment": {
+            "args": {
+              "order_ref": "ORD-10042"
+            },
+            "dry_run": true,
+            "function": "payment_read_by_order",
+            "tool": "payment/read_by_order"
+          },
+          "shipment": {
+            "carrier": "DemoCourier",
+            "estimated_delivery": "2026-05-03",
+            "order_ref": "ORD-10042",
+            "shipment_id": "SHIP-9001",
+            "status": "in_transit",
+            "tracking_ref": "TRK-778899"
+          }
+        },
+        "function": "order_context_build",
+        "step_id": "build_order_context",
+        "tool": "order_context/build"
+      },
+      "event_type": "TOOL_DRY_RUN_READONLY_EXECUTION_STARTED",
+      "message": "Read-only tool executed during dry-run.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "build_order_context",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "build_order_context",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "validate_customer_owns_order",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "args": {
+          "customer": {
+            "customer_id": "CUST-1001",
+            "email": "alex@example.test",
+            "name": "Alex",
+            "preferred_channel": "whatsapp",
+            "status": "active",
+            "whatsapp_chat": "Alex Customer"
+          },
+          "order": {
+            "created_date": "2026-04-25",
+            "currency": "ZAR",
+            "customer_id": "CUST-1001",
+            "order_id": "ORD-10042",
+            "order_ref": "ORD-10042",
+            "status": "shipped",
+            "total_amount": 1299.99
+          }
+        },
+        "function": "customer_validate_owns_order",
+        "step_id": "validate_customer_owns_order",
+        "tool": "customer/validate_owns_order"
+      },
+      "event_type": "TOOL_DRY_RUN_READONLY_EXECUTION_STARTED",
+      "message": "Read-only tool executed during dry-run.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "validate_customer_owns_order",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "validate_customer_owns_order",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "build_status_context",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "args": {
+          "customer": {
+            "customer_id": "CUST-1001",
+            "email": "alex@example.test",
+            "name": "Alex",
+            "preferred_channel": "whatsapp",
+            "status": "active",
+            "whatsapp_chat": "Alex Customer"
+          },
+          "order": {
+            "created_date": "2026-04-25",
+            "currency": "ZAR",
+            "customer_id": "CUST-1001",
+            "order_id": "ORD-10042",
+            "order_ref": "ORD-10042",
+            "status": "shipped",
+            "total_amount": 1299.99
+          },
+          "shipment": {
+            "carrier": "DemoCourier",
+            "estimated_delivery": "2026-05-03",
+            "order_ref": "ORD-10042",
+            "shipment_id": "SHIP-9001",
+            "status": "in_transit",
+            "tracking_ref": "TRK-778899"
+          }
+        },
+        "function": "order_context_build",
+        "step_id": "build_status_context",
+        "tool": "customer/build_status_context"
+      },
+      "event_type": "TOOL_DRY_RUN_READONLY_EXECUTION_STARTED",
+      "message": "Read-only tool executed during dry-run.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "build_status_context",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "build_status_context",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "condition": {
+          "all": [
+            {
+              "equals": "order_status",
+              "field": "label",
+              "output": "category"
+            },
+            {
+              "equals": true,
+              "field": "ok",
+              "output": "ownership_check"
+            }
+          ]
+        },
+        "step_id": "draft_reply",
+        "trace": {
+          "children": [
+            {
+              "condition": {
+                "equals": "order_status",
+                "field": "label",
+                "output": "category"
+              },
+              "expected": "order_status",
+              "ok": true,
+              "operator": "equals",
+              "resolved_value": "order_status",
+              "source": "output"
+            },
+            {
+              "condition": {
+                "equals": true,
+                "field": "ok",
+                "output": "ownership_check"
+              },
+              "expected": true,
+              "ok": true,
+              "operator": "equals",
+              "resolved_value": true,
+              "source": "output"
+            }
+          ],
+          "condition": {
+            "all": [
+              {
+                "equals": "order_status",
+                "field": "label",
+                "output": "category"
+              },
+              {
+                "equals": true,
+                "field": "ok",
+                "output": "ownership_check"
+              }
+            ]
+          },
+          "ok": true,
+          "operator": "all"
+        }
+      },
+      "event_type": "STEP_CONDITION_PASSED",
+      "message": "Step condition passed.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "draft_reply",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action": "draft_customer_status_reply",
+        "output_alias": "draft_reply",
+        "step_id": "draft_reply"
+      },
+      "event_type": "LLM_MICRO_TOOL_STARTED",
+      "message": "LLM micro-tool started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action": "draft_customer_status_reply",
+        "output_alias": "draft_reply",
+        "step_id": "draft_reply"
+      },
+      "event_type": "LLM_MICRO_TOOL_COMPLETED",
+      "message": "LLM micro-tool completed.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "draft_reply",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "draft_reply",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "check_reply_against_facts",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action": "compare_reply_to_facts",
+        "output_alias": "reply_check",
+        "step_id": "check_reply_against_facts"
+      },
+      "event_type": "LLM_MICRO_TOOL_STARTED",
+      "message": "LLM micro-tool started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action": "compare_reply_to_facts",
+        "output_alias": "reply_check",
+        "step_id": "check_reply_against_facts"
+      },
+      "event_type": "LLM_MICRO_TOOL_COMPLETED",
+      "message": "LLM micro-tool completed.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "check_reply_against_facts",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "check_reply_against_facts",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "validate_status_reply",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "args": {
+          "draft_reply": {
+            "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+            "included_order_ref": true,
+            "included_status": true,
+            "invented_compensation": false,
+            "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+            "tone": "professional"
+          },
+          "order_context": {
+            "customer": {
+              "customer_id": "CUST-1001",
+              "email": "alex@example.test",
+              "name": "Alex",
+              "preferred_channel": "whatsapp",
+              "status": "active",
+              "whatsapp_chat": "Alex Customer"
+            },
+            "error": "",
+            "facts": [
+              "Customer CUST-1001 is Alex.",
+              "Order ORD-10042 belongs to CUST-1001.",
+              "Order ORD-10042 status is shipped.",
+              "Shipment SHIP-9001 status is in_transit."
+            ],
+            "ok": true,
+            "order": {
+              "created_date": "2026-04-25",
+              "currency": "ZAR",
+              "customer_id": "CUST-1001",
+              "order_id": "ORD-10042",
+              "order_ref": "ORD-10042",
+              "status": "shipped",
+              "total_amount": 1299.99
+            },
+            "payment": {},
+            "shipment": {
+              "carrier": "DemoCourier",
+              "estimated_delivery": "2026-05-03",
+              "order_ref": "ORD-10042",
+              "shipment_id": "SHIP-9001",
+              "status": "in_transit",
+              "tracking_ref": "TRK-778899"
+            }
+          }
+        },
+        "function": "message_validate_customer_status_reply",
+        "step_id": "validate_status_reply",
+        "tool": "message/validate_customer_status_reply"
+      },
+      "event_type": "TOOL_DRY_RUN_READONLY_EXECUTION_STARTED",
+      "message": "Read-only tool executed during dry-run.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "validate_status_reply",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "validate_status_reply",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "condition": {
+          "all": [
+            {
+              "equals": true,
+              "field": "ok",
+              "output": "reply_validation"
+            },
+            {
+              "equals": true,
+              "field": "ok",
+              "output": "reply_check"
+            },
+            {
+              "equals": "order_status",
+              "field": "label",
+              "output": "category"
+            },
+            {
+              "equals": true,
+              "field": "ok",
+              "output": "ownership_check"
+            }
+          ]
+        },
+        "step_id": "stage_customer_reply",
+        "trace": {
+          "children": [
+            {
+              "condition": {
+                "equals": true,
+                "field": "ok",
+                "output": "reply_validation"
+              },
+              "expected": true,
+              "ok": true,
+              "operator": "equals",
+              "resolved_value": true,
+              "source": "output"
+            },
+            {
+              "condition": {
+                "equals": true,
+                "field": "ok",
+                "output": "reply_check"
+              },
+              "expected": true,
+              "ok": true,
+              "operator": "equals",
+              "resolved_value": true,
+              "source": "output"
+            },
+            {
+              "condition": {
+                "equals": "order_status",
+                "field": "label",
+                "output": "category"
+              },
+              "expected": "order_status",
+              "ok": true,
+              "operator": "equals",
+              "resolved_value": "order_status",
+              "source": "output"
+            },
+            {
+              "condition": {
+                "equals": true,
+                "field": "ok",
+                "output": "ownership_check"
+              },
+              "expected": true,
+              "ok": true,
+              "operator": "equals",
+              "resolved_value": true,
+              "source": "output"
+            }
+          ],
+          "condition": {
+            "all": [
+              {
+                "equals": true,
+                "field": "ok",
+                "output": "reply_validation"
+              },
+              {
+                "equals": true,
+                "field": "ok",
+                "output": "reply_check"
+              },
+              {
+                "equals": "order_status",
+                "field": "label",
+                "output": "category"
+              },
+              {
+                "equals": true,
+                "field": "ok",
+                "output": "ownership_check"
+              }
+            ]
+          },
+          "ok": true,
+          "operator": "all"
+        }
+      },
+      "event_type": "STEP_CONDITION_PASSED",
+      "message": "Step condition passed.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "stage_customer_reply",
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_STARTED",
+      "message": "Step attempt started.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "from": "RUNNING",
+        "to": "WAITING_FOR_EXECUTE"
+      },
+      "event_type": "STATE_CHANGED",
+      "message": "RUNNING -> WAITING_FOR_EXECUTE",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action_id": "pa_7e7d48a832dc4b7dbea192895b39d0ff",
+        "step_id": "stage_customer_reply",
+        "tool": "customer/prepare_message_action"
+      },
+      "event_type": "PENDING_ACTION_STAGED",
+      "message": "Step staged as pending action.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "stage_customer_reply",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_TIMING_RECORDED",
+      "message": "Step timing recorded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "attempt": 1,
+        "duration_ms": 0.0,
+        "ended_at": "2026-05-05T07:09:13Z",
+        "max_attempts": 1,
+        "retry_policy": {
+          "delay_seconds": 0,
+          "fail_on_exhausted": true,
+          "max_attempts": 1,
+          "retry_on": [
+            "any"
+          ]
+        },
+        "started_at": "2026-05-05T07:09:13Z",
+        "step_id": "stage_customer_reply",
+        "timed_out": false,
+        "timeout_seconds": null
+      },
+      "event_type": "STEP_ATTEMPT_SUCCEEDED",
+      "message": "Step attempt succeeded.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "no_errors",
+        "validation_id": "no_errors"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "No runtime errors.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_has_fields",
+        "validation_id": "order_ref_has_value"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output has fields: order_ref",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_in",
+        "validation_id": "order_ref_confidence_ok"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field is allowed: order_ref.confidence",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "category_is_order_status"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: category.label",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_has_fields",
+        "validation_id": "customer_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output has fields: customer",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_has_fields",
+        "validation_id": "order_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output has fields: order",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_has_fields",
+        "validation_id": "shipment_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output has fields: shipment",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "order_belongs_to_customer"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: order.customer_id",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "shipment_matches_order"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: shipment.order_ref",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_exists",
+        "validation_id": "status_context_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output exists: status_context",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "draft_reply_includes_order_ref"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: draft_reply.included_order_ref",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "draft_reply_includes_status"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: draft_reply.included_status",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "draft_reply_has_no_compensation"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: draft_reply.invented_compensation",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "reply_check_ok"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: reply_check.ok",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "reply_check_matches_facts"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: reply_check.matches_facts",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "reply_check_no_unsupported_claims"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: reply_check.unsupported_claims",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_exists",
+        "validation_id": "reply_validation_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output exists: reply_validation",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "pending_action_exists",
+        "validation_id": "customer_reply_pending"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Pending action exists.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "errors": [],
+        "failed_steps": [],
+        "final_state": "WAITING_FOR_EXECUTE",
+        "message": "Required pending action exists. Waiting for approval.",
+        "missing_executed_actions": [],
+        "missing_outputs": [],
+        "missing_pending_actions": [],
+        "ok": true,
+        "status": "AWAITING_APPROVAL",
+        "validation_summary": {
+          "failed": 0,
+          "passed": 44
+        }
+      },
+      "event_type": "COMPLETION_WAITING_FOR_APPROVAL",
+      "message": "Required pending action exists. Waiting for approval.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "dry_run": true,
+        "event_id": "evt_68a19803a9794e83b79f862c48f0f14a",
+        "event_type": "manual.customer_status_llm_e2e",
+        "manifest_id": "customer.status_llm_e2e",
+        "state": "WAITING_FOR_EXECUTE"
+      },
+      "event_type": "RUNTIME_ENGINE_COMPLETED",
+      "message": "Runtime engine completed event processing.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action_id": "pa_7e7d48a832dc4b7dbea192895b39d0ff",
+        "output_alias": "customer_reply_send",
+        "tool": "wa/send"
+      },
+      "event_type": "PENDING_ACTION_APPROVED",
+      "message": "Pending action approved.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "from": "WAITING_FOR_EXECUTE",
+        "to": "EXECUTING_PENDING"
+      },
+      "event_type": "STATE_CHANGED",
+      "message": "WAITING_FOR_EXECUTE -> EXECUTING_PENDING",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action_id": "pa_7e7d48a832dc4b7dbea192895b39d0ff",
+        "output_alias": "customer_reply_send",
+        "tool": "wa/send"
+      },
+      "event_type": "PENDING_ACTION_EXECUTING",
+      "message": "Pending action executing in dry-run mode.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "action_id": "pa_7e7d48a832dc4b7dbea192895b39d0ff",
+        "output_alias": "customer_reply_send",
+        "tool": "wa/send"
+      },
+      "event_type": "PENDING_ACTION_EXECUTED",
+      "message": "Pending action executed in dry-run mode.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "from": "EXECUTING_PENDING",
+        "to": "VERIFYING"
+      },
+      "event_type": "STATE_CHANGED",
+      "message": "EXECUTING_PENDING -> VERIFYING",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "no_errors",
+        "validation_id": "no_errors"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "No runtime errors.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_has_fields",
+        "validation_id": "order_ref_has_value"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output has fields: order_ref",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_in",
+        "validation_id": "order_ref_confidence_ok"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field is allowed: order_ref.confidence",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "category_is_order_status"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: category.label",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_has_fields",
+        "validation_id": "customer_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output has fields: customer",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_has_fields",
+        "validation_id": "order_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output has fields: order",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_has_fields",
+        "validation_id": "shipment_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output has fields: shipment",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "order_belongs_to_customer"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: order.customer_id",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "shipment_matches_order"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: shipment.order_ref",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_exists",
+        "validation_id": "status_context_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output exists: status_context",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "draft_reply_includes_order_ref"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: draft_reply.included_order_ref",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "draft_reply_includes_status"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: draft_reply.included_status",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "draft_reply_has_no_compensation"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: draft_reply.invented_compensation",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "reply_check_ok"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: reply_check.ok",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "reply_check_matches_facts"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: reply_check.matches_facts",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_field_equals",
+        "validation_id": "reply_check_no_unsupported_claims"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output field matches: reply_check.unsupported_claims",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "output_exists",
+        "validation_id": "reply_validation_exists"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Output exists: reply_validation",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "ok": true,
+        "type": "pending_action_exists",
+        "validation_id": "customer_reply_pending"
+      },
+      "event_type": "VALIDATION_PASSED",
+      "message": "Pending action exists.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "from": "VERIFYING",
+        "to": "COMPLETED"
+      },
+      "event_type": "STATE_CHANGED",
+      "message": "VERIFYING -> COMPLETED",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "data": {
+        "errors": [],
+        "failed_steps": [],
+        "final_state": "COMPLETED",
+        "message": "Completion gate passed.",
+        "missing_executed_actions": [],
+        "missing_outputs": [],
+        "missing_pending_actions": [],
+        "ok": true,
+        "status": "COMPLETED",
+        "validation_summary": {
+          "failed": 0,
+          "passed": 62
+        }
+      },
+      "event_type": "COMPLETION_GATE_PASSED",
+      "message": "Completion gate passed.",
+      "timestamp": "2026-05-05T07:09:13Z"
+    }
+  ],
+  "completion_gate_result": {
+    "errors": [],
+    "failed_steps": [],
+    "final_state": "COMPLETED",
+    "message": "Completion gate passed.",
+    "missing_executed_actions": [],
+    "missing_outputs": [],
+    "missing_pending_actions": [],
+    "ok": true,
+    "status": "COMPLETED",
+    "validation_summary": {
+      "failed": 0,
+      "passed": 62
+    }
+  },
+  "created_at": "2026-05-05T07:09:13Z",
+  "current_step_id": "extract_order_ref",
+  "errors": [],
+  "evidence": [
+    {
+      "datasets": [],
+      "kind": "business_lookup",
+      "step_id": "build_status_context"
+    }
+  ],
+  "executed_actions": [
+    {
+      "action": "prepare_message_action",
+      "action_id": "pa_7e7d48a832dc4b7dbea192895b39d0ff",
+      "args": {
+        "chat": "Alex Customer",
+        "message": {
+          "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "included_order_ref": true,
+          "included_status": true,
+          "invented_compensation": false,
+          "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "tone": "professional"
+        }
+      },
+      "dry_run": true,
+      "executed_at": "2026-05-05T07:09:13Z",
+      "namespace": "customer",
+      "output_alias": "customer_reply_send",
+      "result_type": "whatsapp_send_result",
+      "status": "EXECUTED",
+      "step_id": "stage_customer_reply",
+      "tool": "wa/send"
+    }
+  ],
+  "final_response": "",
+  "frame_id": "frame_4974669ff2d24d16bb727c3811315d32",
+  "inputs": {
+    "channel": "callcentre",
+    "customer_id": "CUST-1001",
+    "message": "Where is my order ORD-10042?"
+  },
+  "llm_calls": [
+    {
+      "action": "extract_order_ref",
+      "args": {
+        "text": "Where is my order ORD-10042?"
+      },
+      "error": "",
+      "error_type": "",
+      "metadata": {
+        "micro_tool": true
+      },
+      "model": "fake",
+      "ok": true,
+      "output_alias": "order_ref",
+      "parsed_output": {
+        "confidence": "high",
+        "order_ref": "ORD-10042",
+        "reason": "Detected explicit order reference."
+      },
+      "prompt_ref": "order_ref",
+      "provider": "fake",
+      "raw_output": "{\"order_ref\": \"ORD-10042\", \"confidence\": \"high\", \"reason\": \"Detected explicit order reference.\"}",
+      "result_type": "llm_extract_order_ref_result",
+      "step_id": "extract_order_ref",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "action": "classify_customer_message",
+      "args": {
+        "text": "Where is my order ORD-10042?"
+      },
+      "error": "",
+      "error_type": "",
+      "metadata": {
+        "micro_tool": true
+      },
+      "model": "fake",
+      "ok": true,
+      "output_alias": "category",
+      "parsed_output": {
+        "confidence": "high",
+        "label": "order_status",
+        "reason": "Customer asks where their order is."
+      },
+      "prompt_ref": "category",
+      "provider": "fake",
+      "raw_output": "{\"label\": \"order_status\", \"confidence\": \"high\", \"reason\": \"Customer asks where their order is.\"}",
+      "result_type": "llm_classify_customer_message_result",
+      "step_id": "classify_message",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "action": "draft_customer_status_reply",
+      "args": {
+        "customer": {
+          "customer_id": "CUST-1001",
+          "email": "alex@example.test",
+          "name": "Alex",
+          "preferred_channel": "whatsapp",
+          "status": "active",
+          "whatsapp_chat": "Alex Customer"
+        },
+        "facts": [
+          "Customer CUST-1001 is Alex.",
+          "Order ORD-10042 belongs to CUST-1001.",
+          "Order ORD-10042 status is shipped.",
+          "Shipment SHIP-9001 status is in_transit."
+        ],
+        "order": {
+          "created_date": "2026-04-25",
+          "currency": "ZAR",
+          "customer_id": "CUST-1001",
+          "order_id": "ORD-10042",
+          "order_ref": "ORD-10042",
+          "status": "shipped",
+          "total_amount": 1299.99
+        },
+        "shipment": {
+          "carrier": "DemoCourier",
+          "estimated_delivery": "2026-05-03",
+          "order_ref": "ORD-10042",
+          "shipment_id": "SHIP-9001",
+          "status": "in_transit",
+          "tracking_ref": "TRK-778899"
+        }
+      },
+      "error": "",
+      "error_type": "",
+      "metadata": {
+        "micro_tool": true
+      },
+      "model": "fake",
+      "ok": true,
+      "output_alias": "draft_reply",
+      "parsed_output": {
+        "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+        "included_order_ref": true,
+        "included_status": true,
+        "invented_compensation": false,
+        "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+        "tone": "professional"
+      },
+      "prompt_ref": "draft_reply",
+      "provider": "fake",
+      "raw_output": "{\"reply\": \"Hi Alex, your order ORD-10042 has shipped and is currently in transit.\", \"tone\": \"professional\", \"included_order_ref\": true, \"included_status\": true, \"invented_compensation\": false}",
+      "result_type": "llm_draft_customer_status_reply_result",
+      "step_id": "draft_reply",
+      "timestamp": "2026-05-05T07:09:13Z"
+    },
+    {
+      "action": "compare_reply_to_facts",
+      "args": {
+        "facts": [
+          "Customer CUST-1001 is Alex.",
+          "Order ORD-10042 belongs to CUST-1001.",
+          "Order ORD-10042 status is shipped.",
+          "Shipment SHIP-9001 status is in_transit."
+        ],
+        "reply": {
+          "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "included_order_ref": true,
+          "included_status": true,
+          "invented_compensation": false,
+          "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "tone": "professional"
+        }
+      },
+      "error": "",
+      "error_type": "",
+      "metadata": {
+        "micro_tool": true
+      },
+      "model": "fake",
+      "ok": true,
+      "output_alias": "reply_check",
+      "parsed_output": {
+        "matches_facts": true,
+        "missing_required_facts": [],
+        "ok": true,
+        "reason": "Deterministic fake response.",
+        "unsupported_claims": []
+      },
+      "prompt_ref": "reply_check",
+      "provider": "fake",
+      "raw_output": "{\"ok\": true, \"matches_facts\": true, \"unsupported_claims\": [], \"missing_required_facts\": [], \"reason\": \"Deterministic fake response.\"}",
+      "result_type": "llm_compare_reply_to_facts_result",
+      "step_id": "check_reply_against_facts",
+      "timestamp": "2026-05-05T07:09:13Z"
+    }
+  ],
+  "manifest_id": "customer.status_llm_e2e",
+  "outputs": {
+    "business_lookups": {
+      "customer": {
+        "customer_id": "CUST-1001",
+        "email": "alex@example.test",
+        "name": "Alex",
+        "preferred_channel": "whatsapp",
+        "status": "active",
+        "whatsapp_chat": "Alex Customer"
+      },
+      "error": "",
+      "facts": [
+        "Customer CUST-1001 is Alex.",
+        "Order ORD-10042 belongs to CUST-1001.",
+        "Order ORD-10042 status is shipped.",
+        "Shipment SHIP-9001 status is in_transit."
+      ],
+      "ok": true,
+      "order": {
+        "created_date": "2026-04-25",
+        "currency": "ZAR",
+        "customer_id": "CUST-1001",
+        "order_id": "ORD-10042",
+        "order_ref": "ORD-10042",
+        "status": "shipped",
+        "total_amount": 1299.99
+      },
+      "payment": {},
+      "shipment": {
+        "carrier": "DemoCourier",
+        "estimated_delivery": "2026-05-03",
+        "order_ref": "ORD-10042",
+        "shipment_id": "SHIP-9001",
+        "status": "in_transit",
+        "tracking_ref": "TRK-778899"
+      }
+    },
+    "category": {
+      "confidence": "high",
+      "label": "order_status",
+      "reason": "Customer asks where their order is."
+    },
+    "customer": {
+      "customer_id": "CUST-1001",
+      "email": "alex@example.test",
+      "name": "Alex",
+      "preferred_channel": "whatsapp",
+      "status": "active",
+      "whatsapp_chat": "Alex Customer"
+    },
+    "customer_reply_send": {
+      "approved_execution": true,
+      "args": {
+        "chat": "Alex Customer",
+        "message": {
+          "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "included_order_ref": true,
+          "included_status": true,
+          "invented_compensation": false,
+          "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "tone": "professional"
+        }
+      },
+      "dry_run": true,
+      "function": "whatsapp_send",
+      "tool": "wa/send"
+    },
+    "draft_reply": {
+      "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+      "included_order_ref": true,
+      "included_status": true,
+      "invented_compensation": false,
+      "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+      "tone": "professional"
+    },
+    "order": {
+      "created_date": "2026-04-25",
+      "currency": "ZAR",
+      "customer_id": "CUST-1001",
+      "order_id": "ORD-10042",
+      "order_ref": "ORD-10042",
+      "status": "shipped",
+      "total_amount": 1299.99
+    },
+    "order_context": {
+      "customer": {
+        "customer_id": "CUST-1001",
+        "email": "alex@example.test",
+        "name": "Alex",
+        "preferred_channel": "whatsapp",
+        "status": "active",
+        "whatsapp_chat": "Alex Customer"
+      },
+      "error": "",
+      "facts": [
+        "Customer CUST-1001 is Alex.",
+        "Order ORD-10042 belongs to CUST-1001.",
+        "Order ORD-10042 status is shipped.",
+        "Shipment SHIP-9001 status is in_transit."
+      ],
+      "ok": true,
+      "order": {
+        "created_date": "2026-04-25",
+        "currency": "ZAR",
+        "customer_id": "CUST-1001",
+        "order_id": "ORD-10042",
+        "order_ref": "ORD-10042",
+        "status": "shipped",
+        "total_amount": 1299.99
+      },
+      "payment": {},
+      "shipment": {
+        "carrier": "DemoCourier",
+        "estimated_delivery": "2026-05-03",
+        "order_ref": "ORD-10042",
+        "shipment_id": "SHIP-9001",
+        "status": "in_transit",
+        "tracking_ref": "TRK-778899"
+      }
+    },
+    "order_ref": {
+      "confidence": "high",
+      "order_ref": "ORD-10042",
+      "reason": "Detected explicit order reference."
+    },
+    "ownership_check": {
+      "customer_id": "CUST-1001",
+      "error": "",
+      "message": "Customer owns order.",
+      "ok": true,
+      "order_customer_id": "CUST-1001",
+      "order_ref": "ORD-10042"
+    },
+    "payment": {
+      "args": {
+        "order_ref": "ORD-10042"
+      },
+      "dry_run": true,
+      "function": "payment_read_by_order",
+      "tool": "payment/read_by_order"
+    },
+    "reply_check": {
+      "matches_facts": true,
+      "missing_required_facts": [],
+      "ok": true,
+      "reason": "Deterministic fake response.",
+      "unsupported_claims": []
+    },
+    "reply_validation": {
+      "checks": [],
+      "errors": [],
+      "facts": [
+        "Customer CUST-1001 is Alex.",
+        "Order ORD-10042 belongs to CUST-1001.",
+        "Order ORD-10042 status is shipped.",
+        "Shipment SHIP-9001 status is in_transit."
+      ],
+      "ok": true,
+      "order_context": {
+        "customer": {
+          "customer_id": "CUST-1001",
+          "email": "alex@example.test",
+          "name": "Alex",
+          "preferred_channel": "whatsapp",
+          "status": "active",
+          "whatsapp_chat": "Alex Customer"
+        },
+        "error": "",
+        "facts": [
+          "Customer CUST-1001 is Alex.",
+          "Order ORD-10042 belongs to CUST-1001.",
+          "Order ORD-10042 status is shipped.",
+          "Shipment SHIP-9001 status is in_transit."
+        ],
+        "ok": true,
+        "order": {
+          "created_date": "2026-04-25",
+          "currency": "ZAR",
+          "customer_id": "CUST-1001",
+          "order_id": "ORD-10042",
+          "order_ref": "ORD-10042",
+          "status": "shipped",
+          "total_amount": 1299.99
+        },
+        "payment": {},
+        "shipment": {
+          "carrier": "DemoCourier",
+          "estimated_delivery": "2026-05-03",
+          "order_ref": "ORD-10042",
+          "shipment_id": "SHIP-9001",
+          "status": "in_transit",
+          "tracking_ref": "TRK-778899"
+        }
+      },
+      "reply": {
+        "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+        "included_order_ref": true,
+        "included_status": true,
+        "invented_compensation": false,
+        "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+        "tone": "professional"
+      }
+    },
+    "shipment": {
+      "carrier": "DemoCourier",
+      "estimated_delivery": "2026-05-03",
+      "order_ref": "ORD-10042",
+      "shipment_id": "SHIP-9001",
+      "status": "in_transit",
+      "tracking_ref": "TRK-778899"
+    },
+    "status_context": {
+      "customer": {
+        "customer_id": "CUST-1001",
+        "email": "alex@example.test",
+        "name": "Alex",
+        "preferred_channel": "whatsapp",
+        "status": "active",
+        "whatsapp_chat": "Alex Customer"
+      },
+      "error": "",
+      "facts": [
+        "Customer CUST-1001 is Alex.",
+        "Order ORD-10042 belongs to CUST-1001.",
+        "Order ORD-10042 status is shipped.",
+        "Shipment SHIP-9001 status is in_transit."
+      ],
+      "ok": true,
+      "order": {
+        "created_date": "2026-04-25",
+        "currency": "ZAR",
+        "customer_id": "CUST-1001",
+        "order_id": "ORD-10042",
+        "order_ref": "ORD-10042",
+        "status": "shipped",
+        "total_amount": 1299.99
+      },
+      "payment": {},
+      "shipment": {
+        "carrier": "DemoCourier",
+        "estimated_delivery": "2026-05-03",
+        "order_ref": "ORD-10042",
+        "shipment_id": "SHIP-9001",
+        "status": "in_transit",
+        "tracking_ref": "TRK-778899"
+      }
+    }
+  },
+  "pending_actions": [
+    {
+      "action": "prepare_message_action",
+      "action_id": "pa_7e7d48a832dc4b7dbea192895b39d0ff",
+      "action_type": "send_customer_message",
+      "approval_reason": "Scenario approval dry-run.",
+      "approved_at": "2026-05-05T07:09:13Z",
+      "approved_by": "scenario_pack",
+      "args": {
+        "channel": "whatsapp",
+        "chat": "Alex Customer",
+        "customer": {
+          "customer_id": "CUST-1001",
+          "email": "alex@example.test",
+          "name": "Alex",
+          "preferred_channel": "whatsapp",
+          "status": "active",
+          "whatsapp_chat": "Alex Customer"
+        },
+        "customer_id": "CUST-1001",
+        "draft_po": {},
+        "message": {
+          "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "included_order_ref": true,
+          "included_status": true,
+          "invented_compensation": false,
+          "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "tone": "professional"
+        },
+        "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit."
+      },
+      "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "executed_at": "2026-05-05T07:09:13Z",
+      "namespace": "customer",
+      "output_alias": "customer_reply_send",
+      "requires_approval": true,
+      "result_type": "whatsapp_send_result",
+      "side_effect": true,
+      "status": "EXECUTED",
+      "step_id": "stage_customer_reply",
+      "tool": "wa/send"
+    }
+  ],
+  "raw_input": "{\"event_id\": \"evt_68a19803a9794e83b79f862c48f0f14a\", \"event_type\": \"manual.customer_status_llm_e2e\", \"payload\": {\"channel\": \"callcentre\", \"customer_id\": \"CUST-1001\", \"message\": \"Where is my order ORD-10042?\"}, \"source\": \"operator_scenario_pack\"}",
+  "state": "COMPLETED",
+  "steps": [
+    {
+      "action": "extract_order_ref",
+      "attempts": 1,
+      "command": "[q:extract_order_ref -> order_ref] text=$inputs.message",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "llm",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "q",
+      "output_alias": "order_ref",
+      "result_ref": "order_ref",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "extract_order_ref",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "classify_customer_message",
+      "attempts": 1,
+      "command": "[q:classify_customer_message -> category] text=$inputs.message",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "llm",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "q",
+      "output_alias": "category",
+      "result_ref": "category",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "classify_message",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "order_ref_has_value",
+      "attempts": 1,
+      "command": "[validate:order_ref_has_value]",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "validate",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": null,
+      "output_alias": null,
+      "result_ref": null,
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "validate_order_ref",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "read",
+      "attempts": 1,
+      "command": "[t:customer/read -> customer] customer_id=$inputs.customer_id",
+      "duration_ms": 15.999999945051968,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "customer",
+      "output_alias": "customer",
+      "result_ref": "customer",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "lookup_customer",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "read",
+      "attempts": 1,
+      "command": "[t:order/read -> order] order_ref=$order_ref.order_ref",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "order",
+      "output_alias": "order",
+      "result_ref": "order",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "lookup_order",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "read",
+      "attempts": 1,
+      "command": "[t:shipment/read -> shipment] order_ref=$order_ref.order_ref",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "shipment",
+      "output_alias": "shipment",
+      "result_ref": "shipment",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "lookup_shipment",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "read_by_order",
+      "attempts": 1,
+      "command": "[t:payment/read_by_order -> payment] order_ref=$order_ref.order_ref",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "payment",
+      "output_alias": "payment",
+      "result_ref": "payment",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "read_payment",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "build",
+      "attempts": 1,
+      "command": "[t:order_context/build -> order_context] customer=$customer; order=$order; shipment=$shipment; payment=$payment",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "order_context",
+      "output_alias": "order_context",
+      "result_ref": "order_context",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "build_order_context",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "validate_owns_order",
+      "attempts": 1,
+      "command": "[t:customer/validate_owns_order -> ownership_check] customer=$customer; order=$order",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "customer",
+      "output_alias": "ownership_check",
+      "result_ref": "ownership_check",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "validate_customer_owns_order",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "build_status_context",
+      "attempts": 1,
+      "command": "[t:customer/build_status_context -> status_context] customer=$customer; order=$order; shipment=$shipment",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "customer",
+      "output_alias": "status_context",
+      "result_ref": "status_context",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "build_status_context",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "draft_customer_status_reply",
+      "attempts": 1,
+      "command": "[q:draft_customer_status_reply -> draft_reply] facts=$status_context.facts; customer=$order_context.customer; order=$order_context.order; shipment=$order_context.shipment",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "llm",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "q",
+      "output_alias": "draft_reply",
+      "result_ref": "draft_reply",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "draft_reply",
+      "timeout_seconds": null,
+      "when": {
+        "all": [
+          {
+            "equals": "order_status",
+            "field": "label",
+            "output": "category"
+          },
+          {
+            "equals": true,
+            "field": "ok",
+            "output": "ownership_check"
+          }
+        ]
+      }
+    },
+    {
+      "action": "compare_reply_to_facts",
+      "attempts": 1,
+      "command": "[q:compare_reply_to_facts -> reply_check] reply=$draft_reply; facts=$status_context.facts",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "llm",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "q",
+      "output_alias": "reply_check",
+      "result_ref": "reply_check",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "check_reply_against_facts",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "validate_customer_status_reply",
+      "attempts": 1,
+      "command": "[t:message/validate_customer_status_reply -> reply_validation] draft_reply=$draft_reply; order_context=$order_context",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "message",
+      "output_alias": "reply_validation",
+      "result_ref": "reply_validation",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "COMPLETED",
+      "step_id": "validate_status_reply",
+      "timeout_seconds": null,
+      "when": null
+    },
+    {
+      "action": "prepare_message_action",
+      "attempts": 1,
+      "command": "[t:customer/prepare_message_action -> customer_reply_send] customer=$customer; channel=$customer.preferred_channel; message=$draft_reply",
+      "duration_ms": 0.0,
+      "ended_at": "2026-05-05T07:09:13Z",
+      "error": "",
+      "kind": "tool",
+      "last_error": "",
+      "max_attempts": 1,
+      "namespace": "customer",
+      "output_alias": "customer_reply_send",
+      "result_ref": "pa_7e7d48a832dc4b7dbea192895b39d0ff",
+      "retry": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-05T07:09:13Z",
+      "status": "STAGED",
+      "step_id": "stage_customer_reply",
+      "timeout_seconds": null,
+      "when": {
+        "all": [
+          {
+            "equals": true,
+            "field": "ok",
+            "output": "reply_validation"
+          },
+          {
+            "equals": true,
+            "field": "ok",
+            "output": "reply_check"
+          },
+          {
+            "equals": "order_status",
+            "field": "label",
+            "output": "category"
+          },
+          {
+            "equals": true,
+            "field": "ok",
+            "output": "ownership_check"
+          }
+        ]
+      }
+    }
+  ],
+  "tool_calls": [
+    {
+      "action": "read",
+      "args": {
+        "customer_id": "CUST-1001"
+      },
+      "command": "[t:customer/read -> customer] customer_id=$inputs.customer_id",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "",
+      "function": "customer_read",
+      "kind": "tool",
+      "live": false,
+      "namespace": "customer",
+      "ok": true,
+      "output_alias": "customer",
+      "result_type": "customer_read_result",
+      "step_id": "lookup_customer",
+      "timestamp": "2026-05-05T07:09:13Z",
+      "tool": "customer/read"
+    },
+    {
+      "action": "read",
+      "args": {
+        "order_ref": "ORD-10042"
+      },
+      "command": "[t:order/read -> order] order_ref=$order_ref.order_ref",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "",
+      "function": "order_read",
+      "kind": "tool",
+      "live": false,
+      "namespace": "order",
+      "ok": true,
+      "output_alias": "order",
+      "result_type": "order_read_result",
+      "step_id": "lookup_order",
+      "timestamp": "2026-05-05T07:09:13Z",
+      "tool": "order/read"
+    },
+    {
+      "action": "read",
+      "args": {
+        "order_ref": "ORD-10042"
+      },
+      "command": "[t:shipment/read -> shipment] order_ref=$order_ref.order_ref",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "",
+      "function": "shipment_read",
+      "kind": "tool",
+      "live": false,
+      "namespace": "shipment",
+      "ok": true,
+      "output_alias": "shipment",
+      "result_type": "shipment_read_result",
+      "step_id": "lookup_shipment",
+      "timestamp": "2026-05-05T07:09:13Z",
+      "tool": "shipment/read"
+    },
+    {
+      "action": "read_by_order",
+      "args": {
+        "order_ref": "ORD-10042"
+      },
+      "command": "[t:payment/read_by_order -> payment] order_ref=$order_ref.order_ref",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "",
+      "function": "payment_read_by_order",
+      "kind": "tool",
+      "live": false,
+      "namespace": "payment",
+      "ok": true,
+      "output_alias": "payment",
+      "result_type": "payment_record",
+      "step_id": "read_payment",
+      "timestamp": "2026-05-05T07:09:13Z",
+      "tool": "payment/read_by_order"
+    },
+    {
+      "action": "build",
+      "args": {
+        "customer": {
+          "customer_id": "CUST-1001",
+          "email": "alex@example.test",
+          "name": "Alex",
+          "preferred_channel": "whatsapp",
+          "status": "active",
+          "whatsapp_chat": "Alex Customer"
+        },
+        "order": {
+          "created_date": "2026-04-25",
+          "currency": "ZAR",
+          "customer_id": "CUST-1001",
+          "order_id": "ORD-10042",
+          "order_ref": "ORD-10042",
+          "status": "shipped",
+          "total_amount": 1299.99
+        },
+        "payment": {
+          "args": {
+            "order_ref": "ORD-10042"
+          },
+          "dry_run": true,
+          "function": "payment_read_by_order",
+          "tool": "payment/read_by_order"
+        },
+        "shipment": {
+          "carrier": "DemoCourier",
+          "estimated_delivery": "2026-05-03",
+          "order_ref": "ORD-10042",
+          "shipment_id": "SHIP-9001",
+          "status": "in_transit",
+          "tracking_ref": "TRK-778899"
+        }
+      },
+      "command": "[t:order_context/build -> order_context] customer=$customer; order=$order; shipment=$shipment; payment=$payment",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "",
+      "function": "order_context_build",
+      "kind": "tool",
+      "live": false,
+      "namespace": "order_context",
+      "ok": true,
+      "output_alias": "order_context",
+      "result_type": "order_context_build_result",
+      "step_id": "build_order_context",
+      "timestamp": "2026-05-05T07:09:13Z",
+      "tool": "order_context/build"
+    },
+    {
+      "action": "validate_owns_order",
+      "args": {
+        "customer": {
+          "customer_id": "CUST-1001",
+          "email": "alex@example.test",
+          "name": "Alex",
+          "preferred_channel": "whatsapp",
+          "status": "active",
+          "whatsapp_chat": "Alex Customer"
+        },
+        "order": {
+          "created_date": "2026-04-25",
+          "currency": "ZAR",
+          "customer_id": "CUST-1001",
+          "order_id": "ORD-10042",
+          "order_ref": "ORD-10042",
+          "status": "shipped",
+          "total_amount": 1299.99
+        }
+      },
+      "command": "[t:customer/validate_owns_order -> ownership_check] customer=$customer; order=$order",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "Customer owns order.",
+      "function": "customer_validate_owns_order",
+      "kind": "tool",
+      "live": false,
+      "namespace": "customer",
+      "ok": true,
+      "output_alias": "ownership_check",
+      "result_type": "ownership_check",
+      "step_id": "validate_customer_owns_order",
+      "timestamp": "2026-05-05T07:09:13Z",
+      "tool": "customer/validate_owns_order"
+    },
+    {
+      "action": "build_status_context",
+      "args": {
+        "customer": {
+          "customer_id": "CUST-1001",
+          "email": "alex@example.test",
+          "name": "Alex",
+          "preferred_channel": "whatsapp",
+          "status": "active",
+          "whatsapp_chat": "Alex Customer"
+        },
+        "order": {
+          "created_date": "2026-04-25",
+          "currency": "ZAR",
+          "customer_id": "CUST-1001",
+          "order_id": "ORD-10042",
+          "order_ref": "ORD-10042",
+          "status": "shipped",
+          "total_amount": 1299.99
+        },
+        "shipment": {
+          "carrier": "DemoCourier",
+          "estimated_delivery": "2026-05-03",
+          "order_ref": "ORD-10042",
+          "shipment_id": "SHIP-9001",
+          "status": "in_transit",
+          "tracking_ref": "TRK-778899"
+        }
+      },
+      "command": "[t:customer/build_status_context -> status_context] customer=$customer; order=$order; shipment=$shipment",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "",
+      "function": "order_context_build",
+      "kind": "tool",
+      "live": false,
+      "namespace": "customer",
+      "ok": true,
+      "output_alias": "status_context",
+      "result_type": "status_context",
+      "step_id": "build_status_context",
+      "timestamp": "2026-05-05T07:09:13Z",
+      "tool": "customer/build_status_context"
+    },
+    {
+      "action": "validate_customer_status_reply",
+      "args": {
+        "draft_reply": {
+          "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "included_order_ref": true,
+          "included_status": true,
+          "invented_compensation": false,
+          "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "tone": "professional"
+        },
+        "order_context": {
+          "customer": {
+            "customer_id": "CUST-1001",
+            "email": "alex@example.test",
+            "name": "Alex",
+            "preferred_channel": "whatsapp",
+            "status": "active",
+            "whatsapp_chat": "Alex Customer"
+          },
+          "error": "",
+          "facts": [
+            "Customer CUST-1001 is Alex.",
+            "Order ORD-10042 belongs to CUST-1001.",
+            "Order ORD-10042 status is shipped.",
+            "Shipment SHIP-9001 status is in_transit."
+          ],
+          "ok": true,
+          "order": {
+            "created_date": "2026-04-25",
+            "currency": "ZAR",
+            "customer_id": "CUST-1001",
+            "order_id": "ORD-10042",
+            "order_ref": "ORD-10042",
+            "status": "shipped",
+            "total_amount": 1299.99
+          },
+          "payment": {},
+          "shipment": {
+            "carrier": "DemoCourier",
+            "estimated_delivery": "2026-05-03",
+            "order_ref": "ORD-10042",
+            "shipment_id": "SHIP-9001",
+            "status": "in_transit",
+            "tracking_ref": "TRK-778899"
+          }
+        }
+      },
+      "command": "[t:message/validate_customer_status_reply -> reply_validation] draft_reply=$draft_reply; order_context=$order_context",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "",
+      "function": "message_validate_customer_status_reply",
+      "kind": "tool",
+      "live": false,
+      "namespace": "message",
+      "ok": true,
+      "output_alias": "reply_validation",
+      "result_type": "reply_validation",
+      "step_id": "validate_status_reply",
+      "timestamp": "2026-05-05T07:09:13Z",
+      "tool": "message/validate_customer_status_reply"
+    },
+    {
+      "action": "prepare_message_action",
+      "args": {
+        "channel": "whatsapp",
+        "customer": {
+          "customer_id": "CUST-1001",
+          "email": "alex@example.test",
+          "name": "Alex",
+          "preferred_channel": "whatsapp",
+          "status": "active",
+          "whatsapp_chat": "Alex Customer"
+        },
+        "message": {
+          "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "included_order_ref": true,
+          "included_status": true,
+          "invented_compensation": false,
+          "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "tone": "professional"
+        }
+      },
+      "command": "[t:customer/prepare_message_action -> customer_reply_send] customer=$customer; channel=$customer.preferred_channel; message=$draft_reply",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "",
+      "function": "customer_prepare_message_action",
+      "kind": "tool",
+      "live": false,
+      "namespace": "customer",
+      "ok": true,
+      "output_alias": "customer_reply_send",
+      "result_type": "pending_action",
+      "step_id": "stage_customer_reply",
+      "timestamp": "2026-05-05T07:09:13Z",
+      "tool": "customer/prepare_message_action"
+    },
+    {
+      "action": "prepare_message_action",
+      "action_id": "pa_7e7d48a832dc4b7dbea192895b39d0ff",
+      "args": {
+        "chat": "Alex Customer",
+        "message": {
+          "body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "included_order_ref": true,
+          "included_status": true,
+          "invented_compensation": false,
+          "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit.",
+          "tone": "professional"
+        }
+      },
+      "command": "wa/send",
+      "created_at": "2026-05-05T07:09:13Z",
+      "dry_run": true,
+      "error": "",
+      "function": "whatsapp_send",
+      "kind": "pending",
+      "live": false,
+      "namespace": "customer",
+      "ok": true,
+      "output_alias": "customer_reply_send",
+      "phase": "approved_execution",
+      "result_type": "whatsapp_send_result",
+      "step_id": "stage_customer_reply",
+      "timestamp": "2026-05-05T07:09:13Z"
+    }
+  ],
+  "trigger": {
+    "channel": "callcentre",
+    "customer_id": "CUST-1001",
+    "event_id": "evt_68a19803a9794e83b79f862c48f0f14a",
+    "event_type": "manual.customer_status_llm_e2e",
+    "message": "Where is my order ORD-10042?",
+    "source": "operator_scenario_pack"
+  },
+  "updated_at": "2026-05-05T07:09:13Z",
+  "validations": [
+    {
+      "data": {
+        "order_ref": "ORD-10042"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "extract_order_ref_order_ref"
+    },
+    {
+      "data": {
+        "confidence": "high"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "extract_order_ref_confidence"
+    },
+    {
+      "data": {
+        "reason": "Detected explicit order reference."
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "extract_order_ref_reason"
+    },
+    {
+      "data": {
+        "confidence": "high"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "extract_order_ref_confidence_allowed"
+    },
+    {
+      "data": {
+        "order_ref": "ORD-10042"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "extract_order_ref_format"
+    },
+    {
+      "data": {
+        "label": "order_status"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "classify_customer_message_label"
+    },
+    {
+      "data": {
+        "confidence": "high"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "classify_customer_message_confidence"
+    },
+    {
+      "data": {
+        "reason": "Customer asks where their order is."
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "classify_customer_message_reason"
+    },
+    {
+      "data": {
+        "label": "order_status"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "classify_customer_message_label_allowed"
+    },
+    {
+      "data": {
+        "confidence": "high"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "classify_customer_message_confidence_allowed"
+    },
+    {
+      "data": {
+        "label": "order_status"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "classify_customer_message_label_legacy_allowed"
+    },
+    {
+      "data": {
+        "fields": [
+          "order_ref",
+          "confidence",
+          "reason"
+        ],
+        "output": "order_ref"
+      },
+      "message": "Output has fields: order_ref",
+      "ok": true,
+      "type": "output_has_fields",
+      "validation_id": "order_ref_has_value",
+      "validation_type": "output_has_fields"
+    },
+    {
+      "data": {
+        "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit."
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_customer_status_reply_reply"
+    },
+    {
+      "data": {
+        "tone": "professional"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_customer_status_reply_tone"
+    },
+    {
+      "data": {
+        "included_order_ref": true
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_customer_status_reply_included_order_ref"
+    },
+    {
+      "data": {
+        "included_status": true
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_customer_status_reply_included_status"
+    },
+    {
+      "data": {
+        "invented_compensation": false
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_customer_status_reply_invented_compensation"
+    },
+    {
+      "data": {
+        "tone": "professional"
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_customer_status_reply_tone_allowed"
+    },
+    {
+      "data": {
+        "invented_compensation": false
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_customer_status_reply_compensation"
+    },
+    {
+      "data": {
+        "reply": "Hi Alex, your order ORD-10042 has shipped and is currently in transit."
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "draft_customer_status_reply_forbidden_claims"
+    },
+    {
+      "data": {
+        "ok": true
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "compare_reply_to_facts_ok"
+    },
+    {
+      "data": {
+        "matches_facts": true
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "compare_reply_to_facts_matches_facts"
+    },
+    {
+      "data": {
+        "unsupported_claims": []
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "compare_reply_to_facts_unsupported_claims"
+    },
+    {
+      "data": {
+        "missing_required_facts": []
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "compare_reply_to_facts_missing_required_facts"
+    },
+    {
+      "data": {
+        "reason": "Deterministic fake response."
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "compare_reply_to_facts_reason"
+    },
+    {
+      "data": {
+        "matches_facts": true,
+        "missing_required_facts": [],
+        "ok": true,
+        "reason": "Deterministic fake response.",
+        "unsupported_claims": []
+      },
+      "message": "",
+      "ok": true,
+      "type": "llm_micro_tool_schema",
+      "validation_id": "compare_reply_to_facts_fact_check"
+    },
+    {
+      "data": {},
+      "message": "No runtime errors.",
+      "ok": true,
+      "type": "no_errors",
+      "validation_id": "no_errors",
+      "validation_type": "no_errors"
+    },
+    {
+      "data": {
+        "fields": [
+          "order_ref",
+          "confidence",
+          "reason"
+        ],
+        "output": "order_ref"
+      },
+      "message": "Output has fields: order_ref",
+      "ok": true,
+      "type": "output_has_fields",
+      "validation_id": "order_ref_has_value",
+      "validation_type": "output_has_fields"
+    },
+    {
+      "data": {
+        "field": "confidence",
+        "output": "order_ref",
+        "value": "high",
+        "values": [
+          "high",
+          "medium"
+        ]
+      },
+      "message": "Output field is allowed: order_ref.confidence",
+      "ok": true,
+      "type": "output_field_in",
+      "validation_id": "order_ref_confidence_ok",
+      "validation_type": "output_field_in"
+    },
+    {
+      "data": {
+        "field": "label",
+        "output": "category",
+        "value": "order_status"
+      },
+      "message": "Output field matches: category.label",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "category_is_order_status",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "fields": [
+          "customer_id",
+          "name",
+          "preferred_channel"
+        ],
+        "output": "customer"
+      },
+      "message": "Output has fields: customer",
+      "ok": true,
+      "type": "output_has_fields",
+      "validation_id": "customer_exists",
+      "validation_type": "output_has_fields"
+    },
+    {
+      "data": {
+        "fields": [
+          "order_ref",
+          "customer_id",
+          "status",
+          "created_date",
+          "total_amount"
+        ],
+        "output": "order"
+      },
+      "message": "Output has fields: order",
+      "ok": true,
+      "type": "output_has_fields",
+      "validation_id": "order_exists",
+      "validation_type": "output_has_fields"
+    },
+    {
+      "data": {
+        "fields": [
+          "order_ref",
+          "shipment_id",
+          "status",
+          "carrier",
+          "tracking_ref",
+          "estimated_delivery"
+        ],
+        "output": "shipment"
+      },
+      "message": "Output has fields: shipment",
+      "ok": true,
+      "type": "output_has_fields",
+      "validation_id": "shipment_exists",
+      "validation_type": "output_has_fields"
+    },
+    {
+      "data": {
+        "field": "customer_id",
+        "output": "order",
+        "value": "CUST-1001"
+      },
+      "message": "Output field matches: order.customer_id",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "order_belongs_to_customer",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "order_ref",
+        "output": "shipment",
+        "value": "ORD-10042"
+      },
+      "message": "Output field matches: shipment.order_ref",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "shipment_matches_order",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "output": "status_context"
+      },
+      "message": "Output exists: status_context",
+      "ok": true,
+      "type": "output_exists",
+      "validation_id": "status_context_exists",
+      "validation_type": "output_exists"
+    },
+    {
+      "data": {
+        "field": "included_order_ref",
+        "output": "draft_reply",
+        "value": true
+      },
+      "message": "Output field matches: draft_reply.included_order_ref",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "draft_reply_includes_order_ref",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "included_status",
+        "output": "draft_reply",
+        "value": true
+      },
+      "message": "Output field matches: draft_reply.included_status",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "draft_reply_includes_status",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "invented_compensation",
+        "output": "draft_reply",
+        "value": false
+      },
+      "message": "Output field matches: draft_reply.invented_compensation",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "draft_reply_has_no_compensation",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "ok",
+        "output": "reply_check",
+        "value": true
+      },
+      "message": "Output field matches: reply_check.ok",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "reply_check_ok",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "matches_facts",
+        "output": "reply_check",
+        "value": true
+      },
+      "message": "Output field matches: reply_check.matches_facts",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "reply_check_matches_facts",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "unsupported_claims",
+        "output": "reply_check",
+        "value": []
+      },
+      "message": "Output field matches: reply_check.unsupported_claims",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "reply_check_no_unsupported_claims",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "output": "reply_validation"
+      },
+      "message": "Output exists: reply_validation",
+      "ok": true,
+      "type": "output_exists",
+      "validation_id": "reply_validation_exists",
+      "validation_type": "output_exists"
+    },
+    {
+      "data": {
+        "output": "customer_reply_send",
+        "tool": "wa/send"
+      },
+      "message": "Pending action exists.",
+      "ok": true,
+      "type": "pending_action_exists",
+      "validation_id": "customer_reply_pending",
+      "validation_type": "pending_action_exists"
+    },
+    {
+      "data": {},
+      "message": "No runtime errors.",
+      "ok": true,
+      "type": "no_errors",
+      "validation_id": "no_errors",
+      "validation_type": "no_errors"
+    },
+    {
+      "data": {
+        "fields": [
+          "order_ref",
+          "confidence",
+          "reason"
+        ],
+        "output": "order_ref"
+      },
+      "message": "Output has fields: order_ref",
+      "ok": true,
+      "type": "output_has_fields",
+      "validation_id": "order_ref_has_value",
+      "validation_type": "output_has_fields"
+    },
+    {
+      "data": {
+        "field": "confidence",
+        "output": "order_ref",
+        "value": "high",
+        "values": [
+          "high",
+          "medium"
+        ]
+      },
+      "message": "Output field is allowed: order_ref.confidence",
+      "ok": true,
+      "type": "output_field_in",
+      "validation_id": "order_ref_confidence_ok",
+      "validation_type": "output_field_in"
+    },
+    {
+      "data": {
+        "field": "label",
+        "output": "category",
+        "value": "order_status"
+      },
+      "message": "Output field matches: category.label",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "category_is_order_status",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "fields": [
+          "customer_id",
+          "name",
+          "preferred_channel"
+        ],
+        "output": "customer"
+      },
+      "message": "Output has fields: customer",
+      "ok": true,
+      "type": "output_has_fields",
+      "validation_id": "customer_exists",
+      "validation_type": "output_has_fields"
+    },
+    {
+      "data": {
+        "fields": [
+          "order_ref",
+          "customer_id",
+          "status",
+          "created_date",
+          "total_amount"
+        ],
+        "output": "order"
+      },
+      "message": "Output has fields: order",
+      "ok": true,
+      "type": "output_has_fields",
+      "validation_id": "order_exists",
+      "validation_type": "output_has_fields"
+    },
+    {
+      "data": {
+        "fields": [
+          "order_ref",
+          "shipment_id",
+          "status",
+          "carrier",
+          "tracking_ref",
+          "estimated_delivery"
+        ],
+        "output": "shipment"
+      },
+      "message": "Output has fields: shipment",
+      "ok": true,
+      "type": "output_has_fields",
+      "validation_id": "shipment_exists",
+      "validation_type": "output_has_fields"
+    },
+    {
+      "data": {
+        "field": "customer_id",
+        "output": "order",
+        "value": "CUST-1001"
+      },
+      "message": "Output field matches: order.customer_id",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "order_belongs_to_customer",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "order_ref",
+        "output": "shipment",
+        "value": "ORD-10042"
+      },
+      "message": "Output field matches: shipment.order_ref",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "shipment_matches_order",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "output": "status_context"
+      },
+      "message": "Output exists: status_context",
+      "ok": true,
+      "type": "output_exists",
+      "validation_id": "status_context_exists",
+      "validation_type": "output_exists"
+    },
+    {
+      "data": {
+        "field": "included_order_ref",
+        "output": "draft_reply",
+        "value": true
+      },
+      "message": "Output field matches: draft_reply.included_order_ref",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "draft_reply_includes_order_ref",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "included_status",
+        "output": "draft_reply",
+        "value": true
+      },
+      "message": "Output field matches: draft_reply.included_status",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "draft_reply_includes_status",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "invented_compensation",
+        "output": "draft_reply",
+        "value": false
+      },
+      "message": "Output field matches: draft_reply.invented_compensation",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "draft_reply_has_no_compensation",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "ok",
+        "output": "reply_check",
+        "value": true
+      },
+      "message": "Output field matches: reply_check.ok",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "reply_check_ok",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "matches_facts",
+        "output": "reply_check",
+        "value": true
+      },
+      "message": "Output field matches: reply_check.matches_facts",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "reply_check_matches_facts",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "field": "unsupported_claims",
+        "output": "reply_check",
+        "value": []
+      },
+      "message": "Output field matches: reply_check.unsupported_claims",
+      "ok": true,
+      "type": "output_field_equals",
+      "validation_id": "reply_check_no_unsupported_claims",
+      "validation_type": "output_field_equals"
+    },
+    {
+      "data": {
+        "output": "reply_validation"
+      },
+      "message": "Output exists: reply_validation",
+      "ok": true,
+      "type": "output_exists",
+      "validation_id": "reply_validation_exists",
+      "validation_type": "output_exists"
+    },
+    {
+      "data": {
+        "output": "customer_reply_send",
+        "tool": "wa/send"
+      },
+      "message": "Pending action exists.",
+      "ok": true,
+      "type": "pending_action_exists",
+      "validation_id": "customer_reply_pending",
+      "validation_type": "pending_action_exists"
+    }
+  ]
+}
