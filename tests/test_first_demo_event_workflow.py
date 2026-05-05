@@ -6,7 +6,7 @@ from runtime.event_store import intake_and_run_event, intake_event
 from runtime.taskframe_reload import load_taskframe
 
 
-class FirstMockEventWorkflowTests(unittest.TestCase):
+class FirstDemoEventWorkflowTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.runtime_dir = Path(self.tempdir.name)
@@ -14,26 +14,26 @@ class FirstMockEventWorkflowTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.tempdir.cleanup()
 
-    def test_mock_ping_event_routes_correctly(self) -> None:
+    def test_demo_ping_event_routes_correctly(self) -> None:
         event = {
-            "event_id": "evt-mock-001",
+            "event_id": "evt-demo-001",
             "source": "external",
-            "event_type": "mock_ping",
+            "event_type": "demo_ping",
             "payload": {"message": "hello from event"},
             "received_at": "2026-05-01T10:00:00Z",
         }
         result = intake_event(event, runtime_data_dir=self.runtime_dir, manifest_dir="manifests")
         self.assertTrue(result["ok"])
         self.assertEqual(result["status"], "FRAME_CREATED")
-        self.assertEqual(result["route_id"], "external.mock_ping")
-        self.assertEqual(result["manifest_id"], "event.mock_ping")
+        self.assertEqual(result["route_id"], "external.demo_ping")
+        self.assertEqual(result["manifest_id"], "event.demo_ping")
         self.assertIsNotNone(result["frame_id"])
 
-    def test_mock_ping_event_runs_to_completion(self) -> None:
+    def test_demo_ping_event_runs_to_completion(self) -> None:
         event = {
-            "event_id": "evt-mock-001",
+            "event_id": "evt-demo-001",
             "source": "external",
-            "event_type": "mock_ping",
+            "event_type": "demo_ping",
             "payload": {"message": "hello from event"},
             "received_at": "2026-05-01T10:00:00Z",
         }
@@ -41,16 +41,16 @@ class FirstMockEventWorkflowTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["status"], "COMPLETED")
         self.assertIsNotNone(result["frame_id"])
-        mock_response = result["outputs"]["mock_response"]
-        self.assertTrue(mock_response["received"])
-        self.assertEqual(mock_response["message"], "hello from event")
-        self.assertEqual(mock_response["response"], "Mock event processed: hello from event")
+        demo_response = result["outputs"]["demo_response"]
+        self.assertTrue(demo_response["received"])
+        self.assertEqual(demo_response["message"], "hello from event")
+        self.assertEqual(demo_response["response"], "Demo event processed: hello from event")
 
     def test_taskframe_contains_event_trigger_metadata(self) -> None:
         event = {
-            "event_id": "evt-mock-001",
+            "event_id": "evt-demo-001",
             "source": "external",
-            "event_type": "mock_ping",
+            "event_type": "demo_ping",
             "payload": {"message": "hello from event"},
             "received_at": "2026-05-01T10:00:00Z",
         }
@@ -60,18 +60,18 @@ class FirstMockEventWorkflowTests(unittest.TestCase):
             frame.trigger,
             {
                 "kind": "event",
-                "event_id": "evt-mock-001",
+                "event_id": "evt-demo-001",
                 "source": "external",
-                "event_type": "mock_ping",
-                "route_id": "external.mock_ping",
+                "event_type": "demo_ping",
+                "route_id": "external.demo_ping",
             },
         )
 
     def test_missing_message_fails_mapping_before_execution(self) -> None:
         event = {
-            "event_id": "evt-mock-missing-message",
+            "event_id": "evt-demo-missing-message",
             "source": "external",
-            "event_type": "mock_ping",
+            "event_type": "demo_ping",
             "payload": {},
             "received_at": "2026-05-01T10:00:00Z",
         }
@@ -80,11 +80,11 @@ class FirstMockEventWorkflowTests(unittest.TestCase):
         self.assertEqual(result["status"], "ROUTE_MAPPING_FAILED")
         self.assertIsNone(result["frame_id"])
 
-    def test_duplicate_mock_event_does_not_create_second_frame(self) -> None:
+    def test_duplicate_demo_event_does_not_create_second_frame(self) -> None:
         event = {
-            "event_id": "evt-mock-dup-001",
+            "event_id": "evt-demo-dup-001",
             "source": "external",
-            "event_type": "mock_ping",
+            "event_type": "demo_ping",
             "payload": {"message": "hello from event"},
             "received_at": "2026-05-01T10:00:00Z",
         }

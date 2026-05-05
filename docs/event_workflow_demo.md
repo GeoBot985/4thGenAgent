@@ -1,7 +1,7 @@
 # Event Workflow Demo
 
 ## Purpose
-Shows event-driven TaskFrame execution using a mock customer message.
+Shows event-driven TaskFrame execution using a demo customer message.
 
 ## Command
 python scripts/run_event_demo.py
@@ -14,7 +14,7 @@ Workflow ends at WAITING_FOR_EXECUTE with one pending send_customer_message acti
 - Event-to-manifest routing works.
 - Event payload maps into TaskFrame inputs.
 - Manifest execution works.
-- Mock company lookup works.
+- Demo business lookup works.
 - Draft reply generation works.
 - Side effects are gated as pending actions.
 

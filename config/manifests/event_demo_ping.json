@@ -1,6 +1,6 @@
 {
-  "id": "event.mock_ping",
-  "name": "Mock Event Ping Workflow",
+  "id": "event.demo_ping",
+  "name": "Demo Event Ping Workflow",
   "command": null,
   "trigger_type": "event",
   "side_effect": false,
@@ -26,14 +26,14 @@
       ]
     },
     {
-      "step_id": "build_mock_response",
+      "step_id": "build_demo_response",
       "kind": "tool",
-      "command": "[t:test/echo -> mock_response] message=$inputs.message; event_id=$inputs.event_id"
+      "command": "[t:test/echo -> demo_response] message=$inputs.message; event_id=$inputs.event_id"
     }
   ],
   "completion": {
     "required_outputs": [
-      "mock_response"
+      "demo_response"
     ],
     "required_state": "COMPLETED"
   }

@@ -95,7 +95,7 @@ def seed_business_dataset(runtime_data_dir: str = "runtime_data", overwrite: boo
         files_written.append(path.name)
     dataset_manifest = {
         "dataset_version": 2,
-        "name": "Mock Company Dataset v2",
+        "name": "Demo Business Dataset v2",
         "seeded_at": "2026-05-01T00:00:00Z",
         "record_counts": {name: len(records) for name, records in datasets.items()},
     }

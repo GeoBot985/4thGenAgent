@@ -13,10 +13,10 @@
         }
       },
       {
-        "route_id": "external.mock_ping",
+        "route_id": "external.demo_ping",
         "source": "external",
-        "event_type": "mock_ping",
-        "manifest_id": "event.mock_ping",
+        "event_type": "demo_ping",
+        "manifest_id": "event.demo_ping",
         "input_map": {
           "message": "payload.message",
           "event_id": "event_id",
@@ -52,10 +52,10 @@
         }
       },
       {
-        "route_id": "operator_ui.mock_ping",
+        "route_id": "operator_ui.demo_ping",
         "source": "operator_ui",
-        "event_type": "manual.mock_ping",
-        "manifest_id": "event.mock_ping",
+        "event_type": "manual.demo_ping",
+        "manifest_id": "event.demo_ping",
         "input_map": {
           "message": "payload.message",
           "event_id": "event_id",

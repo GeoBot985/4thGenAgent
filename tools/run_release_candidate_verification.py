@@ -83,7 +83,7 @@ def build_verification_result() -> dict[str, Any]:
         ("core_retry_tool_failures", ["python", "-m", "pytest", "tests/test_retry_tool_failures.py"]),
         ("core_execution_metrics", ["python", "-m", "pytest", "tests/test_execution_metrics.py"]),
         ("core_run_ledger", ["python", "-m", "pytest", "tests/test_run_ledger.py"]),
-        ("customer_lane", ["python", "-m", "pytest", "tests/test_customer_workflow_tool_driven.py", "tests/test_runtime_mock_removal.py", "tests/test_negative_customer_status_scenarios.py"]),
+        ("customer_lane", ["python", "-m", "pytest", "tests/test_customer_workflow_tool_driven.py", "tests/test_runtime_demo_verification.py", "tests/test_negative_customer_status_scenarios.py"]),
         ("procurement_lane", ["python", "-m", "pytest", "tests/test_procurement_low_stock_reorder.py", "tests/test_procurement_approval_dry_run.py", "tests/test_procurement_report_pack.py"]),
         ("accounting_lane", ["python", "-m", "pytest", "tests/test_google_sheet_accounting_tools.py", "tests/test_accounting_reconciliation_tools.py", "tests/test_accounting_payment_reconciliation_workflow.py", "tests/test_accounting_approval_dry_run.py", "tests/test_accounting_report_pack.py"]),
         ("cross_workflow_demo", ["python", "-m", "pytest", "tests/test_cross_workflow_demo_pack.py", "tests/test_cross_workflow_demo_report.py"]),
@@ -389,8 +389,8 @@ def _check_orchestrator_pollution() -> dict[str, Any]:
     path = ROOT / "runtime" / "orchestrator.py"
     text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
     forbidden_terms = [
-        "mock_order_lookup",
-        "mock_event_response",
+        "demo_order_lookup",
+        "demo_event_response",
         "prepare_pending_customer_message",
         "draft_customer_status_reply",
         "validate_customer_status_reply",

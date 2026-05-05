@@ -141,6 +141,9 @@ The repository includes targeted workflow regression tests for customer support,
 - Auditable outputs
 - Lean runtime design
 
+## Optional RPA Tools
+Some browser-backed RPA tools are kept outside the default portfolio path because they depend on local browser state, external authentication, and brittle web UI behavior. These tools are useful for personal automation experiments but are not required for the core business automation runtime.
+
 ## Current Status
 Architecture-complete portfolio demo:
 - three workflows implemented

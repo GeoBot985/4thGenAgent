@@ -39,7 +39,7 @@ DEMO_MANIFESTS = [
             "compare_reply_to_facts": '{"ok": true, "matches_facts": true, "unsupported_claims": [], "missing_required_facts": [], "reason": "Reply matches the supplied order and shipment facts."}',
         },
     },
-    {"selection_id": "mock_ping", "label": "Mock Ping", "event_type": "mock_ping", "source": "external", "payload": {}},
+    {"selection_id": "demo_ping", "label": "Demo Ping", "event_type": "demo_ping", "source": "external", "payload": {}},
     {
         "selection_id": "customer_status_llm_e2e",
         "label": "Customer Status - LLM Assisted E2E",

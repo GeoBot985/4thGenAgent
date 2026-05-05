@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from .errors import ToolArgumentError, ToolNotRegisteredError
 
 
@@ -18,46 +19,6 @@ TOOL_REGISTRY = {
         "required_args": [],
         "optional_args": ["max_results"],
         "arg_types": {"max_results": "int"},
-    },
-    "messages/read_recent": {
-        "namespace": "messages",
-        "action": "read_recent",
-        "module": "runtime.messages_tools",
-        "function": "messages_read_recent",
-        "side_effect": False,
-        "requires_approval": False,
-        "allow_live": True,
-        "allow_live_side_effect": False,
-        "live_guardrail": "blocked",
-        "output_type": "messages_read_recent_result",
-        "required_args": ["thread_name"],
-        "optional_args": ["limit", "runtime_root", "slowmo", "keep_open", "browser_user_data_dir", "browser_profile_dir", "browser_cdp_url"],
-        "arg_types": {"limit": "int", "slowmo": "int", "keep_open": "bool"},
-    },
-    "messages/extract_absa_transactions": {
-        "namespace": "messages",
-        "action": "extract_absa_transactions",
-        "module": "runtime.messages_tools",
-        "function": "messages_extract_absa_transactions",
-        "side_effect": False,
-        "requires_approval": False,
-        "allow_live": True,
-        "allow_live_side_effect": False,
-        "live_guardrail": "blocked",
-        "output_type": "messages_absa_transactions_result",
-        "required_args": [],
-        "optional_args": [
-            "year",
-            "search_query",
-            "runtime_root",
-            "slowmo",
-            "limit",
-            "max_scrolls",
-            "browser_user_data_dir",
-            "browser_profile_dir",
-            "browser_cdp_url",
-        ],
-        "arg_types": {"year": "int", "slowmo": "int", "limit": "int", "max_scrolls": "int"},
     },
     "g/send": {
         "namespace": "g",
@@ -995,6 +956,55 @@ TOOL_REGISTRY = {
         "arg_types": {"confirm": "bool", "slowmo": "int"},
     },
 }
+
+
+def register_optional_absa_tools() -> None:
+    """Registers optional ABSA RPA tools in the global registry."""
+    TOOL_REGISTRY["messages/read_recent"] = {
+        "namespace": "messages",
+        "action": "read_recent",
+        "module": "optional_tools.rpa.google_messages_absa.messages_tools",
+        "function": "messages_read_recent",
+        "side_effect": False,
+        "requires_approval": False,
+        "allow_live": True,
+        "allow_live_side_effect": False,
+        "live_guardrail": "blocked",
+        "output_type": "messages_read_recent_result",
+        "required_args": ["thread_name"],
+        "optional_args": ["limit", "runtime_root", "slowmo", "keep_open", "browser_user_data_dir", "browser_profile_dir", "browser_cdp_url"],
+        "arg_types": {"limit": "int", "slowmo": "int", "keep_open": "bool"},
+    }
+    TOOL_REGISTRY["messages/extract_absa_transactions"] = {
+        "namespace": "messages",
+        "action": "extract_absa_transactions",
+        "module": "optional_tools.rpa.google_messages_absa.messages_tools",
+        "function": "messages_extract_absa_transactions",
+        "side_effect": False,
+        "requires_approval": False,
+        "allow_live": True,
+        "allow_live_side_effect": False,
+        "live_guardrail": "blocked",
+        "output_type": "messages_absa_transactions_result",
+        "required_args": [],
+        "optional_args": [
+            "year",
+            "search_query",
+            "runtime_root",
+            "slowmo",
+            "limit",
+            "max_scrolls",
+            "browser_user_data_dir",
+            "browser_profile_dir",
+            "browser_cdp_url",
+        ],
+        "arg_types": {"year": "int", "slowmo": "int", "limit": "int", "max_scrolls": "int"},
+    }
+
+
+# Auto-register if enabled by environment variable
+if os.environ.get("ENABLE_OPTIONAL_RPA_TOOLS") == "true":
+    register_optional_absa_tools()
 
 
 def tool_key(namespace: str, action: str) -> str:

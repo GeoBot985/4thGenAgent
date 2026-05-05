@@ -6,7 +6,7 @@ from runtime.event_store import intake_and_run_event, intake_event
 from runtime.taskframe_reload import load_taskframe
 
 
-class MockCustomerMessageWorkflowTests(unittest.TestCase):
+class CustomerMessageWorkflowTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.runtime_dir = Path(self.tempdir.name)

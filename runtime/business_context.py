@@ -6,11 +6,11 @@ from typing import Any
 from .business_store import get_customer, get_order, get_payment, get_shipment, search_inventory, search_orders
 
 
-def get_mock_order(order_id: str) -> dict[str, Any] | None:
+def get_demo_order(order_id: str) -> dict[str, Any] | None:
     return get_order(order_id, runtime_root="runtime_data")
 
 
-def get_mock_order_context(order_id: str, runtime_root: str = "runtime_data") -> dict[str, Any]:
+def get_demo_order_context(order_id: str, runtime_root: str = "runtime_data") -> dict[str, Any]:
     order = get_order(order_id, runtime_root=runtime_root)
     if not order:
         return {

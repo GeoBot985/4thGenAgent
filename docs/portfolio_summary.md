@@ -1,7 +1,7 @@
 # TaskFrame Runtime Portfolio Summary
 
 ## What It Is
-TaskFrame Runtime is a controlled automation runtime for business workflows. It executes manifest-defined workflows through a TaskFrame-centered runtime, deterministic tools, bounded LLM calls, approval gates, dry-run execution, and durable reporting.
+TaskFrame Runtime is a TaskFrame-centered autonomous business automation runtime. It executes manifest-defined workflows through a generic orchestrator, deterministic tools, bounded LLM calls, approval gates, dry-run execution, and durable reporting.
 
 ## What Makes It Different
 Most agent demos are unconstrained. This project is designed for auditability and control:

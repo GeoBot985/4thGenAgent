@@ -28,27 +28,27 @@
   - Replacement/current path: tool-driven customer lookups plus current order context build.
   - Decision: migrate.
 
-## Mock Customer Workflow
+## Customer Workflow Demo
 
-- `tests/test_mock_customer_message_workflow.py::MockCustomerMessageWorkflowTests::test_missing_order_id_fails_validation`
+- `tests/test_customer_message_workflow.py::CustomerMessageWorkflowTests::test_missing_order_id_fails_validation`
   - Reason: legacy customer workflow resolved through outdated manifest shape.
   - Legacy path used: `customer.message_status_check`.
   - Replacement/current path: current tool-driven manifest with deterministic order ref extraction.
   - Decision: migrate.
 
-- `tests/test_mock_customer_message_workflow.py::MockCustomerMessageWorkflowTests::test_unknown_order_fails_validation`
+- `tests/test_customer_message_workflow.py::CustomerMessageWorkflowTests::test_unknown_order_fails_validation`
   - Reason: same legacy path.
   - Legacy path used: `customer.message_status_check`.
   - Replacement/current path: current tool-driven manifest.
   - Decision: migrate.
 
-- `tests/test_mock_customer_message_workflow.py::MockCustomerMessageWorkflowTests::test_workflow_creates_draft_and_pending_action`
+- `tests/test_customer_message_workflow.py::CustomerMessageWorkflowTests::test_workflow_creates_draft_and_pending_action`
   - Reason: same legacy path.
   - Legacy path used: `customer.message_status_check`.
   - Replacement/current path: current tool-driven manifest.
   - Decision: migrate.
 
-- `tests/test_mock_customer_message_workflow.py::MockCustomerMessageWorkflowTests::test_wrong_customer_fails_validation`
+- `tests/test_customer_message_workflow.py::CustomerMessageWorkflowTests::test_wrong_customer_fails_validation`
   - Reason: same legacy path.
   - Legacy path used: `customer.message_status_check`.
   - Replacement/current path: current tool-driven manifest.

@@ -1,6 +1,6 @@
 {
   "dataset_version": 2,
-  "name": "Mock Company Dataset v2",
+  "name": "Demo Business Dataset v2",
   "record_counts": {
     "customer_messages": 8,
     "customers": 5,

@@ -23,8 +23,8 @@
       "enabled": true
     },
     {
-      "event_type": "manual.mock_ping",
-      "manifest_id": "event.mock_ping",
+      "event_type": "manual.demo_ping",
+      "manifest_id": "event.demo_ping",
       "enabled": true
     },
     {

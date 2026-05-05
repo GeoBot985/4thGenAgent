@@ -167,7 +167,7 @@ class OperatorStepPlaybackTests(unittest.TestCase):
 
         detail = view["selected_detail"]
         self.assertEqual(detail["manifest_step"]["step_id"], "lookup_order")
-        self.assertEqual(detail["manifest_step"]["kind"], "mock_order_lookup")
+        self.assertEqual(detail["manifest_step"]["kind"], "demo_order_lookup")
         runtime_result = detail["runtime_step_result"]
         self.assertTrue(runtime_result["evidence"])
         self.assertTrue(any(item.get("dataset") == "orders" for item in runtime_result["evidence"]))

@@ -58,7 +58,7 @@ def make_snapshot() -> dict:
                 {"step_id": "extract_order_id", "kind": "extract_order_id"},
                 {
                     "step_id": "lookup_order",
-                    "kind": "mock_order_lookup",
+                    "kind": "demo_order_lookup",
                     "command": "[t:order/read -> order] order_id=$order_id",
                     "namespace": "order",
                     "action": "read",

@@ -498,7 +498,7 @@ def _manifest_step_detail_for_ui(manifest_step: dict, runtime_step: dict) -> dic
         detail["step_id"] = runtime_step_id
     legacy_kind_map = {
         "extract_order_id": "extract_order_ref",
-        "lookup_order": "mock_order_lookup",
+        "lookup_order": "demo_order_lookup",
         "draft_status_reply": "draft_customer_status_reply",
         "validate_draft_reply": "validate_customer_status_reply",
         "prepare_pending_send": "prepare_pending_customer_message",
