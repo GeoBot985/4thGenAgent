@@ -172,23 +172,6 @@
           "recon_runs_range": "payload.recon_runs_range",
           "recon_exceptions_range": "payload.recon_exceptions_range"
         }
-      },
-      {
-        "route_id": "operator_ui.messages_absa_debit_orders_2026",
-        "source": "operator_ui",
-        "event_type": "manual.messages_absa_debit_orders_2026",
-        "manifest_id": "messages.absa_debit_orders_2026",
-        "input_map": {
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type",
-          "received_at": "received_at",
-          "spreadsheet_id": "payload.spreadsheet_id",
-          "output_range": "payload.output_range",
-          "search_query": "payload.search_query",
-          "year": "payload.year",
-          "runtime_root": "payload.runtime_root"
-        }
       }
   ]
 }

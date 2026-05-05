@@ -1,0 +1,284 @@
+{
+  "draft_po": {
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_total": 4410.0,
+        "name": "Keyboard",
+        "quantity": 21,
+        "sku": "SKU-1002",
+        "unit_cost": 210.0
+      }
+    ],
+    "po_id": "PO-DRAFT-20260504-201920-456E0A",
+    "status": "draft",
+    "supplier_id": "SUP-1001",
+    "supplier_name": "Cape Tech Supplies",
+    "total": 4410.0
+  },
+  "duplicate_po_check": {
+    "blocked_count": 1,
+    "duplicates": [
+      {
+        "po_id": "PO-9001",
+        "sku": "SKU-1001",
+        "status": "open"
+      }
+    ],
+    "valid_candidates": [
+      {
+        "available_stock": 9,
+        "currency": "ZAR",
+        "name": "Keyboard",
+        "preferred_supplier_id": "SUP-1001",
+        "reorder_qty": 21,
+        "reorder_threshold": 10,
+        "sku": "SKU-1002",
+        "target_stock_level": 30,
+        "unit_cost": 210.0
+      }
+    ],
+    "valid_count": 1
+  },
+  "low_stock_items": {
+    "count": 6,
+    "items": [
+      {
+        "available_stock": 2,
+        "name": "LED desk lamp",
+        "reorder_quantity": 20,
+        "reorder_threshold": 5,
+        "reserved_stock": 1,
+        "sku": "SKU-LAMP-01",
+        "status": "active",
+        "stock_on_hand": 3,
+        "supplier_id": "SUP-002"
+      },
+      {
+        "available_stock": 0,
+        "name": "Ergonomic office chair",
+        "reorder_quantity": 8,
+        "reorder_threshold": 3,
+        "reserved_stock": 0,
+        "sku": "SKU-CHAIR-01",
+        "status": "active",
+        "stock_on_hand": 0,
+        "supplier_id": "SUP-001"
+      },
+      {
+        "available_stock": 2,
+        "name": "Compact printer",
+        "reorder_quantity": 5,
+        "reorder_threshold": 3,
+        "reserved_stock": 0,
+        "sku": "SKU-PRINTER-01",
+        "status": "active",
+        "stock_on_hand": 2,
+        "supplier_id": "SUP-002"
+      },
+      {
+        "available_stock": 4,
+        "name": "Monitor stand",
+        "reorder_quantity": 10,
+        "reorder_threshold": 4,
+        "reserved_stock": 2,
+        "sku": "SKU-STAND-01",
+        "status": "active",
+        "stock_on_hand": 6,
+        "supplier_id": "SUP-001"
+      },
+      {
+        "available_stock": 4,
+        "currency": "ZAR",
+        "name": "Wireless Mouse",
+        "preferred_supplier_id": "SUP-1001",
+        "reorder_threshold": 10,
+        "sku": "SKU-1001",
+        "target_stock_level": 40,
+        "unit_cost": 125.5
+      },
+      {
+        "available_stock": 9,
+        "currency": "ZAR",
+        "name": "Keyboard",
+        "preferred_supplier_id": "SUP-1001",
+        "reorder_threshold": 10,
+        "sku": "SKU-1002",
+        "target_stock_level": 30,
+        "unit_cost": 210.0
+      }
+    ]
+  },
+  "po_validation": {
+    "checks": [
+      {
+        "id": "po_has_id",
+        "message": "Draft PO has a po_id.",
+        "ok": true
+      },
+      {
+        "id": "po_has_supplier_id",
+        "message": "Draft PO has a supplier_id.",
+        "ok": true
+      },
+      {
+        "id": "po_status_draft",
+        "message": "Draft PO status is draft.",
+        "ok": true
+      },
+      {
+        "id": "po_has_lines",
+        "message": "Draft PO has at least one line.",
+        "ok": true
+      },
+      {
+        "id": "po_line_sku",
+        "message": "Each line has a sku.",
+        "ok": true
+      },
+      {
+        "id": "po_line_qty_positive",
+        "message": "Each line quantity is greater than zero.",
+        "ok": true
+      },
+      {
+        "id": "po_line_unit_cost_non_negative",
+        "message": "Each line unit_cost is non-negative.",
+        "ok": true
+      },
+      {
+        "id": "po_line_total_matches",
+        "message": "Each line_total matches quantity * unit_cost.",
+        "ok": true
+      },
+      {
+        "id": "po_total_matches",
+        "message": "PO total matches sum of line totals.",
+        "ok": true
+      },
+      {
+        "id": "po_single_currency",
+        "message": "Draft PO uses a single currency.",
+        "ok": true
+      }
+    ],
+    "errors": [],
+    "ok": true
+  },
+  "reorder_candidates": {
+    "candidates": [
+      {
+        "available_stock": 4,
+        "currency": "ZAR",
+        "name": "Wireless Mouse",
+        "preferred_supplier_id": "SUP-1001",
+        "reorder_qty": 36,
+        "reorder_threshold": 10,
+        "sku": "SKU-1001",
+        "target_stock_level": 40,
+        "unit_cost": 125.5
+      },
+      {
+        "available_stock": 9,
+        "currency": "ZAR",
+        "name": "Keyboard",
+        "preferred_supplier_id": "SUP-1001",
+        "reorder_qty": 21,
+        "reorder_threshold": 10,
+        "sku": "SKU-1002",
+        "target_stock_level": 30,
+        "unit_cost": 210.0
+      }
+    ],
+    "count": 2,
+    "excluded": [
+      {
+        "available_stock": 2,
+        "name": "LED desk lamp",
+        "reorder_quantity": 20,
+        "reorder_threshold": 5,
+        "reserved_stock": 1,
+        "sku": "SKU-LAMP-01",
+        "status": "active",
+        "stock_on_hand": 3,
+        "supplier_id": "SUP-002"
+      },
+      {
+        "available_stock": 0,
+        "name": "Ergonomic office chair",
+        "reorder_quantity": 8,
+        "reorder_threshold": 3,
+        "reserved_stock": 0,
+        "sku": "SKU-CHAIR-01",
+        "status": "active",
+        "stock_on_hand": 0,
+        "supplier_id": "SUP-001"
+      },
+      {
+        "available_stock": 2,
+        "name": "Compact printer",
+        "reorder_quantity": 5,
+        "reorder_threshold": 3,
+        "reserved_stock": 0,
+        "sku": "SKU-PRINTER-01",
+        "status": "active",
+        "stock_on_hand": 2,
+        "supplier_id": "SUP-002"
+      },
+      {
+        "available_stock": 4,
+        "name": "Monitor stand",
+        "reorder_quantity": 10,
+        "reorder_threshold": 4,
+        "reserved_stock": 2,
+        "sku": "SKU-STAND-01",
+        "status": "active",
+        "stock_on_hand": 6,
+        "supplier_id": "SUP-001"
+      }
+    ]
+  },
+  "selected_supplier": {
+    "excluded_candidates": [],
+    "selected_candidates": [
+      {
+        "available_stock": 9,
+        "currency": "ZAR",
+        "name": "Keyboard",
+        "preferred_supplier_id": "SUP-1001",
+        "reorder_qty": 21,
+        "reorder_threshold": 10,
+        "sku": "SKU-1002",
+        "target_stock_level": 30,
+        "unit_cost": 210.0
+      }
+    ],
+    "selection_reason": "Preferred active supplier selected for first valid supplier group.",
+    "supplier": {
+      "email": "orders@capetech.example",
+      "lead_time_days": 5,
+      "name": "Cape Tech Supplies",
+      "supplier_id": "SUP-1001"
+    }
+  },
+  "supplier_message": {
+    "body": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-201920-456E0A for SKU-1002. Please confirm availability and lead time.",
+    "included_po_id": true,
+    "included_sku_lines": true,
+    "included_supplier_name": true,
+    "invented_terms": false,
+    "subject": "Purchase Order PO-DRAFT-20260504-201920-456E0A",
+    "tone": "professional"
+  },
+  "supplier_message_send": {
+    "action": "supplier_send_message",
+    "body_preview": "Good day Cape Tech Supplies, please find draft purchase order PO-DRAFT-20260504-201920-456E0A for SKU-1002. Please confi",
+    "dry_run": true,
+    "message": "Supplier message dry-run execution completed.",
+    "ok": true,
+    "po_id": "PO-DRAFT-20260504-201920-456E0A",
+    "sent": false,
+    "subject": "Purchase Order PO-DRAFT-20260504-201920-456E0A",
+    "to": "orders@capetech.example"
+  }
+}

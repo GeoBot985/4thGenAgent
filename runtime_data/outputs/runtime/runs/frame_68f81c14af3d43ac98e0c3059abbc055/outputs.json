@@ -1,0 +1,11 @@
+{
+  "execution_result": {
+    "artifact_saved": true,
+    "executed_action_count": 1,
+    "frame_id": "frame_b4170563905e49638e94fa0708e81d4e",
+    "pending_action_statuses": {
+      "pa_8011fe8fb6e540e2a0e6cd5fb728fb39": "EXECUTED"
+    },
+    "target_frame_state": "COMPLETED"
+  }
+}

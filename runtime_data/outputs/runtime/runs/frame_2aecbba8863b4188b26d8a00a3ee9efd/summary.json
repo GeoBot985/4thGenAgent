@@ -1,0 +1,21 @@
+{
+  "completed_steps": 1,
+  "completion_status": "COMPLETED",
+  "created_at": "2026-05-04T20:44:37Z",
+  "current_step_id": null,
+  "error_count": 0,
+  "executed_action_count": 0,
+  "failed_steps": 0,
+  "frame_id": "frame_2aecbba8863b4188b26d8a00a3ee9efd",
+  "manifest_id": "smoke.execute_approved_pending_actions",
+  "output_keys": [
+    "execution_result"
+  ],
+  "pending_action_count": 0,
+  "skipped_steps": 0,
+  "state": "COMPLETED",
+  "step_count": 1,
+  "updated_at": "2026-05-04T20:44:37Z",
+  "validation_count": 3,
+  "validation_failed_count": 0
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "created_at": "2026-04-30T10:00:00Z",
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_total": 5000.0,
+        "quantity": 20,
+        "sku": "SKU-LAMP-01",
+        "unit_cost": 250.0
+      }
+    ],
+    "po_id": "PO-5001",
+    "quantity": 20,
+    "sku": "SKU-LAMP-01",
+    "status": "open",
+    "supplier_id": "SUP-002",
+    "total": 5000.0,
+    "total_amount": 5000.0,
+    "unit_cost": 250.0
+  },
+  {
+    "created_at": "2026-05-01T09:00:00Z",
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_total": 4800.0,
+        "quantity": 8,
+        "sku": "SKU-CHAIR-01",
+        "unit_cost": 600.0
+      }
+    ],
+    "po_id": "PO-5002",
+    "quantity": 8,
+    "sku": "SKU-CHAIR-01",
+    "status": "draft",
+    "supplier_id": "SUP-001",
+    "total": 4800.0,
+    "total_amount": 4800.0,
+    "unit_cost": 600.0
+  },
+  {
+    "created_at": "2026-04-28T09:00:00Z",
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_total": 1750.0,
+        "quantity": 50,
+        "sku": "SKU-CABLE-01",
+        "unit_cost": 35.0
+      }
+    ],
+    "po_id": "PO-5003",
+    "quantity": 50,
+    "sku": "SKU-CABLE-01",
+    "status": "open",
+    "supplier_id": "SUP-003",
+    "total": 1750.0,
+    "total_amount": 1750.0,
+    "unit_cost": 35.0
+  },
+  {
+    "created_at": "2026-04-15T09:00:00Z",
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_total": 7000.0,
+        "quantity": 10,
+        "sku": "SKU-DESK-01",
+        "unit_cost": 700.0
+      }
+    ],
+    "po_id": "PO-5004",
+    "quantity": 10,
+    "sku": "SKU-DESK-01",
+    "status": "cancelled",
+    "supplier_id": "SUP-001",
+    "total": 7000.0,
+    "total_amount": 7000.0,
+    "unit_cost": 700.0
+  }
+]

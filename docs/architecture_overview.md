@@ -1,10 +1,33 @@
 # Architecture Overview
 
-TaskFrame Runtime is built around a simple rule: business behavior belongs in manifests and tools, not in the orchestrator.
+TaskFrame Runtime is a manifest-driven automation runtime for AI-assisted company operations. The central rule is simple: business behavior belongs in manifests and tools, not in the orchestrator.
 
-The system starts with an operator event or scenario selection. Event routes map the event into a manifest ID and normalized inputs. The manifest defines the steps, validations, and completion criteria for that workflow. The orchestrator remains generic and simply drives the TaskFrame through the manifest.
+Intent / Event
+    ->
+Manifest Lookup
+    ->
+TaskFrame Creation
+    ->
+Orchestrator / State Machine
+    ->
+Tools / LLM / Memory
+    ->
+Validation / Acceptance Gate
+    ->
+TaskFrame Finalisation / Audit
 
-Tools perform deterministic work such as reading business data, selecting records, building drafts, validating totals, or staging side effects. Bounded LLM calls are used only for fuzzy tasks such as drafting customer wording, supplier wording, or accounting exception summaries. Approval gates prevent side effects from being executed directly. Approved actions are then executed in dry-run mode, preserving safety and auditability.
+| Block | Required explanation |
+|---|---|
+| Intent / Event | An explicit operator action, scheduled trigger, or external event starts the run. |
+| Manifest Lookup | The runtime resolves the request to a manifest that defines allowed steps and validations. |
+| TaskFrame Creation | A TaskFrame is created to hold the run state, outputs, evidence, validations, and audit trail. |
+| Orchestrator / State Machine | The orchestrator executes known manifests and state transitions; it does not invent workflows. |
+| Tools / LLM / Memory | Tools are deterministic adapters, the LLM is a bounded helper, and memory stores durable facts separate from TaskFrame outputs. |
+| Validation / Acceptance Gate | Deterministic checks decide completion. The LLM cannot self-certify success. |
+| TaskFrame Finalisation / Audit | The run is closed with a durable audit trail and evidence bundle. |
 
-Every run is captured as a TaskFrame with outputs, validations, tool calls, LLM calls, pending actions, executed actions, audit events, and a report/evidence bundle. This makes the runtime suitable for controlled business automation rather than unconstrained agent behavior.
+## Approval Gate
+Side effects are staged as pending actions and must pass an approval gate before they can execute. This keeps live sends, writes, and other external actions visible and operator-controlled.
 
+## Optional RPA Tools
+Browser-backed RPA tools are treated as optional, high-risk, live-environment-dependent adapters. They are excluded from default clean-clone release verification because they depend on local browser state, external authentication, and changing web UIs. They can still support operator-triggered live probes in local mode, but they are not part of the default portfolio demo path.

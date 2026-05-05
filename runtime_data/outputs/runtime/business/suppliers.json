@@ -1,0 +1,34 @@
+[
+  {
+    "email": "orders@furniture-supplier.example.test",
+    "lead_time_days": 5,
+    "name": "Demo Furniture Supply",
+    "preferred_channel": "email",
+    "status": "active",
+    "supplier_id": "SUP-001"
+  },
+  {
+    "email": "orders@lighting-supplier.example.test",
+    "lead_time_days": 3,
+    "name": "Demo Lighting Supply",
+    "preferred_channel": "email",
+    "status": "active",
+    "supplier_id": "SUP-002"
+  },
+  {
+    "email": "orders@accessories-supplier.example.test",
+    "lead_time_days": 2,
+    "name": "Demo Accessories Supply",
+    "preferred_channel": "email",
+    "status": "active",
+    "supplier_id": "SUP-003"
+  },
+  {
+    "email": "inactive@example.test",
+    "lead_time_days": 10,
+    "name": "Inactive Supplier",
+    "preferred_channel": "email",
+    "status": "inactive",
+    "supplier_id": "SUP-004"
+  }
+]

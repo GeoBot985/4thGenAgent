@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from .errors import ToolArgumentError, ToolNotRegisteredError
 
 
@@ -33,31 +35,6 @@ TOOL_REGISTRY = {
         "required_args": ["thread_name"],
         "optional_args": ["limit", "runtime_root", "slowmo", "keep_open", "browser_user_data_dir", "browser_profile_dir", "browser_cdp_url"],
         "arg_types": {"limit": "int", "slowmo": "int", "keep_open": "bool"},
-    },
-    "messages/extract_absa_transactions": {
-        "namespace": "messages",
-        "action": "extract_absa_transactions",
-        "module": "runtime.messages_tools",
-        "function": "messages_extract_absa_transactions",
-        "side_effect": False,
-        "requires_approval": False,
-        "allow_live": True,
-        "allow_live_side_effect": False,
-        "live_guardrail": "blocked",
-        "output_type": "messages_absa_transactions_result",
-        "required_args": [],
-        "optional_args": [
-            "year",
-            "search_query",
-            "runtime_root",
-            "slowmo",
-            "limit",
-            "max_scrolls",
-            "browser_user_data_dir",
-            "browser_profile_dir",
-            "browser_cdp_url",
-        ],
-        "arg_types": {"year": "int", "slowmo": "int", "limit": "int", "max_scrolls": "int"},
     },
     "g/send": {
         "namespace": "g",
@@ -1058,3 +1035,15 @@ def _coerce_bool(key: str, value: object) -> bool:
     if lowered in {"false", "0", "no", "off"}:
         return False
     raise ToolArgumentError(f"Argument {key} must be a boolean.")
+
+
+def register_optional_absa_tools(registry: dict[str, dict] | None = None) -> None:
+    if os.environ.get("ENABLE_OPTIONAL_RPA_TOOLS", "").strip().lower() not in {"1", "true", "yes", "on"}:
+        return
+    target = registry if registry is not None else TOOL_REGISTRY
+    from optional_tools.rpa.google_messages_absa.registry import register_tools
+
+    register_tools(target)
+
+
+register_optional_absa_tools()

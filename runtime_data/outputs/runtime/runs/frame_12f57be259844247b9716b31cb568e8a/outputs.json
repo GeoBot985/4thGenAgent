@@ -1,0 +1,636 @@
+{
+  "accounting_orders": {
+    "count": 5,
+    "errors": [],
+    "ok": true,
+    "orders": [
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1001",
+        "invoice_id": "INV-10042",
+        "order_ref": "ORD-10042",
+        "order_status": "invoiced",
+        "order_total": 1250.0,
+        "source_row": 2
+      },
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1002",
+        "invoice_id": "INV-10043",
+        "order_ref": "ORD-10043",
+        "order_status": "invoiced",
+        "order_total": 500.0,
+        "source_row": 3
+      },
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1003",
+        "invoice_id": "INV-10044",
+        "order_ref": "ORD-10044",
+        "order_status": "invoiced",
+        "order_total": 300.0,
+        "source_row": 4
+      },
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1004",
+        "invoice_id": "INV-10045",
+        "order_ref": "ORD-10045",
+        "order_status": "invoiced",
+        "order_total": 500.0,
+        "source_row": 5
+      },
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1005",
+        "invoice_id": "INV-10046",
+        "order_ref": "ORD-10046",
+        "order_status": "invoiced",
+        "order_total": 250.0,
+        "source_row": 6
+      }
+    ]
+  },
+  "exception_summary": {
+    "invented_facts": false,
+    "key_exceptions": [
+      "One payment has an amount mismatch.",
+      "One payment reference appears more than once.",
+      "One payment appears to already be posted."
+    ],
+    "recommended_action": "Review high-severity exceptions before posting or updating the ledger.",
+    "risk_level": "high",
+    "summary": "Payments were reconciled against orders, invoices, and ledger entries. Exceptions require operator review before posting."
+  },
+  "invoices": {
+    "count": 5,
+    "errors": [],
+    "invoices": [
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1001",
+        "due_date": "2026-05-15",
+        "invoice_id": "INV-10042",
+        "invoice_status": "issued",
+        "invoice_total": 1250.0,
+        "issued_date": "2026-05-01",
+        "order_ref": "ORD-10042",
+        "source_row": 2
+      },
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1002",
+        "due_date": "2026-05-15",
+        "invoice_id": "INV-10043",
+        "invoice_status": "issued",
+        "invoice_total": 500.0,
+        "issued_date": "2026-05-01",
+        "order_ref": "ORD-10043",
+        "source_row": 3
+      },
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1003",
+        "due_date": "2026-05-15",
+        "invoice_id": "INV-10044",
+        "invoice_status": "issued",
+        "invoice_total": 300.0,
+        "issued_date": "2026-05-01",
+        "order_ref": "ORD-10044",
+        "source_row": 4
+      },
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1004",
+        "due_date": "2026-05-15",
+        "invoice_id": "INV-10045",
+        "invoice_status": "issued",
+        "invoice_total": 500.0,
+        "issued_date": "2026-05-01",
+        "order_ref": "ORD-10045",
+        "source_row": 5
+      },
+      {
+        "currency": "ZAR",
+        "customer_id": "CUST-1005",
+        "due_date": "2026-05-15",
+        "invoice_id": "INV-10046",
+        "invoice_status": "issued",
+        "invoice_total": 250.0,
+        "issued_date": "2026-05-01",
+        "order_ref": "ORD-10046",
+        "source_row": 6
+      }
+    ],
+    "ok": true
+  },
+  "invoices_sheet": {
+    "error": "",
+    "ok": true,
+    "range_name": "CustomerInvoices!A:H",
+    "row_count": 6,
+    "rows": [
+      [
+        "invoice_id",
+        "order_ref",
+        "customer_id",
+        "invoice_total",
+        "currency",
+        "invoice_status",
+        "issued_date",
+        "due_date"
+      ],
+      [
+        "INV-10042",
+        "ORD-10042",
+        "CUST-1001",
+        "1250.00",
+        "ZAR",
+        "issued",
+        "2026-05-01",
+        "2026-05-15"
+      ],
+      [
+        "INV-10043",
+        "ORD-10043",
+        "CUST-1002",
+        "500.00",
+        "ZAR",
+        "issued",
+        "2026-05-01",
+        "2026-05-15"
+      ],
+      [
+        "INV-10044",
+        "ORD-10044",
+        "CUST-1003",
+        "300.00",
+        "ZAR",
+        "issued",
+        "2026-05-01",
+        "2026-05-15"
+      ],
+      [
+        "INV-10045",
+        "ORD-10045",
+        "CUST-1004",
+        "500.00",
+        "ZAR",
+        "issued",
+        "2026-05-01",
+        "2026-05-15"
+      ],
+      [
+        "INV-10046",
+        "ORD-10046",
+        "CUST-1005",
+        "250.00",
+        "ZAR",
+        "issued",
+        "2026-05-01",
+        "2026-05-15"
+      ]
+    ],
+    "spreadsheet_id": "demo-sheet-local"
+  },
+  "ledger_entries": {
+    "count": 1,
+    "errors": [],
+    "ledger_entries": [
+      {
+        "amount": 1250.0,
+        "credit_account": "revenue",
+        "currency": "ZAR",
+        "debit_account": "bank",
+        "ledger_entry_id": "LED-1001",
+        "posted_date": "2026-05-04",
+        "source_ref": "EFT-9001",
+        "source_row": 2,
+        "source_type": "payment",
+        "status": "posted"
+      }
+    ],
+    "ok": true
+  },
+  "ledger_sheet": {
+    "error": "",
+    "ok": true,
+    "range_name": "Ledger!A:I",
+    "row_count": 2,
+    "rows": [
+      [
+        "ledger_entry_id",
+        "source_type",
+        "source_ref",
+        "debit_account",
+        "credit_account",
+        "amount",
+        "currency",
+        "posted_date",
+        "status"
+      ],
+      [
+        "LED-1001",
+        "payment",
+        "EFT-9001",
+        "bank",
+        "revenue",
+        "1250.00",
+        "ZAR",
+        "2026-05-04",
+        "posted"
+      ]
+    ],
+    "spreadsheet_id": "demo-sheet-local"
+  },
+  "orders_sheet": {
+    "error": "",
+    "ok": true,
+    "range_name": "Orders!A:F",
+    "row_count": 6,
+    "rows": [
+      [
+        "order_ref",
+        "customer_id",
+        "order_total",
+        "currency",
+        "order_status",
+        "invoice_id"
+      ],
+      [
+        "ORD-10042",
+        "CUST-1001",
+        "1250.00",
+        "ZAR",
+        "invoiced",
+        "INV-10042"
+      ],
+      [
+        "ORD-10043",
+        "CUST-1002",
+        "500.00",
+        "ZAR",
+        "invoiced",
+        "INV-10043"
+      ],
+      [
+        "ORD-10044",
+        "CUST-1003",
+        "300.00",
+        "ZAR",
+        "invoiced",
+        "INV-10044"
+      ],
+      [
+        "ORD-10045",
+        "CUST-1004",
+        "500.00",
+        "ZAR",
+        "invoiced",
+        "INV-10045"
+      ],
+      [
+        "ORD-10046",
+        "CUST-1005",
+        "250.00",
+        "ZAR",
+        "invoiced",
+        "INV-10046"
+      ]
+    ],
+    "spreadsheet_id": "demo-sheet-local"
+  },
+  "payments": {
+    "count": 5,
+    "errors": [],
+    "ok": true,
+    "payments": [
+      {
+        "amount": 1250.0,
+        "currency": "ZAR",
+        "customer_id": "CUST-1001",
+        "order_ref": "ORD-10042",
+        "payment_date": "2026-05-04",
+        "payment_id": "PAY-1001",
+        "payment_ref": "EFT-9001",
+        "source": "bank",
+        "source_row": 2,
+        "status": "received"
+      },
+      {
+        "amount": 450.0,
+        "currency": "ZAR",
+        "customer_id": "CUST-1002",
+        "order_ref": "ORD-10043",
+        "payment_date": "2026-05-04",
+        "payment_id": "PAY-1002",
+        "payment_ref": "EFT-9002",
+        "source": "bank",
+        "source_row": 3,
+        "status": "received"
+      },
+      {
+        "amount": 300.0,
+        "currency": "ZAR",
+        "customer_id": "CUST-1003",
+        "order_ref": "ORD-10044",
+        "payment_date": "2026-05-04",
+        "payment_id": "PAY-1003",
+        "payment_ref": "EFT-9003",
+        "source": "bank",
+        "source_row": 4,
+        "status": "received"
+      },
+      {
+        "amount": 500.0,
+        "currency": "ZAR",
+        "customer_id": "CUST-1004",
+        "order_ref": "ORD-10045",
+        "payment_date": "2026-05-04",
+        "payment_id": "PAY-1004",
+        "payment_ref": "EFT-9005",
+        "source": "bank",
+        "source_row": 5,
+        "status": "received"
+      },
+      {
+        "amount": 250.0,
+        "currency": "ZAR",
+        "customer_id": "CUST-1005",
+        "order_ref": "ORD-10046",
+        "payment_date": "2026-05-04",
+        "payment_id": "PAY-1005",
+        "payment_ref": "EFT-9005",
+        "source": "bank",
+        "source_row": 6,
+        "status": "received"
+      }
+    ]
+  },
+  "payments_sheet": {
+    "error": "",
+    "ok": true,
+    "range_name": "Payments!A:I",
+    "row_count": 6,
+    "rows": [
+      [
+        "payment_id",
+        "payment_ref",
+        "order_ref",
+        "customer_id",
+        "amount",
+        "currency",
+        "payment_date",
+        "status",
+        "source"
+      ],
+      [
+        "PAY-1001",
+        "EFT-9001",
+        "ORD-10042",
+        "CUST-1001",
+        "1250.00",
+        "ZAR",
+        "2026-05-04",
+        "received",
+        "bank"
+      ],
+      [
+        "PAY-1002",
+        "EFT-9002",
+        "ORD-10043",
+        "CUST-1002",
+        "450.00",
+        "ZAR",
+        "2026-05-04",
+        "received",
+        "bank"
+      ],
+      [
+        "PAY-1003",
+        "EFT-9003",
+        "ORD-10044",
+        "CUST-1003",
+        "300.00",
+        "ZAR",
+        "2026-05-04",
+        "received",
+        "bank"
+      ],
+      [
+        "PAY-1004",
+        "EFT-9005",
+        "ORD-10045",
+        "CUST-1004",
+        "500.00",
+        "ZAR",
+        "2026-05-04",
+        "received",
+        "bank"
+      ],
+      [
+        "PAY-1005",
+        "EFT-9005",
+        "ORD-10046",
+        "CUST-1005",
+        "250.00",
+        "ZAR",
+        "2026-05-04",
+        "received",
+        "bank"
+      ]
+    ],
+    "spreadsheet_id": "demo-sheet-local"
+  },
+  "recon_exception_write": {
+    "dry_run": true,
+    "message": "Google Sheet write dry-run completed.",
+    "mode": "append",
+    "ok": true,
+    "range_name": "ReconExceptions!A:M",
+    "row_count": 4,
+    "spreadsheet_id": "demo-sheet-local",
+    "written": false
+  },
+  "recon_run_write": {
+    "dry_run": true,
+    "message": "Google Sheet write dry-run completed.",
+    "mode": "append",
+    "ok": true,
+    "range_name": "ReconRuns!A:J",
+    "row_count": 1,
+    "spreadsheet_id": "demo-sheet-local",
+    "written": false
+  },
+  "recon_sheet_rows": {
+    "ok": true,
+    "recon_exception_rows": [
+      [
+        "RECON-20260504-204437",
+        "EXC-DAE32243",
+        "already_posted",
+        "EFT-9001",
+        "PAY-1001",
+        "ORD-10042",
+        "",
+        0.0,
+        0.0,
+        "ZAR",
+        "medium",
+        "Payment already posted to ledger.",
+        ""
+      ],
+      [
+        "RECON-20260504-204437",
+        "EXC-0AE7E558",
+        "amount_mismatch",
+        "EFT-9002",
+        "PAY-1002",
+        "ORD-10043",
+        "",
+        500.0,
+        450.0,
+        "ZAR",
+        "high",
+        "Payment amount does not match invoice.",
+        ""
+      ],
+      [
+        "RECON-20260504-204437",
+        "EXC-2DC1303B",
+        "duplicate_payment_ref",
+        "EFT-9005",
+        "PAY-1004",
+        "ORD-10045",
+        "",
+        0.0,
+        0.0,
+        "ZAR",
+        "high",
+        "Duplicate payment reference.",
+        ""
+      ],
+      [
+        "RECON-20260504-204437",
+        "EXC-02BC820E",
+        "duplicate_payment_ref",
+        "EFT-9005",
+        "PAY-1005",
+        "ORD-10046",
+        "",
+        0.0,
+        0.0,
+        "ZAR",
+        "high",
+        "Duplicate payment reference.",
+        ""
+      ]
+    ],
+    "recon_run_id": "RECON-20260504-204437",
+    "recon_run_rows": [
+      [
+        "RECON-20260504-204437",
+        "",
+        1,
+        1,
+        4,
+        2,
+        1,
+        1,
+        "exceptions",
+        ""
+      ]
+    ]
+  },
+  "reconciliation_result": {
+    "exceptions": [
+      {
+        "actual_amount": 0.0,
+        "currency": "ZAR",
+        "exception_id": "EXC-DAE32243",
+        "exception_type": "already_posted",
+        "expected_amount": 0.0,
+        "invoice_id": "",
+        "message": "Payment already posted to ledger.",
+        "order_ref": "ORD-10042",
+        "payment_id": "PAY-1001",
+        "payment_ref": "EFT-9001",
+        "severity": "medium"
+      },
+      {
+        "actual_amount": 450.0,
+        "currency": "ZAR",
+        "exception_id": "EXC-0AE7E558",
+        "exception_type": "amount_mismatch",
+        "expected_amount": 500.0,
+        "invoice_id": "",
+        "message": "Payment amount does not match invoice.",
+        "order_ref": "ORD-10043",
+        "payment_id": "PAY-1002",
+        "payment_ref": "EFT-9002",
+        "severity": "high"
+      },
+      {
+        "actual_amount": 0.0,
+        "currency": "ZAR",
+        "exception_id": "EXC-2DC1303B",
+        "exception_type": "duplicate_payment_ref",
+        "expected_amount": 0.0,
+        "invoice_id": "",
+        "message": "Duplicate payment reference.",
+        "order_ref": "ORD-10045",
+        "payment_id": "PAY-1004",
+        "payment_ref": "EFT-9005",
+        "severity": "high"
+      },
+      {
+        "actual_amount": 0.0,
+        "currency": "ZAR",
+        "exception_id": "EXC-02BC820E",
+        "exception_type": "duplicate_payment_ref",
+        "expected_amount": 0.0,
+        "invoice_id": "",
+        "message": "Duplicate payment reference.",
+        "order_ref": "ORD-10046",
+        "payment_id": "PAY-1005",
+        "payment_ref": "EFT-9005",
+        "severity": "high"
+      }
+    ],
+    "matched": [
+      {
+        "already_posted": false,
+        "amount": 300.0,
+        "currency": "ZAR",
+        "invoice_id": "INV-10044",
+        "order_ref": "ORD-10044",
+        "payment_id": "PAY-1003",
+        "payment_ref": "EFT-9003",
+        "status": "matched"
+      }
+    ],
+    "ok": true,
+    "payments_checked": 5,
+    "recon_run_id": "RECON-20260504-204437",
+    "summary": {
+      "already_posted_count": 1,
+      "amount_mismatch_count": 1,
+      "duplicate_count": 2,
+      "exception_count": 4,
+      "matched_count": 1,
+      "status": "exceptions",
+      "unmatched_count": 0
+    }
+  },
+  "reconciliation_validation": {
+    "checks": [
+      {
+        "id": "summary_counts_match",
+        "message": "Summary counts match result lists.",
+        "ok": true
+      }
+    ],
+    "errors": [],
+    "ok": true
+  }
+}

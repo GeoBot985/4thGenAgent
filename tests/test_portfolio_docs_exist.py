@@ -18,6 +18,14 @@ def test_demo_script_exists():
     assert Path("docs/demo_script.md").is_file()
 
 
+def test_demo_walkthrough_exists():
+    assert Path("docs/demo_walkthrough.md").is_file()
+
+
+def test_capture_screenshots_doc_exists():
+    assert Path("docs/capture_screenshots.md").is_file()
+
+
 def test_portfolio_summary_exists():
     assert Path("docs/portfolio_summary.md").is_file()
 

@@ -1,0 +1,316 @@
+{
+  "generated_at": "2026-05-04T20:50:09Z",
+  "include_optional": false,
+  "live_rpa": false,
+  "results": [
+    {
+      "tool_id": "business_context",
+      "ok": true,
+      "status": "ready",
+      "severity": "info",
+      "message": "Demo business context loaded and key fixtures are present.",
+      "can_auto_resolve": false,
+      "recommended_action": null,
+      "checked_at": "2026-05-04T20:50:09Z",
+      "details": {
+        "dataset_counts": {
+          "customers": 5,
+          "customer_messages": 8,
+          "orders": 8,
+          "order_items": 12,
+          "payments": 8,
+          "shipments": 5,
+          "inventory": 8,
+          "suppliers": 4,
+          "purchase_orders": 4,
+          "supplier_invoices": 4
+        },
+        "required_checks": {
+          "customer": true,
+          "order": true,
+          "shipment": true,
+          "sku": true
+        },
+        "order_context": {
+          "order_id": "ORD-10042",
+          "customer_found": true,
+          "shipment_found": true
+        },
+        "capability": {
+          "tool_id": "business_context",
+          "display_name": "Business Context",
+          "category": "business_context",
+          "description": "Loads demo business context from the local runtime_data/business fixtures.",
+          "core_or_optional": "core",
+          "side_effect_level": "read_only",
+          "auth_required": false,
+          "auth_type": null,
+          "setup_available": true,
+          "setup_action": "Seed or validate the demo business dataset.",
+          "rpa_live_probe_required": false,
+          "limitations": [
+            "Uses local demo business fixtures only."
+          ]
+        }
+      }
+    },
+    {
+      "tool_id": "business_database",
+      "ok": true,
+      "status": "ready",
+      "severity": "info",
+      "message": "Demo business dataset store is readable.",
+      "can_auto_resolve": false,
+      "recommended_action": null,
+      "checked_at": "2026-05-04T20:50:09Z",
+      "details": {
+        "dataset_counts": {
+          "customers": 5,
+          "customer_messages": 8,
+          "orders": 8,
+          "order_items": 12,
+          "payments": 8,
+          "shipments": 5,
+          "inventory": 8,
+          "suppliers": 4,
+          "purchase_orders": 4,
+          "supplier_invoices": 4
+        },
+        "capability": {
+          "tool_id": "business_database",
+          "display_name": "Demo Business Database",
+          "category": "database",
+          "description": "Reads the local demo business data store used by the portfolio workflows.",
+          "core_or_optional": "core",
+          "side_effect_level": "read_only",
+          "auth_required": false,
+          "auth_type": null,
+          "setup_available": true,
+          "setup_action": "Create or seed the local demo business dataset.",
+          "rpa_live_probe_required": false,
+          "limitations": [
+            "Backed by JSON fixtures instead of a live database server."
+          ]
+        }
+      }
+    },
+    {
+      "tool_id": "memory_store",
+      "ok": true,
+      "status": "ready",
+      "severity": "info",
+      "message": "Memory store opened and local probe completed.",
+      "can_auto_resolve": false,
+      "recommended_action": null,
+      "checked_at": "2026-05-04T20:50:09Z",
+      "details": {
+        "items_count": 0,
+        "probe_key": "tool_health/probe",
+        "capability": {
+          "tool_id": "memory_store",
+          "display_name": "Memory Store",
+          "category": "memory",
+          "description": "Local persistent memory store used by manifest validations and operator flows.",
+          "core_or_optional": "core",
+          "side_effect_level": "read_only",
+          "auth_required": false,
+          "auth_type": null,
+          "setup_available": true,
+          "setup_action": "Create the local memory store file if missing.",
+          "rpa_live_probe_required": false,
+          "limitations": [
+            "Only local runtime persistence is used."
+          ]
+        }
+      }
+    },
+    {
+      "tool_id": "report_generator",
+      "ok": true,
+      "status": "ready",
+      "severity": "info",
+      "message": "Local report files were generated successfully.",
+      "can_auto_resolve": true,
+      "recommended_action": null,
+      "checked_at": "2026-05-04T20:50:09Z",
+      "details": {
+        "markdown_path": "runtime_data\\tool_health\\reports\\report_generator_probe.md",
+        "html_path": "runtime_data\\tool_health\\reports\\report_generator_probe.html",
+        "capability": {
+          "tool_id": "report_generator",
+          "display_name": "Report Generator",
+          "category": "reporting",
+          "description": "Generates local TaskFrame and operator demo reports.",
+          "core_or_optional": "core",
+          "side_effect_level": "read_only",
+          "auth_required": false,
+          "auth_type": null,
+          "setup_available": true,
+          "setup_action": "Create the local report output directories.",
+          "rpa_live_probe_required": false,
+          "limitations": [
+            "Generates local artifacts only."
+          ]
+        }
+      }
+    }
+  ],
+  "by_tool": {
+    "business_context": {
+      "tool_id": "business_context",
+      "ok": true,
+      "status": "ready",
+      "severity": "info",
+      "message": "Demo business context loaded and key fixtures are present.",
+      "can_auto_resolve": false,
+      "recommended_action": null,
+      "checked_at": "2026-05-04T20:50:09Z",
+      "details": {
+        "dataset_counts": {
+          "customers": 5,
+          "customer_messages": 8,
+          "orders": 8,
+          "order_items": 12,
+          "payments": 8,
+          "shipments": 5,
+          "inventory": 8,
+          "suppliers": 4,
+          "purchase_orders": 4,
+          "supplier_invoices": 4
+        },
+        "required_checks": {
+          "customer": true,
+          "order": true,
+          "shipment": true,
+          "sku": true
+        },
+        "order_context": {
+          "order_id": "ORD-10042",
+          "customer_found": true,
+          "shipment_found": true
+        },
+        "capability": {
+          "tool_id": "business_context",
+          "display_name": "Business Context",
+          "category": "business_context",
+          "description": "Loads demo business context from the local runtime_data/business fixtures.",
+          "core_or_optional": "core",
+          "side_effect_level": "read_only",
+          "auth_required": false,
+          "auth_type": null,
+          "setup_available": true,
+          "setup_action": "Seed or validate the demo business dataset.",
+          "rpa_live_probe_required": false,
+          "limitations": [
+            "Uses local demo business fixtures only."
+          ]
+        }
+      }
+    },
+    "business_database": {
+      "tool_id": "business_database",
+      "ok": true,
+      "status": "ready",
+      "severity": "info",
+      "message": "Demo business dataset store is readable.",
+      "can_auto_resolve": false,
+      "recommended_action": null,
+      "checked_at": "2026-05-04T20:50:09Z",
+      "details": {
+        "dataset_counts": {
+          "customers": 5,
+          "customer_messages": 8,
+          "orders": 8,
+          "order_items": 12,
+          "payments": 8,
+          "shipments": 5,
+          "inventory": 8,
+          "suppliers": 4,
+          "purchase_orders": 4,
+          "supplier_invoices": 4
+        },
+        "capability": {
+          "tool_id": "business_database",
+          "display_name": "Demo Business Database",
+          "category": "database",
+          "description": "Reads the local demo business data store used by the portfolio workflows.",
+          "core_or_optional": "core",
+          "side_effect_level": "read_only",
+          "auth_required": false,
+          "auth_type": null,
+          "setup_available": true,
+          "setup_action": "Create or seed the local demo business dataset.",
+          "rpa_live_probe_required": false,
+          "limitations": [
+            "Backed by JSON fixtures instead of a live database server."
+          ]
+        }
+      }
+    },
+    "memory_store": {
+      "tool_id": "memory_store",
+      "ok": true,
+      "status": "ready",
+      "severity": "info",
+      "message": "Memory store opened and local probe completed.",
+      "can_auto_resolve": false,
+      "recommended_action": null,
+      "checked_at": "2026-05-04T20:50:09Z",
+      "details": {
+        "items_count": 0,
+        "probe_key": "tool_health/probe",
+        "capability": {
+          "tool_id": "memory_store",
+          "display_name": "Memory Store",
+          "category": "memory",
+          "description": "Local persistent memory store used by manifest validations and operator flows.",
+          "core_or_optional": "core",
+          "side_effect_level": "read_only",
+          "auth_required": false,
+          "auth_type": null,
+          "setup_available": true,
+          "setup_action": "Create the local memory store file if missing.",
+          "rpa_live_probe_required": false,
+          "limitations": [
+            "Only local runtime persistence is used."
+          ]
+        }
+      }
+    },
+    "report_generator": {
+      "tool_id": "report_generator",
+      "ok": true,
+      "status": "ready",
+      "severity": "info",
+      "message": "Local report files were generated successfully.",
+      "can_auto_resolve": true,
+      "recommended_action": null,
+      "checked_at": "2026-05-04T20:50:09Z",
+      "details": {
+        "markdown_path": "runtime_data\\tool_health\\reports\\report_generator_probe.md",
+        "html_path": "runtime_data\\tool_health\\reports\\report_generator_probe.html",
+        "capability": {
+          "tool_id": "report_generator",
+          "display_name": "Report Generator",
+          "category": "reporting",
+          "description": "Generates local TaskFrame and operator demo reports.",
+          "core_or_optional": "core",
+          "side_effect_level": "read_only",
+          "auth_required": false,
+          "auth_type": null,
+          "setup_available": true,
+          "setup_action": "Create the local report output directories.",
+          "rpa_live_probe_required": false,
+          "limitations": [
+            "Generates local artifacts only."
+          ]
+        }
+      }
+    }
+  },
+  "summary": {
+    "tool_count": 4,
+    "ready_count": 4,
+    "failed_count": 0
+  }
+}

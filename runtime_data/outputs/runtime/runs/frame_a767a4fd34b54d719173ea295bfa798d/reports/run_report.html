@@ -1,0 +1,620 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TaskFrame Run Report</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 24px; }
+.section { margin-bottom: 24px; }
+.status-ok { color: #047857; }
+.status-failed { color: #b91c1c; }
+.status-warning { color: #b45309; }
+.status-pending { color: #6b7280; }
+.json-block { white-space: pre-wrap; background: #f8fafc; padding: 12px; border: 1px solid #e5e7eb; }
+table { border-collapse: collapse; width: 100%; }
+td, th { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; vertical-align: top; }
+.failed-row { background: #fef2f2; }
+</style>
+</head>
+<body>
+<h1>TaskFrame Run Report</h1>
+<section class="section"><h2>1. Executive Summary</h2><table><tr><th>Frame ID</th><td>frame_a767a4fd34b54d719173ea295bfa798d</td></tr>
+<tr><th>Manifest</th><td>customer.status_llm_e2e</td></tr>
+<tr><th>State</th><td>COMPLETED</td></tr>
+<tr><th>Outcome</th><td>Run completed successfully.</td></tr>
+<tr><th>Pending Actions</th><td>1</td></tr>
+<tr><th>Executed Actions</th><td>1</td></tr>
+<tr><th>Errors</th><td>0</td></tr></table></section>
+<section class="section"><h2>2. Trigger / Event</h2><pre class="json-block">{
+  &quot;channel&quot;: &quot;callcentre&quot;,
+  &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+  &quot;event_id&quot;: &quot;evt_77be256a7055495e9d439620b503fca4&quot;,
+  &quot;event_type&quot;: &quot;manual.customer_status_llm_e2e&quot;,
+  &quot;message&quot;: &quot;Where is my order ORD-10042?&quot;,
+  &quot;source&quot;: &quot;operator_scenario_pack&quot;
+}</pre></section>
+<section class="section"><h2>3. Route and Manifest</h2><table><tr><th>Manifest ID</th><td>customer.status_llm_e2e</td></tr>
+<tr><th>Step Count</th><td>14</td></tr>
+<tr><th>Validation Count</th><td>62</td></tr></table></section>
+<section class="section"><h2>4. Runtime Final State</h2><pre class="json-block">{
+  &quot;errors&quot;: [],
+  &quot;failed_steps&quot;: [],
+  &quot;final_state&quot;: &quot;COMPLETED&quot;,
+  &quot;message&quot;: &quot;Completion gate passed.&quot;,
+  &quot;missing_executed_actions&quot;: [],
+  &quot;missing_outputs&quot;: [],
+  &quot;missing_pending_actions&quot;: [],
+  &quot;ok&quot;: true,
+  &quot;status&quot;: &quot;COMPLETED&quot;,
+  &quot;validation_summary&quot;: {
+    &quot;failed&quot;: 0,
+    &quot;passed&quot;: 62
+  }
+}</pre></section>
+<section class="section"><h2>5. Step Timeline</h2><pre class="json-block">
+
+| # | Step | Kind | Action | Status | Attempts | Result | Error |
+|---:|---|---|---|---|---:|---|---|
+| 1 | extract_order_ref | llm | extract_order_ref | COMPLETED | 1 | order_ref |  |
+| 2 | classify_message | llm | classify_customer_message | COMPLETED | 1 | category |  |
+| 3 | validate_order_ref | validate | order_ref_has_value | COMPLETED | 1 | None |  |
+| 4 | lookup_customer | tool | read | COMPLETED | 1 | customer |  |
+| 5 | lookup_order | tool | read | COMPLETED | 1 | order |  |
+| 6 | lookup_shipment | tool | read | COMPLETED | 1 | shipment |  |
+| 7 | read_payment | tool | read_by_order | COMPLETED | 1 | payment |  |
+| 8 | build_order_context | tool | build | COMPLETED | 1 | order_context |  |
+| 9 | validate_customer_owns_order | tool | validate_owns_order | COMPLETED | 1 | ownership_check |  |
+| 10 | build_status_context | tool | build_status_context | COMPLETED | 1 | status_context |  |
+| 11 | draft_reply | llm | draft_customer_status_reply | COMPLETED | 1 | draft_reply |  |
+| 12 | check_reply_against_facts | llm | compare_reply_to_facts | COMPLETED | 1 | reply_check |  |
+| 13 | validate_status_reply | tool | validate_customer_status_reply | COMPLETED | 1 | reply_validation |  |
+| 14 | stage_customer_reply | tool | prepare_message_action | STAGED | 1 | customer_reply_send |  |
+
+</pre></section>
+<section class="section"><h2>6. LLM Calls</h2><pre class="json-block">- step_id: extract_order_ref
+  action: extract_order_ref
+  provider: fake
+  model: fake
+  ok: True
+  output_ref: 
+  micro_tool: True
+- step_id: classify_message
+  action: classify_customer_message
+  provider: fake
+  model: fake
+  ok: True
+  output_ref: 
+  micro_tool: True
+- step_id: draft_reply
+  action: draft_customer_status_reply
+  provider: fake
+  model: fake
+  ok: True
+  output_ref: 
+  micro_tool: True
+- step_id: check_reply_against_facts
+  action: compare_reply_to_facts
+  provider: fake
+  model: fake
+  ok: True
+  output_ref: 
+  micro_tool: True</pre></section>
+<section class="section"><h2>7. Tool Calls</h2><pre class="json-block">- step_id: lookup_customer
+  tool: customer/read
+  namespace: customer
+  action: read
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: customer
+  ok: True
+  error: 
+- step_id: lookup_order
+  tool: order/read
+  namespace: order
+  action: read
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: order
+  ok: True
+  error: 
+- step_id: lookup_shipment
+  tool: shipment/read
+  namespace: shipment
+  action: read
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: shipment
+  ok: True
+  error: 
+- step_id: read_payment
+  tool: payment/read_by_order
+  namespace: payment
+  action: read_by_order
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: payment
+  ok: True
+  error: 
+- step_id: build_order_context
+  tool: order_context/build
+  namespace: order_context
+  action: build
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: order_context
+  ok: True
+  error: 
+- step_id: validate_customer_owns_order
+  tool: customer/validate_owns_order
+  namespace: customer
+  action: validate_owns_order
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: ownership_check
+  ok: True
+  error: Customer owns order.
+- step_id: build_status_context
+  tool: customer/build_status_context
+  namespace: customer
+  action: build_status_context
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: status_context
+  ok: True
+  error: 
+- step_id: validate_status_reply
+  tool: message/validate_customer_status_reply
+  namespace: message
+  action: validate_customer_status_reply
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: reply_validation
+  ok: True
+  error: 
+- step_id: stage_customer_reply
+  tool: customer/prepare_message_action
+  namespace: customer
+  action: prepare_message_action
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: customer_reply_send
+  ok: True
+  error: 
+- step_id: stage_customer_reply
+  tool: 
+  namespace: customer
+  action: prepare_message_action
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: customer_reply_send
+  ok: True
+  error: </pre></section>
+<section class="section"><h2>8. Outputs</h2><pre class="json-block">### Output: business_lookups
+```json
+{
+  &quot;customer&quot;: {
+    &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+    &quot;email&quot;: &quot;alex@example.test&quot;,
+    &quot;name&quot;: &quot;Alex&quot;,
+    &quot;preferred_channel&quot;: &quot;whatsapp&quot;,
+    &quot;status&quot;: &quot;active&quot;,
+    &quot;whatsapp_chat&quot;: &quot;Alex Customer&quot;
+  },
+  &quot;error&quot;: &quot;&quot;,
+  &quot;facts&quot;: [
+    &quot;Customer CUST-1001 is Alex.&quot;,
+    &quot;Order ORD-10042 belongs to CUST-1001.&quot;,
+    &quot;Order ORD-10042 status is shipped.&quot;,
+    &quot;Shipment SHIP-9001 status is in_transit.&quot;
+  ],
+  &quot;ok&quot;: true,
+  &quot;order&quot;: {
+    &quot;created_date&quot;: &quot;2026-04-25&quot;,
+    &quot;currency&quot;: &quot;ZAR&quot;,
+    &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+    &quot;order_id&quot;: &quot;ORD-10042&quot;,
+    &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+    &quot;status&quot;: &quot;shipped&quot;,
+    &quot;total_amount&quot;: 1299.99
+  },
+  &quot;payment&quot;: {},
+  &quot;shipment&quot;: {
+    &quot;carrier&quot;: &quot;DemoCourier&quot;,
+    &quot;estimated_delivery&quot;: &quot;2026-05-03&quot;,
+    &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+    &quot;shipment_id&quot;: &quot;SHIP-9001&quot;,
+    &quot;status&quot;: &quot;in_transit&quot;,
+    &quot;tracking_ref&quot;: &quot;TRK-778899&quot;
+  }
+}
+```
+
+### Output: category
+```json
+{
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;label&quot;: &quot;order_status&quot;,
+  &quot;reason&quot;: &quot;Customer asks where their order is.&quot;
+}
+```
+
+### Output: customer
+```json
+{
+  &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+  &quot;email&quot;: &quot;alex@example.test&quot;,
+  &quot;name&quot;: &quot;Alex&quot;,
+  &quot;preferred_channel&quot;: &quot;whatsapp&quot;,
+  &quot;status&quot;: &quot;active&quot;,
+  &quot;whatsapp_chat&quot;: &quot;Alex Customer&quot;
+}
+```
+
+### Output: customer_reply_send
+```json
+{
+  &quot;approved_execution&quot;: true,
+  &quot;args&quot;: {
+    &quot;chat&quot;: &quot;Alex Customer&quot;,
+    &quot;message&quot;: {
+      &quot;body&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;,
+      &quot;included_order_ref&quot;: true,
+      &quot;included_status&quot;: true,
+      &quot;invented_compensation&quot;: false,
+      &quot;reply&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;,
+      &quot;tone&quot;: &quot;professional&quot;
+    }
+  },
+  &quot;dry_run&quot;: true,
+  &quot;function&quot;: &quot;whatsapp_send&quot;,
+  &quot;tool&quot;: &quot;wa/send&quot;
+}
+```
+
+### Output: draft_reply
+```json
+{
+  &quot;body&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;,
+  &quot;included_order_ref&quot;: true,
+  &quot;included_status&quot;: true,
+  &quot;invented_compensation&quot;: false,
+  &quot;reply&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;,
+  &quot;tone&quot;: &quot;professional&quot;
+}
+```
+
+### Output: order
+```json
+{
+  &quot;created_date&quot;: &quot;2026-04-25&quot;,
+  &quot;currency&quot;: &quot;ZAR&quot;,
+  &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+  &quot;order_id&quot;: &quot;ORD-10042&quot;,
+  &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+  &quot;status&quot;: &quot;shipped&quot;,
+  &quot;total_amount&quot;: 1299.99
+}
+```
+
+### Output: order_context
+```json
+{
+  &quot;customer&quot;: {
+    &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+    &quot;email&quot;: &quot;alex@example.test&quot;,
+    &quot;name&quot;: &quot;Alex&quot;,
+    &quot;preferred_channel&quot;: &quot;whatsapp&quot;,
+    &quot;status&quot;: &quot;active&quot;,
+    &quot;whatsapp_chat&quot;: &quot;Alex Customer&quot;
+  },
+  &quot;error&quot;: &quot;&quot;,
+  &quot;facts&quot;: [
+    &quot;Customer CUST-1001 is Alex.&quot;,
+    &quot;Order ORD-10042 belongs to CUST-1001.&quot;,
+    &quot;Order ORD-10042 status is shipped.&quot;,
+    &quot;Shipment SHIP-9001 status is in_transit.&quot;
+  ],
+  &quot;ok&quot;: true,
+  &quot;order&quot;: {
+    &quot;created_date&quot;: &quot;2026-04-25&quot;,
+    &quot;currency&quot;: &quot;ZAR&quot;,
+    &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+    &quot;order_id&quot;: &quot;ORD-10042&quot;,
+    &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+    &quot;status&quot;: &quot;shipped&quot;,
+    &quot;total_amount&quot;: 1299.99
+  },
+  &quot;payment&quot;: {},
+  &quot;shipment&quot;: {
+    &quot;carrier&quot;: &quot;DemoCourier&quot;,
+    &quot;estimated_delivery&quot;: &quot;2026-05-03&quot;,
+    &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+    &quot;shipment_id&quot;: &quot;SHIP-9001&quot;,
+    &quot;status&quot;: &quot;in_transit&quot;,
+    &quot;tracking_ref&quot;: &quot;TRK-778899&quot;
+  }
+}
+```
+
+### Output: order_ref
+```json
+{
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+  &quot;reason&quot;: &quot;Detected explicit order reference.&quot;
+}
+```
+
+### Output: ownership_check
+```json
+{
+  &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+  &quot;error&quot;: &quot;&quot;,
+  &quot;message&quot;: &quot;Customer owns order.&quot;,
+  &quot;ok&quot;: true,
+  &quot;order_customer_id&quot;: &quot;CUST-1001&quot;,
+  &quot;order_ref&quot;: &quot;ORD-10042&quot;
+}
+```
+
+### Output: payment
+```json
+{
+  &quot;args&quot;: {
+    &quot;order_ref&quot;: &quot;ORD-10042&quot;
+  },
+  &quot;dry_run&quot;: true,
+  &quot;function&quot;: &quot;payment_read_by_order&quot;,
+  &quot;tool&quot;: &quot;payment/read_by_order&quot;
+}
+```
+
+### Output: reply_check
+```json
+{
+  &quot;matches_facts&quot;: true,
+  &quot;missing_required_facts&quot;: [],
+  &quot;ok&quot;: true,
+  &quot;reason&quot;: &quot;Deterministic fake response.&quot;,
+  &quot;unsupported_claims&quot;: []
+}
+```
+
+### Output: reply_validation
+```json
+{
+  &quot;checks&quot;: [],
+  &quot;errors&quot;: [],
+  &quot;facts&quot;: [
+    &quot;Customer CUST-1001 is Alex.&quot;,
+    &quot;Order ORD-10042 belongs to CUST-1001.&quot;,
+    &quot;Order ORD-10042 status is shipped.&quot;,
+    &quot;Shipment SHIP-9001 status is in_transit.&quot;
+  ],
+  &quot;ok&quot;: true,
+  &quot;order_context&quot;: {
+    &quot;customer&quot;: {
+      &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+      &quot;email&quot;: &quot;alex@example.test&quot;,
+      &quot;name&quot;: &quot;Alex&quot;,
+      &quot;preferred_channel&quot;: &quot;whatsapp&quot;,
+      &quot;status&quot;: &quot;active&quot;,
+      &quot;whatsapp_chat&quot;: &quot;Alex Customer&quot;
+    },
+    &quot;error&quot;: &quot;&quot;,
+    &quot;facts&quot;: [
+      &quot;Customer CUST-1001 is Alex.&quot;,
+      &quot;Order ORD-10042 belongs to CUST-1001.&quot;,
+      &quot;Order ORD-10042 status is shipped.&quot;,
+      &quot;Shipment SHIP-9001 status is in_transit.&quot;
+    ],
+    &quot;ok&quot;: true,
+    &quot;order&quot;: {
+      &quot;created_date&quot;: &quot;2026-04-25&quot;,
+      &quot;currency&quot;: &quot;ZAR&quot;,
+      &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+      &quot;order_id&quot;: &quot;ORD-10042&quot;,
+      &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+      &quot;status&quot;: &quot;shipped&quot;,
+      &quot;total_amount&quot;: 1299.99
+    },
+    &quot;payment&quot;: {},
+    &quot;shipment&quot;: {
+      &quot;carrier&quot;: &quot;DemoCourier&quot;,
+      &quot;estimated_delivery&quot;: &quot;2026-05-03&quot;,
+      &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+      &quot;shipment_id&quot;: &quot;SHIP-9001&quot;,
+      &quot;status&quot;: &quot;in_transit&quot;,
+      &quot;tracking_ref&quot;: &quot;TRK-778899&quot;
+    }
+  },
+  &quot;reply&quot;: {
+    &quot;body&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;,
+    &quot;included_order_ref&quot;: true,
+    &quot;included_status&quot;: true,
+    &quot;invented_compensation&quot;: false,
+    &quot;reply&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;,
+    &quot;tone&quot;: &quot;professional&quot;
+  }
+}
+```
+
+### Output: shipment
+```json
+{
+  &quot;carrier&quot;: &quot;DemoCourier&quot;,
+  &quot;estimated_delivery&quot;: &quot;2026-05-03&quot;,
+  &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+  &quot;shipment_id&quot;: &quot;SHIP-9001&quot;,
+  &quot;status&quot;: &quot;in_transit&quot;,
+  &quot;tracking_ref&quot;: &quot;TRK-778899&quot;
+}
+```
+
+### Output: status_context
+```json
+{
+  &quot;customer&quot;: {
+    &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+    &quot;email&quot;: &quot;alex@example.test&quot;,
+    &quot;name&quot;: &quot;Alex&quot;,
+    &quot;preferred_channel&quot;: &quot;whatsapp&quot;,
+    &quot;status&quot;: &quot;active&quot;,
+    &quot;whatsapp_chat&quot;: &quot;Alex Customer&quot;
+  },
+  &quot;error&quot;: &quot;&quot;,
+  &quot;facts&quot;: [
+    &quot;Customer CUST-1001 is Alex.&quot;,
+    &quot;Order ORD-10042 belongs to CUST-1001.&quot;,
+    &quot;Order ORD-10042 status is shipped.&quot;,
+    &quot;Shipment SHIP-9001 status is in_transit.&quot;
+  ],
+  &quot;ok&quot;: true,
+  &quot;order&quot;: {
+    &quot;created_date&quot;: &quot;2026-04-25&quot;,
+    &quot;currency&quot;: &quot;ZAR&quot;,
+    &quot;customer_id&quot;: &quot;CUST-1001&quot;,
+    &quot;order_id&quot;: &quot;ORD-10042&quot;,
+    &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+    &quot;status&quot;: &quot;shipped&quot;,
+    &quot;total_amount&quot;: 1299.99
+  },
+  &quot;payment&quot;: {},
+  &quot;shipment&quot;: {
+    &quot;carrier&quot;: &quot;DemoCourier&quot;,
+    &quot;estimated_delivery&quot;: &quot;2026-05-03&quot;,
+    &quot;order_ref&quot;: &quot;ORD-10042&quot;,
+    &quot;shipment_id&quot;: &quot;SHIP-9001&quot;,
+    &quot;status&quot;: &quot;in_transit&quot;,
+    &quot;tracking_ref&quot;: &quot;TRK-778899&quot;
+  }
+}
+```
+</pre></section>
+<section class="section"><h2>9. Evidence</h2><pre class="json-block">Evidence count: 1
+- step_id: build_status_context
+  source: 
+  record_id: 
+  data: {&quot;datasets&quot;: [], &quot;kind&quot;: &quot;business_lookup&quot;, &quot;step_id&quot;: &quot;build_status_context&quot;}</pre></section>
+<section class="section"><h2>10. Validations</h2><pre class="json-block">| Validation ID | Type | OK | Message | Step | Data |
+|---|---|---|---|---|---|
+| extract_order_ref_order_ref | llm_micro_tool_schema | ok |  |  | {&quot;order_ref&quot;: &quot;ORD-10042&quot;} |
+| extract_order_ref_confidence | llm_micro_tool_schema | ok |  |  | {&quot;confidence&quot;: &quot;high&quot;} |
+| extract_order_ref_reason | llm_micro_tool_schema | ok |  |  | {&quot;reason&quot;: &quot;Detected explicit order reference.&quot;} |
+| extract_order_ref_confidence_allowed | llm_micro_tool_schema | ok |  |  | {&quot;confidence&quot;: &quot;high&quot;} |
+| extract_order_ref_format | llm_micro_tool_schema | ok |  |  | {&quot;order_ref&quot;: &quot;ORD-10042&quot;} |
+| classify_customer_message_label | llm_micro_tool_schema | ok |  |  | {&quot;label&quot;: &quot;order_status&quot;} |
+| classify_customer_message_confidence | llm_micro_tool_schema | ok |  |  | {&quot;confidence&quot;: &quot;high&quot;} |
+| classify_customer_message_reason | llm_micro_tool_schema | ok |  |  | {&quot;reason&quot;: &quot;Customer asks where their order is.&quot;} |
+| classify_customer_message_label_allowed | llm_micro_tool_schema | ok |  |  | {&quot;label&quot;: &quot;order_status&quot;} |
+| classify_customer_message_confidence_allowed | llm_micro_tool_schema | ok |  |  | {&quot;confidence&quot;: &quot;high&quot;} |
+| classify_customer_message_label_legacy_allowed | llm_micro_tool_schema | ok |  |  | {&quot;label&quot;: &quot;order_status&quot;} |
+| order_ref_has_value | output_has_fields | ok | Output has fields: order_ref |  | {&quot;fields&quot;: [&quot;order_ref&quot;, &quot;confidence&quot;, &quot;reason&quot;], &quot;output&quot;: &quot;order_ref&quot;} |
+| draft_customer_status_reply_reply | llm_micro_tool_schema | ok |  |  | {&quot;reply&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;} |
+| draft_customer_status_reply_tone | llm_micro_tool_schema | ok |  |  | {&quot;tone&quot;: &quot;professional&quot;} |
+| draft_customer_status_reply_included_order_ref | llm_micro_tool_schema | ok |  |  | {&quot;included_order_ref&quot;: true} |
+| draft_customer_status_reply_included_status | llm_micro_tool_schema | ok |  |  | {&quot;included_status&quot;: true} |
+| draft_customer_status_reply_invented_compensation | llm_micro_tool_schema | ok |  |  | {&quot;invented_compensation&quot;: false} |
+| draft_customer_status_reply_tone_allowed | llm_micro_tool_schema | ok |  |  | {&quot;tone&quot;: &quot;professional&quot;} |
+| draft_customer_status_reply_compensation | llm_micro_tool_schema | ok |  |  | {&quot;invented_compensation&quot;: false} |
+| draft_customer_status_reply_forbidden_claims | llm_micro_tool_schema | ok |  |  | {&quot;reply&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;} |
+| compare_reply_to_facts_ok | llm_micro_tool_schema | ok |  |  | {&quot;ok&quot;: true} |
+| compare_reply_to_facts_matches_facts | llm_micro_tool_schema | ok |  |  | {&quot;matches_facts&quot;: true} |
+| compare_reply_to_facts_unsupported_claims | llm_micro_tool_schema | ok |  |  | {&quot;unsupported_claims&quot;: []} |
+| compare_reply_to_facts_missing_required_facts | llm_micro_tool_schema | ok |  |  | {&quot;missing_required_facts&quot;: []} |
+| compare_reply_to_facts_reason | llm_micro_tool_schema | ok |  |  | {&quot;reason&quot;: &quot;Deterministic fake response.&quot;} |
+| compare_reply_to_facts_fact_check | llm_micro_tool_schema | ok |  |  | {&quot;matches_facts&quot;: true, &quot;missing_required_facts&quot;: [], &quot;ok&quot;: true, &quot;reason&quot;: &quot;Deterministic fake response.&quot;, &quot;unsupported_claims&quot;: []} |
+| no_errors | no_errors | ok | No runtime errors. |  | {} |
+| order_ref_has_value | output_has_fields | ok | Output has fields: order_ref |  | {&quot;fields&quot;: [&quot;order_ref&quot;, &quot;confidence&quot;, &quot;reason&quot;], &quot;output&quot;: &quot;order_ref&quot;} |
+| order_ref_confidence_ok | output_field_in | ok | Output field is allowed: order_ref.confidence |  | {&quot;field&quot;: &quot;confidence&quot;, &quot;output&quot;: &quot;order_ref&quot;, &quot;value&quot;: &quot;high&quot;, &quot;values&quot;: [&quot;high&quot;, &quot;medium&quot;]} |
+| category_is_order_status | output_field_equals | ok | Output field matches: category.label |  | {&quot;field&quot;: &quot;label&quot;, &quot;output&quot;: &quot;category&quot;, &quot;value&quot;: &quot;order_status&quot;} |
+| customer_exists | output_has_fields | ok | Output has fields: customer |  | {&quot;fields&quot;: [&quot;customer_id&quot;, &quot;name&quot;, &quot;preferred_channel&quot;], &quot;output&quot;: &quot;customer&quot;} |
+| order_exists | output_has_fields | ok | Output has fields: order |  | {&quot;fields&quot;: [&quot;order_ref&quot;, &quot;customer_id&quot;, &quot;status&quot;, &quot;created_date&quot;, &quot;total_amount&quot;], &quot;output&quot;: &quot;order&quot;} |
+| shipment_exists | output_has_fields | ok | Output has fields: shipment |  | {&quot;fields&quot;: [&quot;order_ref&quot;, &quot;shipment_id&quot;, &quot;status&quot;, &quot;carrier&quot;, &quot;tracking_ref&quot;, &quot;estimated_delivery&quot;], &quot;output&quot;: &quot;shipment&quot;} |
+| order_belongs_to_customer | output_field_equals | ok | Output field matches: order.customer_id |  | {&quot;field&quot;: &quot;customer_id&quot;, &quot;output&quot;: &quot;order&quot;, &quot;value&quot;: &quot;CUST-1001&quot;} |
+| shipment_matches_order | output_field_equals | ok | Output field matches: shipment.order_ref |  | {&quot;field&quot;: &quot;order_ref&quot;, &quot;output&quot;: &quot;shipment&quot;, &quot;value&quot;: &quot;ORD-10042&quot;} |
+| status_context_exists | output_exists | ok | Output exists: status_context |  | {&quot;output&quot;: &quot;status_context&quot;} |
+| draft_reply_includes_order_ref | output_field_equals | ok | Output field matches: draft_reply.included_order_ref |  | {&quot;field&quot;: &quot;included_order_ref&quot;, &quot;output&quot;: &quot;draft_reply&quot;, &quot;value&quot;: true} |
+| draft_reply_includes_status | output_field_equals | ok | Output field matches: draft_reply.included_status |  | {&quot;field&quot;: &quot;included_status&quot;, &quot;output&quot;: &quot;draft_reply&quot;, &quot;value&quot;: true} |
+| draft_reply_has_no_compensation | output_field_equals | ok | Output field matches: draft_reply.invented_compensation |  | {&quot;field&quot;: &quot;invented_compensation&quot;, &quot;output&quot;: &quot;draft_reply&quot;, &quot;value&quot;: false} |
+| reply_check_ok | output_field_equals | ok | Output field matches: reply_check.ok |  | {&quot;field&quot;: &quot;ok&quot;, &quot;output&quot;: &quot;reply_check&quot;, &quot;value&quot;: true} |
+| reply_check_matches_facts | output_field_equals | ok | Output field matches: reply_check.matches_facts |  | {&quot;field&quot;: &quot;matches_facts&quot;, &quot;output&quot;: &quot;reply_check&quot;, &quot;value&quot;: true} |
+| reply_check_no_unsupported_claims | output_field_equals | ok | Output field matches: reply_check.unsupported_claims |  | {&quot;field&quot;: &quot;unsupported_claims&quot;, &quot;output&quot;: &quot;reply_check&quot;, &quot;value&quot;: []} |
+| reply_validation_exists | output_exists | ok | Output exists: reply_validation |  | {&quot;output&quot;: &quot;reply_validation&quot;} |
+| customer_reply_pending | pending_action_exists | ok | Pending action exists. |  | {&quot;output&quot;: &quot;customer_reply_send&quot;, &quot;tool&quot;: &quot;wa/send&quot;} |
+| no_errors | no_errors | ok | No runtime errors. |  | {} |
+| order_ref_has_value | output_has_fields | ok | Output has fields: order_ref |  | {&quot;fields&quot;: [&quot;order_ref&quot;, &quot;confidence&quot;, &quot;reason&quot;], &quot;output&quot;: &quot;order_ref&quot;} |
+| order_ref_confidence_ok | output_field_in | ok | Output field is allowed: order_ref.confidence |  | {&quot;field&quot;: &quot;confidence&quot;, &quot;output&quot;: &quot;order_ref&quot;, &quot;value&quot;: &quot;high&quot;, &quot;values&quot;: [&quot;high&quot;, &quot;medium&quot;]} |
+| category_is_order_status | output_field_equals | ok | Output field matches: category.label |  | {&quot;field&quot;: &quot;label&quot;, &quot;output&quot;: &quot;category&quot;, &quot;value&quot;: &quot;order_status&quot;} |
+| customer_exists | output_has_fields | ok | Output has fields: customer |  | {&quot;fields&quot;: [&quot;customer_id&quot;, &quot;name&quot;, &quot;preferred_channel&quot;], &quot;output&quot;: &quot;customer&quot;} |
+| order_exists | output_has_fields | ok | Output has fields: order |  | {&quot;fields&quot;: [&quot;order_ref&quot;, &quot;customer_id&quot;, &quot;status&quot;, &quot;created_date&quot;, &quot;total_amount&quot;], &quot;output&quot;: &quot;order&quot;} |
+| shipment_exists | output_has_fields | ok | Output has fields: shipment |  | {&quot;fields&quot;: [&quot;order_ref&quot;, &quot;shipment_id&quot;, &quot;status&quot;, &quot;carrier&quot;, &quot;tracking_ref&quot;, &quot;estimated_delivery&quot;], &quot;output&quot;: &quot;shipment&quot;} |
+| order_belongs_to_customer | output_field_equals | ok | Output field matches: order.customer_id |  | {&quot;field&quot;: &quot;customer_id&quot;, &quot;output&quot;: &quot;order&quot;, &quot;value&quot;: &quot;CUST-1001&quot;} |
+| shipment_matches_order | output_field_equals | ok | Output field matches: shipment.order_ref |  | {&quot;field&quot;: &quot;order_ref&quot;, &quot;output&quot;: &quot;shipment&quot;, &quot;value&quot;: &quot;ORD-10042&quot;} |
+| status_context_exists | output_exists | ok | Output exists: status_context |  | {&quot;output&quot;: &quot;status_context&quot;} |
+| draft_reply_includes_order_ref | output_field_equals | ok | Output field matches: draft_reply.included_order_ref |  | {&quot;field&quot;: &quot;included_order_ref&quot;, &quot;output&quot;: &quot;draft_reply&quot;, &quot;value&quot;: true} |
+| draft_reply_includes_status | output_field_equals | ok | Output field matches: draft_reply.included_status |  | {&quot;field&quot;: &quot;included_status&quot;, &quot;output&quot;: &quot;draft_reply&quot;, &quot;value&quot;: true} |
+| draft_reply_has_no_compensation | output_field_equals | ok | Output field matches: draft_reply.invented_compensation |  | {&quot;field&quot;: &quot;invented_compensation&quot;, &quot;output&quot;: &quot;draft_reply&quot;, &quot;value&quot;: false} |
+| reply_check_ok | output_field_equals | ok | Output field matches: reply_check.ok |  | {&quot;field&quot;: &quot;ok&quot;, &quot;output&quot;: &quot;reply_check&quot;, &quot;value&quot;: true} |
+| reply_check_matches_facts | output_field_equals | ok | Output field matches: reply_check.matches_facts |  | {&quot;field&quot;: &quot;matches_facts&quot;, &quot;output&quot;: &quot;reply_check&quot;, &quot;value&quot;: true} |
+| reply_check_no_unsupported_claims | output_field_equals | ok | Output field matches: reply_check.unsupported_claims |  | {&quot;field&quot;: &quot;unsupported_claims&quot;, &quot;output&quot;: &quot;reply_check&quot;, &quot;value&quot;: []} |
+| reply_validation_exists | output_exists | ok | Output exists: reply_validation |  | {&quot;output&quot;: &quot;reply_validation&quot;} |
+| customer_reply_pending | pending_action_exists | ok | Pending action exists. |  | {&quot;output&quot;: &quot;customer_reply_send&quot;, &quot;tool&quot;: &quot;wa/send&quot;} |
+
+Passed validations: 62
+Failed validations: 0</pre></section>
+<section class="section"><h2>11. Approval / Side-Effect Status</h2><pre class="json-block">Pending Action Count: 1
+Executed Action Count: 0
+### Pending Action: pa_8ebcc8aa8cf74386b809a9660e58454f
+| Field | Value |
+|---|---|
+| Tool | wa/send |
+| Status | EXECUTED |
+| Risk | external_communication |
+| Requires Approval | True |
+| Output Alias | customer_reply_send |
+Human Summary: This action would send a WhatsApp message to &quot;Alex Customer&quot; with message &quot;{&#x27;body&#x27;: &#x27;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&#x27;, &#x27;included_order_ref&#x27;: True, &#x27;included_status&#x27;: True, &#x27;invented_compensation&#x27;: False, &#x27;reply&#x27;: &#x27;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&#x27;, &#x27;tone&#x27;: &#x27;professional&#x27;}&quot;.
+Arguments: {&quot;channel&quot;: &quot;whatsapp&quot;, &quot;chat&quot;: &quot;Alex Customer&quot;, &quot;customer&quot;: {&quot;customer_id&quot;: &quot;CUST-1001&quot;, &quot;email&quot;: &quot;alex@example.test&quot;, &quot;name&quot;: &quot;Alex&quot;, &quot;preferred_channel&quot;: &quot;whatsapp&quot;, &quot;status&quot;: &quot;active&quot;, &quot;whatsapp_chat&quot;: &quot;Alex Customer&quot;}, &quot;customer_id&quot;: &quot;CUST-1001&quot;, &quot;draft_po&quot;: {}, &quot;message&quot;: {&quot;body&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;, &quot;included_order_ref&quot;: true, &quot;included_status&quot;: true, &quot;invented_compensation&quot;: false, &quot;reply&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;, &quot;tone&quot;: &quot;professional&quot;}, &quot;reply&quot;: &quot;Hi Alex, your order ORD-10042 has shipped and is currently in transit.&quot;}
+Guardrails: [&quot;Requires explicit approval before execution.&quot;, &quot;UI live execution is disabled in this spec.&quot;, &quot;Dry-run mode only.&quot;]
+</pre></section>
+<section class="section"><h2>12. Failure Summary</h2><pre class="json-block">No failure for this run.</pre></section>
+<section class="section"><h2>13. Artifact Index</h2><pre class="json-block">| Artifact | Path |
+|---|---|
+| TaskFrame JSON | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\taskframe.json |
+| Summary JSON | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\summary.json |
+| Outputs JSON | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\outputs.json |
+| Audit JSON | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\audit.json |
+| Run Report Markdown | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\reports\run_report.md |
+| Run Report HTML | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\reports\run_report.html |
+| Approval Pack Report Markdown | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\reports\approval_pack_report.md |
+| Approval Pack Report HTML | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\reports\approval_pack_report.html |
+| Failure Report Markdown | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\reports\failure_report.md |
+| Failure Report HTML | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\reports\failure_report.html |
+| Evidence Bundle JSON | D:\Projects\4thGenAgent\runtime_data\outputs\runtime\runs\frame_a767a4fd34b54d719173ea295bfa798d\reports\evidence_bundle.json |</pre></section>
+<section class="section"><h2>14. Raw References</h2><pre class="json-block">Frame ID: frame_a767a4fd34b54d719173ea295bfa798d
+Manifest ID: customer.status_llm_e2e
+Runtime Data Dir: D:\Projects\4thGenAgent\runtime_data\outputs\runtime
+Generated At: 2026-05-04T20:41:16Z
+Report Version: operator_run_report_v1</pre></section>
+</body>
+</html>

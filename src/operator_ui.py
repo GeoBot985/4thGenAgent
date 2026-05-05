@@ -25,6 +25,9 @@ from src.operator_scenario_runner import run_scenario
 from src.operator_scenarios import SCENARIO_CATEGORIES, list_categories, list_scenarios
 from src.operator_playback import build_playback_timeline, build_playback_view
 from src.operator_reports import generate_report_for_frame, get_latest_report_paths, open_report_folder, open_report_html
+from runtime.tool_capability_registry import list_tool_capabilities
+from runtime.tool_health import check_all_tool_health, check_tool_health, load_latest_tool_health_snapshot
+from runtime.tool_setup import get_tool_setup_instructions, run_safe_setup_action
 
 
 TITLE = "TaskFrame Operator Console"
@@ -47,6 +50,8 @@ class OperatorConsole:
         self.business_dataset_validation: dict = {}
         self.report_status: dict = {}
         self.scenario_result: dict = {}
+        self.tool_health_snapshot: dict = {}
+        self.selected_tool_id: str = ""
         self.scenario_category_var = tk.StringVar(value="All")
         self.scenario_var = tk.StringVar(value="")
         self.scenario_reset_dataset_var = tk.BooleanVar(value=True)
@@ -105,6 +110,7 @@ class OperatorConsole:
         self._build_task_queue(workspace)
         self._build_active_taskframe(workspace)
         self._build_results_actions(workspace)
+        self._build_tool_capabilities_panel(workspace)
         self._build_runtime_trace(trace_panel)
         self._build_footer(self.outer)
 
@@ -363,6 +369,63 @@ class OperatorConsole:
         self.results_body = ttk.Frame(panel, style="Card.TFrame")
         self.results_body.pack(fill="both", expand=True)
 
+    def _build_tool_capabilities_panel(self, parent: ttk.Frame) -> None:
+        panel = ttk.Frame(parent, style="Card.TFrame", padding=12)
+        panel.grid(row=1, column=2, sticky="nsew", pady=(10, 0))
+        panel.rowconfigure(1, weight=1)
+        panel.columnconfigure(0, weight=1)
+        ttk.Label(panel, text="Tool Capability Registry", style="Section.TLabel").pack(anchor="w", pady=(0, 8))
+
+        controls = ttk.Frame(panel, style="Card.TFrame")
+        controls.pack(fill="x", anchor="w", pady=(0, 8))
+        ttk.Button(controls, text="Run Safe Health Checks", command=self.on_run_all_tool_health).pack(side="left", padx=(0, 6))
+        ttk.Button(controls, text="Refresh", command=self.on_refresh_tool_health).pack(side="left", padx=(0, 6))
+        ttk.Button(controls, text="Test Selected", command=self.on_test_selected_tool).pack(side="left", padx=(0, 6))
+        ttk.Button(controls, text="Retry", command=self.on_retry_selected_tool).pack(side="left", padx=(0, 6))
+        self.live_test_button = ttk.Button(controls, text="Live Test", command=self.on_live_test_selected_tool)
+        self.live_test_button.pack(side="left", padx=(0, 6))
+        ttk.Button(controls, text="Setup", command=self.on_setup_selected_tool).pack(side="left", padx=(0, 6))
+        ttk.Button(controls, text="Details", command=self._render_tool_details).pack(side="left")
+
+        columns = ("tool", "category", "core_optional", "status", "last_checked", "test", "setup", "details")
+        self.tool_health_tree = ttk.Treeview(panel, columns=columns, show="headings", height=8, selectmode="browse")
+        self.tool_health_tree.heading("tool", text="Tool")
+        self.tool_health_tree.column("tool", width=120, anchor="w")
+        self.tool_health_tree.heading("category", text="Category")
+        self.tool_health_tree.heading("core_optional", text="Core / Optional")
+        self.tool_health_tree.heading("status", text="Status")
+        self.tool_health_tree.heading("last_checked", text="Last Checked")
+        self.tool_health_tree.heading("test", text="Test")
+        self.tool_health_tree.heading("setup", text="Setup")
+        self.tool_health_tree.heading("details", text="Details")
+        self.tool_health_tree.column("category", width=120, anchor="w")
+        self.tool_health_tree.column("core_optional", width=90, anchor="center")
+        self.tool_health_tree.column("status", width=110, anchor="center")
+        self.tool_health_tree.column("last_checked", width=140, anchor="center")
+        self.tool_health_tree.column("test", width=60, anchor="center")
+        self.tool_health_tree.column("setup", width=70, anchor="center")
+        self.tool_health_tree.column("details", width=70, anchor="center")
+        self.tool_health_tree.pack(fill="both", expand=True)
+        self.tool_health_tree.bind("<<TreeviewSelect>>", self._on_tool_selected)
+
+        detail_block = ttk.Frame(panel, style="Card.TFrame")
+        detail_block.pack(fill="x", anchor="w", pady=(8, 0))
+        ttk.Label(detail_block, text="Tool Details", style="Section.TLabel").pack(anchor="w", pady=(0, 4))
+        self.tool_health_details = tk.Text(
+            detail_block,
+            wrap="word",
+            height=9,
+            bg="#f7f8fa",
+            fg="#1f2937",
+            relief="flat",
+            highlightthickness=0,
+            borderwidth=0,
+            font=("Consolas", 9),
+            padx=8,
+            pady=8,
+        )
+        self.tool_health_details.pack(fill="x", expand=False)
+
     def _build_runtime_trace(self, parent: ttk.Frame) -> None:
         ttk.Label(parent, text="Runtime Trace", style="DarkSection.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 10))
         body = ttk.Frame(parent, style="DarkCard.TFrame")
@@ -410,6 +473,7 @@ class OperatorConsole:
         self.customer_messages = load_customer_messages(self.runtime_root)
         self.business_dataset_manifest = load_dataset_manifest(self.runtime_root)
         self.business_dataset_validation = validate_business_dataset(self.runtime_root)
+        self._ensure_tool_health_snapshot()
         self.last_action_result = None
         self.current_run = None
         self.timeline = []
@@ -421,6 +485,13 @@ class OperatorConsole:
         self._cancel_playback_timer()
         self._render_snapshot()
         self._update_dataset_validation_label()
+        self._render_tool_capabilities_panel()
+
+    def _ensure_tool_health_snapshot(self) -> None:
+        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        if not self.tool_health_snapshot.get("results"):
+            check_all_tool_health(include_optional=True, live_rpa=False)
+            self.tool_health_snapshot = load_latest_tool_health_snapshot()
 
     def on_seed_inbox(self) -> None:
         seed_customer_inbox(self.runtime_root, overwrite=False)
@@ -451,6 +522,43 @@ class OperatorConsole:
     def on_validate_dataset(self) -> None:
         self.business_dataset_validation = validate_business_dataset(self.runtime_root)
         self._update_dataset_validation_label()
+
+    def on_refresh_tool_health(self) -> None:
+        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        self._render_tool_capabilities_panel()
+
+    def on_run_all_tool_health(self) -> None:
+        check_all_tool_health(include_optional=True, live_rpa=False)
+        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        self._render_tool_capabilities_panel()
+
+    def on_test_selected_tool(self) -> None:
+        tool_id = self._selected_tool_id()
+        if not tool_id:
+            return
+        check_tool_health(tool_id, live=False)
+        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        self._render_tool_capabilities_panel()
+
+    def on_retry_selected_tool(self) -> None:
+        self.on_test_selected_tool()
+
+    def on_live_test_selected_tool(self) -> None:
+        tool_id = self._selected_tool_id()
+        if not tool_id or tool_id != "rpa_google_messages":
+            return
+        check_tool_health(tool_id, live=True)
+        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        self._render_tool_capabilities_panel()
+
+    def on_setup_selected_tool(self) -> None:
+        tool_id = self._selected_tool_id()
+        if not tool_id:
+            return
+        run_safe_setup_action(tool_id)
+        check_tool_health(tool_id, live=False)
+        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        self._render_tool_capabilities_panel()
 
     def on_select_customer_message(self, message_id: str) -> None:
         self.selected_message_id = message_id
@@ -873,6 +981,115 @@ class OperatorConsole:
         ttk.Button(controls, text="Generate Report", command=self.on_generate_report).pack(fill="x", pady=(0, 6))
         ttk.Button(controls, text="Open HTML", command=self.on_open_report_html).pack(fill="x", pady=(0, 6))
         ttk.Button(controls, text="Open Folder", command=self.on_open_report_folder).pack(fill="x", pady=(0, 6))
+
+    def _render_tool_capabilities_panel(self) -> None:
+        for item_id in self.tool_health_tree.get_children():
+            self.tool_health_tree.delete(item_id)
+        snapshot = self.tool_health_snapshot if isinstance(self.tool_health_snapshot, dict) else {}
+        results = snapshot.get("results", [])
+        by_tool = snapshot.get("by_tool", {}) if isinstance(snapshot.get("by_tool", {}), dict) else {}
+        result_map = {str(item.get("tool_id", "")): item for item in results if isinstance(item, dict)}
+
+        for capability in list_tool_capabilities():
+            result = result_map.get(capability.tool_id) or by_tool.get(capability.tool_id) or {}
+            if result:
+                status = str(result.get("status", "not_run"))
+                checked_at = str(result.get("checked_at", ""))
+            else:
+                status = "disabled_optional" if capability.core_or_optional == "optional" else "not_run"
+                checked_at = ""
+            values = (
+                capability.display_name,
+                capability.category,
+                capability.core_or_optional,
+                status,
+                checked_at,
+                "Run",
+                "Open",
+                "View",
+            )
+            self.tool_health_tree.insert("", "end", iid=capability.tool_id, values=values, text=capability.display_name)
+
+        if self.tool_health_tree.get_children() and self._selected_tool_id() not in self.tool_health_tree.get_children():
+            first = self.tool_health_tree.get_children()[0]
+            self.tool_health_tree.selection_set(first)
+            self.tool_health_tree.focus(first)
+            self.selected_tool_id = first
+        self._render_tool_details()
+
+    def _on_tool_selected(self, _event: object) -> None:
+        selected = self.tool_health_tree.selection()
+        self.selected_tool_id = selected[0] if selected else ""
+        self._render_tool_details()
+
+    def _selected_tool_id(self) -> str:
+        selected = self.tool_health_tree.selection()
+        if selected:
+            return selected[0]
+        return self.selected_tool_id
+
+    def _render_tool_details(self) -> None:
+        tool_id = self._selected_tool_id()
+        capability = None
+        try:
+            from runtime.tool_capability_registry import get_tool_capability
+
+            capability = get_tool_capability(tool_id) if tool_id else None
+        except Exception:
+            capability = None
+        result = self._tool_result_for(tool_id)
+        setup = get_tool_setup_instructions(tool_id) if tool_id else {}
+        lines = []
+        if capability is not None:
+            lines.extend(
+                [
+                    f"Tool: {capability.display_name}",
+                    f"ID: {capability.tool_id}",
+                    f"Category: {capability.category}",
+                    f"Core / Optional: {capability.core_or_optional}",
+                    f"Side Effect Level: {capability.side_effect_level}",
+                    f"Auth Required: {capability.auth_required}",
+                    f"Setup Available: {capability.setup_available}",
+                    f"RPA Live Probe Required: {capability.rpa_live_probe_required}",
+                ]
+            )
+        if result:
+            lines.extend(
+                [
+                    "",
+                    f"Health Status: {result.get('status', 'not_run')}",
+                    f"Checked At: {result.get('checked_at', '')}",
+                    f"Message: {result.get('message', '')}",
+                    f"Recommended Action: {result.get('recommended_action', '')}",
+                    f"Can Auto Resolve: {result.get('can_auto_resolve', False)}",
+                ]
+            )
+        if setup:
+            lines.extend(["", "Setup Steps:"])
+            for step in setup.get("steps", []):
+                lines.append(f"- {step}")
+        text = "\n".join(lines) if lines else "Select a tool to view its capability and health details."
+        if hasattr(self, "live_test_button"):
+            if tool_id == "rpa_google_messages":
+                if self.live_test_button.winfo_manager() == "":
+                    self.live_test_button.pack(side="left", padx=(0, 6))
+            elif self.live_test_button.winfo_manager():
+                self.live_test_button.pack_forget()
+        self.tool_health_details.configure(state="normal")
+        self.tool_health_details.delete("1.0", "end")
+        self.tool_health_details.insert("1.0", text)
+        self.tool_health_details.configure(state="disabled")
+
+    def _tool_result_for(self, tool_id: str) -> dict:
+        snapshot = self.tool_health_snapshot if isinstance(self.tool_health_snapshot, dict) else {}
+        by_tool = snapshot.get("by_tool", {}) if isinstance(snapshot.get("by_tool", {}), dict) else {}
+        result = by_tool.get(tool_id)
+        if isinstance(result, dict):
+            return result
+        for item in snapshot.get("results", []):
+            if isinstance(item, dict) and item.get("tool_id") == tool_id:
+                return item
+        return {}
 
     def _render_runtime_trace(self, view: dict | None = None) -> None:
         lines: list[str] = []

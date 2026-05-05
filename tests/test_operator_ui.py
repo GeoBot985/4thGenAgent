@@ -146,6 +146,11 @@ class OperatorUIDetailTests(unittest.TestCase):
         for text in ("Reports", "Generate Report", "Open HTML", "Open Folder", "Report Status"):
             self.assertIn(text, source)
 
+    def test_operator_ui_contains_tool_capability_panel(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        for text in ("Tool Capability Registry", "Run Safe Health Checks", "Test Selected", "Retry", "Live Test", "Setup", "Details", "Tool Details"):
+            self.assertIn(text, source)
+
     def test_operator_ui_report_generation_is_read_only(self):
         source = SOURCE.read_text(encoding="utf-8")
         for text in ("Reports", "Generate Report", "Open HTML", "Open Folder"):

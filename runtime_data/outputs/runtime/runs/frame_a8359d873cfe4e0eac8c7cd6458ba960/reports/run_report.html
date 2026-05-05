@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TaskFrame Run Report</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 24px; }
+.section { margin-bottom: 24px; }
+.status-ok { color: #047857; }
+.status-failed { color: #b91c1c; }
+.status-warning { color: #b45309; }
+.status-pending { color: #6b7280; }
+.json-block { white-space: pre-wrap; background: #f8fafc; padding: 12px; border: 1px solid #e5e7eb; }
+table { border-collapse: collapse; width: 100%; }
+td, th { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; vertical-align: top; }
+.failed-row { background: #fef2f2; }
+</style>
+</head>
+<body>
+<h1>TaskFrame Run Report</h1>
+<section class="section"><h2>1. Executive Summary</h2><table><tr><th>Frame ID</th><td>frame_a8359d873cfe4e0eac8c7cd6458ba960</td></tr>
+<tr><th>Manifest</th><td>accounting.payment_reconciliation</td></tr>
+<tr><th>State</th><td>FAILED_VALIDATION</td></tr>
+<tr><th>Outcome</th><td>Run failed safely. No side effect should be executed unless explicitly recorded.</td></tr>
+<tr><th>Pending Actions</th><td>0</td></tr>
+<tr><th>Executed Actions</th><td>0</td></tr>
+<tr><th>Errors</th><td>1</td></tr></table></section>
+<section class="section"><h2>2. Trigger / Event</h2><pre class="json-block">{
+  &quot;event_id&quot;: &quot;evt_2b3036eaf31d4ccd8502e823b442978b&quot;,
+  &quot;event_type&quot;: &quot;manual.accounting_payment_reconciliation&quot;,
+  &quot;invoices_range&quot;: &quot;CustomerInvoices!A:H&quot;,
+  &quot;ledger_range&quot;: &quot;Ledger!A:I&quot;,
+  &quot;orders_range&quot;: &quot;Orders!A:F&quot;,
+  &quot;payments_range&quot;: &quot;Payments!A:I&quot;,
+  &quot;recon_exceptions_range&quot;: &quot;ReconExceptions!A:M&quot;,
+  &quot;recon_runs_range&quot;: &quot;ReconRuns!A:J&quot;,
+  &quot;source&quot;: &quot;operator_scenario_pack&quot;,
+  &quot;spreadsheet_id&quot;: &quot;&quot;,
+  &quot;tabs&quot;: {
+    &quot;invoices&quot;: &quot;CustomerInvoices!A:H&quot;,
+    &quot;ledger&quot;: &quot;Ledger!A:I&quot;,
+    &quot;orders&quot;: &quot;Orders!A:F&quot;,
+    &quot;payments&quot;: &quot;Payments!A:I&quot;,
+    &quot;recon_exceptions&quot;: &quot;ReconExceptions!A:M&quot;,
+    &quot;recon_runs&quot;: &quot;ReconRuns!A:J&quot;
+  }
+}</pre></section>
+<section class="section"><h2>3. Route and Manifest</h2><table><tr><th>Manifest ID</th><td>accounting.payment_reconciliation</td></tr>
+<tr><th>Step Count</th><td>14</td></tr>
+<tr><th>Validation Count</th><td>0</td></tr></table></section>
+<section class="section"><h2>4. Runtime Final State</h2><pre class="json-block">null</pre></section>
+<section class="section"><h2>5. Step Timeline</h2><pre class="json-block">
+
+| # | Step | Kind | Action | Status | Attempts | Result | Error |
+|---:|---|---|---|---|---:|---|---|
+| 1 | read_payments_sheet | tool | read_range | FAILED &lt;&lt;&lt; FAILURE | 1 | payments_sheet | SPREADSHEET_ID_REQUIRED |
+| 2 | read_orders_sheet | tool | read_range | PENDING | 0 | orders_sheet |  |
+| 3 | read_invoices_sheet | tool | read_range | PENDING | 0 | invoices_sheet |  |
+| 4 | read_ledger_sheet | tool | read_range | PENDING | 0 | ledger_sheet |  |
+| 5 | load_payments | tool | load_payments | PENDING | 0 | payments |  |
+| 6 | load_orders | tool | load_orders | PENDING | 0 | accounting_orders |  |
+| 7 | load_invoices | tool | load_invoices | PENDING | 0 | invoices |  |
+| 8 | load_ledger | tool | load_ledger | PENDING | 0 | ledger_entries |  |
+| 9 | match_payments | tool | match_payments | PENDING | 0 | reconciliation_result |  |
+| 10 | validate_reconciliation | tool | validate_result | PENDING | 0 | reconciliation_validation |  |
+| 11 | draft_exception_summary | llm | draft_reconciliation_exception_summary | PENDING | 0 | exception_summary |  |
+| 12 | build_recon_sheet_rows | tool | build_recon_sheet_rows | PENDING | 0 | recon_sheet_rows |  |
+| 13 | stage_recon_run_write | tool | prepare_write_rows | PENDING | 0 | recon_run_write |  |
+| 14 | stage_recon_exception_write | tool | prepare_write_rows | PENDING | 0 | recon_exception_write |  |
+
+</pre></section>
+<section class="section"><h2>6. LLM Calls</h2><pre class="json-block">No LLM calls were recorded.</pre></section>
+<section class="section"><h2>7. Tool Calls</h2><pre class="json-block">- step_id: read_payments_sheet
+  tool: sheet/read_range
+  namespace: sheet
+  action: read_range
+  live: False
+  dry_run: True
+  side_effect: False
+  requires_approval: False
+  output_alias: payments_sheet
+  ok: False
+  error: SPREADSHEET_ID_REQUIRED</pre></section>
+<section class="section"><h2>8. Outputs</h2><pre class="json-block">No outputs were recorded.</pre></section>
+<section class="section"><h2>9. Evidence</h2><pre class="json-block">No evidence records were attached to this TaskFrame.</pre></section>
+<section class="section"><h2>10. Validations</h2><pre class="json-block">No validations were recorded.</pre></section>
+<section class="section"><h2>11. Approval / Side-Effect Status</h2><pre class="json-block">No side-effect actions were staged or executed.</pre></section>
+<section class="section"><h2>12. Failure Summary</h2><pre class="json-block">- State: FAILED_VALIDATION
+- failed_step_id: read_payments_sheet
+- Failed Step: read_payments_sheet
+- failure_type: validation_failed
+- Failure Type: validation_failed
+- failure_message: SPREADSHEET_ID_REQUIRED
+- Failure Message: SPREADSHEET_ID_REQUIRED
+- Operator Explanation: The runtime blocked the reply because spreadsheet_id_required
+- Pending Actions: 0
+- Executed Actions: 0
+- Safe To Retry: False
+
+### Failed Validations
+- : SPREADSHEET_ID_REQUIRED
+
+### Runtime Errors
+- {&#x27;data&#x27;: {&#x27;error_type&#x27;: &#x27;ToolFunctionError&#x27;, &#x27;function&#x27;: &#x27;sheet_read_range&#x27;, &#x27;step_id&#x27;: &#x27;read_payments_sheet&#x27;, &#x27;tag&#x27;: &#x27;transient&#x27;, &#x27;tool&#x27;: &#x27;sheet/read_range&#x27;}, &#x27;message&#x27;: &#x27;SPREADSHEET_ID_REQUIRED&#x27;, &#x27;timestamp&#x27;: &#x27;2026-05-04T20:28:35Z&#x27;, &#x27;type&#x27;: &#x27;live_tool_execution_failed&#x27;}</pre></section>
+<section class="section"><h2>13. Artifact Index</h2><pre class="json-block">| Artifact | Path |
+|---|---|
+| TaskFrame JSON | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\taskframe.json |
+| Summary JSON | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\summary.json |
+| Outputs JSON | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\outputs.json |
+| Audit JSON | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\audit.json |
+| Run Report Markdown | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\reports\run_report.md |
+| Run Report HTML | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\reports\run_report.html |
+| Approval Pack Report Markdown | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\reports\approval_pack_report.md |
+| Approval Pack Report HTML | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\reports\approval_pack_report.html |
+| Failure Report Markdown | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\reports\failure_report.md |
+| Failure Report HTML | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\reports\failure_report.html |
+| Evidence Bundle JSON | runtime_data\outputs\runtime\runs\frame_a8359d873cfe4e0eac8c7cd6458ba960\reports\evidence_bundle.json |</pre></section>
+<section class="section"><h2>14. Raw References</h2><pre class="json-block">Frame ID: frame_a8359d873cfe4e0eac8c7cd6458ba960
+Manifest ID: accounting.payment_reconciliation
+Runtime Data Dir: runtime_data\outputs\runtime
+Generated At: 2026-05-04T20:28:35Z
+Report Version: operator_run_report_v1</pre></section>
+</body>
+</html>

@@ -69,6 +69,10 @@ class OperatorFrontendShellTests(unittest.TestCase):
             built = module.build_operator_ui(root)
             self.assertIs(built, root)
             self.assertEqual(root.title(), "TaskFrame Operator Console")
+            console = getattr(root, "operator_console", None)
+            self.assertIsNotNone(console)
+            self.assertTrue(hasattr(console, "tool_health_tree"))
+            self.assertTrue(hasattr(console, "tool_health_details"))
         finally:
             root.destroy()
 

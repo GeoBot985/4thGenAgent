@@ -1,0 +1,15 @@
+# Approval Pack Report
+
+Frame ID: frame_1dc91aadd26243b395ece3696f36ebf3
+Manifest ID: customer.status_llm_e2e
+State: WAITING_FOR_EXECUTE
+
+## Pending Actions
+
+### Action pa_ca40414ca6354b789947c4ee4aa587b5
+Tool: wa/send
+Status: PENDING_APPROVAL
+Risk: external_communication
+Human Summary: This action would send a WhatsApp message to "Alex Customer" with message "{'body': 'Hi Alex, your order ORD-10042 has shipped and is currently in transit.', 'included_order_ref': True, 'included_status': True, 'invented_compensation': False, 'reply': 'Hi Alex, your order ORD-10042 has shipped and is currently in transit.', 'tone': 'professional'}".
+Arguments: {'channel': 'whatsapp', 'chat': 'Alex Customer', 'customer': {'customer_id': 'CUST-1001', 'email': 'alex@example.test', 'name': 'Alex', 'preferred_channel': 'whatsapp', 'status': 'active', 'whatsapp_chat': 'Alex Customer'}, 'customer_id': 'CUST-1001', 'draft_po': {}, 'message': {'body': 'Hi Alex, your order ORD-10042 has shipped and is currently in transit.', 'included_order_ref': True, 'included_status': True, 'invented_compensation': False, 'reply': 'Hi Alex, your order ORD-10042 has shipped and is currently in transit.', 'tone': 'professional'}, 'reply': 'Hi Alex, your order ORD-10042 has shipped and is currently in transit.'}
+Guardrails: ['Requires explicit approval before execution.', 'UI live execution is disabled in this spec.', 'Dry-run mode only.']

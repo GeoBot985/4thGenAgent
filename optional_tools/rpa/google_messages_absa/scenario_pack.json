@@ -1,0 +1,36 @@
+{
+  "pack_id": "optional_rpa_google_messages_absa",
+  "description": "Optional browser-backed ABSA Google Messages scenario pack.",
+  "scenarios": [
+    {
+      "id": "messages_absa_debit_orders_2026_capture",
+      "label": "Messages - ABSA Debit Orders 2026 Capture",
+      "category": "messages",
+      "description": "Reads visible ABSA transaction SMS from Google Messages, extracts 2026 debit-order entries, and stages them for Google Sheets approval.",
+      "requires_dataset_seed": false,
+      "uses_llm": false,
+      "event_type": "manual.messages_absa_debit_orders_2026",
+      "source": "optional_rpa_pack",
+      "payload_from_config": "optional_tools/rpa/google_messages_absa/fixtures/absa_messages_sheet.json",
+      "payload": {
+        "spreadsheet_id": "",
+        "output_range": "ABSA_Debit_Orders!A:H",
+        "search_query": "Absa",
+        "year": 2026,
+        "max_scrolls": 240,
+        "runtime_root": "runtime_data",
+        "browser_user_data_dir": "runtime_data/absa_workflow_profile",
+        "browser_profile_dir": "Profile 2"
+      },
+      "expected": {
+        "final_state": "WAITING_FOR_EXECUTE",
+        "pending_action_count": 1,
+        "executed_action_count": 0,
+        "must_have_failure": false,
+        "must_have_approval_pack": true,
+        "required_outputs": ["absa_transactions", "absa_sheet_write"],
+        "required_pending_tools": ["sheet/write_rows"]
+      }
+    }
+  ]
+}

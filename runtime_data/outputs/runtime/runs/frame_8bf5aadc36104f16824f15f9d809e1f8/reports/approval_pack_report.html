@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Approval Pack Report</title></head><body><pre># Approval Pack Report
+
+Frame ID: frame_8bf5aadc36104f16824f15f9d809e1f8
+Manifest ID: accounting.payment_reconciliation
+State: COMPLETED
+
+## Pending Actions
+### Action pa_f1c15f85251746deb819a528764e1f29
+Tool: sheet/write_rows
+Status: EXECUTED
+Risk: side_effect_unknown
+Human Summary: This action would execute tool &quot;sheet/write_rows&quot; with the listed arguments.
+Arguments: {&#x27;dry_run&#x27;: True, &#x27;mode&#x27;: &#x27;append&#x27;, &#x27;range_name&#x27;: &#x27;ReconRuns!A:J&#x27;, &#x27;rows&#x27;: [[&#x27;RECON-20260504-201604&#x27;, &#x27;&#x27;, 1, 1, 4, 2, 1, 1, &#x27;exceptions&#x27;, &#x27;&#x27;]], &#x27;spreadsheet_id&#x27;: &#x27;demo-sheet-local&#x27;}
+Guardrails: [&#x27;Requires explicit approval before execution.&#x27;, &#x27;UI live execution is disabled in this spec.&#x27;, &#x27;Dry-run mode only.&#x27;]
+
+### Action pa_76e3ed0f8b4b40a89acac67f11b59316
+Tool: sheet/write_rows
+Status: EXECUTED
+Risk: side_effect_unknown
+Human Summary: This action would execute tool &quot;sheet/write_rows&quot; with the listed arguments.
+Arguments: {&#x27;dry_run&#x27;: True, &#x27;mode&#x27;: &#x27;append&#x27;, &#x27;range_name&#x27;: &#x27;ReconExceptions!A:M&#x27;, &#x27;rows&#x27;: [[&#x27;RECON-20260504-201604&#x27;, &#x27;EXC-ECBF0EB8&#x27;, &#x27;already_posted&#x27;, &#x27;EFT-9001&#x27;, &#x27;PAY-1001&#x27;, &#x27;ORD-10042&#x27;, &#x27;&#x27;, 0.0, 0.0, &#x27;ZAR&#x27;, &#x27;medium&#x27;, &#x27;Payment already posted to ledger.&#x27;, &#x27;&#x27;], [&#x27;RECON-20260504-201604&#x27;, &#x27;EXC-87E2CD8E&#x27;, &#x27;amount_mismatch&#x27;, &#x27;EFT-9002&#x27;, &#x27;PAY-1002&#x27;, &#x27;ORD-10043&#x27;, &#x27;&#x27;, 500.0, 450.0, &#x27;ZAR&#x27;, &#x27;high&#x27;, &#x27;Payment amount does not match invoice.&#x27;, &#x27;&#x27;], [&#x27;RECON-20260504-201604&#x27;, &#x27;EXC-F60249CF&#x27;, &#x27;duplicate_payment_ref&#x27;, &#x27;EFT-9005&#x27;, &#x27;PAY-1004&#x27;, &#x27;ORD-10045&#x27;, &#x27;&#x27;, 0.0, 0.0, &#x27;ZAR&#x27;, &#x27;high&#x27;, &#x27;Duplicate payment reference.&#x27;, &#x27;&#x27;], [&#x27;RECON-20260504-201604&#x27;, &#x27;EXC-0EECDB81&#x27;, &#x27;duplicate_payment_ref&#x27;, &#x27;EFT-9005&#x27;, &#x27;PAY-1005&#x27;, &#x27;ORD-10046&#x27;, &#x27;&#x27;, 0.0, 0.0, &#x27;ZAR&#x27;, &#x27;high&#x27;, &#x27;Duplicate payment reference.&#x27;, &#x27;&#x27;]], &#x27;spreadsheet_id&#x27;: &#x27;demo-sheet-local&#x27;}
+Guardrails: [&#x27;Requires explicit approval before execution.&#x27;, &#x27;UI live execution is disabled in this spec.&#x27;, &#x27;Dry-run mode only.&#x27;]
+</pre></body></html>

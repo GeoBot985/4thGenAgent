@@ -1,156 +1,149 @@
-# TaskFrame Runtime
-### Controlled Autonomous Business Workflow Demo
+# TaskFrame-Centered Autonomous Business Automation Runtime
 
-## Overview
-TaskFrame Runtime is a controlled automation runtime for business workflows. It is not a free-form agent. It executes manifest-defined workflows through a TaskFrame-centered runtime, registered tools, bounded LLM calls, approval gates, dry-run side effects, and report/evidence generation.
+## 30-Second Summary
+This project demonstrates controlled AI-assisted business automation without open-ended agent behavior. Work is routed through explicit commands or events, executed through manifest-defined steps, recorded in TaskFrames, validated through deterministic acceptance gates, and paused for approval before side effects. The LLM is used only as a bounded helper for fuzzy tasks such as extraction, drafting, summarisation, and classification.
 
-## Why this project matters
-Most agent demos are hard to control, audit, or trust. This project focuses on constrained, auditable autonomy for real business work. It uses determinism where possible, LLMs only where useful, approval before side effects, dry-run execution for safety, and durable evidence for every run.
+## What This Project Demonstrates
+- A manifest-driven runtime for AI-assisted company operations
+- TaskFrame as the source of runtime state, outputs, evidence, validations, and audit
+- An orchestrator that executes known workflows without inventing business logic
+- Deterministic tools plus bounded LLM steps
+- Approval gates before side effects
+- Validation-based completion rather than model self-certification
 
-## What It Proves
-- Same runtime across multiple business workflows
-- No workflow-specific orchestrator branching
-- TaskFrame as the auditable execution record
-- Manifest-driven business behavior
-- Tools as deterministic adapters
-- LLM as a bounded microtool surface
-- Approval-gated side effects
-- Dry-run execution and report/evidence generation
+## What This Project Is Not
+- Not a chatbot
+- Not a free-roaming agent
+- Not an RPA scraper
+- Not a system where the LLM freely chooses tools
+- Not a system where the LLM self-certifies success
 
-## Core Architecture
-- `Operator UI`: the human control surface for launching scenarios, approval flows, and reports.
-- `Event Routes`: map operator events into manifest IDs and runtime inputs.
-- `Manifest`: defines the instruction contract, validations, and completion conditions.
-- `TaskFrame`: the runtime case file containing state, outputs, evidence, validations, tool calls, LLM calls, pending actions, and executed actions.
-- `Generic Orchestrator`: a state machine that runs manifests without business-specific branches.
-- `Tool Registry`: registers deterministic adapters for customer, procurement, accounting, file, and sheet operations.
-- `LLM Adapter`: provides bounded real LLM access via Ollama, with fake responses only in explicit tests.
-- `Validation Layer`: checks outputs and workflow conditions deterministically.
-- `Pending Actions / Approval Gate`: stages side effects for operator approval.
-- `Dry-Run Executor`: executes approved actions safely without live side effects.
-- `Reports / Evidence Bundle`: generates markdown, HTML, and JSON evidence artifacts from the TaskFrame.
-- `Runtime Data`: stores business JSON data, run artifacts, and demo pack outputs.
+The runtime controls the business process. The LLM helps with fuzzy interpretation only.
 
-## Key Workflows
+## Architecture Overview
+Intent or event
+-> manifest lookup
+-> TaskFrame creation
+-> orchestrator / state machine
+-> tools / LLM / memory
+-> validation / acceptance gate
+-> TaskFrame finalisation and audit
 
-### Customer Support
-Customer asks about order status.
-→ The system extracts the order reference.
-→ It reads customer, order, shipment, and payment data.
-→ It builds an order context.
-→ The LLM drafts a reply.
-→ Deterministic validation checks the reply against facts.
-→ The customer message is staged for approval.
-→ Approved execution runs in dry-run mode.
-→ A report and evidence bundle are generated.
+| Block | Meaning |
+|---|---|
+| Intent / Event | Explicit operator action, schedule, or external trigger |
+| Manifest | Instruction plus validation contract for a workflow |
+| TaskFrame | Source of runtime state, outputs, evidence, validations, and audit |
+| Orchestrator | Executes known manifests; does not invent workflows |
+| Tools | Deterministic adapters for bounded business operations |
+| LLM | Bounded helper for fuzzy steps such as extraction and drafting |
+| Memory | Durable facts separated from TaskFrame outputs |
+| Validation Gate | Determines completion; the LLM cannot self-certify |
+| Approval Gate | Required before side effects can execute |
 
-### Procurement
-Low-stock inventory check.
-→ Reorder candidates are filtered.
-→ Duplicate open purchase orders are checked.
-→ The preferred supplier is selected deterministically.
-→ A draft purchase order is built.
-→ The LLM drafts supplier wording only.
-→ The supplier send is staged for approval.
-→ Approved execution runs in dry-run mode.
-→ A report and evidence bundle are generated.
+## Core Concepts
+See [docs/core_concepts.md](docs/core_concepts.md) for short definitions of TaskFrame, manifest, tool capability, health checks, approval gates, and release verification.
 
-### Accounting
-Google Sheets accounting reconciliation.
-→ Payments, orders, invoices, and ledger rows are read from Sheets.
-→ Rows are normalized into typed records.
-→ Reconciliation detects mismatches and duplicates.
-→ The LLM drafts an exception summary only.
-→ ReconRuns and ReconExceptions writes are staged for approval.
-→ Approved execution runs in dry-run mode.
-→ A report and evidence bundle are generated.
+## Demo Workflows
+- Customer Support order-status workflow
+- Procurement low-stock reorder workflow
+- Accounting reconciliation workflow
+- Approval-gated action workflow
+- Reporting and release verification workflow
 
-## Demo Highlights
-The best portfolio demo is **Cross-Workflow Demo Pack v1**. It runs customer support, procurement, and accounting through the same runtime, with real LLM preflight, approval gates, dry-run execution, and per-workflow reports plus a top-level aggregate report.
+Start with the customer workflow, then review procurement, accounting, the pending approval state, the tool health panel, and the final audit/report output.
 
-## Screenshots
-![Operator UI](docs/screenshots/operator_ui_main.png)
-![Customer Workflow](docs/screenshots/customer_workflow_completed.png)
-![Procurement Workflow](docs/screenshots/procurement_workflow_completed.png)
-![Accounting Workflow](docs/screenshots/accounting_workflow_completed.png)
-![Pending Approval](docs/screenshots/pending_approval_view.png)
-![Report Example](docs/screenshots/report_example.png)
-![Cross-Workflow Demo](docs/screenshots/cross_workflow_demo_completed.png)
-![Architecture Diagram](docs/screenshots/architecture_diagram.png)
+## Tool Capability / Health Status
+The operator UI includes a tool capability and status view. Core tools expose safe read-only health checks. Optional RPA tools expose a separate live-probe path because browser automation can only be meaningfully verified by actually opening the target environment.
 
-## How to Run
-Requirements:
-- Python 3.11+
-- Ollama running locally
-- Default model: `granite3.3:8b`
-- Accounting Google Sheet config present in `config/accounting_google_sheet.json`
+- Safe health checks: read-only, always allowed
+- Setup guidance: explicit instructions for missing prerequisites
+- Live RPA probes: operator-triggered only, never part of clean-clone RC verification
+- No health check performs live side effects
 
-Start the operator UI:
+## Clean Release-Candidate Verification
+From a clean clone:
+```powershell
+pip install -r requirements.txt
+pytest
+python scripts/run_golden_demo.py
+python scripts/run_release_verification.py
+```
+
+The clean RC path uses deterministic demo data and local fixtures. It does not require Playwright, Google Messages login, local browser profiles, or personal ABSA data.
+
+## Golden Demo
+Run the deterministic portfolio demo:
+```powershell
+python scripts/run_golden_demo.py
+```
+
+This exercises the default portfolio workflows only:
+- customer order status
+- procurement low-stock reorder
+- accounting reconciliation
+- approval-gated action handling
+- report and audit generation
+
+## Operator UI
+Launch the operator console:
 ```powershell
 python -m src.operator_ui
 ```
 
-Run the test suite:
-```powershell
-python -m pytest
-```
+Use it to inspect the active TaskFrame, pending approvals, tool health, and report output.
 
-Run a single scenario from code or tests:
-```python
-from src.operator_scenario_runner import run_scenario
-result = run_scenario("customer_status_approve_execute_dry_run")
-```
+## Screenshots
+Review the current portfolio screenshots in [docs/screenshots/](docs/screenshots/):
+- [01_operator_home.png](docs/screenshots/01_operator_home.png)
+- [02_scenario_pack.png](docs/screenshots/02_scenario_pack.png)
+- [03_taskframe_detail.png](docs/screenshots/03_taskframe_detail.png)
+- [04_step_playback.png](docs/screenshots/04_step_playback.png)
+- [05_pending_approval.png](docs/screenshots/05_pending_approval.png)
+- [06_tool_status_panel.png](docs/screenshots/06_tool_status_panel.png)
+- [07_tool_health_details.png](docs/screenshots/07_tool_health_details.png)
+- [08_report_output.png](docs/screenshots/08_report_output.png)
+- [09_release_verification.png](docs/screenshots/09_release_verification.png)
 
-Run the cross-workflow demo pack:
-```python
-from src.operator_cross_workflow_demo import run_cross_workflow_demo_pack
-result = run_cross_workflow_demo_pack()
-```
+Related demo docs:
+- [Demo Walkthrough](docs/demo_walkthrough.md)
+- [Demo Script](docs/demo_script.md)
 
-Configure Ollama:
-- Provider: `ollama`
-- Model: `granite3.3:8b`
-- Base URL: `http://127.0.0.1:11434`
+## Repository Structure
+| Path | Purpose |
+|---|---|
+| `runtime/` | Core runtime, TaskFrame, orchestration, tools, validation |
+| `manifests/` | Manifest-defined workflows and event routes |
+| `config/` | Demo configuration and route definitions |
+| `scripts/` | Golden demo and release verification scripts |
+| `docs/` | Architecture, glossary, demo docs, screenshots, release docs |
+| `tests/` | Unit, integration, boundary, and verification tests |
+| `optional_tools/` | Optional/private tools excluded from the default RC path |
+| `runtime_data/` | Seeded demo data and generated artifacts |
 
-Configure accounting Sheets:
-- Set `spreadsheet_id` in `config/accounting_google_sheet.json`
-- Ensure the tabs and ranges in that config match the target workbook
+## Optional RPA Tools
+Browser-backed RPA tools are treated as optional, high-risk, live-environment-dependent adapters. They are excluded from the default portfolio path and from default clean-clone release verification because they depend on local browser state, external authentication, and changing web UIs. They can still support operator-triggered live probes in local mode, but they are not part of the default portfolio demo path.
 
-## Project Structure
-- `config/`: manifests, routes, and accounting sheet config
-- `runtime/`: TaskFrame runtime, tools, validations, approval logic, reports, evidence
-- `src/`: operator UI, scenario runner, approval actions, demo pack runner
-- `tests/`: workflow, regression, and portfolio coverage
-- `docs/`: portfolio docs, architecture assets, demo script, screenshots
-- `tools/`: utility scripts such as seed helpers and screenshot capture helpers
-- `runtime_data/`: seeded business data and generated run artifacts
+## Runtime Notes
+- Ollama can provide the bounded LLM helper used by the customer, procurement, and accounting workflows when a local endpoint is available.
 
-## Testing and Verification
-The full pytest suite passes. Current status at the time of this portfolio pack:
-- `1253 passed, 1 skipped`
+## Known Limitations
+- The current project is a portfolio-grade release candidate, not a production deployment.
+- External live integrations are either dry-run, fixture-backed, or approval-gated.
+- Optional browser-backed RPA tools are excluded from clean-clone verification.
+- The demo business dataset is intentionally small and deterministic.
+- The UI is intended for operator demonstration, not enterprise administration.
 
-The repository includes targeted workflow regression tests for customer support, procurement, accounting, and the cross-workflow demo pack.
+## Roadmap
+1. Release candidate packaging
+2. Optional live integration profiles
+3. Batch and queue orchestration
+4. Scheduler UI
+5. External event ingestion
+6. Expanded business scenario packs
 
-## Key Design Principles
-- TaskFrame-centered runtime
-- Manifests over hardcoded orchestration
-- Deterministic-first architecture
-- LLM as bounded helper, not controller
-- Approval before side effects
-- Dry-run first
-- Auditable outputs
-- Lean runtime design
-
-## Current Status
-Architecture-complete portfolio demo:
-- three workflows implemented
-- cross-workflow demo available
-- report/evidence generation available
-- real LLM demo path available
-
-## Future Roadmap
-- Stronger controls for live side-effect execution
-- Additional business workflows
-- Richer approval UX
-- External integrations
-- Packaging and deployment improvements
+## Supporting Docs
+- [Release Verification](docs/release_candidate_verification.md)
+- [Release Artifacts](docs/release_artifacts.md)
+- [Core Concepts](docs/core_concepts.md)
+- [Portfolio Summary](docs/portfolio_summary.md)

@@ -1,0 +1,224 @@
+[
+  {
+    "data": {
+      "manifest_id": "accounting.payment_reconciliation"
+    },
+    "event_type": "TASKFRAME_CREATED",
+    "message": "TaskFrame created from manifest.",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "manifest_id": "accounting.payment_reconciliation"
+    },
+    "event_type": "ORCHESTRATOR_FRAME_CREATED",
+    "message": "Orchestrator created TaskFrame from manifest.",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "event_id": "evt_2b3036eaf31d4ccd8502e823b442978b",
+      "event_type": "manual.accounting_payment_reconciliation",
+      "source": "operator_scenario_pack"
+    },
+    "event_type": "EVENT_RECEIVED",
+    "message": "Runtime event received.",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "event_id": "evt_2b3036eaf31d4ccd8502e823b442978b",
+      "event_type": "manual.accounting_payment_reconciliation",
+      "manifest_id": "accounting.payment_reconciliation"
+    },
+    "event_type": "EVENT_ROUTED",
+    "message": "Runtime event routed to manifest.",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "dry_run": true,
+      "event_id": "evt_2b3036eaf31d4ccd8502e823b442978b",
+      "event_type": "manual.accounting_payment_reconciliation",
+      "manifest_id": "accounting.payment_reconciliation"
+    },
+    "event_type": "RUNTIME_ENGINE_STARTED",
+    "message": "Runtime engine started processing event.",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "from": "CREATED",
+      "to": "VALIDATING"
+    },
+    "event_type": "STATE_CHANGED",
+    "message": "CREATED -> VALIDATING",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "from": "VALIDATING",
+      "to": "READY"
+    },
+    "event_type": "STATE_CHANGED",
+    "message": "VALIDATING -> READY",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {},
+    "event_type": "FRAME_READY",
+    "message": "TaskFrame is ready for execution.",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "from": "READY",
+      "to": "RUNNING"
+    },
+    "event_type": "STATE_CHANGED",
+    "message": "READY -> RUNNING",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "attempt": 1,
+      "max_attempts": 1,
+      "retry_policy": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-04T20:28:34Z",
+      "step_id": "read_payments_sheet",
+      "timeout_seconds": null
+    },
+    "event_type": "STEP_ATTEMPT_STARTED",
+    "message": "Step attempt started.",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "args": {
+        "range_name": "Payments!A:I",
+        "spreadsheet_id": ""
+      },
+      "function": "sheet_read_range",
+      "step_id": "read_payments_sheet",
+      "tool": "sheet/read_range"
+    },
+    "event_type": "TOOL_DRY_RUN_READONLY_EXECUTION_STARTED",
+    "message": "Read-only tool executed during dry-run.",
+    "timestamp": "2026-05-04T20:28:34Z"
+  },
+  {
+    "data": {
+      "data": {
+        "error_type": "ToolFunctionError",
+        "function": "sheet_read_range",
+        "step_id": "read_payments_sheet",
+        "tag": "transient",
+        "tool": "sheet/read_range"
+      },
+      "message": "SPREADSHEET_ID_REQUIRED",
+      "timestamp": "2026-05-04T20:28:35Z",
+      "type": "live_tool_execution_failed"
+    },
+    "event_type": "ERROR_RECORDED",
+    "message": "SPREADSHEET_ID_REQUIRED",
+    "timestamp": "2026-05-04T20:28:35Z"
+  },
+  {
+    "data": {
+      "attempt": 1,
+      "duration_ms": 390.00000001396984,
+      "ended_at": "2026-05-04T20:28:35Z",
+      "max_attempts": 1,
+      "retry_policy": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-04T20:28:34Z",
+      "step_id": "read_payments_sheet",
+      "timed_out": false,
+      "timeout_seconds": null
+    },
+    "event_type": "STEP_TIMING_RECORDED",
+    "message": "Step timing recorded.",
+    "timestamp": "2026-05-04T20:28:35Z"
+  },
+  {
+    "data": {
+      "attempt": 1,
+      "duration_ms": 390.00000001396984,
+      "ended_at": "2026-05-04T20:28:35Z",
+      "error_info": {
+        "error_type": "SPREADSHEET_ID_REQUIRED",
+        "message": "SPREADSHEET_ID_REQUIRED",
+        "tag": "validation"
+      },
+      "max_attempts": 1,
+      "retry_policy": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-04T20:28:34Z",
+      "step_id": "read_payments_sheet",
+      "timed_out": false,
+      "timeout_seconds": null
+    },
+    "event_type": "STEP_ATTEMPT_FAILED",
+    "message": "Step attempt failed.",
+    "timestamp": "2026-05-04T20:28:35Z"
+  },
+  {
+    "data": {
+      "attempt": 1,
+      "duration_ms": 390.00000001396984,
+      "ended_at": "2026-05-04T20:28:35Z",
+      "error_info": {
+        "error_type": "SPREADSHEET_ID_REQUIRED",
+        "message": "SPREADSHEET_ID_REQUIRED",
+        "tag": "validation"
+      },
+      "max_attempts": 1,
+      "retry_policy": {
+        "delay_seconds": 0,
+        "fail_on_exhausted": true,
+        "max_attempts": 1,
+        "retry_on": [
+          "any"
+        ]
+      },
+      "started_at": "2026-05-04T20:28:34Z",
+      "step_id": "read_payments_sheet",
+      "timed_out": false,
+      "timeout_seconds": null
+    },
+    "event_type": "STEP_RETRY_EXHAUSTED",
+    "message": "Step retries exhausted.",
+    "timestamp": "2026-05-04T20:28:35Z"
+  },
+  {
+    "data": {
+      "dry_run": true,
+      "event_id": "evt_2b3036eaf31d4ccd8502e823b442978b",
+      "event_type": "manual.accounting_payment_reconciliation",
+      "manifest_id": "accounting.payment_reconciliation",
+      "state": "FAILED_VALIDATION"
+    },
+    "event_type": "RUNTIME_ENGINE_COMPLETED",
+    "message": "Runtime engine completed event processing.",
+    "timestamp": "2026-05-04T20:28:35Z"
+  }
+]

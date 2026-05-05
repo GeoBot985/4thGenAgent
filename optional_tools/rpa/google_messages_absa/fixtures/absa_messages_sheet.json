@@ -1,0 +1,10 @@
+{
+  "spreadsheet_id": "",
+  "output_range": "ABSA_Debit_Orders!A:H",
+  "search_query": "Absa",
+  "year": 2026,
+  "max_scrolls": 240,
+  "runtime_root": "runtime_data",
+  "browser_user_data_dir": "runtime_data/absa_workflow_profile",
+  "browser_profile_dir": "Profile 2"
+}

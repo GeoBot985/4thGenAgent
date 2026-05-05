@@ -76,6 +76,16 @@ def build_verification_result() -> dict[str, Any]:
     evidence_paths: list[str] = []
 
     command_groups = [
+        (
+            "clean_imports",
+            [
+                "python",
+                "-c",
+                "import sys; import runtime.business_context, runtime.tool_registry, runtime.tool_capability_registry, runtime.tool_health, src.operator_scenarios; assert 'playwright' not in sys.modules and 'playwright.async_api' not in sys.modules",
+            ],
+        ),
+        ("clean_clone_rc_tests", ["python", "-m", "pytest", "tests/test_clean_clone_rc_verification.py"]),
+        ("full_pytest", ["python", "-m", "pytest"]),
         ("smoke_external_event_intake", ["python", "-m", "pytest", "tests/test_external_event_intake.py"]),
         ("smoke_inspection", ["python", "-m", "pytest", "tests/test_inspection.py"]),
         ("smoke_inspection_commands", ["python", "-m", "pytest", "tests/test_inspection_commands.py"]),
@@ -87,8 +97,9 @@ def build_verification_result() -> dict[str, Any]:
         ("procurement_lane", ["python", "-m", "pytest", "tests/test_procurement_low_stock_reorder.py", "tests/test_procurement_approval_dry_run.py", "tests/test_procurement_report_pack.py"]),
         ("accounting_lane", ["python", "-m", "pytest", "tests/test_google_sheet_accounting_tools.py", "tests/test_accounting_reconciliation_tools.py", "tests/test_accounting_payment_reconciliation_workflow.py", "tests/test_accounting_approval_dry_run.py", "tests/test_accounting_report_pack.py"]),
         ("cross_workflow_demo", ["python", "-m", "pytest", "tests/test_cross_workflow_demo_pack.py", "tests/test_cross_workflow_demo_report.py"]),
+        ("golden_demo", ["python", "scripts/run_golden_demo.py"]),
+        ("portfolio_boundary", ["python", "-m", "pytest", "tests/test_portfolio_boundary.py", "tests/test_demo_scenarios.py", "tests/test_portfolio_docs_exist.py"]),
         ("portfolio_docs", ["python", "-m", "pytest", "tests/test_portfolio_docs_exist.py"]),
-        ("full_pytest", ["python", "-m", "pytest"]),
     ]
 
     for name, command in command_groups:
@@ -118,35 +129,73 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append(f"{name} failed")
 
     static_checks.extend([
+        _check_python_imports(),
+        _check_default_tool_registry(),
+        _check_tool_capability_registry(),
+        _check_core_tool_health_safe_checks(),
+        _check_default_scenario_pack(),
         _check_orchestrator_pollution(),
         _check_fake_llm_paths(),
         _check_side_effect_registry(),
+        _check_optional_rpa_boundary(),
+        _check_optional_rpa_live_probes_excluded_from_rc(),
+        _check_release_artifacts_manifest(),
+        _check_docs_command_alignment(),
     ])
     for check in static_checks:
         if check["status"] != "PASS":
+            if check["name"] == "python_imports":
+                release_blockers.append("python imports failed")
+            elif check["name"] == "default_tool_registry":
+                release_blockers.append("default tool registry failed")
+            elif check["name"] == "TOOL_CAPABILITY_REGISTRY":
+                release_blockers.append("tool capability registry failed")
+            elif check["name"] == "CORE_TOOL_HEALTH_SAFE_CHECKS":
+                release_blockers.append("core tool health checks failed")
+            elif check["name"] == "default_scenario_pack":
+                release_blockers.append("default scenario pack failed")
             if check["name"] == "orchestrator_pollution":
                 release_blockers.append("orchestrator pollution detected")
             elif check["name"] == "fake_llm_paths":
                 release_blockers.append("fake LLM visible in app/demo path")
             elif check["name"] == "side_effect_registry":
                 release_blockers.append("side effect registry safety check failed")
+            elif check["name"] == "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC":
+                release_blockers.append("optional RPA leaked into default RC path")
+            elif check["name"] == "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC":
+                release_blockers.append("optional RPA live probe leaked into default RC path")
+            elif check["name"] == "release_artifacts_manifest":
+                release_blockers.append("release artifacts manifest failed")
+            elif check["name"] == "docs_command_alignment":
+                release_blockers.append("documentation commands mismatch")
 
     artifact_paths = [
         "README.md",
+        "docs/release_artifacts.md",
+        "scripts/run_release_verification.py",
+        "scripts/run_golden_demo.py",
+        "runtime/business_context.py",
         "docs/architecture_overview.md",
+        "docs/demo_walkthrough.md",
         "docs/demo_script.md",
+        "docs/capture_screenshots.md",
         "docs/portfolio_summary.md",
         "docs/release_candidate_verification.md",
-        "docs/architecture_diagram.svg",
-        "docs/architecture_diagram.mmd",
-        "docs/screenshots/operator_ui_main.png",
-        "docs/screenshots/customer_workflow_completed.png",
-        "docs/screenshots/procurement_workflow_completed.png",
-        "docs/screenshots/accounting_workflow_completed.png",
-        "docs/screenshots/pending_approval_view.png",
-        "docs/screenshots/report_example.png",
-        "docs/screenshots/cross_workflow_demo_completed.png",
-        "docs/screenshots/architecture_diagram.png",
+        "runtime_data/outputs/reports/golden_demo_report.md",
+        "runtime_data/outputs/reports/golden_demo_report.html",
+        "runtime_data/outputs/audit/golden_demo_audit.json",
+        "runtime_data/tool_health/latest_tool_health.json",
+        "runtime_data/tool_health/reports/report_generator_probe.md",
+        "runtime_data/tool_health/reports/report_generator_probe.html",
+        "docs/screenshots/01_operator_home.png",
+        "docs/screenshots/02_scenario_pack.png",
+        "docs/screenshots/03_taskframe_detail.png",
+        "docs/screenshots/04_step_playback.png",
+        "docs/screenshots/05_pending_approval.png",
+        "docs/screenshots/06_tool_status_panel.png",
+        "docs/screenshots/07_tool_health_details.png",
+        "docs/screenshots/08_report_output.png",
+        "docs/screenshots/09_release_verification.png",
     ]
     for path in artifact_paths:
         item = check_file_exists(path)
@@ -162,6 +211,26 @@ def build_verification_result() -> dict[str, Any]:
         evidence_paths.extend(reports)
     else:
         known_limitations.append("no_report_artifacts_found")
+
+    checks = {
+        "imports": _status_from_commands(commands, "clean_imports"),
+        "default_tool_registry": _status_from_static(static_checks, "default_tool_registry"),
+        "tool_capability_registry": _status_from_static(static_checks, "TOOL_CAPABILITY_REGISTRY"),
+        "core_tool_health_safe_checks": _status_from_static(static_checks, "CORE_TOOL_HEALTH_SAFE_CHECKS"),
+        "optional_rpa_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC"),
+        "optional_rpa_live_probes_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC"),
+        "default_scenario_pack": _status_from_static(static_checks, "default_scenario_pack"),
+        "golden_demo": _status_from_commands(commands, "golden_demo"),
+        "release_artifacts": _status_from_artifacts(artifact_checks, [
+            "docs/release_artifacts.md",
+            "scripts/run_golden_demo.py",
+            "runtime_data/outputs/reports/golden_demo_report.md",
+            "runtime_data/outputs/reports/golden_demo_report.html",
+            "runtime_data/outputs/audit/golden_demo_audit.json",
+            "runtime_data/tool_health/latest_tool_health.json",
+        ]),
+        "docs_commands": _status_from_static(static_checks, "docs_command_alignment"),
+    }
 
     workflow_checks = {
         "customer": _workflow_check("customer", commands, "customer_lane"),
@@ -201,6 +270,7 @@ def build_verification_result() -> dict[str, Any]:
         "commands": commands,
         "static_checks": static_checks,
         "artifact_checks": artifact_checks,
+        "checks": checks,
         "workflow_checks": workflow_checks,
         "known_limitations": _unique(known_limitations),
         "release_blockers": _unique(release_blockers),
@@ -253,7 +323,7 @@ def write_markdown_report(result: dict[str, Any], path: str) -> None:
         "| Approval-gated side effects | pending/executed action tests |",
         "| Dry-run execution safety | customer/procurement/accounting dry-run tests |",
         "| Multi-workflow generalization | customer, procurement, accounting, cross-workflow tests |",
-        "| Portfolio readiness | README, diagram, screenshots, demo script |",
+        "| Portfolio readiness | README, walkthrough, screenshots, demo script, release verification |",
         "",
         "## Test Results",
         "",
@@ -352,8 +422,10 @@ def _write_supporting_docs(result: dict[str, Any]) -> None:
         f"- README: `{ROOT / 'README.md'}`",
         f"- Architecture Overview: `{ROOT / 'docs' / 'architecture_overview.md'}`",
         f"- Architecture Diagram: `{ROOT / 'docs' / 'architecture_diagram.svg'}`",
+        f"- Demo Walkthrough: `{ROOT / 'docs' / 'demo_walkthrough.md'}`",
         f"- Demo Script: `{ROOT / 'docs' / 'demo_script.md'}`",
         f"- Portfolio Summary: `{ROOT / 'docs' / 'portfolio_summary.md'}`",
+        f"- Capture Screenshots: `{ROOT / 'docs' / 'capture_screenshots.md'}`",
         f"- Screenshot Folder: `{ROOT / 'docs' / 'screenshots'}`",
         "",
         "## Runtime Reports",
@@ -455,13 +527,220 @@ def _check_side_effect_registry() -> dict[str, Any]:
         spec = TOOL_REGISTRY.get(key)
         if spec is None:
             continue
+        if key == "sheet/write_rows":
+            if not (spec.get("side_effect") is True and spec.get("requires_approval") is True and spec.get("allow_live_side_effect") is True):
+                bad.append(key)
+            continue
         if not (spec.get("side_effect") is True and spec.get("requires_approval") is True and spec.get("allow_live") is False):
             bad.append(key)
     return {"name": "side_effect_registry", "status": "PASS" if not bad else "FAIL", "bad": bad}
 
 
+def _check_tool_capability_registry() -> dict[str, Any]:
+    try:
+        from runtime.tool_capability_registry import list_tool_capabilities
+
+        capabilities = list_tool_capabilities()
+        ids = {cap.tool_id for cap in capabilities}
+        required = {
+            "business_context",
+            "business_database",
+            "gmail",
+            "google_sheets",
+            "google_calendar",
+            "llm_ollama",
+            "memory_store",
+            "report_generator",
+            "rpa_google_messages",
+        }
+        missing = sorted(required - ids)
+        rpa = next((cap for cap in capabilities if cap.tool_id == "rpa_google_messages"), None)
+        ok = not missing and rpa is not None and rpa.core_or_optional == "optional" and rpa.side_effect_level == "high_risk" and rpa.rpa_live_probe_required is True
+        return {
+            "name": "TOOL_CAPABILITY_REGISTRY",
+            "status": "PASS" if ok else "FAIL",
+            "tool_count": len(capabilities),
+            "missing": missing,
+            "rpa_optional": bool(rpa and rpa.core_or_optional == "optional"),
+            "rpa_live_probe_required": bool(rpa and rpa.rpa_live_probe_required),
+        }
+    except Exception as exc:
+        return {"name": "TOOL_CAPABILITY_REGISTRY", "status": "FAIL", "error": str(exc)}
+
+
+def _check_core_tool_health_safe_checks() -> dict[str, Any]:
+    try:
+        from runtime.tool_health import check_all_tool_health, load_latest_tool_health_snapshot
+
+        results = check_all_tool_health(include_optional=False, live_rpa=False)
+        required_ids = ["business_context", "business_database", "memory_store", "report_generator"]
+        result_map = {result.tool_id: result for result in results}
+        missing = [tool_id for tool_id in required_ids if tool_id not in result_map]
+        failing = [tool_id for tool_id in required_ids if tool_id in result_map and not result_map[tool_id].ok]
+        snapshot = load_latest_tool_health_snapshot()
+        ok = not missing and not failing and bool(snapshot.get("results"))
+        return {
+            "name": "CORE_TOOL_HEALTH_SAFE_CHECKS",
+            "status": "PASS" if ok else "FAIL",
+            "required": {tool_id: result_map[tool_id].status for tool_id in required_ids if tool_id in result_map},
+            "missing": missing,
+            "failing": failing,
+            "snapshot_path": str(ROOT / "runtime_data" / "tool_health" / "latest_tool_health.json"),
+        }
+    except Exception as exc:
+        return {"name": "CORE_TOOL_HEALTH_SAFE_CHECKS", "status": "FAIL", "error": str(exc)}
+
+
+def _check_optional_rpa_live_probes_excluded_from_rc() -> dict[str, Any]:
+    try:
+        from runtime.tool_capability_registry import get_tool_capability
+        from runtime.tool_health import load_latest_tool_health_snapshot
+
+        capability = get_tool_capability("rpa_google_messages")
+        snapshot = load_latest_tool_health_snapshot()
+        tool_ids = {str(item.get("tool_id", "")) for item in snapshot.get("results", []) if isinstance(item, dict)}
+        ok = capability.core_or_optional == "optional" and capability.rpa_live_probe_required and "rpa_google_messages" not in tool_ids
+        return {
+            "name": "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC",
+            "status": "PASS" if ok else "FAIL",
+            "tool_present": capability.tool_id,
+            "snapshot_tools": sorted(tool_ids),
+            "live_probe_required": capability.rpa_live_probe_required,
+        }
+    except Exception as exc:
+        return {"name": "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC", "status": "FAIL", "error": str(exc)}
+
+
+def _check_optional_rpa_boundary() -> dict[str, Any]:
+    optional_root = ROOT / "optional_tools" / "rpa" / "google_messages_absa"
+    if not optional_root.exists():
+        return {"name": "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC", "status": "PASS", "present": False, "details": "optional_rpa_missing"}
+
+    details: list[str] = []
+    status = "PASS"
+
+    from runtime.tool_registry import TOOL_REGISTRY
+    if "messages/extract_absa_transactions" in TOOL_REGISTRY:
+        status = "FAIL"
+        details.append("registry_includes_absa")
+
+    from src.operator_scenarios import list_scenarios
+    if any("absa" in scenario.get("id", "").lower() for scenario in list_scenarios(include_test_only=False)):
+        status = "FAIL"
+        details.append("scenario_pack_includes_absa")
+
+    optional_readme = optional_root / "README.md"
+    if not optional_readme.is_file():
+        status = "FAIL"
+        details.append("missing_optional_readme")
+    else:
+        readme_text = optional_readme.read_text(encoding="utf-8").lower()
+        if "excluded from the default portfolio path" not in readme_text:
+            status = "FAIL"
+            details.append("missing_exclusion_note")
+
+    return {
+        "name": "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC",
+        "status": status,
+        "present": True,
+        "details": details,
+    }
+
+
+def _check_python_imports() -> dict[str, Any]:
+    try:
+        import runtime.business_context  # noqa: F401
+        import runtime.tool_registry  # noqa: F401
+        import runtime.tool_capabilities  # noqa: F401
+        import runtime.tool_capability_registry  # noqa: F401
+        import runtime.tool_health  # noqa: F401
+        import src.operator_scenarios  # noqa: F401
+        return {"name": "python_imports", "status": "PASS"}
+    except Exception as exc:
+        return {"name": "python_imports", "status": "FAIL", "error": str(exc)}
+
+
+def _check_default_tool_registry() -> dict[str, Any]:
+    try:
+        from runtime.tool_registry import TOOL_REGISTRY
+    except Exception as exc:
+        return {"name": "default_tool_registry", "status": "FAIL", "error": str(exc)}
+    return {
+        "name": "default_tool_registry",
+        "status": "PASS" if "messages/extract_absa_transactions" not in TOOL_REGISTRY else "FAIL",
+        "tool_count": len(TOOL_REGISTRY),
+    }
+
+
+def _check_default_scenario_pack() -> dict[str, Any]:
+    try:
+        from src.operator_scenarios import list_scenarios
+    except Exception as exc:
+        return {"name": "default_scenario_pack", "status": "FAIL", "error": str(exc)}
+    scenarios = list_scenarios(include_test_only=False)
+    texts = [str(item.get("id", "")).lower() for item in scenarios] + [str(item.get("label", "")).lower() for item in scenarios]
+    markers = ("absa", "google_messages", "debit_orders", "personal_rpa")
+    found = [marker for marker in markers if any(marker in text for text in texts)]
+    return {"name": "default_scenario_pack", "status": "PASS" if not found else "FAIL", "found": found, "scenario_count": len(scenarios)}
+
+
+def _check_release_artifacts_manifest() -> dict[str, Any]:
+    path = ROOT / "docs" / "release_artifacts.md"
+    exists = path.is_file()
+    text = path.read_text(encoding="utf-8").lower() if exists else ""
+    required = [
+        "golden demo summary report",
+        "golden demo audit json",
+        "customer workflow report",
+        "procurement workflow report",
+        "accounting workflow report",
+    ]
+    missing = [item for item in required if item not in text]
+    return {"name": "release_artifacts_manifest", "status": "PASS" if exists and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
+def _check_docs_command_alignment() -> dict[str, Any]:
+    readme = ROOT / "README.md"
+    portfolio = ROOT / "docs" / "portfolio_summary.md"
+    readme_text = readme.read_text(encoding="utf-8").lower() if readme.is_file() else ""
+    portfolio_text = portfolio.read_text(encoding="utf-8").lower() if portfolio.is_file() else ""
+    markers = [
+        "clean release-candidate verification",
+        "python scripts/run_golden_demo.py",
+        "python scripts/run_release_verification.py",
+    ]
+    missing = []
+    for marker in markers:
+        if marker not in readme_text:
+            missing.append(f"README:{marker}")
+        if marker not in portfolio_text:
+            missing.append(f"portfolio_summary:{marker}")
+    return {"name": "docs_command_alignment", "status": "PASS" if not missing else "FAIL", "missing": missing}
+
+
+def _status_from_commands(commands: list[dict[str, Any]], name: str) -> str:
+    item = next((command for command in commands if command.get("name") == name), None)
+    return "PASS" if item and item.get("status") == "PASS" else "FAIL"
+
+
+def _status_from_static(static_checks: list[dict[str, Any]], name: str) -> str:
+    item = next((check for check in static_checks if check.get("name") == name), None)
+    return "PASS" if item and item.get("status") == "PASS" else "FAIL"
+
+
+def _status_from_artifacts(artifact_checks: list[dict[str, Any]], required_paths: list[str]) -> str:
+    mapping = {item.get("path"): item.get("exists") for item in artifact_checks}
+    return "PASS" if all(mapping.get(path, False) for path in required_paths) else "FAIL"
+
+
 def _find_report_artifacts() -> list[str]:
     paths: list[str] = []
+    golden_demo_report = ROOT / "runtime_data" / "outputs" / "reports" / "golden_demo_report.md"
+    golden_demo_html = ROOT / "runtime_data" / "outputs" / "reports" / "golden_demo_report.html"
+    golden_demo_audit = ROOT / "runtime_data" / "outputs" / "audit" / "golden_demo_audit.json"
+    if golden_demo_report.is_file() and golden_demo_html.is_file() and golden_demo_audit.is_file():
+        return [str(golden_demo_report), str(golden_demo_html), str(golden_demo_audit)]
+
     runs_dir = ROOT / "runtime_data" / "runs"
     if not runs_dir.is_dir():
         return paths

@@ -48,7 +48,19 @@ def sheet_write_rows(spreadsheet_id: str, range_name: str, rows: list[list[Any]]
         return {"ok": False, "dry_run": False, "written": False, "spreadsheet_id": spreadsheet_id, "range_name": range_name, "mode": mode, "row_count": len(rows), "error": "SPREADSHEET_ID_REQUIRED"}
     if write_sheet_entries is None:
         raise RuntimeError("Google Sheet writer is unavailable.")
-    result = write_sheet_entries(spreadsheet_id=spreadsheet_id, range_name=range_name, values=rows, mode=mode)
+    try:
+        result = write_sheet_entries(spreadsheet_id=spreadsheet_id, range_name=range_name, values=rows, mode=mode)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "dry_run": False,
+            "written": False,
+            "spreadsheet_id": spreadsheet_id,
+            "range_name": range_name,
+            "mode": mode,
+            "row_count": len(rows),
+            "error": f"LIVE_SHEET_WRITE_FAILED: {exc}",
+        }
     updated_range = result.get("updates", {}).get("updatedRange") or result.get("updatedRange") or range_name
     updated_rows = result.get("updates", {}).get("updatedRows") or result.get("updatedRows") or len(rows)
     return {
