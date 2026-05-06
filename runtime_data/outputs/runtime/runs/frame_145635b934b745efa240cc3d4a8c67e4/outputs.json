@@ -1,9 +1,0 @@
-{
-  "approval_result": {
-    "action_id": "pa_ee2a6cb88b2040758b2126687b7ddc0e",
-    "artifact_saved": true,
-    "frame_id": "frame_dc8b87cd80f9487d9ec96d0719177964",
-    "status": "APPROVED",
-    "target_frame_state": "WAITING_FOR_EXECUTE"
-  }
-}
