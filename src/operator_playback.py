@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.operator_presenter import humanize_step_id
 from src.operator_data import build_selected_detail, load_manifest, normalize_manifest_for_ui
 
 
@@ -34,6 +35,7 @@ def build_playback_timeline(snapshot: dict) -> list[dict]:
         {
             "kind": "event",
             "title": "event_received",
+            "label": humanize_step_id("event_received"),
             "step_id": "event_received",
             "status": "complete",
             "reveal": {"event": {"event_id": event_id, "source": source, "event_type": event_type}},
@@ -44,6 +46,7 @@ def build_playback_timeline(snapshot: dict) -> list[dict]:
         {
             "kind": "route",
             "title": "route_resolved",
+            "label": humanize_step_id("route_resolved"),
             "step_id": "route_resolved",
             "status": "complete",
             "reveal": {"route": {"route_id": route_id, "manifest_id": manifest_id}},
@@ -54,6 +57,7 @@ def build_playback_timeline(snapshot: dict) -> list[dict]:
         {
             "kind": "frame",
             "title": "taskframe_created",
+            "label": humanize_step_id("taskframe_created"),
             "step_id": "taskframe_created",
             "status": "complete",
             "reveal": {"frame": {"frame_id": frame_id, "state": frame_state}},
@@ -96,12 +100,23 @@ def build_playback_timeline(snapshot: dict) -> list[dict]:
         elif step_id == "prepare_pending_send":
             revealed_pending = _pending_actions(active_frame)
             reveal = {"pending_actions": revealed_pending}
-        timeline.append({"kind": kind, "title": step_id, "step_id": step_id, "status": status, "reveal": reveal, "detail": build_selected_detail(snapshot, {"step_id": step_id})})
+        timeline.append(
+            {
+                "kind": kind,
+                "title": step_id,
+                "label": humanize_step_id(step_id),
+                "step_id": step_id,
+                "status": status,
+                "reveal": reveal,
+                "detail": build_selected_detail(snapshot, {"step_id": step_id}),
+            }
+        )
 
     timeline.append(
         {
             "kind": "complete",
             "title": "complete",
+            "label": humanize_step_id("complete"),
             "step_id": "complete",
             "status": _string(active_frame, "state") or "complete",
             "reveal": {
@@ -130,15 +145,18 @@ def build_playback_view(snapshot: dict, timeline: list[dict], index: int) -> dic
     selected_detail: dict[str, Any] = {}
     current_title = ""
     current_step_id = ""
+    current_label = ""
     playback_status = "idle"
     if timeline:
         current = timeline[max_index]
         current_title = current.get("title", "")
         current_step_id = current.get("step_id", "")
+        current_label = current.get("label", humanize_step_id(current_step_id))
         playback_status = "running" if index < total - 1 else "complete"
         selected_detail = current.get("detail", {}) if isinstance(current.get("detail", {}), dict) else {}
     if index < 0:
         playback_status = "idle"
+        current_label = ""
 
     for item in visible:
         reveal = item.get("reveal", {})
@@ -164,6 +182,7 @@ def build_playback_view(snapshot: dict, timeline: list[dict], index: int) -> dic
         "index": max_index + 1 if timeline else 0,
         "total": total,
         "current": current_title,
+        "current_label": current_label,
         "current_step_id": current_step_id,
         "event": active_event if max_index >= 0 else None,
         "route": {"route_id": _route_id(snapshot), "manifest_id": _string(active_frame, "manifest_id")},
@@ -174,6 +193,7 @@ def build_playback_view(snapshot: dict, timeline: list[dict], index: int) -> dic
         "evidence": evidence,
         "selected_detail": selected_detail,
         "visible_steps": [item.get("title", "") for item in visible],
+        "visible_step_labels": [item.get("label", humanize_step_id(item.get("title", ""))) for item in visible],
     }
 
 

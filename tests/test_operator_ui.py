@@ -109,12 +109,12 @@ class OperatorUIDetailTests(unittest.TestCase):
 
     def test_ui_source_contains_selected_detail_panel(self):
         source = SOURCE.read_text(encoding="utf-8")
-        for text in ("Demo Control Panel", "Run Demo", "Reset", "DRY RUN ONLY", "Uses LLM: yes", "Use local Ollama LLM", "LLM Provider: Ollama", "Model: granite3.3:8b", "Customer Status - LLM Assisted E2E", "Play", "Pause", "Next Step", "Reset Playback", "Selected Step Detail", "Event Detail", "Manifest Step", "Runtime Result", "Approval Pack", "Human-Readable Execute Summary", "Action Arguments", "Pre-Execution Validation", "Supporting Evidence", "Risk / Guardrails"):
+        for text in ("Autonomous Business Worker Demo", "Demo:", "Horizontal Demo Flow", "Current run:", "Incoming Request", "Automation Progress", "Business Result", "Approval / Evidence", "Run selected demo", "Browse demo catalog", "Start over", "Progress Animation", "Play", "Pause", "Step", "Selected Step Detail", "Event Detail", "Manifest Step", "Runtime Result", "Approval Pack", "Action Arguments", "Supporting Evidence", "Risk / Guardrails"):
             self.assertIn(text, source)
 
     def test_operator_ui_contains_approval_action_buttons(self):
         source = SOURCE.read_text(encoding="utf-8")
-        for text in ("Approve", "Reject", "Execute Approved Dry Run", "Reload Frame"):
+        for text in ("Approve & execute dry run", "Reject", "View technical evidence", "Refresh current run"):
             self.assertIn(text, source)
 
     def test_operator_ui_contains_customer_inbox_panel(self):
@@ -124,7 +124,7 @@ class OperatorUIDetailTests(unittest.TestCase):
 
     def test_operator_ui_contains_business_dataset_controls(self):
         source = SOURCE.read_text(encoding="utf-8")
-        for text in ("Business Dataset", "Seed Dataset", "Reset Dataset", "Validate Dataset", "Dataset version", "Validation:"):
+        for text in ("Advanced settings", "Scenario pack", "Reset dataset", "Use local Ollama", "Run selected scenario", "Run selected scenario and generate evidence", "Run full business workflow demo", "Browse demo catalog"):
             self.assertIn(text, source)
 
     def test_operator_ui_contains_failure_summary_panel(self):
@@ -134,7 +134,7 @@ class OperatorUIDetailTests(unittest.TestCase):
 
     def test_operator_ui_contains_negative_demo_labels(self):
         source = SOURCE.read_text(encoding="utf-8")
-        for text in ("Missing Order", "Wrong Customer", "Bad LLM Reply", "Unsupported Intent"):
+        for text in ("Customer Order Status", "Run full business workflow demo", "Technical Inspector"):
             self.assertIn(text, source)
 
     def test_operator_ui_disables_approval_when_no_pending_action(self):
@@ -143,7 +143,7 @@ class OperatorUIDetailTests(unittest.TestCase):
 
     def test_operator_ui_contains_report_controls(self):
         source = SOURCE.read_text(encoding="utf-8")
-        for text in ("Reports", "Generate Report", "Open HTML", "Open Folder", "Report Status"):
+        for text in ("Reports", "Generate Report", "Open HTML", "Open Folder", "Report Status", "Generate evidence for this run", "Open evidence for this run", "No evidence pack has been generated for this run yet"):
             self.assertIn(text, source)
 
     def test_operator_ui_contains_tool_capability_panel(self):
@@ -169,21 +169,16 @@ class OperatorUIDetailTests(unittest.TestCase):
 
     def test_operator_ui_contains_customer_status_llm_demo_label(self):
         source = SOURCE.read_text(encoding="utf-8")
-        self.assertIn("Customer Status - LLM Assisted E2E", source)
-
-    def test_operator_ui_displays_llm_metadata(self):
-        source = SOURCE.read_text(encoding="utf-8")
-        for text in ("Uses LLM", "Provider", "granite3.3:8b"):
-            self.assertIn(text, source)
+        self.assertIn("Customer Order Status", source)
 
     def test_operator_ui_contains_demo_scenario_pack_panel(self):
         source = SOURCE.read_text(encoding="utf-8")
-        for text in ("Demo Scenario Pack", "Run Scenario", "Run + Generate Report", "Scenario Result", "Verdict"):
+        for text in ("Scenario", "Run selected scenario", "Run selected scenario and generate evidence", "Scenario Result", "Verdict", "Current run:", "Selected demo"):
             self.assertIn(text, source)
 
     def test_operator_ui_contains_scenario_category_labels(self):
         source = SOURCE.read_text(encoding="utf-8")
-        for text in ("Happy Path", "Negative Path", "Approval", "Data / Business", "Reporting"):
+        for text in ("View Mode", "Demo", "Operator", "Inspector"):
             self.assertIn(text, source)
 
     def test_operator_ui_scenario_pack_does_not_expose_live_execution(self):

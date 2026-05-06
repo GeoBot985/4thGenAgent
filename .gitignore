@@ -32,6 +32,12 @@ consolidated_sources_part_*.txt
 tmp-e2e/
 
 # Runtime artifacts and local browser/session state
+runtime_data/outputs/
+runtime_data/demo_packs/
+runtime_data/events/
+runtime_data/google_messages_profile/
+runtime_data/tool_health/
+runtime_data/memory_store.json
 runtime_data/audit/
 runtime_data/runs/
 runtime_data/absa_workflow_profile/

@@ -148,7 +148,8 @@ class OperatorDemoExecutionTests(unittest.TestCase):
 
     def test_ui_source_contains_demo_button(self):
         source = UI_SOURCE.read_text(encoding="utf-8")
-        self.assertIn("Run Demo Customer Message", source)
+        self.assertIn("Run selected demo", source)
+        self.assertIn("Start over", source)
 
     def test_ui_does_not_directly_call_runtime_execution(self):
         source = UI_SOURCE.read_text(encoding="utf-8")

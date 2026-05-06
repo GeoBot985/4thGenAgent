@@ -95,6 +95,9 @@ python -m src.operator_ui
 
 Use it to inspect the active TaskFrame, pending approvals, tool health, and report output.
 
+Demo Mode starts in a compact guided layout that keeps the selected demo, next action, current run status, and evidence state visible without making the screen behave like a long document page.
+Panels that can grow now scroll internally, so long request text, progress lists, results, and evidence do not get clipped at normal window sizes.
+
 ## Screenshots
 Review the current portfolio screenshots in [docs/screenshots/](docs/screenshots/):
 - [01_operator_home.png](docs/screenshots/01_operator_home.png)

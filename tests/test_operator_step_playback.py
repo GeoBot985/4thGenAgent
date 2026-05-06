@@ -103,6 +103,8 @@ class OperatorStepPlaybackTests(unittest.TestCase):
                 "complete",
             ],
         )
+        self.assertEqual(timeline[4]["label"], "Extracted the order number")
+        self.assertEqual(timeline[9]["label"], "Prepared the message for approval")
 
     def test_playback_view_reveals_progressively(self):
         snapshot = make_snapshot()
@@ -116,16 +118,19 @@ class OperatorStepPlaybackTests(unittest.TestCase):
         self.assertIn("order_id", extract_view["outputs"])
         self.assertNotIn("draft_reply", extract_view["outputs"])
         self.assertEqual(extract_view["pending_actions"], [])
+        self.assertEqual(extract_view["current_label"], "Extracted the order number")
 
         draft_view = build_playback_view(snapshot, timeline, draft_index)
         self.assertIn("order_id", draft_view["outputs"])
         self.assertIn("draft_reply", draft_view["outputs"])
         self.assertEqual(draft_view["pending_actions"], [])
+        self.assertEqual(draft_view["visible_step_labels"][-1], "Drafted the customer reply")
 
         pending_view = build_playback_view(snapshot, timeline, pending_index)
         self.assertGreaterEqual(len(pending_view["pending_actions"]), 1)
         self.assertEqual(pending_view["pending_actions"][0]["action_type"], "send_customer_message")
         self.assertEqual(pending_view["pending_actions"][0]["status"], "PENDING_APPROVAL")
+        self.assertEqual(pending_view["current_label"], "Prepared the message for approval")
 
     def test_skip_to_end_view_shows_full_snapshot(self):
         snapshot = make_snapshot()

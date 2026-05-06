@@ -27,22 +27,32 @@ class OperatorFrontendShellTests(unittest.TestCase):
     def test_required_labels_exist_in_source(self):
         source = SOURCE.read_text(encoding="utf-8")
         for text in (
-            "TaskFrame Operator Console",
-            "Task Queue",
-            "Active TaskFrame",
-            "Results / Actions",
-            "Runtime Trace",
-            "Run Demo Customer Message",
-            "Refresh Runtime Data",
-            "Frame ID",
-            "State",
-            "Manifest",
-            "Incoming Events",
-            "Waiting for Execute",
-            "Pending Actions",
-            "Approve / Execute",
+            "Autonomous Business Worker Demo",
+            "Demo:",
+            "Horizontal Demo Flow",
+            "Current run:",
+            "Incoming Request",
+            "Automation Progress",
+            "Business Result",
+            "Run selected demo",
+            "Browse demo catalog",
+            "Generate evidence for this run",
+            "Open evidence for this run",
+            "Advanced settings",
+            "No evidence pack has been generated for this run yet",
+            "Approval / Evidence",
+            "Technical Inspector",
+            "View Mode",
+            "Demo",
+            "Operator",
+            "Inspector",
         ):
             self.assertIn(text, source)
+
+    def test_run_selected_demo_not_only_inside_scenario_card_area(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        self.assertLess(source.index("Demo:"), source.index("Run selected demo"))
+        self.assertLess(source.index("Run selected demo"), source.index("Current run:"))
 
     def test_no_forbidden_runtime_calls(self):
         for path in (SOURCE, DATA_SOURCE):
@@ -68,11 +78,12 @@ class OperatorFrontendShellTests(unittest.TestCase):
             root.withdraw()
             built = module.build_operator_ui(root)
             self.assertIs(built, root)
-            self.assertEqual(root.title(), "TaskFrame Operator Console")
+            self.assertEqual(root.title(), "Autonomous Business Worker Demo")
             console = getattr(root, "operator_console", None)
             self.assertIsNotNone(console)
             self.assertTrue(hasattr(console, "tool_health_tree"))
             self.assertTrue(hasattr(console, "tool_health_details"))
+            self.assertTrue(hasattr(console, "view_mode_var"))
         finally:
             root.destroy()
 
