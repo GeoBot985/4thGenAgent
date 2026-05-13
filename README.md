@@ -131,6 +131,7 @@ Browser-backed RPA tools are treated as optional, high-risk, live-environment-de
 
 ## Runtime Notes
 - Ollama can provide the bounded LLM helper used by the customer, procurement, and accounting workflows when a local endpoint is available.
+- The accounting demo scenarios default to the local demo sheet id `demo-sheet-local` so they run deterministically without a live Google Sheets connection. Update `config/accounting_google_sheet.json` if you want to point the scenarios at a real spreadsheet.
 
 ## Known Limitations
 - The current project is a portfolio-grade release candidate, not a production deployment.

@@ -1,5 +1,5 @@
 {
-  "spreadsheet_id": "",
+  "spreadsheet_id": "demo-sheet-local",
   "tabs": {
     "payments": "Payments!A:I",
     "orders": "Orders!A:F",

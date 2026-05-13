@@ -8,12 +8,13 @@ from typing import Any
 from .artifact_cleanup import load_taskframe_safe
 from .evidence_bundle import build_evidence_bundle, write_evidence_bundle
 from .failure_summary import build_failure_summary
-from .persistence import ensure_dir, load_taskframe_dict, write_json_atomic
-from .taskframe import utc_now
+from .persistence import ensure_dir, load_taskframe_dict, read_json, write_json_atomic
+from .taskframe import build_taskframe_summary, utc_now
 from src.operator_approval_pack import build_approval_pack_view
 
 
 REPORT_VERSION = "operator_run_report_v1"
+DEMO_REPORT_VERSION = "demo_run_report_v1"
 
 
 def generate_run_report(runtime_data_dir: str | Path, frame_id: str, rebuild: bool = False) -> dict[str, Any]:
@@ -433,3 +434,1257 @@ def _outcome_text(bundle: dict[str, Any]) -> str:
     if state in {"CANCELLED", "EXPIRED"}:
         return "Run did not complete."
     return "Run completed."
+
+
+def get_demo_run_report_paths(runtime_data_dir: str | Path, frame_id: str) -> dict[str, str]:
+    runtime_root = Path(runtime_data_dir)
+    reports_dir = ensure_dir(runtime_root / "outputs" / "reports")
+    evidence_dir = ensure_dir(runtime_root / "outputs" / "evidence")
+    base_name = f"{frame_id}_run_report"
+    return {
+        "markdown_path": str(reports_dir / f"{base_name}.md"),
+        "html_path": str(reports_dir / f"{base_name}.html"),
+        "evidence_bundle_path": str(evidence_dir / f"{frame_id}_evidence_bundle.json"),
+        "reports_dir": str(reports_dir),
+        "evidence_dir": str(evidence_dir),
+    }
+
+
+def get_demo_business_report_paths(runtime_data_dir: str | Path, frame_id: str, scenario_id: str) -> dict[str, str]:
+    runtime_root = Path(runtime_data_dir)
+    reports_dir = ensure_dir(runtime_root / "outputs" / "reports")
+    evidence_dir = ensure_dir(runtime_root / "outputs" / "evidence")
+    safe_scenario_id = _slugify(scenario_id) or "business_report"
+    base_name = f"{safe_scenario_id}_{frame_id}"
+    return {
+        "markdown_path": str(reports_dir / f"{base_name}.md"),
+        "html_path": str(reports_dir / f"{base_name}.html"),
+        "evidence_bundle_path": str(evidence_dir / f"{frame_id}_evidence_bundle.json"),
+        "reports_dir": str(reports_dir),
+        "evidence_dir": str(evidence_dir),
+    }
+
+
+def generate_demo_run_report(runtime_data_dir: str | Path, frame_id: str, scenario: dict | None = None) -> dict[str, Any]:
+    frame_id = str(frame_id or "").strip()
+    if not frame_id:
+        return {"ok": False, "frame_id": "", "markdown_path": "", "html_path": "", "evidence_bundle_path": "", "error": "frame_id is required"}
+
+    runtime_root = Path(runtime_data_dir)
+    taskframe_path = runtime_root / "runs" / frame_id / "taskframe.json"
+    if not taskframe_path.is_file():
+        return {"ok": False, "frame_id": frame_id, "markdown_path": "", "html_path": "", "evidence_bundle_path": "", "error": f"TaskFrame artifact not found: {frame_id}"}
+
+    frame = load_taskframe_dict(frame_id, runtime_root)
+    outputs = _read_json_dict(runtime_root / "runs" / frame_id / "outputs.json", frame.get("outputs", {}))
+    audit = _read_json_list(runtime_root / "runs" / frame_id / "audit.json", frame.get("audit", []))
+    scenario_data = scenario if isinstance(scenario, dict) else {}
+    story_type = _detect_demo_story_type(scenario_data, frame, outputs)
+    report_model = _build_demo_run_report_model(runtime_root, frame, outputs, audit, scenario_data, story_type)
+    paths = get_demo_run_report_paths(runtime_root, frame_id)
+    scenario_id = _string(scenario_data.get("id"))
+    business_markdown_path = Path("")
+    business_html_path = Path("")
+    business_evidence_path = Path("")
+    if story_type == "report_generation" and not str(frame.get("state", "")).startswith("FAILED"):
+        business_paths = get_demo_business_report_paths(runtime_root, frame_id, scenario_id or "report_generation")
+        report_model["business_report_markdown_path"] = business_paths["markdown_path"]
+        report_model["business_report_html_path"] = business_paths["html_path"]
+        report_model["business_report_evidence_bundle_path"] = business_paths["evidence_bundle_path"]
+        report_model["run_report_markdown_path"] = paths["markdown_path"]
+        report_model["run_report_html_path"] = paths["html_path"]
+        report_model["run_report_evidence_bundle_path"] = paths["evidence_bundle_path"]
+        report_model["output_title"] = "Business report generated"
+        report_model["output_text"] = (
+            "No business report artifact was found for this run."
+            if str(frame.get("state", "")).startswith("FAILED")
+            else "\n".join(
+                [
+                    "Business report generated",
+                    f"File: {business_paths['html_path']}",
+                    "",
+                    "Also created:",
+                    "- Markdown report",
+                    "- Evidence bundle",
+                    "",
+                    "Run report generated",
+                    f"File: {paths['html_path']}",
+                    "This report shows:",
+                    "- manifest steps",
+                    "- step results",
+                    "- validations",
+                    "- evidence",
+                    "- pending actions",
+                ]
+            )
+        )
+        report_model["output_bullets"] = (
+            ["No business report artifact was found for this run."]
+            if str(frame.get("state", "")).startswith("FAILED")
+            else [
+                "Business report generated",
+                "Markdown report created",
+                "Evidence bundle created",
+                "Run report generated",
+                f"Report HTML: {Path(business_paths['html_path']).name}",
+            ]
+        )
+        report_model["approval_text"] = "No approval action was created because the workflow stopped safely." if str(frame.get("state", "")).startswith("FAILED") else "No pending approval action for this run."
+        business_markdown = render_demo_business_report_markdown(report_model, business_paths)
+        business_html = render_demo_business_report_html(report_model, business_paths)
+        business_markdown_path = Path(business_paths["markdown_path"])
+        business_html_path = Path(business_paths["html_path"])
+        business_evidence_path = Path(business_paths["evidence_bundle_path"])
+        ensure_dir(business_markdown_path.parent)
+        business_markdown_path.write_text(business_markdown, encoding="utf-8")
+        business_html_path.write_text(business_html, encoding="utf-8")
+    else:
+        report_model["run_report_markdown_path"] = paths["markdown_path"]
+        report_model["run_report_html_path"] = paths["html_path"]
+        report_model["run_report_evidence_bundle_path"] = paths["evidence_bundle_path"]
+        report_model["business_report_markdown_path"] = ""
+        report_model["business_report_html_path"] = ""
+        report_model["business_report_evidence_bundle_path"] = ""
+
+    if story_type == "report_generation" and str(frame.get("state", "")).startswith("FAILED"):
+        report_model["output_title"] = "Run report"
+        report_model["output_text"] = "No business report artifact was found for this run."
+        report_model["output_bullets"] = ["No business report artifact was found for this run."]
+        report_model["approval_text"] = "No approval action was created because the workflow stopped safely."
+
+    markdown = render_demo_run_report_markdown(report_model)
+    html_doc = render_demo_run_report_html(report_model)
+    evidence_bundle = _build_demo_evidence_bundle(runtime_root, report_model, frame, outputs, audit, paths)
+    markdown_path = Path(paths["markdown_path"])
+    html_path = Path(paths["html_path"])
+    evidence_path = Path(paths["evidence_bundle_path"])
+    ensure_dir(markdown_path.parent)
+    ensure_dir(evidence_path.parent)
+    markdown_path.write_text(markdown, encoding="utf-8")
+    html_path.write_text(html_doc, encoding="utf-8")
+    write_json_atomic(evidence_path, evidence_bundle)
+
+    return {
+        "ok": True,
+        "frame_id": frame_id,
+        "report_type": "demo_run_report",
+        "scenario_id": _string(scenario_data.get("id")),
+        "scenario_label": _string(scenario_data.get("label")),
+        "story_type": story_type,
+        "markdown_path": str(markdown_path),
+        "html_path": str(html_path),
+        "evidence_bundle_path": str(evidence_path),
+        "run_report_markdown_path": str(markdown_path),
+        "run_report_html_path": str(html_path),
+        "run_report_evidence_bundle_path": str(evidence_path),
+        "business_report_markdown_path": str(business_markdown_path),
+        "business_report_html_path": str(business_html_path),
+        "business_report_evidence_bundle_path": str(business_evidence_path),
+        "generated_at": report_model.get("generated_at", utc_now()),
+        "report_model": report_model,
+        "error": "",
+    }
+
+
+def build_step_report_items(frame: dict) -> list[dict]:
+    frame = frame if isinstance(frame, dict) else {}
+    outputs = frame.get("outputs", {}) if isinstance(frame.get("outputs", {}), dict) else {}
+    story_type = _detect_demo_story_type({}, frame, outputs)
+    return _build_step_report_items(frame, outputs, story_type)
+
+
+def render_demo_run_report_markdown(report_model: dict) -> str:
+    report_model = report_model if isinstance(report_model, dict) else {}
+    lines = [
+        "# Autonomous Business Worker Demo Report",
+        "",
+        "## Report Header",
+        "",
+        "| Field | Value |",
+        "|---|---|",
+        f"| Scenario | {report_model.get('scenario_label', '')} |",
+        f"| Manifest | {report_model.get('manifest_id', '')} |",
+        f"| Frame ID | {report_model.get('frame_id', '')} |",
+        f"| Run status | {report_model.get('state', '')} |",
+        f"| Generated at | {report_model.get('generated_at', '')} |",
+        f"| Demo mode | {report_model.get('demo_mode', 'Dry run')} |",
+        f"| Badge | {report_model.get('status_badge', '')} |",
+        "",
+        "## Plain-English Summary",
+        "",
+        report_model.get("plain_summary", "No summary available."),
+        "",
+        "## Manifest Step Timeline",
+        "",
+    ]
+    for item in report_model.get("step_items", []):
+        if not isinstance(item, dict):
+            continue
+        lines.extend(
+            [
+                f"### Step {item.get('index', '')}: {item.get('title', '')}",
+                f"- Step ID: {item.get('step_id', '')}",
+                f"- Status: {item.get('status_label', item.get('status', ''))}",
+                f"- Command: {item.get('command', '')}",
+                f"- Output alias: {item.get('output_alias', '')}",
+                f"- Result: {item.get('result_text', '')}",
+                f"- Input values used: {item.get('inputs_text', '')}",
+                f"- Tool call result: {item.get('tool_text', '') or 'Not recorded'}",
+                f"- LLM call result: {item.get('llm_text', '') or 'Not recorded'}",
+                f"- Validation: {item.get('validation_text', 'Not recorded')}",
+                f"- Evidence: {item.get('evidence_text', 'Not recorded')}",
+                f"- Errors: {item.get('error_text', '') or 'None'}",
+                f"- Reason: {item.get('reason', '') or 'None'}",
+                f"- Safe outcome: {item.get('safe_outcome', '') or 'None'}",
+                "",
+            ]
+        )
+    lines.extend([
+        "## Outputs",
+        "",
+        f"### {report_model.get('output_title', 'Final Output')}",
+        "",
+        report_model.get("output_text", "No output available."),
+    ])
+    for bullet in report_model.get("output_bullets", []):
+        lines.append(f"- {bullet}")
+    lines.extend(
+        [
+            "",
+            "```json",
+            render_json_block(report_model.get("output_raw", {})),
+            "```",
+            "",
+            "## Approval / Pending Actions",
+            "",
+            report_model.get("approval_text", "No pending approval action for this run."),
+        ]
+    )
+    for item in report_model.get("pending_actions", []):
+        if isinstance(item, dict):
+            lines.extend(
+                [
+                    "",
+                    f"- Action: {item.get('action', '')}",
+                    f"  Status: {item.get('status', '')}",
+                    f"  Risk: {item.get('risk', '')}",
+                    f"  Dry-run mode: {item.get('dry_run', 'Yes')}",
+                    f"  Prepared message: {item.get('body', '')}",
+                ]
+            )
+    lines.extend(
+        [
+            "",
+            "## Evidence",
+            "",
+            report_model.get("evidence_text", "No evidence details available."),
+        ]
+    )
+    for item in report_model.get("evidence_items", []):
+        lines.append(f"- {item}")
+    lines.extend(
+        [
+            "",
+            f"- Evidence bundle JSON: {report_model.get('evidence_bundle_path', '')}",
+            "",
+            "## Technical Appendix",
+            "",
+            "<details>",
+            "<summary>View technical appendix</summary>",
+            "",
+            "### Full TaskFrame Summary",
+            "```json",
+            render_json_block(report_model.get("taskframe_summary", {})),
+            "```",
+            "",
+            "### Raw TaskFrame",
+            "```json",
+            render_json_block(report_model.get("raw_frame", {})),
+            "```",
+            "",
+            "### Raw Outputs",
+            "```json",
+            render_json_block(report_model.get("raw_outputs", {})),
+            "```",
+            "",
+            "### Raw Audit Events",
+            "```json",
+            render_json_block(report_model.get("raw_audit", [])),
+            "```",
+            "",
+            "</details>",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def render_demo_run_report_html(report_model: dict) -> str:
+    report_model = report_model if isinstance(report_model, dict) else {}
+    step_cards = []
+    for item in report_model.get("step_items", []):
+        if not isinstance(item, dict):
+            continue
+        step_cards.append(
+            f"""
+            <article class="step-card status-{html.escape(str(item.get('status_class', 'pending')))}">
+              <div class="step-head">
+                <div>
+                  <div class="step-title">Step {html.escape(str(item.get('index', '')))}: {html.escape(str(item.get('title', '')))}</div>
+                  <div class="step-meta">Step ID: {html.escape(str(item.get('step_id', '')))} | Command: {html.escape(str(item.get('command', '')))}</div>
+                </div>
+                <span class="badge badge-{html.escape(str(item.get('badge_class', 'muted')))}">{html.escape(str(item.get('status_label', item.get('status', ''))))}</span>
+              </div>
+              <div class="step-grid">
+                <div><strong>Output alias</strong><div class="mono">{html.escape(str(item.get('output_alias', '')))}</div></div>
+                <div><strong>Result</strong><div>{html.escape(str(item.get('result_text', '')))}</div></div>
+                <div><strong>Input values used</strong><div><pre>{html.escape(str(item.get('inputs_text', '')))}</pre></div></div>
+                <div><strong>Tool call result</strong><div>{html.escape(str(item.get('tool_text', 'Not recorded') or 'Not recorded'))}</div></div>
+                <div><strong>LLM call result</strong><div>{html.escape(str(item.get('llm_text', 'Not recorded') or 'Not recorded'))}</div></div>
+                <div><strong>Validation</strong><div>{html.escape(str(item.get('validation_text', 'Not recorded')))}</div></div>
+                <div><strong>Evidence</strong><div>{html.escape(str(item.get('evidence_text', 'Not recorded')))}</div></div>
+                <div><strong>Errors</strong><div>{html.escape(str(item.get('error_text', 'None') or 'None'))}</div></div>
+                <div><strong>Reason</strong><div>{html.escape(str(item.get('reason', 'None') or 'None'))}</div></div>
+                <div><strong>Safe outcome</strong><div>{html.escape(str(item.get('safe_outcome', 'None') or 'None'))}</div></div>
+              </div>
+              <details>
+                <summary>View raw step result</summary>
+                <div class="subcard">
+                  <div><strong>Step ID:</strong> {html.escape(str(item.get('step_id', '')))}</div>
+                  <div><strong>Runtime status:</strong> {html.escape(str(item.get('status', '')))}</div>
+                  <div><strong>Command:</strong> {html.escape(str(item.get('command', '')))}</div>
+                  <div><strong>Input values used:</strong> <pre>{html.escape(str(item.get('inputs_text', '')))}</pre></div>
+                  <div><strong>Output alias:</strong> {html.escape(str(item.get('output_alias', '')))}</div>
+                  <div><strong>Output value:</strong> <pre>{html.escape(render_json_block(item.get('output', {})))}</pre></div>
+                  <div><strong>Tool calls:</strong> <pre>{html.escape(render_json_block(item.get('tool_calls', [])))}</pre></div>
+                  <div><strong>LLM calls:</strong> <pre>{html.escape(render_json_block(item.get('llm_calls', [])))}</pre></div>
+                  <div><strong>Validations:</strong> <pre>{html.escape(render_json_block(item.get('validations', [])))}</pre></div>
+                  <div><strong>Errors:</strong> <pre>{html.escape(render_json_block(item.get('error_text', '')))}</pre></div>
+                  <div><strong>Evidence references:</strong> <pre>{html.escape(render_json_block(item.get('evidence', [])))}</pre></div>
+                  <div><strong>Raw step result:</strong> <pre>{html.escape(render_json_block(item.get('raw_step', {})))}</pre></div>
+                </div>
+              </details>
+            </article>
+            """
+        )
+
+    output_raw = html.escape(render_json_block(report_model.get("output_raw", {})))
+    taskframe_summary = html.escape(render_json_block(report_model.get("taskframe_summary", {})))
+    raw_frame = html.escape(render_json_block(report_model.get("raw_frame", {})))
+    raw_outputs = html.escape(render_json_block(report_model.get("raw_outputs", {})))
+    raw_audit = html.escape(render_json_block(report_model.get("raw_audit", [])))
+    pending_actions = report_model.get("pending_actions", [])
+    evidence_items = report_model.get("evidence_items", [])
+
+    pending_html = ""
+    if pending_actions:
+        pending_rows = []
+        for item in pending_actions:
+            if isinstance(item, dict):
+                pending_rows.append(
+                    f"""
+                    <div class="subcard">
+                      <div><strong>Action:</strong> {html.escape(str(item.get('action', '')))}</div>
+                      <div><strong>Status:</strong> {html.escape(str(item.get('status', '')))}</div>
+                      <div><strong>Risk:</strong> {html.escape(str(item.get('risk', '')))}</div>
+                      <div><strong>Dry-run mode:</strong> {html.escape(str(item.get('dry_run', 'Yes')))}</div>
+                      <div><strong>Prepared message:</strong> {html.escape(str(item.get('body', '')))}</div>
+                    </div>
+                    """
+                )
+        pending_html = "".join(pending_rows)
+    else:
+        pending_html = f"<div class=\"muted\">{html.escape(str(report_model.get('approval_text', 'No pending approval action for this run.')))}</div>"
+
+    evidence_html = "".join(f"<li>{html.escape(str(item))}</li>" for item in evidence_items) or "<li>No evidence details available.</li>"
+
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autonomous Business Worker Demo Report</title>
+<style>
+  :root {{
+    --bg: #eef1f5;
+    --card: #ffffff;
+    --text: #111827;
+    --muted: #5b6472;
+    --border: #d8dee6;
+    --success: #0f766e;
+    --success-bg: #d1fae5;
+    --warning: #a16207;
+    --warning-bg: #fef3c7;
+    --danger: #b91c1c;
+    --danger-bg: #fee2e2;
+    --pending: #334155;
+    --pending-bg: #e2e8f0;
+  }}
+  body {{ margin: 0; background: var(--bg); color: var(--text); font-family: Arial, Helvetica, sans-serif; }}
+  .wrap {{ max-width: 1180px; margin: 0 auto; padding: 28px; }}
+  h1 {{ margin: 0 0 8px; font-size: 34px; letter-spacing: -0.02em; }}
+  h2 {{ margin: 0 0 14px; font-size: 22px; }}
+  h3 {{ margin: 0 0 10px; font-size: 18px; }}
+  .card {{ background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05); margin-bottom: 16px; }}
+  .grid {{ display: grid; gap: 16px; }}
+  .header-grid {{ grid-template-columns: 1.5fr .9fr; align-items: start; }}
+  .meta {{ color: var(--muted); font-size: 14px; line-height: 1.5; }}
+  .badge {{ display: inline-block; border-radius: 999px; padding: 8px 12px; font-weight: 700; font-size: 13px; }}
+  .badge-success {{ color: var(--success); background: var(--success-bg); }}
+  .badge-warning {{ color: var(--warning); background: var(--warning-bg); }}
+  .badge-danger {{ color: var(--danger); background: var(--danger-bg); }}
+  .badge-pending {{ color: var(--pending); background: var(--pending-bg); }}
+  .summary {{ font-size: 17px; line-height: 1.65; }}
+  .step-card {{ border-left: 6px solid var(--border); padding-left: 16px; }}
+  .status-completed {{ border-left-color: var(--success); }}
+  .status-failed {{ border-left-color: var(--danger); }}
+  .status-pending {{ border-left-color: var(--warning); }}
+  .status-notreached {{ border-left-color: #94a3b8; }}
+  .step-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }}
+  .step-title {{ font-size: 18px; font-weight: 700; }}
+  .step-meta {{ color: var(--muted); font-size: 13px; margin-top: 4px; }}
+  .step-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; font-size: 14px; }}
+  .step-grid strong {{ display: block; margin-bottom: 4px; }}
+  .mono, pre {{ font-family: Consolas, 'Courier New', monospace; }}
+  pre {{ background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 14px; overflow: auto; white-space: pre-wrap; word-break: break-word; }}
+  details {{ margin-top: 12px; }}
+  details > summary {{ cursor: pointer; font-weight: 700; }}
+  .subcard {{ border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 10px; background: #fafbfc; }}
+  .muted {{ color: var(--muted); }}
+  ul {{ margin: 8px 0 0 20px; }}
+  .two-col {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }}
+  .section-label {{ text-transform: uppercase; letter-spacing: .06em; font-size: 12px; color: var(--muted); margin-bottom: 4px; }}
+  @media (max-width: 900px) {{
+    .header-grid, .two-col, .step-grid {{ grid-template-columns: 1fr; }}
+  }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="grid header-grid">
+      <div>
+        <h1>Autonomous Business Worker Demo Report</h1>
+        <div class="meta">
+          <div><strong>Scenario:</strong> {html.escape(str(report_model.get('scenario_label', '')))}</div>
+          <div><strong>Manifest:</strong> {html.escape(str(report_model.get('manifest_id', '')))}</div>
+          <div><strong>Frame ID:</strong> {html.escape(str(report_model.get('frame_id', '')))}</div>
+          <div><strong>Generated at:</strong> {html.escape(str(report_model.get('generated_at', '')))}</div>
+          <div><strong>Demo mode:</strong> {html.escape(str(report_model.get('demo_mode', 'Dry run')))}</div>
+          <div><strong>Evidence bundle:</strong> <span class="mono">{html.escape(str(report_model.get('evidence_bundle_path', '')))}</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-label">Run status</div>
+        <div class="badge badge-{html.escape(str(report_model.get('badge_class', 'pending')))}">{html.escape(str(report_model.get('status_badge', 'Awaiting approval')))}</div>
+        <div class="meta" style="margin-top: 12px;">{html.escape(str(report_model.get('state', '')))}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Plain-English Summary</div>
+    <div class="summary">{html.escape(str(report_model.get('plain_summary', 'No summary available.')))}</div>
+  </div>
+
+  <div class="card">
+    <h2>Manifest Step Timeline</h2>
+    {''.join(step_cards)}
+  </div>
+
+  <div class="card">
+    <h2>Outputs</h2>
+    <div class="two-col">
+      <div>
+        <h3>{html.escape(str(report_model.get('output_title', 'Final Output')))}</h3>
+        <div class="summary">{html.escape(str(report_model.get('output_text', 'No output available.')))}</div>
+        <ul>{''.join(f'<li>{html.escape(str(item))}</li>' for item in report_model.get('output_bullets', []))}</ul>
+      </div>
+      <div>
+        <h3>Raw output dictionary</h3>
+        <pre>{output_raw}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Approval / Pending Actions</h2>
+    {pending_html}
+  </div>
+
+  <div class="card">
+    <h2>Evidence</h2>
+    <div class="summary">{html.escape(str(report_model.get('evidence_text', 'No evidence details available.')))}</div>
+    <ul>{evidence_html}</ul>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Technical appendix</summary>
+      <div class="two-col" style="margin-top: 14px;">
+        <div>
+          <h3>TaskFrame summary</h3>
+          <pre>{taskframe_summary}</pre>
+        </div>
+        <div>
+          <h3>Raw TaskFrame</h3>
+          <pre>{raw_frame}</pre>
+        </div>
+        <div>
+          <h3>Raw outputs</h3>
+          <pre>{raw_outputs}</pre>
+        </div>
+        <div>
+          <h3>Raw audit events</h3>
+          <pre>{raw_audit}</pre>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+</body>
+</html>"""
+
+
+def render_demo_business_report_markdown(report_model: dict, paths: dict[str, str]) -> str:
+    report_model = report_model if isinstance(report_model, dict) else {}
+    lines = [
+        "# Business Report",
+        "",
+        "## Report Header",
+        "",
+        "| Field | Value |",
+        "|---|---|",
+        f"| Scenario | {report_model.get('scenario_label', '')} |",
+        f"| Manifest | {report_model.get('manifest_id', '')} |",
+        f"| Frame ID | {report_model.get('frame_id', '')} |",
+        f"| Generated at | {report_model.get('generated_at', '')} |",
+        f"| Business report HTML | {paths.get('html_path', '')} |",
+        f"| Markdown report | {paths.get('markdown_path', '')} |",
+        f"| Evidence bundle | {paths.get('evidence_bundle_path', '')} |",
+        "",
+        "## Plain-English Summary",
+        "",
+        _business_report_summary(report_model),
+        "",
+        "## Business Report Artifact",
+        "",
+        f"Business report generated",
+        "",
+        f"File: {paths.get('html_path', '')}",
+        "",
+        "Also created:",
+        "- Markdown report",
+        "- Evidence bundle",
+        "",
+        "## Report Details",
+        "",
+        f"- Final state: {report_model.get('state', '')}",
+        f"- Status badge: {report_model.get('status_badge', '')}",
+        f"- Output: {report_model.get('output_text', '')}",
+        "",
+        "## Technical Appendix",
+        "",
+        "<details>",
+        "<summary>View business report source data</summary>",
+        "",
+        "### TaskFrame Summary",
+        "```json",
+        render_json_block(report_model.get("taskframe_summary", {})),
+        "```",
+        "",
+        "### Outputs",
+        "```json",
+        render_json_block(report_model.get("raw_outputs", {})),
+        "```",
+        "",
+        "</details>",
+    ]
+    return "\n".join(lines)
+
+
+def render_demo_business_report_html(report_model: dict, paths: dict[str, str]) -> str:
+    report_model = report_model if isinstance(report_model, dict) else {}
+    summary = html.escape(_business_report_summary(report_model))
+    artifact_name = html.escape(Path(paths.get("html_path", "")).name)
+    markdown_name = html.escape(Path(paths.get("markdown_path", "")).name)
+    evidence_name = html.escape(Path(paths.get("evidence_bundle_path", "")).name)
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Business Report</title>
+<style>
+  body {{ margin: 0; background: #eef1f5; color: #111827; font-family: Arial, Helvetica, sans-serif; }}
+  .wrap {{ max-width: 1080px; margin: 0 auto; padding: 28px; }}
+  .card {{ background: #fff; border: 1px solid #d8dee6; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(15,23,42,.05); }}
+  h1 {{ margin: 0 0 8px; font-size: 34px; }}
+  h2 {{ margin: 0 0 12px; font-size: 22px; }}
+  .meta {{ color: #5b6472; line-height: 1.6; }}
+  .badge {{ display: inline-block; border-radius: 999px; padding: 8px 12px; background: #d1fae5; color: #0f766e; font-weight: 700; }}
+  .mono, pre {{ font-family: Consolas, 'Courier New', monospace; }}
+  pre {{ background: #f8fafc; border: 1px solid #d8dee6; border-radius: 12px; padding: 14px; overflow: auto; white-space: pre-wrap; }}
+  details > summary {{ cursor: pointer; font-weight: 700; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Business Report generated</h1>
+    <div class="badge">Business report generated</div>
+    <div class="meta" style="margin-top: 14px;">
+      <div><strong>Scenario:</strong> {html.escape(str(report_model.get('scenario_label', '')))}</div>
+      <div><strong>Manifest:</strong> {html.escape(str(report_model.get('manifest_id', '')))}</div>
+      <div><strong>Frame ID:</strong> {html.escape(str(report_model.get('frame_id', '')))}</div>
+      <div><strong>Generated at:</strong> {html.escape(str(report_model.get('generated_at', '')))}</div>
+      <div><strong>File:</strong> <span class="mono">{artifact_name}</span></div>
+      <div><strong>Markdown report:</strong> <span class="mono">{markdown_name}</span></div>
+      <div><strong>Evidence bundle:</strong> <span class="mono">{evidence_name}</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Plain-English Summary</h2>
+    <div class="meta">{html.escape(summary)}</div>
+  </div>
+  <div class="card">
+    <h2>Artifact Details</h2>
+    <div class="meta">
+      <div><strong>Business report generated</strong></div>
+      <div>File: <span class="mono">{html.escape(str(paths.get('html_path', '')))}</span></div>
+      <div style="margin-top: 10px;">Also created:</div>
+      <ul>
+        <li>Markdown report</li>
+        <li>Evidence bundle</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card">
+    <details>
+      <summary>Technical appendix</summary>
+      <div style="margin-top: 14px;">
+        <h2>TaskFrame summary</h2>
+        <pre>{html.escape(render_json_block(report_model.get('taskframe_summary', {})))}</pre>
+        <h2>Raw outputs</h2>
+        <pre>{html.escape(render_json_block(report_model.get('raw_outputs', {})))}</pre>
+      </div>
+    </details>
+  </div>
+</div>
+</body>
+</html>"""
+
+
+def _build_demo_run_report_model(runtime_root: Path, frame: dict, outputs: dict, audit: list, scenario: dict, story_type: str) -> dict[str, Any]:
+    state = _string(frame.get("state"))
+    frame_id = _string(frame.get("frame_id"))
+    scenario_label = _string(scenario.get("label") or scenario.get("name") or scenario.get("title") or frame.get("scenario_title") or frame.get("manifest_name") or frame.get("manifest_id") or "Selected demo")
+    scenario_id = _string(scenario.get("id") or scenario.get("scenario_id"))
+    manifest_id = _string(frame.get("manifest_id"))
+    step_items = _build_step_report_items(frame, outputs, story_type)
+    paths = get_demo_run_report_paths(runtime_root, frame_id)
+    status_badge, badge_class = _status_badge(state)
+    return {
+        "report_title": "Autonomous Business Worker Demo Report",
+        "scenario_id": scenario_id,
+        "scenario_label": scenario_label,
+        "scenario_type": story_type,
+        "manifest_id": manifest_id,
+        "frame_id": frame_id,
+        "state": state,
+        "status_badge": status_badge,
+        "badge_class": badge_class,
+        "generated_at": utc_now(),
+        "demo_mode": "Dry run",
+        "plain_summary": _plain_summary(story_type, state, frame, outputs, step_items),
+        "step_items": step_items,
+        "output_title": _output_title(story_type, state),
+        "output_text": _output_text(story_type, state, frame, outputs, paths, step_items),
+        "output_bullets": _output_bullets(story_type, state, frame, outputs, step_items, paths),
+        "output_raw": outputs,
+        "approval_text": _approval_text(story_type, state, frame),
+        "pending_actions": _pending_actions_for_report(frame),
+        "evidence_text": _evidence_text(story_type, state, frame, outputs, step_items, audit),
+        "evidence_items": _evidence_items(story_type, state, frame, outputs, step_items, audit),
+        "taskframe_summary": _demo_taskframe_summary(frame),
+        "raw_frame": frame,
+        "raw_outputs": outputs,
+        "raw_audit": audit,
+        "evidence_bundle_path": paths["evidence_bundle_path"],
+        "run_report_markdown_path": paths["markdown_path"],
+        "run_report_html_path": paths["html_path"],
+        "run_report_evidence_bundle_path": paths["evidence_bundle_path"],
+        "business_report_markdown_path": "",
+        "business_report_html_path": "",
+        "business_report_evidence_bundle_path": "",
+    }
+
+
+def _business_report_summary(report_model: dict) -> str:
+    report_model = report_model if isinstance(report_model, dict) else {}
+    if str(report_model.get("state", "")).startswith("FAILED"):
+        return "No business report artifact was found for this run."
+    if _string(report_model.get("scenario_type")) == "report_generation":
+        return "The worker generated a business report from the selected source data and prepared audit evidence for review."
+    return "The worker generated a run report for this demo run."
+
+
+def _build_demo_evidence_bundle(runtime_root: Path, report_model: dict, frame: dict, outputs: dict, audit: list, paths: dict[str, str]) -> dict[str, Any]:
+    frame_id = str(report_model.get("frame_id", ""))
+    return {
+        "bundle_version": 1,
+        "report_version": DEMO_REPORT_VERSION,
+        "generated_at": report_model.get("generated_at", utc_now()),
+        "frame_id": frame_id,
+        "scenario_id": report_model.get("scenario_id", ""),
+        "scenario_label": report_model.get("scenario_label", ""),
+        "scenario_type": report_model.get("scenario_type", ""),
+        "manifest_id": report_model.get("manifest_id", ""),
+        "state": report_model.get("state", ""),
+        "taskframe_path": str(runtime_root / "runs" / frame_id / "taskframe.json"),
+        "outputs_path": str(runtime_root / "runs" / frame_id / "outputs.json"),
+        "audit_path": str(runtime_root / "runs" / frame_id / "audit.json"),
+        "run_report_markdown_path": str(runtime_root / "outputs" / "reports" / f"{frame_id}_run_report.md"),
+        "run_report_html_path": str(runtime_root / "outputs" / "reports" / f"{frame_id}_run_report.html"),
+        "evidence_bundle_path": report_model.get("evidence_bundle_path", ""),
+        "taskframe_summary": report_model.get("taskframe_summary", {}),
+        "taskframe": frame,
+        "outputs": outputs,
+        "audit": audit,
+        "step_items": report_model.get("step_items", []),
+        "plain_summary": report_model.get("plain_summary", ""),
+    }
+
+
+def _build_step_report_items(frame: dict, outputs: dict, story_type: str) -> list[dict[str, Any]]:
+    steps = frame.get("steps", []) if isinstance(frame.get("steps", []), list) else []
+    validations = frame.get("validations", []) if isinstance(frame.get("validations", []), list) else []
+    evidence = frame.get("evidence", []) if isinstance(frame.get("evidence", []), list) else []
+    tool_calls = frame.get("tool_calls", []) if isinstance(frame.get("tool_calls", []), list) else []
+    llm_calls = frame.get("llm_calls", []) if isinstance(frame.get("llm_calls", []), list) else []
+    failed_step_id = _failed_step_id(frame)
+    current_step_id = _string(frame.get("current_step_id"))
+    failed_step_index = _step_index_for_id(steps, failed_step_id)
+    current_step_index = _step_index_for_id(steps, current_step_id)
+    step_items: list[dict[str, Any]] = []
+    for index, step in enumerate(steps, start=1):
+        if not isinstance(step, dict):
+            continue
+        step_id = _string(step.get("step_id") or step.get("id"))
+        status = _normalize_step_status(step.get("status"), index, failed_step_index, current_step_index)
+        status_label, badge_class = _status_badge_for_step(status)
+        title = _step_title_for_story_type(story_type, step_id, index)
+        output_alias = _string(step.get("output_alias") or step.get("result_ref"))
+        output_value = outputs.get(output_alias) if output_alias and isinstance(outputs, dict) else outputs.get(step_id) if isinstance(outputs, dict) else None
+        step_items.append(
+            {
+                "index": index,
+                "step_id": step_id,
+                "title": title,
+                "status": status,
+                "status_label": status_label,
+                "status_class": _status_class(status),
+                "badge_class": badge_class,
+                "command": _string(step.get("command")),
+                "output_alias": output_alias,
+                "output": output_value,
+                "result_text": _step_result_text(output_value, status, story_type),
+                "inputs_text": render_json_block(frame.get("inputs", {})),
+                "validation_text": _joined_records(_records_for_step(validations, step_id), "message"),
+                "tool_text": _joined_records(_records_for_step(tool_calls, step_id), "tool"),
+                "llm_text": _joined_records(_records_for_step(llm_calls, step_id), "action"),
+                "evidence_text": _evidence_summary_text(_records_for_step(evidence, step_id)),
+                "error_text": _string(step.get("error") or step.get("last_error") or ""),
+                "reason": _step_reason(status, step, story_type, index, failed_step_id, current_step_id),
+                "safe_outcome": _safe_outcome(status, story_type),
+                "raw_step": step,
+                "validations": _records_for_step(validations, step_id),
+                "tool_calls": _records_for_step(tool_calls, step_id),
+                "llm_calls": _records_for_step(llm_calls, step_id),
+                "evidence": _records_for_step(evidence, step_id),
+                "audit_events": [],
+            }
+        )
+    return step_items
+
+
+def _detect_demo_story_type(scenario: dict, frame: dict, outputs: dict) -> str:
+    scenario = scenario if isinstance(scenario, dict) else {}
+    frame = frame if isinstance(frame, dict) else {}
+    outputs = outputs if isinstance(outputs, dict) else {}
+    for candidate in (
+        scenario.get("scenario_type"),
+        scenario.get("story_type"),
+        scenario.get("type"),
+        scenario.get("category"),
+        scenario.get("id"),
+        scenario.get("label"),
+        scenario.get("name"),
+        scenario.get("description"),
+        frame.get("scenario_type"),
+        frame.get("manifest_id"),
+        frame.get("scenario_id"),
+        outputs,
+    ):
+        story_type = _story_type_from_value(candidate)
+        if story_type != "unknown":
+            return story_type
+    return "unknown"
+
+
+def _story_type_from_value(value: object) -> str:
+    text = _string(value).lower()
+    if not text:
+        return "unknown"
+    if any(token in text for token in ("report_generation", "report generation", "generate report", "reporting", "run report", "evidence bundle", "html_path", "markdown_path", "report_artifact", "report artifact", "run_report", "evidence_pack", "evidence pack")):
+        return "report_generation"
+    if any(token in text for token in ("procurement", "supplier", "reorder", "low stock", "stock", "purchase order", "po_", "supplier_message")):
+        return "procurement"
+    if any(token in text for token in ("accounting", "reconciliation", "ledger", "invoice", "payments_sheet", "recon_", "sheet write")):
+        return "accounting"
+    if any(token in text for token in ("customer", "order", "shipment", "reply", "status", "message_status", "customer_status", "draft_reply")):
+        return "customer_status"
+    return "unknown"
+
+
+def _build_demo_report_paths(runtime_root: Path, frame_id: str) -> dict[str, str]:
+    return get_demo_run_report_paths(runtime_root, frame_id)
+
+
+def _read_json_dict(path: Path, fallback: object) -> dict[str, Any]:
+    if path.is_file():
+        try:
+            data = read_json(path)
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            pass
+    return fallback if isinstance(fallback, dict) else {}
+
+
+def _read_json_list(path: Path, fallback: object) -> list[Any]:
+    if path.is_file():
+        try:
+            data = read_json(path)
+            return data if isinstance(data, list) else []
+        except Exception:
+            pass
+    return fallback if isinstance(fallback, list) else []
+
+
+def _status_badge(state: str) -> tuple[str, str]:
+    state = state.upper()
+    if state == "COMPLETED":
+        return "Completed", "success"
+    if state == "WAITING_FOR_EXECUTE":
+        return "Awaiting approval", "warning"
+    if state.startswith("FAILED"):
+        return "Stopped safely", "danger"
+    if state == "RUNNING":
+        return "In progress", "pending"
+    if state == "READY":
+        return "Ready", "pending"
+    if state in {"WAITING_FOR_INPUT", "EXECUTING_PENDING", "VERIFYING"}:
+        return "In progress", "pending"
+    return "In progress", "pending"
+
+
+def _status_class(status: str) -> str:
+    status = status.upper()
+    if status == "COMPLETED":
+        return "completed"
+    if status.startswith("FAILED"):
+        return "failed"
+    if status in {"SKIPPED", "NOT_REACHED"}:
+        return "notreached"
+    return "pending"
+
+
+def _status_badge_for_step(status: str) -> tuple[str, str]:
+    status = status.upper()
+    if status == "COMPLETED":
+        return "Completed", "success"
+    if status.startswith("FAILED"):
+        return "Failed", "danger"
+    if status in {"SKIPPED", "NOT_REACHED"}:
+        return "Not reached", "pending"
+    return "Pending", "warning"
+
+
+def _normalize_step_status(status: object, index: int, failed_step_index: int, current_step_index: int) -> str:
+    value = _string(status).upper()
+    if value in {"COMPLETED", "FAILED", "FAILED_VALIDATION", "FAILED_EXECUTION", "FAILED_COMPLETION", "SKIPPED"}:
+        return value
+    if failed_step_index and index > failed_step_index:
+        return "NOT_REACHED"
+    if current_step_index and index > current_step_index:
+        return "NOT_REACHED"
+    return "PENDING"
+
+
+def _failed_step_id(frame: dict) -> str:
+    for step in frame.get("steps", []) if isinstance(frame.get("steps", []), list) else []:
+        if isinstance(step, dict) and _string(step.get("status")).upper().startswith("FAILED"):
+            return _string(step.get("step_id") or step.get("id"))
+    return ""
+
+
+def _step_index_for_id(steps: list, step_id: str) -> int:
+    if not step_id:
+        return 0
+    for index, step in enumerate(steps, start=1):
+        if isinstance(step, dict) and _string(step.get("step_id") or step.get("id")) == step_id:
+            return index
+    return 0
+
+
+def _step_title_for_story_type(story_type: str, step_id: str, index: int) -> str:
+    if story_type == "report_generation":
+        titles = [
+            "Read business data",
+            "Checked source records",
+            "Built report summary",
+            "Generated report artifact",
+            "Prepared evidence pack",
+        ]
+        if 1 <= index <= len(titles):
+            return titles[index - 1]
+        return f"Report step {index}"
+    mapping = {
+        "customer_status": {
+            "extract_order_ref": "Extract order reference",
+            "classify_customer_message": "Classify the customer request",
+            "validate_order_ref": "Validate the order reference",
+            "lookup_customer": "Check customer record",
+            "lookup_order": "Check order record",
+            "read_payment": "Check payment record",
+            "lookup_shipment": "Check shipment record",
+            "build_order_context": "Build order context",
+            "draft_reply": "Prepare customer reply",
+            "draft_customer_status_reply": "Prepare customer reply",
+            "validate_reply": "Validate reply against business facts",
+            "validate_draft_reply": "Validate reply against business facts",
+        },
+        "procurement": {
+            "read_inventory": "Read inventory data",
+            "find_low_stock": "Find low-stock items",
+            "compare_suppliers": "Compare supplier options",
+            "draft_po": "Draft purchase order",
+            "draft_supplier_message": "Prepare supplier message",
+            "prepare_pending_send": "Stage supplier message for approval",
+        },
+        "accounting": {
+            "read_sheets": "Read accounting sheets",
+            "load_payments": "Read payment records",
+            "load_orders": "Read order records",
+            "load_invoices": "Read invoice records",
+            "load_ledger": "Read ledger records",
+            "reconcile": "Reconcile accounting records",
+            "draft_reconciliation_exception_summary": "Draft exception summary",
+            "build_recon_sheet_rows": "Prepare reconciliation sheet rows",
+        },
+    }
+    if step_id in mapping.get(story_type, {}):
+        return mapping[story_type][step_id]
+    return _humanize_identifier(step_id or f"step_{index}")
+
+
+def _humanize_identifier(value: str) -> str:
+    value = _string(value).replace("_", " ").replace("-", " ")
+    if not value:
+        return "Step"
+    return value[:1].upper() + value[1:]
+
+
+def _joined_records(records: list[dict], key: str, default: str = "") -> str:
+    if not records:
+        return default
+    values = []
+    for item in records:
+        if isinstance(item, dict):
+            if key == "message" and item.get("message"):
+                values.append(_string(item.get("message")))
+            elif key == "tool" and item.get("tool"):
+                values.append(_string(item.get("tool")))
+            elif key == "action" and item.get("action"):
+                values.append(_string(item.get("action")))
+            elif key == "step_id" and item.get("dataset"):
+                values.append(f"{_string(item.get('dataset'))}: {_string(item.get('found', ''))}")
+            elif item.get(key) is not None:
+                values.append(_string(item.get(key)))
+    return "; ".join(value for value in values if value) or default
+
+
+def _evidence_summary_text(records: list[dict]) -> str:
+    if not records:
+        return "Not recorded"
+    parts: list[str] = []
+    for item in records:
+        if not isinstance(item, dict):
+            continue
+        if item.get("dataset") is not None:
+            found = "found" if item.get("found") else "missing"
+            parts.append(f"{_string(item.get('dataset'))}: {found}")
+        elif item.get("source"):
+            parts.append(_string(item.get("source")))
+        elif item.get("message"):
+            parts.append(_string(item.get("message")))
+    return "; ".join(part for part in parts if part) or "Not recorded"
+
+
+def _records_for_step(records: list[dict], step_id: str) -> list[dict]:
+    if not records:
+        return []
+    matched = []
+    for item in records:
+        if not isinstance(item, dict):
+            continue
+        if _string(item.get("step_id")) == step_id:
+            matched.append(item)
+            continue
+        data_text = json.dumps(item, ensure_ascii=False, sort_keys=True)
+        if step_id and step_id in data_text:
+            matched.append(item)
+    return matched
+
+
+def _step_result_text(output_value: object, status: str, story_type: str) -> str:
+    if status.startswith("FAILED"):
+        return "Stopped safely."
+    if output_value in ({}, [], None, ""):
+        if story_type == "report_generation":
+            return "The report has not been generated yet."
+        return "No output recorded."
+    if isinstance(output_value, dict):
+        for key in ("body", "reply", "summary", "text", "message", "artifact", "html_path", "markdown_path", "evidence_bundle_path"):
+            if key in output_value and output_value.get(key):
+                return _string(output_value.get(key))
+        return json.dumps(output_value, ensure_ascii=False, sort_keys=True)
+    if isinstance(output_value, list):
+        return ", ".join(_string(item) for item in output_value)
+    return _string(output_value)
+
+
+def _step_reason(status: str, step: dict, story_type: str, index: int, failed_step_id: str, current_step_id: str) -> str:
+    if status.startswith("FAILED"):
+        return _string(step.get("error") or step.get("last_error") or "Validation failed.")
+    if status == "NOT_REACHED":
+        if story_type == "report_generation":
+            return "Selected demo is waiting to run."
+        if failed_step_id:
+            return "Previous validation failed."
+        return "Not reached."
+    if failed_step_id and current_step_id and index > 0:
+        return "Previous validation failed."
+    return ""
+
+
+def _safe_outcome(status: str, story_type: str) -> str:
+    if status.startswith("FAILED"):
+        if story_type == "report_generation":
+            return "No report was generated."
+        return "Workflow stopped safely before any message or side effect was sent."
+    if story_type == "report_generation":
+        return "Audit evidence was prepared for review."
+    return "The workflow completed safely."
+
+
+def _plain_summary(story_type: str, state: str, frame: dict, outputs: dict, step_items: list[dict]) -> str:
+    if story_type == "report_generation":
+        if state.startswith("FAILED"):
+            return "Worker stopped safely. No business report artifact was prepared."
+        return "The worker generated a business report from the selected source data and prepared audit evidence for review."
+    if story_type == "procurement":
+        if state.startswith("FAILED"):
+            return "Worker stopped safely before preparing procurement outputs."
+        return "The worker reviewed inventory, prepared procurement outputs, and staged the action for approval."
+    if story_type == "accounting":
+        if state.startswith("FAILED"):
+            return "Worker stopped safely during accounting validation."
+        return "The worker reconciled accounting records and prepared exception evidence for review."
+    if state.startswith("FAILED"):
+        return "Worker stopped safely. The worker stopped because required customer/order validation failed. No customer message was prepared or sent."
+    if any(item.get("status") == "PENDING" for item in step_items):
+        return "A customer asked about an order. The worker checked the customer, order, payment, and shipment records, then prepared a reply for approval."
+    return "The worker completed the customer workflow safely."
+
+
+def _output_title(story_type: str, state: str) -> str:
+    if story_type == "report_generation":
+        return "Business report generated"
+    if story_type == "procurement":
+        return "Prepared procurement action"
+    if story_type == "accounting":
+        return "Prepared reconciliation result"
+    if state.startswith("FAILED"):
+        return "Why the worker stopped"
+    return "Prepared reply"
+
+
+def _output_text(story_type: str, state: str, frame: dict, outputs: dict, paths: dict[str, str], step_items: list[dict]) -> str:
+    if story_type == "report_generation":
+        if state.startswith("FAILED"):
+            return "No business report artifact was found for this run."
+        return "\n".join(
+            [
+                "Business report generated",
+                f"File: {Path(paths['html_path']).name}",
+                "",
+                "Also created:",
+                "- Markdown report",
+                "- Evidence bundle",
+            ]
+        )
+    if state.startswith("FAILED"):
+        return "The worker could not safely answer this customer request."
+    if story_type == "procurement":
+        return "The worker prepared procurement outputs and audit evidence."
+    if story_type == "accounting":
+        return "The worker prepared reconciliation outputs and audit evidence."
+    reply = _string(_nested_lookup(outputs, ("draft_reply", "body")) or _nested_lookup(outputs, ("draft_reply", "reply")) or frame.get("final_response"))
+    if reply:
+        return reply
+    return "No customer reply was prepared."
+
+
+def _output_bullets(story_type: str, state: str, frame: dict, outputs: dict, step_items: list[dict], paths: dict[str, str]) -> list[str]:
+    if story_type == "report_generation":
+        return [
+            "Business report generated",
+            "Markdown report created",
+            "Evidence bundle created",
+            f"Report HTML: {Path(paths['html_path']).name}",
+        ]
+    if state.startswith("FAILED"):
+        return [
+            "Customer/order validation failed",
+            "No reply was prepared",
+            "No message was sent",
+        ]
+    facts = []
+    if outputs.get("order"):
+        facts.append("Order exists")
+    if outputs.get("customer"):
+        facts.append("Customer ownership verified")
+    if _nested_lookup(outputs, ("shipment", "status")):
+        facts.append(f"Shipment status: {_string(_nested_lookup(outputs, ('shipment', 'status')))}")
+    if _nested_lookup(outputs, ("order", "status")):
+        facts.append(f"Order status: {_string(_nested_lookup(outputs, ('order', 'status')))}")
+    if _nested_lookup(outputs, ("tracking_reference",)):
+        facts.append(f"Tracking reference: {_string(_nested_lookup(outputs, ('tracking_reference',)))}")
+    if not facts:
+        facts.append("Business facts checked")
+    return facts
+
+
+def _approval_text(story_type: str, state: str, frame: dict) -> str:
+    if state.startswith("FAILED"):
+        return "No approval action was created because the workflow stopped safely."
+    if frame.get("pending_actions"):
+        return "Pending approval action for this run."
+    if story_type == "report_generation":
+        return "No approval action was needed for the generated report."
+    return "No pending approval action for this run."
+
+
+def _pending_actions_for_report(frame: dict) -> list[dict[str, Any]]:
+    actions = frame.get("pending_actions", []) if isinstance(frame.get("pending_actions", []), list) else []
+    pending: list[dict[str, Any]] = []
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        pending.append(
+            {
+                "action": _string(action.get("action_type") or action.get("action") or action.get("human_summary")),
+                "status": _string(action.get("status")),
+                "risk": _string(action.get("risk_class") or action.get("risk") or ("Side effect, approval required" if action.get("status") == "PENDING_APPROVAL" else "")),
+                "dry_run": "Yes" if str(action.get("dry_run", "Yes")).lower() in {"yes", "true", "1"} else _string(action.get("dry_run")),
+                "body": _string(action.get("body") or action.get("message") or action.get("summary") or ""),
+            }
+        )
+    return pending
+
+
+def _evidence_text(story_type: str, state: str, frame: dict, outputs: dict, step_items: list[dict], audit: list) -> str:
+    if story_type == "report_generation":
+        return "The worker generated a business report artifact and evidence pack."
+    if state.startswith("FAILED"):
+        return "Validation checks stopped the workflow before any customer message was sent."
+    return "The worker used customer, order, shipment, payment, validation, and approval evidence."
+
+
+def _evidence_items(story_type: str, state: str, frame: dict, outputs: dict, step_items: list[dict], audit: list) -> list[str]:
+    items: list[str] = []
+    if story_type == "report_generation":
+        items.append("Report artifact: present")
+        items.append("Evidence pack: present")
+    elif state.startswith("FAILED"):
+        items.append("Customer validation: failed")
+        items.append("Order validation: failed")
+    else:
+        for label, key in (
+            ("Customer lookup", "customer"),
+            ("Order lookup", "order"),
+            ("Shipment lookup", "shipment"),
+            ("Payment lookup", "payment"),
+        ):
+            items.append(f"{label}: {'found' if outputs.get(key) else 'missing'}")
+    passed = sum(1 for item in frame.get("validations", []) if isinstance(item, dict) and item.get("ok"))
+    failed = sum(1 for item in frame.get("validations", []) if isinstance(item, dict) and item.get("ok") is False)
+    items.append(f"Validation checks: {passed} pass / {failed} fail")
+    return items
+
+
+def _demo_taskframe_summary(frame: dict) -> dict[str, Any]:
+    frame = frame if isinstance(frame, dict) else {}
+    steps = frame.get("steps", []) if isinstance(frame.get("steps", []), list) else []
+    validations = frame.get("validations", []) if isinstance(frame.get("validations", []), list) else []
+    outputs = frame.get("outputs", {}) if isinstance(frame.get("outputs", {}), dict) else {}
+    return {
+        "frame_id": _string(frame.get("frame_id")),
+        "manifest_id": _string(frame.get("manifest_id")),
+        "state": _string(frame.get("state")),
+        "step_count": len(steps),
+        "completed_steps": sum(1 for step in steps if isinstance(step, dict) and _string(step.get("status")).upper() == "COMPLETED"),
+        "failed_steps": sum(1 for step in steps if isinstance(step, dict) and _string(step.get("status")).upper().startswith("FAILED")),
+        "skipped_steps": sum(1 for step in steps if isinstance(step, dict) and _string(step.get("status")).upper() == "SKIPPED"),
+        "validation_count": len(validations),
+        "error_count": len(frame.get("errors", [])) if isinstance(frame.get("errors", []), list) else 0,
+        "pending_action_count": len(frame.get("pending_actions", [])) if isinstance(frame.get("pending_actions", []), list) else 0,
+        "executed_action_count": len(frame.get("executed_actions", [])) if isinstance(frame.get("executed_actions", []), list) else 0,
+        "output_keys": list(outputs.keys()),
+        "created_at": _string(frame.get("created_at")),
+        "updated_at": _string(frame.get("updated_at")),
+    }
+
+
+def _nested_lookup(value: object, path: tuple[str, ...]) -> object:
+    current = value
+    for key in path:
+        if isinstance(current, dict):
+            current = current.get(key)
+        else:
+            return None
+    return current
+
+
+def _string(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    return str(value).strip()
+
+
+def _slugify(value: str) -> str:
+    text = _string(value).lower()
+    if not text:
+        return ""
+    slug_chars: list[str] = []
+    prev_dash = False
+    for char in text:
+        if char.isalnum():
+            slug_chars.append(char)
+            prev_dash = False
+        elif not prev_dash:
+            slug_chars.append("-")
+            prev_dash = True
+    return "".join(slug_chars).strip("-")

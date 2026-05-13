@@ -73,7 +73,8 @@ def run_scenario(
                 except Exception:
                     config_data = {}
                 if isinstance(config_data, dict):
-                    demo["payload"] = {**config_data, **(demo.get("payload", {}) if isinstance(demo.get("payload", {}), dict) else {})}
+                    payload = demo.get("payload", {}) if isinstance(demo.get("payload", {}), dict) else {}
+                    demo["payload"] = {**payload, **config_data}
         demo["selection_id"] = scenario["id"]
         test_env = _in_test_environment()
         if allow_test_fake_llm or test_env:

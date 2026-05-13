@@ -20,6 +20,40 @@ except Exception:  # pragma: no cover - test environments without google client 
     write_sheet_entries = None  # type: ignore[assignment]
 
 
+DEMO_SPREADSHEET_ID = "demo-sheet-local"
+
+DEMO_ACCOUNTING_SHEET_ROWS: dict[str, list[list[str]]] = {
+    "Payments!A:I": [
+        ["payment_id", "payment_ref", "order_ref", "customer_id", "amount", "currency", "payment_date", "status", "source"],
+        ["PAY-1001", "EFT-9001", "ORD-10042", "CUST-1001", "1250.00", "ZAR", "2026-05-04", "received", "bank"],
+        ["PAY-1002", "EFT-9002", "ORD-10043", "CUST-1002", "450.00", "ZAR", "2026-05-04", "received", "bank"],
+        ["PAY-1003", "EFT-9003", "ORD-10044", "CUST-1003", "300.00", "ZAR", "2026-05-04", "received", "bank"],
+        ["PAY-1004", "EFT-9005", "ORD-10045", "CUST-1004", "500.00", "ZAR", "2026-05-04", "received", "bank"],
+        ["PAY-1005", "EFT-9005", "ORD-10046", "CUST-1005", "250.00", "ZAR", "2026-05-04", "received", "bank"],
+    ],
+    "Orders!A:F": [
+        ["order_ref", "customer_id", "order_total", "currency", "order_status", "invoice_id"],
+        ["ORD-10042", "CUST-1001", "1250.00", "ZAR", "invoiced", "INV-10042"],
+        ["ORD-10043", "CUST-1002", "500.00", "ZAR", "invoiced", "INV-10043"],
+        ["ORD-10044", "CUST-1003", "300.00", "ZAR", "invoiced", "INV-10044"],
+        ["ORD-10045", "CUST-1004", "500.00", "ZAR", "invoiced", "INV-10045"],
+        ["ORD-10046", "CUST-1005", "250.00", "ZAR", "invoiced", "INV-10046"],
+    ],
+    "CustomerInvoices!A:H": [
+        ["invoice_id", "order_ref", "customer_id", "invoice_total", "currency", "invoice_status", "issued_date", "due_date"],
+        ["INV-10042", "ORD-10042", "CUST-1001", "1250.00", "ZAR", "issued", "2026-05-01", "2026-05-15"],
+        ["INV-10043", "ORD-10043", "CUST-1002", "500.00", "ZAR", "issued", "2026-05-01", "2026-05-15"],
+        ["INV-10044", "ORD-10044", "CUST-1003", "300.00", "ZAR", "issued", "2026-05-01", "2026-05-15"],
+        ["INV-10045", "ORD-10045", "CUST-1004", "500.00", "ZAR", "issued", "2026-05-01", "2026-05-15"],
+        ["INV-10046", "ORD-10046", "CUST-1005", "250.00", "ZAR", "issued", "2026-05-01", "2026-05-15"],
+    ],
+    "Ledger!A:I": [
+        ["ledger_entry_id", "source_type", "source_ref", "debit_account", "credit_account", "amount", "currency", "posted_date", "status"],
+        ["LED-1001", "payment", "EFT-9001", "bank", "revenue", "1250.00", "ZAR", "2026-05-04", "posted"],
+    ],
+}
+
+
 def load_accounting_sheet_config(config_path: str = "config/accounting_google_sheet.json") -> dict[str, Any]:
     path = Path(config_path)
     if not path.is_file():
@@ -31,6 +65,11 @@ def load_accounting_sheet_config(config_path: str = "config/accounting_google_sh
 def sheet_read_range(spreadsheet_id: str, range_name: str) -> dict[str, Any]:
     if not str(spreadsheet_id).strip():
         return {"ok": False, "spreadsheet_id": spreadsheet_id, "range_name": range_name, "rows": [], "row_count": 0, "error": "SPREADSHEET_ID_REQUIRED"}
+    if str(spreadsheet_id).strip() == DEMO_SPREADSHEET_ID:
+        rows = DEMO_ACCOUNTING_SHEET_ROWS.get(range_name)
+        if rows is None:
+            return {"ok": False, "spreadsheet_id": spreadsheet_id, "range_name": range_name, "rows": [], "row_count": 0, "error": f"UNKNOWN_DEMO_RANGE:{range_name}"}
+        return {"ok": True, "spreadsheet_id": spreadsheet_id, "range_name": range_name, "rows": rows, "row_count": len(rows), "error": ""}
     if read_sheet_entries is None:
         raise RuntimeError("Google Sheet reader is unavailable.")
     rows = read_sheet_entries(spreadsheet_id=spreadsheet_id, range_name=range_name)

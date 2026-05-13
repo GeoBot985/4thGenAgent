@@ -29,9 +29,9 @@ class OperatorDemoModeUITests(unittest.TestCase):
             self.assertEqual(console.demo_main_area.winfo_manager(), "grid")
             self.assertEqual(console.demo_action_bar.grid_info()["row"], 0)
             self.assertEqual(console.current_run_panel.grid_info()["row"], 2)
-            self.assertIn("Current:", console.current_step_label.cget("text"))
-            self.assertIn("Next:", console.current_step_label.cget("text"))
-            self.assertIn("Run selected demo", console.demo_run_button.cget("text"))
+            self.assertIn("Start demo", console.demo_run_button.cget("text"))
+            self.assertEqual(console.current_step_label.winfo_manager(), "")
+            self.assertEqual(console.demo_browse_button.winfo_manager(), "")
             self.assertTrue(hasattr(console.demo_request_text, "scrolled_container"))
             self.assertTrue(hasattr(console.demo_worker_steps_text, "scrolled_container"))
             self.assertTrue(hasattr(console.demo_result_text, "scrolled_container"))
@@ -49,10 +49,10 @@ class OperatorDemoModeUITests(unittest.TestCase):
             self.assertIsNotNone(console)
             self.assertEqual(console.demo_action_bar.grid_info()["row"], 0)
             self.assertIn("Demo:", console.demo_selector.master.winfo_children()[0].cget("text"))
-            self.assertIn("Browse demo catalog", console.demo_browse_button.cget("text"))
+            self.assertEqual(console.demo_browse_button.winfo_manager(), "")
             self.assertTrue(console.demo_run_button.instate(["!disabled"]))
-            self.assertTrue(console.demo_generate_evidence_button.instate(["disabled"]))
-            self.assertTrue(console.demo_open_evidence_button.instate(["disabled"]))
+            self.assertEqual(console.demo_toolbar_generate_evidence_button.cget("text"), "Create/open run report")
+            self.assertEqual(console.demo_toolbar_open_evidence_button.cget("text"), "Open run report")
         finally:
             root.destroy()
 
@@ -66,7 +66,7 @@ class OperatorDemoModeUITests(unittest.TestCase):
             self.assertIsNotNone(console)
             self.assertIsNone(getattr(console, "demo_catalog_dialog", None))
             self.assertTrue(hasattr(console, "demo_browse_button"))
-            self.assertEqual(console.demo_browse_button.winfo_manager(), "pack")
+            self.assertEqual(console.demo_browse_button.winfo_manager(), "")
         finally:
             root.destroy()
 
@@ -80,8 +80,8 @@ class OperatorDemoModeUITests(unittest.TestCase):
             self.assertIsNotNone(console)
             self.assertTrue(hasattr(console, "demo_main_tabs"))
             self.assertEqual(console.demo_main_tabs.winfo_manager(), "")
-            self.assertEqual(console.demo_result_card.winfo_manager(), "")
-            self.assertEqual(console.demo_approval_card.winfo_manager(), "")
+            self.assertEqual(console.demo_result_card.winfo_manager(), "grid")
+            self.assertEqual(console.demo_approval_card.winfo_manager(), "grid")
         finally:
             root.destroy()
 
@@ -97,6 +97,78 @@ class OperatorDemoModeUITests(unittest.TestCase):
             text = console.demo_current_run_text.get("1.0", "end")
             self.assertIn("Current run:", text)
             self.assertIn("Status:", text)
+        finally:
+            root.destroy()
+
+    def test_demo_selection_change_clears_current_run_state(self):
+        try:
+            root, console = _build_console()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk unavailable: {exc}")
+
+        try:
+            self.assertIsNotNone(console)
+            console._record_active_run(
+                {
+                    "frame_id": "frame-demo-123",
+                    "scenario_id": "customer_status_happy_path",
+                    "state": "WAITING_FOR_EXECUTE",
+                    "snapshot": {
+                        "active_event": {
+                            "event_id": "evt-demo-1",
+                            "source": "callcenter",
+                            "event_type": "customer_message",
+                            "payload": {"customer_id": "CUST-001", "message": "Where is my order ORD-10042?"},
+                        },
+                        "active_frame": {
+                            "frame_id": "frame-demo-123",
+                            "state": "WAITING_FOR_EXECUTE",
+                            "manifest_id": "customer.message_status_check",
+                            "inputs": {"customer_id": "CUST-001", "message": "Where is my order ORD-10042?"},
+                            "outputs": {"order_id": "ORD-10042", "draft_reply": {"body": "Your order ORD-10042 has shipped."}},
+                            "pending_actions": [
+                                {
+                                    "action_type": "send_customer_message",
+                                    "status": "PENDING_APPROVAL",
+                                    "customer_id": "CUST-001",
+                                }
+                            ],
+                            "steps": [{"step_id": "validate_input"}, {"step_id": "extract_order_id"}],
+                        },
+                        "outputs": {"order_id": "ORD-10042"},
+                        "validations": [{"step_id": "validate_customer_owns_order", "ok": True}],
+                        "pending_actions": [
+                            {
+                                "action_type": "send_customer_message",
+                                "status": "PENDING_APPROVAL",
+                                "customer_id": "CUST-001",
+                            }
+                        ],
+                    },
+                    "timeline": [],
+                    "report_result": {},
+                }
+            )
+            console._load_result_frame(
+                {
+                    "frame_id": "frame-demo-123",
+                    "scenario_id": "customer_status_happy_path",
+                    "state": "WAITING_FOR_EXECUTE",
+                    "snapshot": console.current_run["snapshot"],
+                    "timeline": [],
+                    "report_result": {},
+                }
+            )
+            console.demo_var.set("Customer Status - Missing Customer")
+            console._on_demo_selected(None)
+            self.assertIsNone(console.current_run)
+            self.assertEqual(console.scenario_result, {})
+            self.assertEqual(console.last_action_result, None)
+            self.assertEqual(console.playback_timeline, [])
+            self.assertEqual(console.playback_index, -1)
+            self.assertFalse(console.playback_running)
+            self.assertFalse(console.playback_paused)
+            self.assertIn("Selected demo: Customer Status - Missing Customer", console.demo_current_run_text.get("1.0", "end"))
         finally:
             root.destroy()
 
@@ -160,8 +232,9 @@ class OperatorDemoModeUITests(unittest.TestCase):
                 }
             )
             console._render_current_view()
-            self.assertIn("frame-demo-1", console.demo_current_run_text.get("1.0", "end"))
-            self.assertIn("Waiting for approval", console.current_step_label.cget("text"))
+            self.assertIn("Draft reply ready", console.demo_current_run_text.get("1.0", "end"))
+            self.assertIn("approval required", console.demo_current_run_text.get("1.0", "end").lower())
+            self.assertEqual(console.current_step_label.winfo_manager(), "")
             self.assertEqual(console.demo_result_card.winfo_manager(), "grid")
             self.assertEqual(console.demo_approval_card.winfo_manager(), "grid")
             self.assertTrue(console.demo_request_text.cget("yscrollcommand"))
@@ -169,7 +242,9 @@ class OperatorDemoModeUITests(unittest.TestCase):
             self.assertTrue(console.demo_result_text.cget("yscrollcommand"))
             self.assertTrue(console.demo_approve_button.instate(["!disabled"]))
             self.assertTrue(console.demo_reject_button.instate(["!disabled"]))
-            self.assertTrue(console.demo_generate_evidence_button.instate(["!disabled"]))
+            self.assertEqual(console.demo_generate_evidence_button.cget("text"), "Create/open run report")
+            self.assertEqual(console.demo_open_evidence_button.cget("text"), "Open run report")
+            self.assertEqual(console.demo_open_evidence_button.winfo_manager(), "")
 
             console.view_mode_var.set("Inspector")
             console._switch_view_mode()

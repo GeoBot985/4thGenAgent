@@ -1,6 +1,8 @@
 from copy import deepcopy
 
 from src.operator_scenario_runner import run_scenario
+from src.operator_scenarios import get_scenario
+from runtime.llm_adapter import FakeLLMAdapter
 
 
 PAYMENTS_ROWS = [
@@ -70,6 +72,37 @@ def test_accounting_workflow_reads_all_required_tabs(monkeypatch):
     result = run_scenario("accounting_payment_reconciliation_happy_path", runtime_data_dir="runtime_data", reset_dataset=False)
     tools = [call.get("tool") for call in result["snapshot"]["tool_calls"]]
     assert "sheet/read_range" in tools
+
+
+def test_accounting_workflow_uses_configured_spreadsheet_id(monkeypatch):
+    seen = {}
+    mapping = {
+        "Payments!A:I": PAYMENTS_ROWS,
+        "Orders!A:F": ORDERS_ROWS,
+        "CustomerInvoices!A:H": INVOICES_ROWS,
+        "Ledger!A:I": LEDGER_ROWS,
+    }
+
+    def fake_read(spreadsheet_id: str, range_name: str):
+        seen["spreadsheet_id"] = spreadsheet_id
+        rows = mapping[range_name]
+        return {"ok": True, "spreadsheet_id": spreadsheet_id, "range_name": range_name, "rows": rows, "row_count": len(rows), "error": ""}
+
+    monkeypatch.setattr("runtime.google_sheet_tools.sheet_read_range", fake_read)
+    monkeypatch.setattr("src.operator_scenario_runner.get_scenario", lambda scenario_id: deepcopy(get_scenario(scenario_id)))
+    result = run_scenario(
+        "accounting_payment_reconciliation_happy_path",
+        runtime_data_dir="runtime_data",
+        reset_dataset=False,
+        llm_adapter=FakeLLMAdapter(
+            {
+                "draft_reconciliation_exception_summary": '{"summary": "Payments were reconciled against orders, invoices, and ledger entries. Exceptions require operator review before posting.", "risk_level": "high", "key_exceptions": ["One payment has an amount mismatch.", "One payment reference appears more than once.", "One payment appears to already be posted."], "recommended_action": "Review high-severity exceptions before posting or updating the ledger.", "invented_facts": false}',
+            }
+        ),
+        allow_test_fake_llm=True,
+    )
+    assert result["ok"] is True
+    assert seen["spreadsheet_id"] == "demo-sheet-local"
 
 
 def test_accounting_workflow_outputs_reconciliation_result(monkeypatch):

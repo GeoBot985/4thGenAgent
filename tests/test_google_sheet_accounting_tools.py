@@ -20,6 +20,13 @@ def test_sheet_read_range_returns_rows(monkeypatch):
     assert result["row_count"] == 2
 
 
+def test_sheet_read_range_uses_local_demo_accounting_fixture():
+    result = sheet_read_range("demo-sheet-local", "Payments!A:I")
+    assert result["ok"] is True
+    assert result["row_count"] == 6
+    assert result["rows"][1][0] == "PAY-1001"
+
+
 def test_sheet_prepare_write_rows_returns_pending_payload():
     result = sheet_prepare_write_rows("sheet-1", "ReconRuns!A:J", [["x"]], mode="append")
     assert result["tool"] == "sheet/write_rows"
