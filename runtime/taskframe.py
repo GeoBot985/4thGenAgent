@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -10,7 +9,6 @@ from .errors import RuntimeSpecError
 from .models import (
     AuditEvent,
     Manifest,
-    PENDING_ACTION_STATUSES,
     StepRuntime,
     TaskFrame,
     ToolResult,

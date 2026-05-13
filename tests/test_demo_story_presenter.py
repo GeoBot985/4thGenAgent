@@ -278,14 +278,72 @@ def test_pending_approval_scenario_shows_prepared_reply_and_approval_actions():
     assert story["show_prepared_reply"] is True
     assert story["show_approval_actions"] is True
     assert story["outcome_title"] == "Prepared customer reply"
-    assert story["draft_reply"].startswith("Hi Alex, your order ORD-10042 has shipped")
+
+
+def test_customer_status_scenario_uses_customer_story_cards():
+    story = build_demo_story(_customer_status_snapshot(), {"state": "WAITING_FOR_EXECUTE", "snapshot": _customer_status_snapshot(), "scenario_id": "customer_status_happy_path"}, _customer_selected_scenario())
+
+    assert [card["kind"] for card in story["cards"][:4]] == ["request", "steps", "outcome", "decision"]
+    assert story["cards"][0]["title"] == "Customer request"
+    assert story["cards"][1]["title"] == "What the worker checked"
+    assert story["cards"][2]["title"] == "Prepared customer reply"
+    assert story["actions"]["show_approve"] is True
+    assert story["actions"]["show_reject"] is True
+    assert story["business_report"]["exists"] is False
+
+
+def test_report_generation_scenario_uses_report_story_cards():
+    story = build_demo_story(_report_snapshot(), {"state": "WAITING_FOR_EXECUTE", "snapshot": _report_snapshot(), "scenario_id": "report_generation_happy_path", "report_result": _report_run_result()}, _report_selected_scenario())
+
+    assert [card["kind"] for card in story["cards"][:5]] == ["request", "steps", "outcome", "decision", "report"]
+    assert story["cards"][0]["title"] == "Report request"
+    assert story["cards"][2]["title"] == "Business report generated"
+    assert story["cards"][4]["title"] == "Report details"
+    assert story["actions"]["show_open_business_report"] is True
+    assert story["actions"]["show_create_open_run_report"] is True
+    assert story["business_report"]["exists"] is True
+    assert story["run_report"]["exists"] is True
+
+
+def test_report_generation_does_not_show_customer_reply_wording():
+    story = build_demo_story(_report_snapshot(), {"state": "WAITING_FOR_EXECUTE", "snapshot": _report_snapshot(), "scenario_id": "report_generation_happy_path", "report_result": _report_run_result()}, _report_selected_scenario())
+
+    combined = "\n".join(
+        [
+            story["headline"],
+            story["subheadline"],
+            story["cards"][0]["body"],
+            story["cards"][2]["body"],
+            "\n".join(story["cards"][4]["items"]),
+        ]
+    )
+    assert "Prepared customer reply" not in combined
+    assert "Approve this prepared reply?" not in combined
+    assert "No live customer message will be sent" not in combined
+
+
+def test_demo_story_does_not_claim_business_report_exists_without_path():
+    story = build_demo_story(_report_snapshot(), {"state": "WAITING_FOR_EXECUTE", "snapshot": _report_snapshot(), "scenario_id": "report_generation_happy_path"}, _report_selected_scenario())
+
+    assert story["business_report"]["exists"] is False
+    assert story["business_report"]["html_path"] == ""
+    assert "Business report generated" not in "\n".join(story["cards"][4]["items"])
+
+
+def test_demo_story_exposes_business_report_paths_when_present():
+    story = build_demo_story(_report_snapshot(), {"state": "WAITING_FOR_EXECUTE", "snapshot": _report_snapshot(), "scenario_id": "report_generation_happy_path", "report_result": _report_run_result()}, _report_selected_scenario())
+
+    assert story["business_report"]["exists"] is True
+    assert story["business_report"]["html_path"].endswith("report_generation_happy_path_frame_1.html")
+    assert story["business_report"]["markdown_path"].endswith("report_generation_happy_path_frame_1.md")
+    assert story["business_report"]["evidence_path"].endswith("frame_1_evidence_bundle.json")
+    assert story["run_report"]["html_path"].endswith("frame_1_run_report.html")
+    assert story["draft_reply"] == ""
     assert story["facts"] == [
-        "Order exists",
-        "Customer ownership verified",
-        "Shipment status: shipped",
-        "Estimated delivery: 2026-05-03",
-        "Tracking reference: TRK-778899",
+        "Report summary prepared",
+        "Business report generated",
+        "Evidence pack prepared",
     ]
-    assert story["can_approve"] is True
-    assert story["can_reject"] is True
+    assert story["actions"]["show_open_business_report"] is True
+    assert story["actions"]["show_create_open_run_report"] is True
 

@@ -7,13 +7,10 @@ from runtime.messages_tools import (
     _fill_search_query,
     _normalize_message_text,
     async_playwright,
-    find_thread,
     get_or_create_page,
     launch_messages_context,
     open_messages,
-    read_visible_messages,
     require_login,
-    safe_print,
 )
 
 

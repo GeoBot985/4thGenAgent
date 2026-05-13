@@ -5,7 +5,7 @@ from typing import Any
 
 from .artifact_cleanup import get_cleanup_dir
 from .models import InspectionResult, inspection_error, inspection_ok
-from .persistence import DEFAULT_RUNTIME_DATA_DIR, get_summary_path, get_taskframe_path, read_json
+from .persistence import get_summary_path, get_taskframe_path, read_json
 from .run_ledger import get_ledger_path, read_ledger_records
 
 

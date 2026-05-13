@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .business_store import get_customer, get_order, get_payment, get_shipment, search_inventory, search_orders
+from .business_store import get_customer, get_order, get_payment, get_shipment, search_inventory
 
 
 def get_business_order(order_id: str) -> dict[str, Any] | None:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 
 from .errors import PendingActionError
 from .models import PENDING_ACTION_STATUSES, TaskFrame

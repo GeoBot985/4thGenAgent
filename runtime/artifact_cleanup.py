@@ -6,11 +6,10 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from .errors import CleanupConfirmationError, CleanupExecutionError, CleanupPolicyError
+from .errors import CleanupConfirmationError, CleanupExecutionError
 from .models import CleanupCandidate, CleanupResult
 from .persistence import read_json, write_json_atomic
 from .retention_policy import (
-    DEFAULT_RETENTION_POLICY,
     cleanup_mode_allows,
     is_destructive_cleanup,
     normalize_retention_policy,

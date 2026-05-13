@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 import re
 
-from src.operator_artifacts import artifact_paths_match_frame, build_artifact_state
+from src.operator_artifacts import build_artifact_state
 
 
 STATE_LABELS = {

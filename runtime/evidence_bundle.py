@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from .failure_summary import build_failure_summary
 from .persistence import get_audit_path, get_outputs_path, get_summary_path, get_taskframe_path, load_taskframe_dict, write_json_atomic

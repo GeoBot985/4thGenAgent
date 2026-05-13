@@ -7,7 +7,7 @@ from .errors import UnknownValidationTypeError, ValidationEngineError
 from .conditions import evaluate_condition, validate_condition
 from .memory_store import MemoryStore
 from .models import Manifest, TaskFrame, ValidationResult, validation_fail, validation_ok
-from .taskframe import add_audit_event, utc_now
+from .taskframe import add_audit_event
 
 
 def run_validation(

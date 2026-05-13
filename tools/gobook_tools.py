@@ -5,12 +5,10 @@ from __future__ import annotations
 import re
 import tempfile
 from datetime import datetime
-from typing import Optional
 
 from gobook_rpa import (
     cancel_booking,
     load_credentials,
-    list_active_upcoming_bookings,
     login,
     normalize_court,
     normalize_date,

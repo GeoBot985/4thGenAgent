@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 
 
 def message_validate_customer_status_reply(draft_reply: dict, order_context: dict) -> dict:

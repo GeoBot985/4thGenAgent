@@ -1,6 +1,5 @@
 import httpx
 from typing import List, Dict, Any, Tuple
-import json
 
 OLLAMA_BASE_URL = "http://localhost:11434"
 CHAT_TIMEOUT_SECONDS = 300.0

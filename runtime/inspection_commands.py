@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from .arg_resolver import resolve_command_args
-from .errors import InspectionCommandError, InspectionTargetNotFoundError
+from .errors import InspectionCommandError
 from .inspection import RunInspector
 from .models import InspectionResult, StepRuntime, TaskFrame
-from .taskframe import add_audit_event, record_error, set_output, utc_now
+from .taskframe import add_audit_event, record_error, set_output
 
 
 class InspectionCommandRunner:

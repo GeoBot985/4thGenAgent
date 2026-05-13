@@ -9,7 +9,6 @@ It intentionally avoids sending messages or mutating account state.
 from pathlib import Path
 from typing import Any
 import time
-import re
 import os
 
 try:  # pragma: no cover - optional runtime dependency

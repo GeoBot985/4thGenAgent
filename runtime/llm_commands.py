@@ -6,11 +6,9 @@ from .arg_resolver import resolve_command_args
 from .command_parser import parse_command
 from .errors import LLMActionNotAllowedError, LLMCommandError, LLMOutputParseError
 from .llm_adapter import BaseLLMAdapter, FakeLLMAdapter, extract_json_from_text
-from .llm_tools import LLMToolInputError, LLMToolNotFoundError, get_llm_tool, render_llm_prompt, validate_llm_output
+from .llm_tools import LLMToolInputError, LLMToolNotFoundError, render_llm_prompt, validate_llm_output
 from .llm_micro_tools import (
-    build_micro_tool_prompt,
     is_llm_micro_tool,
-    normalize_micro_tool_output,
     validate_micro_tool_output,
 )
 from .llm_prompts import (

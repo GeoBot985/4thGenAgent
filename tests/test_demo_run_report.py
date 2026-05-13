@@ -151,6 +151,86 @@ def _report_generation_frame(frame_id: str) -> tuple[dict, dict, list[dict]]:
     return frame, frame["outputs"], [{"timestamp": "2026-05-12T10:00:03Z", "event_type": "REPORT_GENERATED", "message": "Report artifact created."}]
 
 
+def _classification_frame(frame_id: str) -> tuple[dict, dict, list[dict]]:
+    frame = {
+        "frame_id": frame_id,
+        "manifest_id": "customer.message_status_check",
+        "state": "WAITING_FOR_EXECUTE",
+        "current_step_id": "validate_reply",
+        "trigger": {"event_id": "evt-4", "event_type": "manual.customer_status_llm_e2e", "source": "operator_ui"},
+        "inputs": {"customer_id": "CUST-1001", "message": "Where is my order ORD-10042?"},
+        "steps": [
+            {
+                "step_id": "classify_customer_message",
+                "command": "classify request",
+                "status": "COMPLETED",
+                "output_alias": "category",
+            },
+            {
+                "step_id": "extract_order_ref",
+                "command": "extract order",
+                "status": "COMPLETED",
+                "output_alias": "order_ref",
+            },
+            {
+                "step_id": "draft_reply",
+                "command": "draft reply",
+                "status": "COMPLETED",
+                "output_alias": "draft_reply",
+            },
+            {
+                "step_id": "validate_reply",
+                "command": "validate reply",
+                "status": "COMPLETED",
+                "output_alias": "reply_validation",
+            },
+        ],
+        "outputs": {
+            "category": {"label": "order_status", "confidence": "high", "reason": "Customer asks where their order is."},
+            "order_ref": "ORD-10042",
+            "draft_reply": {"body": "Hi Alex, your order ORD-10042 has shipped and is currently in transit."},
+            "reply_validation": {"ok": True},
+        },
+        "validations": [{"step_id": "validate_reply", "ok": True, "message": "Prepared reply passed validation against business facts."}],
+        "pending_actions": [],
+        "executed_actions": [],
+        "tool_calls": [],
+        "llm_calls": [{"step_id": "classify_customer_message", "action": "classify_message", "ok": True}],
+        "evidence": [],
+        "errors": [],
+        "audit": [],
+        "completion_gate_result": {"status": "WAITING_FOR_EXECUTE"},
+        "final_response": "",
+    }
+    return frame, frame["outputs"], []
+
+
+def _unknown_step_frame(frame_id: str) -> tuple[dict, dict, list[dict]]:
+    frame = {
+        "frame_id": frame_id,
+        "manifest_id": "customer.message_status_check",
+        "state": "COMPLETED",
+        "current_step_id": "custom_step",
+        "trigger": {"event_id": "evt-5", "event_type": "manual.unknown", "source": "operator_ui"},
+        "inputs": {},
+        "steps": [
+            {"step_id": "custom_step", "command": "custom", "status": "COMPLETED", "output_alias": "custom_output"},
+        ],
+        "outputs": {"custom_output": {"alpha": 1, "beta": 2}},
+        "validations": [],
+        "pending_actions": [],
+        "executed_actions": [],
+        "tool_calls": [],
+        "llm_calls": [],
+        "evidence": [],
+        "errors": [],
+        "audit": [],
+        "completion_gate_result": {"status": "COMPLETED"},
+        "final_response": "",
+    }
+    return frame, frame["outputs"], []
+
+
 def test_demo_run_report_creates_html_markdown_and_evidence_bundle(tmp_path):
     frame_id = "frame_demo_customer_happy"
     frame, outputs, audit = _customer_happy_frame(frame_id)
@@ -190,6 +270,103 @@ def test_demo_run_report_contains_step_outputs(tmp_path):
     assert "ORD-10042" in markdown
     assert "TRK-778899" in markdown
     assert "Hi Alex, your order ORD-10042 has shipped" in markdown
+
+
+def test_classification_step_report_shows_classified_label(tmp_path):
+    frame_id = "frame_demo_classification"
+    frame, outputs, audit = _classification_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "customer_status_happy_path", "label": "Customer Status - Happy Path"})
+    text = Path(report["html_path"]).read_text(encoding="utf-8")
+
+    assert "Step outcome" in text
+    assert "Classified as: order_status" in text
+    assert "Confidence: high" in text
+    assert "Reason: Customer asks where their order is." in text
+
+
+def test_extract_order_step_report_shows_order_number_found(tmp_path):
+    frame_id = "frame_demo_extract_order"
+    frame, outputs, audit = _customer_happy_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "customer_status_happy_path", "label": "Customer Status - Happy Path"})
+    text = Path(report["html_path"]).read_text(encoding="utf-8")
+
+    assert "Order number found: ORD-10042" in text
+
+
+def test_customer_lookup_failed_step_says_customer_not_found(tmp_path):
+    frame_id = "frame_demo_customer_failed_lookup"
+    frame, outputs, audit = _customer_failed_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "customer_status_missing_customer", "label": "Customer Status - Missing Customer"})
+    text = Path(report["html_path"]).read_text(encoding="utf-8")
+
+    assert "Customer record not found for CUST-9999." in text
+
+
+def test_order_lookup_step_shows_order_status(tmp_path):
+    frame_id = "frame_demo_order_status"
+    frame, outputs, audit = _customer_happy_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "customer_status_happy_path", "label": "Customer Status - Happy Path"})
+    text = Path(report["html_path"]).read_text(encoding="utf-8")
+
+    assert "Order found: ORD-10042" in text
+    assert "Status: shipped" in text
+
+
+def test_draft_reply_step_shows_prepared_reply_text(tmp_path):
+    frame_id = "frame_demo_draft_reply"
+    frame, outputs, audit = _customer_happy_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "customer_status_happy_path", "label": "Customer Status - Happy Path"})
+    text = Path(report["html_path"]).read_text(encoding="utf-8")
+
+    assert "Customer reply was prepared." in text
+    assert "Prepared reply: Hi Alex, your order ORD-10042 has shipped and is currently in transit." in text
+
+
+def test_failed_step_report_shows_safe_outcome(tmp_path):
+    frame_id = "frame_demo_failed_safe_outcome"
+    frame, outputs, audit = _customer_failed_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "customer_status_missing_customer", "label": "Customer Status - Missing Customer"})
+    text = Path(report["html_path"]).read_text(encoding="utf-8")
+
+    assert "This step failed." in text
+    assert "Reason: Customer record could not be confirmed." in text
+    assert "Safe outcome: Workflow stopped before any unsafe action was taken." in text
+
+
+def test_unknown_step_falls_back_to_output_alias_summary(tmp_path):
+    frame_id = "frame_demo_unknown_step"
+    frame, outputs, audit = _unknown_step_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "customer_status_happy_path", "label": "Customer Status - Happy Path"})
+    text = Path(report["html_path"]).read_text(encoding="utf-8")
+
+    assert "Output produced under alias: custom_output" in text
+    assert "Summary: alpha: 1; beta: 2" in text
+
+
+def test_raw_json_is_collapsed_not_primary_outcome(tmp_path):
+    frame_id = "frame_demo_collapsed_json"
+    frame, outputs, audit = _classification_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "customer_status_happy_path", "label": "Customer Status - Happy Path"})
+    text = Path(report["html_path"]).read_text(encoding="utf-8")
+
+    assert text.index("Step outcome") < text.index("View raw step result")
+    assert "<details>" in text
 
 
 def test_failed_run_report_shows_safe_stop_not_prepared_reply(tmp_path):

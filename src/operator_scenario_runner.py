@@ -12,7 +12,6 @@ from src.operator_reports import generate_report_for_frame
 from src.operator_scenarios import get_scenario
 from runtime.taskframe_reload import load_taskframe
 from runtime.taskframe import to_dict as taskframe_to_dict
-from src.operator_data import build_operator_snapshot
 from src.operator_approval_pack import build_approval_pack_view
 from runtime.failure_summary import build_failure_summary
 

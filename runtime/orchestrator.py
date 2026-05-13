@@ -10,7 +10,7 @@ from .cleanup_commands import CleanupCommandRunner
 from .conditions import evaluate_condition_with_trace
 from .completion_gate import apply_completion_result, evaluate_completion
 from .approval_commands import ApprovalCommandRunner
-from .errors import ConditionError, MemoryCommandError, PendingActionError, StepTimeoutExceeded, ToolExecutionBlocked
+from .errors import ConditionError, MemoryCommandError, PendingActionError, ToolExecutionBlocked
 from .errors import LiveExecutionBlocked
 from .inspection import RunInspector
 from .inspection_commands import InspectionCommandRunner
@@ -22,7 +22,7 @@ from .maintenance import MaintenanceCommandRunner
 from .models import Manifest, TaskFrame, validation_fail, validation_ok
 from .pending_actions import get_pending_action, list_pending_actions
 from .retry_policy import classify_error, is_retryable_error, normalize_retry_policy, should_retry_step, sleep_before_retry
-from .taskframe import add_audit_event, create_taskframe, record_error, set_output, transition_state, utc_now
+from .taskframe import add_audit_event, create_taskframe, record_error, transition_state, utc_now
 from .timing import build_timing_record, duration_ms, monotonic_now, timeout_exceeded
 from .tool_runner import ToolRunner
 from .validation import run_manifest_validations, run_validation_step

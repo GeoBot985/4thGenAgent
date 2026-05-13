@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 from googleapiclient.errors import HttpError
 
-from google_auth import build_service, list_writable_calendar_ids, resolve_default_calendar_id, safe_print
+from google_auth import build_service, list_writable_calendar_ids, safe_print
 
 
 def get_next_calendar_entries(

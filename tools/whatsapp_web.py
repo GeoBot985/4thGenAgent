@@ -24,7 +24,6 @@ from typing import Any
 
 from playwright.async_api import Locator
 from playwright.async_api import Page
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 
 WHATSAPP_URL = "https://web.whatsapp.com/"

@@ -8,7 +8,6 @@ import time
 import os
 import shutil
 import uuid
-import re
 from zoneinfo import ZoneInfo
 
 from models import ChatRequest, ChatResponse, RPARequest, RPAResponse, TurnContext, TokenUsage

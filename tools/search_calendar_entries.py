@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 
 from googleapiclient.errors import HttpError
 
-from google_auth import build_service, list_writable_calendar_ids, resolve_default_calendar_id, safe_print
+from google_auth import build_service, list_writable_calendar_ids, safe_print
 
 
 def search_calendar_entries(

@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .errors import LiveGuardrailError
 
 
 def run_live_guardrail(

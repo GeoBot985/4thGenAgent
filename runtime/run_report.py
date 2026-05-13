@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from .artifact_cleanup import load_taskframe_safe
-from .evidence_bundle import build_evidence_bundle, write_evidence_bundle
+from .evidence_bundle import build_evidence_bundle
 from .failure_summary import build_failure_summary
 from .persistence import ensure_dir, load_taskframe_dict, read_json, write_json_atomic
-from .taskframe import build_taskframe_summary, utc_now
+from .taskframe import utc_now
 from src.operator_approval_pack import build_approval_pack_view
 
 
@@ -620,6 +621,8 @@ def render_demo_run_report_markdown(report_model: dict) -> str:
     for item in report_model.get("step_items", []):
         if not isinstance(item, dict):
             continue
+        outcome = item.get("step_outcome", {}) if isinstance(item.get("step_outcome", {}), dict) else {}
+        outcome_details = outcome.get("details", []) if isinstance(outcome.get("details", []), list) else []
         lines.extend(
             [
                 f"### Step {item.get('index', '')}: {item.get('title', '')}",
@@ -627,6 +630,14 @@ def render_demo_run_report_markdown(report_model: dict) -> str:
                 f"- Status: {item.get('status_label', item.get('status', ''))}",
                 f"- Command: {item.get('command', '')}",
                 f"- Output alias: {item.get('output_alias', '')}",
+                f"- Step outcome: {outcome.get('title', '')}",
+                f"  {outcome.get('summary', '')}",
+            ]
+        )
+        for detail in outcome_details:
+            lines.append(f"  - {detail}")
+        lines.extend(
+            [
                 f"- Result: {item.get('result_text', '')}",
                 f"- Input values used: {item.get('inputs_text', '')}",
                 f"- Tool call result: {item.get('tool_text', '') or 'Not recorded'}",
@@ -724,6 +735,9 @@ def render_demo_run_report_html(report_model: dict) -> str:
     for item in report_model.get("step_items", []):
         if not isinstance(item, dict):
             continue
+        outcome = item.get("step_outcome", {}) if isinstance(item.get("step_outcome", {}), dict) else {}
+        outcome_details = outcome.get("details", []) if isinstance(outcome.get("details", []), list) else []
+        outcome_details_html = "".join(f"<li>{html.escape(str(detail))}</li>" for detail in outcome_details)
         step_cards.append(
             f"""
             <article class="step-card status-{html.escape(str(item.get('status_class', 'pending')))}">
@@ -733,6 +747,12 @@ def render_demo_run_report_html(report_model: dict) -> str:
                   <div class="step-meta">Step ID: {html.escape(str(item.get('step_id', '')))} | Command: {html.escape(str(item.get('command', '')))}</div>
                 </div>
                 <span class="badge badge-{html.escape(str(item.get('badge_class', 'muted')))}">{html.escape(str(item.get('status_label', item.get('status', ''))))}</span>
+              </div>
+              <div class="step-outcome">
+                <div class="section-label">Step outcome</div>
+                <div class="outcome-title">{html.escape(str(outcome.get('title', '')))}</div>
+                <div class="outcome-summary">{html.escape(str(outcome.get('summary', '')))}</div>
+                <ul class="outcome-details">{outcome_details_html}</ul>
               </div>
               <div class="step-grid">
                 <div><strong>Output alias</strong><div class="mono">{html.escape(str(item.get('output_alias', '')))}</div></div>
@@ -844,6 +864,10 @@ def render_demo_run_report_html(report_model: dict) -> str:
   .step-meta {{ color: var(--muted); font-size: 13px; margin-top: 4px; }}
   .step-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; font-size: 14px; }}
   .step-grid strong {{ display: block; margin-bottom: 4px; }}
+  .step-outcome {{ background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }}
+  .outcome-title {{ font-size: 16px; font-weight: 700; margin-bottom: 4px; }}
+  .outcome-summary {{ font-size: 14px; line-height: 1.55; margin-bottom: 8px; }}
+  .outcome-details {{ margin: 0 0 0 20px; }}
   .mono, pre {{ font-family: Consolas, 'Courier New', monospace; }}
   pre {{ background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 14px; overflow: auto; white-space: pre-wrap; word-break: break-word; }}
   details {{ margin-top: 12px; }}
@@ -1204,7 +1228,314 @@ def _build_step_report_items(frame: dict, outputs: dict, story_type: str) -> lis
                 "audit_events": [],
             }
         )
+        step_items[-1]["step_outcome"] = build_step_outcome(step_items[-1], frame)
     return step_items
+
+
+def build_step_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    step_item = step_item if isinstance(step_item, dict) else {}
+    frame = frame if isinstance(frame, dict) else {}
+    status = _string(step_item.get("status")).upper()
+    step_id = _string(step_item.get("step_id") or step_item.get("id"))
+    if status.startswith("FAILED"):
+        return _failed_step_outcome(step_item, frame)
+    builder = OUTCOME_BUILDERS.get(step_id)
+    if builder is not None:
+        return builder(step_item, frame)
+    story_type = _detect_demo_story_type({}, frame, frame.get("outputs", {}) if isinstance(frame.get("outputs", {}), dict) else {})
+    if story_type == "report_generation":
+        return _report_step_outcome(step_item)
+    return _generic_step_outcome(step_item)
+
+
+def _extract_customer_id_from_frame(frame: dict) -> str:
+    inputs = frame.get("inputs", {}) if isinstance(frame.get("inputs", {}), dict) else {}
+    outputs = frame.get("outputs", {}) if isinstance(frame.get("outputs", {}), dict) else {}
+    for value in (
+        inputs.get("customer_id"),
+        _nested_lookup(inputs, ("customer", "customer_id")),
+        outputs.get("customer_id"),
+        _nested_lookup(outputs, ("customer", "customer_id")),
+    ):
+        text = _string(value)
+        if text:
+            return text
+    return ""
+
+
+def _extract_tracking_reference(outputs: dict, output_value: object) -> str:
+    if isinstance(output_value, dict):
+        tracking = _string(output_value.get("tracking_reference") or output_value.get("tracking_number") or output_value.get("tracking"))
+        if tracking:
+            return tracking
+    if isinstance(outputs, dict):
+        shipment = outputs.get("shipment", {})
+        if isinstance(shipment, dict):
+            tracking = _string(shipment.get("tracking_reference") or shipment.get("tracking_number") or shipment.get("tracking"))
+            if tracking:
+                return tracking
+    return ""
+
+
+def _failed_step_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    step_id = _string(step_item.get("step_id"))
+    reason = _string(
+        step_item.get("error_text")
+        or step_item.get("reason")
+        or step_item.get("raw_step", {}).get("error")
+        or step_item.get("raw_step", {}).get("last_error")
+        or "Validation failed."
+    )
+    details = ["This step failed."]
+    if step_id == "lookup_customer":
+        customer_id = _extract_customer_id_from_frame(frame)
+        if customer_id:
+            details.append(f"Customer record not found for {customer_id}.")
+    elif step_id == "lookup_order":
+        order_ref = _extract_order_reference(frame.get("inputs", {}), frame.get("outputs", {}), step_item.get("output"))
+        if order_ref:
+            details.append(f"Order record not found for {order_ref}.")
+    elif step_id == "lookup_shipment":
+        tracking = _extract_tracking_reference(frame.get("outputs", {}), step_item.get("output"))
+        if tracking:
+            details.append(f"Shipment record not found for {tracking}.")
+    elif step_id == "read_payment":
+        details.append("Payment record not found.")
+    elif step_id == "extract_order_ref":
+        details.append("No order number could be found.")
+    details.append(f"Reason: {reason}")
+    details.append("Safe outcome: Workflow stopped before any unsafe action was taken.")
+    return {
+        "title": "This step failed.",
+        "summary": "This step failed.",
+        "details": details,
+    }
+
+
+def build_extract_order_ref_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    output = step_item.get("output")
+    order_ref = ""
+    if isinstance(output, dict):
+        order_ref = _string(output.get("order_ref") or output.get("value") or output.get("reference"))
+    else:
+        order_ref = _string(output)
+    if order_ref:
+        return {"title": "Order number found", "summary": f"Order number found: {order_ref}", "details": [f"Order number found: {order_ref}"]}
+    return {"title": "Order number not found", "summary": "No order number could be found.", "details": ["No order number could be found."]}
+
+
+def build_classification_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    output = step_item.get("output")
+    label = ""
+    confidence = ""
+    reason = ""
+    if isinstance(output, dict):
+        label = _string(output.get("label"))
+        confidence = _string(output.get("confidence"))
+        reason = _string(output.get("reason"))
+    summary = "The customer message was classified as an order-status request."
+    if label == "refund":
+        summary = "The customer message was classified as a refund request."
+    details = [f"Classified as: {label or 'unknown'}"]
+    if confidence:
+        details.append(f"Confidence: {confidence}")
+    if reason:
+        details.append(f"Reason: {reason}")
+    return {"title": "Message classified", "summary": summary, "details": details}
+
+
+def build_customer_lookup_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    output = step_item.get("output")
+    inputs = frame.get("inputs", {}) if isinstance(frame.get("inputs", {}), dict) else {}
+    customer_id = _string(inputs.get("customer_id") or _nested_lookup(inputs, ("customer", "customer_id")))
+    if isinstance(output, dict):
+        name = _string(output.get("name") or _nested_lookup(output, ("customer", "name")))
+        customer_id = customer_id or _string(output.get("customer_id") or _nested_lookup(output, ("customer", "customer_id")))
+        if name or customer_id:
+            bits = [part for part in (name, customer_id) if part]
+            summary = f"Customer record found: {' / '.join(bits)}"
+            return {"title": "Customer record found", "summary": summary, "details": [summary]}
+    if customer_id:
+        summary = f"Customer record not found for {customer_id}."
+    else:
+        summary = "Customer record not found."
+    return {"title": "Customer record not found", "summary": summary, "details": [summary]}
+
+
+def build_order_lookup_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    output = step_item.get("output")
+    inputs = frame.get("inputs", {}) if isinstance(frame.get("inputs", {}), dict) else {}
+    order_ref = _extract_order_reference(
+        inputs.get("order_id"),
+        inputs.get("order_ref"),
+        inputs.get("message"),
+        step_item.get("output"),
+    )
+    if isinstance(output, dict):
+        order_id = _string(output.get("order_id") or output.get("order_ref"))
+        status = _string(output.get("status"))
+        if order_id or status:
+            summary = f"Order found: {order_id or order_ref or 'unknown'}"
+            details = [summary]
+            if status:
+                details.append(f"Status: {status}")
+            return {"title": "Order found", "summary": summary, "details": details}
+    if order_ref:
+        summary = f"Order record not found for {order_ref}."
+    else:
+        summary = "Order record not found."
+    return {"title": "Order record not found", "summary": summary, "details": [summary]}
+
+
+def build_payment_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    output = step_item.get("output")
+    if isinstance(output, dict):
+        status = _string(output.get("status"))
+        amount = _string(output.get("amount") or output.get("paid_amount") or output.get("payment_amount"))
+        details = []
+        if status:
+            details.append(f"Payment status: {status}")
+        if amount:
+            details.append(f"Amount: {amount}")
+        if details:
+            return {"title": "Payment record found", "summary": details[0], "details": details}
+    return {"title": "Payment record not found", "summary": "Payment record not found.", "details": ["Payment record not found."]}
+
+
+def build_shipment_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    output = step_item.get("output")
+    if isinstance(output, dict):
+        status = _string(output.get("status"))
+        tracking = _string(output.get("tracking_reference") or output.get("tracking_number") or output.get("tracking"))
+        details = []
+        if status:
+            details.append(f"Shipment status: {status}")
+        if tracking:
+            details.append(f"Tracking reference: {tracking}")
+        if details:
+            return {"title": "Shipment record found", "summary": details[0], "details": details}
+    return {"title": "Shipment record not found", "summary": "Shipment record not found.", "details": ["Shipment record not found."]}
+
+
+def build_context_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    outputs = frame.get("outputs", {}) if isinstance(frame.get("outputs", {}), dict) else {}
+    facts: list[str] = []
+    order_id = _nested_lookup(outputs, ("order", "order_id"))
+    customer_name = _nested_lookup(outputs, ("customer", "name"))
+    order_status = _nested_lookup(outputs, ("order", "status"))
+    shipment_tracking = _nested_lookup(outputs, ("shipment", "tracking_reference"))
+    if order_id:
+        facts.append(f"Order: {_string(order_id)}")
+    if customer_name:
+        facts.append(f"Customer: {_string(customer_name)}")
+    if order_status:
+        facts.append(f"Order status: {_string(order_status)}")
+    if shipment_tracking:
+        facts.append(f"Tracking reference: {_string(shipment_tracking)}")
+    details = ["Order facts were assembled for reply drafting."]
+    details.extend(facts)
+    return {"title": "Order context assembled", "summary": "Order facts were assembled for reply drafting.", "details": details}
+
+
+def build_draft_reply_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    output = step_item.get("output")
+    reply = ""
+    if isinstance(output, dict):
+        reply = _string(output.get("body") or output.get("reply") or output.get("message") or output.get("text"))
+    else:
+        reply = _string(output)
+    if reply:
+        return {"title": "Customer reply prepared", "summary": "Customer reply was prepared.", "details": ["Customer reply was prepared.", f"Prepared reply: {reply}"]}
+    return {"title": "Customer reply not prepared", "summary": "No customer reply was prepared.", "details": ["No customer reply was prepared."]}
+
+
+def build_validation_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    validations = step_item.get("validations", [])
+    if isinstance(validations, list):
+        failed = [item for item in validations if isinstance(item, dict) and item.get("ok") is False]
+        if failed:
+            reason = _string(failed[0].get("message") or failed[0].get("reason") or "Validation failed.")
+            return {"title": "Reply validation failed", "summary": "Prepared reply failed validation.", "details": ["Prepared reply failed validation.", f"Reason: {reason}"]}
+    return {"title": "Reply validated", "summary": "Prepared reply passed validation against business facts.", "details": ["Prepared reply passed validation against business facts."]}
+
+
+def build_report_artifact_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    output = step_item.get("output")
+    if isinstance(output, dict):
+        html_path = _string(output.get("html_path"))
+        markdown_path = _string(output.get("markdown_path"))
+        evidence_path = _string(output.get("evidence_bundle_path"))
+        if html_path:
+            details = ["Report artifact generated.", f"HTML file: {html_path}"]
+            if markdown_path:
+                details.append(f"Markdown file: {markdown_path}")
+            if evidence_path:
+                details.append(f"Evidence bundle: {evidence_path}")
+            return {"title": "Report artifact generated", "summary": "Report artifact generated.", "details": details}
+    return {"title": "Report artifact not generated", "summary": "No report artifact was recorded for this step.", "details": ["No report artifact was recorded for this step."]}
+
+
+def build_pending_action_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
+    raw_step = step_item.get("raw_step", {}) if isinstance(step_item.get("raw_step", {}), dict) else {}
+    action = _string(raw_step.get("action") or raw_step.get("human_summary") or "Send customer message")
+    body = ""
+    output = step_item.get("output")
+    if isinstance(output, dict):
+        body = _string(output.get("body") or output.get("message") or output.get("reply") or output.get("summary"))
+    details = ["A customer message was staged for approval.", f"Action: {action}", "Status: Pending approval"]
+    if body:
+        details.append(f"Prepared message: {body}")
+    return {"title": "Customer message staged for approval", "summary": "A customer message was staged for approval.", "details": details}
+
+
+def _report_step_outcome(step_item: dict) -> dict[str, Any]:
+    output = step_item.get("output")
+    if isinstance(output, dict):
+        html_path = _string(output.get("html_path"))
+        markdown_path = _string(output.get("markdown_path"))
+        evidence_path = _string(output.get("evidence_bundle_path"))
+        if html_path:
+            details = ["Report artifact generated.", f"HTML file: {html_path}"]
+            if markdown_path:
+                details.append(f"Markdown file: {markdown_path}")
+            if evidence_path:
+                details.append(f"Evidence bundle: {evidence_path}")
+            return {"title": "Report artifact generated", "summary": "Report artifact generated.", "details": details}
+    return {"title": "Report artifact not generated", "summary": "No report artifact was recorded for this step.", "details": ["No report artifact was recorded for this step."]}
+
+
+def _generic_step_outcome(step_item: dict) -> dict[str, Any]:
+    output_alias = _string(step_item.get("output_alias"))
+    output = step_item.get("output")
+    if output in ({}, [], None, ""):
+        return {"title": "No output recorded", "summary": "No output was recorded for this step.", "details": ["No output was recorded for this step."]}
+    return {
+        "title": "Output recorded",
+        "summary": f"Output produced under alias: {output_alias}" if output_alias else "Output recorded.",
+        "details": [f"Output produced under alias: {output_alias}" if output_alias else "Output recorded.", f"Summary: {_short_step_summary(output)}"],
+    }
+
+
+OUTCOME_BUILDERS = {
+    "extract_order_ref": build_extract_order_ref_outcome,
+    "extract_order_id": build_extract_order_ref_outcome,
+    "classify_message": build_classification_outcome,
+    "classify_customer_message": build_classification_outcome,
+    "lookup_customer": build_customer_lookup_outcome,
+    "lookup_order": build_order_lookup_outcome,
+    "read_payment": build_payment_outcome,
+    "lookup_payment": build_payment_outcome,
+    "lookup_shipment": build_shipment_outcome,
+    "build_order_context": build_context_outcome,
+    "draft_reply": build_draft_reply_outcome,
+    "draft_customer_status_reply": build_draft_reply_outcome,
+    "validate_reply": build_validation_outcome,
+    "validate_draft_reply": build_validation_outcome,
+    "generate_report": build_report_artifact_outcome,
+    "generate_report_artifact": build_report_artifact_outcome,
+    "report_artifact": build_report_artifact_outcome,
+    "prepare_pending_send": build_pending_action_outcome,
+}
 
 
 def _detect_demo_story_type(scenario: dict, frame: dict, outputs: dict) -> str:
@@ -1444,6 +1775,43 @@ def _records_for_step(records: list[dict], step_id: str) -> list[dict]:
         if step_id and step_id in data_text:
             matched.append(item)
     return matched
+
+
+def _short_step_summary(value: object) -> str:
+    if value in ({}, [], None, ""):
+        return ""
+    if isinstance(value, dict):
+        for key in ("body", "reply", "summary", "text", "message", "html_path", "markdown_path", "evidence_bundle_path", "order_ref", "order_id", "customer_id", "name", "status", "tracking_reference", "amount", "label", "confidence", "reason"):
+            if value.get(key):
+                text = _string(value.get(key))
+                if text:
+                    return text
+        parts: list[str] = []
+        for key, item in value.items():
+            if item in (None, ""):
+                continue
+            if isinstance(item, (dict, list)):
+                parts.append(f"{key}: {render_json_block(item)}")
+            else:
+                parts.append(f"{key}: {_string(item)}")
+        if parts:
+            return "; ".join(parts)
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    if isinstance(value, list):
+        parts = [_string(item) for item in value if _string(item)]
+        return "; ".join(parts)
+    return _string(value)
+
+
+def _extract_order_reference(*values: object) -> str:
+    for value in values:
+        text = _string(value)
+        if not text:
+            continue
+        match = re.search(r"\b(?:ORD|PO|INV)-[A-Z0-9]+\b", text, re.IGNORECASE)
+        if match:
+            return match.group(0).upper()
+    return ""
 
 
 def _step_result_text(output_value: object, status: str, story_type: str) -> str:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from pathlib import Path
 from typing import Any
 
 from .arg_resolver import resolve_command_args

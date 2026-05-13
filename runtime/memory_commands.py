@@ -6,7 +6,7 @@ from .arg_resolver import resolve_command_args
 from .errors import MemoryCommandError
 from .models import StepRuntime, TaskFrame, MemoryResult
 from .memory_store import MemoryStore
-from .taskframe import add_audit_event, record_error, set_output, utc_now
+from .taskframe import add_audit_event, record_error, set_output
 
 
 class MemoryCommandRunner:

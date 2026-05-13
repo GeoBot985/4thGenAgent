@@ -9,7 +9,7 @@ from runtime.failure_summary import build_failure_summary
 import os
 
 from runtime.llm_adapter import FakeLLMAdapter
-from runtime.persistence import get_summary_path, load_taskframe_dict
+from runtime.persistence import get_summary_path
 from runtime.runtime_engine import RuntimeEngine
 from runtime.taskframe import to_dict as taskframe_to_dict
 from runtime.taskframe_reload import load_taskframe

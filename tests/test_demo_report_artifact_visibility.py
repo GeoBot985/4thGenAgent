@@ -5,6 +5,7 @@ import tkinter as tk
 import pytest
 
 from src.demo_story_presenter import build_demo_story
+from src.operator_reports import create_or_open_run_report
 from src.operator_ui import build_operator_ui
 
 
@@ -99,38 +100,22 @@ def test_demo_view_does_not_claim_report_ready_without_path():
 
 
 def test_open_run_report_auto_creates_missing_report(tmp_path, monkeypatch):
-    try:
-        root, console = _build_console(tmp_path)
-    except tk.TclError as exc:
-        pytest.skip(f"Tk unavailable: {exc}")
-
     calls: list[tuple[str, str]] = []
+    opened: list[str] = []
 
     def fake_generate(runtime_root, frame_id, scenario=None):
         calls.append((str(runtime_root), frame_id))
         return _report_run_result(frame_id)
 
-    opened: list[str] = []
+    monkeypatch.setattr("src.operator_reports.generate_demo_run_report", fake_generate)
+    monkeypatch.setattr("src.operator_reports.open_report_html", lambda path: opened.append(path))
 
-    monkeypatch.setattr("src.operator_ui.generate_demo_run_report", fake_generate)
-    monkeypatch.setattr("src.operator_ui.open_report_html", lambda path: opened.append(path))
+    result = create_or_open_run_report(str(tmp_path), "frame_42", scenario={"id": "report_generation_happy_path", "label": "Report Generation - Happy Path"})
 
-    try:
-        console.view_mode_var.set("Demo")
-        console.active_frame_id = "frame_42"
-        console.current_run = {
-            "frame_id": "frame_42",
-            "scenario_id": "report_generation_happy_path",
-            "label": "Report Generation - Happy Path",
-        }
-        console.active_report_result = None
-        console.on_open_run_report_html()
-
-        assert calls == [(str(tmp_path), "frame_42")]
-        assert opened == [f"runtime_data/outputs/reports/frame_42_run_report.html"]
-        assert console.report_status["frame_id"] == "frame_42"
-    finally:
-        root.destroy()
+    assert calls == [(str(tmp_path), "frame_42")]
+    assert opened == [f"runtime_data/outputs/reports/frame_42_run_report.html"]
+    assert result["frame_id"] == "frame_42"
+    assert result["opened"] is True
 
 
 def test_run_report_status_is_bound_to_active_frame(tmp_path, monkeypatch):
@@ -139,21 +124,33 @@ def test_run_report_status_is_bound_to_active_frame(tmp_path, monkeypatch):
     except tk.TclError as exc:
         pytest.skip(f"Tk unavailable: {exc}")
 
-    monkeypatch.setattr("src.operator_ui.generate_demo_run_report", lambda runtime_root, frame_id, scenario=None: _report_run_result(frame_id))
+    monkeypatch.setattr(
+        "src.operator_ui.create_or_open_run_report",
+        lambda runtime_root, frame_id, scenario=None: {
+            "ok": True,
+            "frame_id": frame_id,
+            "markdown_path": f"runtime_data/outputs/reports/{frame_id}_run_report.md",
+            "html_path": f"runtime_data/outputs/reports/{frame_id}_run_report.html",
+            "evidence_bundle_path": f"runtime_data/outputs/evidence/{frame_id}_evidence_bundle.json",
+            "opened": True,
+            "error": "",
+            "report_result": _report_run_result(frame_id),
+        },
+    )
     monkeypatch.setattr("src.operator_ui.open_report_html", lambda path: None)
 
     try:
         console.view_mode_var.set("Demo")
         console.active_frame_id = "frame_a"
         console.current_run = {"frame_id": "frame_a", "scenario_id": "report_generation_happy_path"}
-        console.on_open_run_report_html()
+        console.on_create_open_run_report()
         assert console.report_status["frame_id"] == "frame_a"
         assert console.current_run["report_result"]["frame_id"] == "frame_a"
 
         console.active_frame_id = "frame_b"
         console.current_run = {"frame_id": "frame_b", "scenario_id": "report_generation_happy_path"}
         console.active_report_result = None
-        console.on_open_run_report_html()
+        console.on_create_open_run_report()
         assert console.report_status["frame_id"] == "frame_b"
         assert console.current_run["report_result"]["frame_id"] == "frame_b"
     finally:
@@ -179,10 +176,9 @@ def test_report_buttons_use_clear_business_vs_run_labels(tmp_path):
         console._render_demo_story_view()
 
         assert console.demo_open_business_report_button.cget("text") == "Open business report"
-        assert console.demo_open_run_report_button.cget("text") == "Open run report"
         assert console.demo_create_open_run_report_button.cget("text") == "Create/open run report"
         assert console.demo_open_business_report_button.winfo_manager() == "pack"
-        assert console.demo_open_run_report_button.winfo_manager() == "pack"
+        assert console.demo_open_run_report_button.winfo_manager() == ""
         assert console.demo_create_open_run_report_button.winfo_manager() == "pack"
 
         console.current_run = {

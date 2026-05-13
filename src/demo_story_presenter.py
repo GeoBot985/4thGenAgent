@@ -1,7 +1,6 @@
 ﻿from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import Any
 
 
@@ -44,6 +43,47 @@ STEP_LABELS = {
 FAILED_STATES = {"FAILED", "FAILED_VALIDATION", "FAILED_EXECUTION", "FAILED_COMPLETION"}
 
 
+def _story_card(title: str, kind: str, body: str = "", items: list[str] | None = None) -> dict:
+    return {
+        "title": title,
+        "kind": kind,
+        "body": body,
+        "items": items or [],
+    }
+
+
+def _story_actions(
+    *,
+    show_approve: bool,
+    show_reject: bool,
+    show_open_business_report: bool,
+    show_create_open_run_report: bool,
+) -> dict[str, bool]:
+    return {
+        "show_approve": show_approve,
+        "show_reject": show_reject,
+        "show_open_business_report": show_open_business_report,
+        "show_create_open_run_report": show_create_open_run_report,
+    }
+
+
+def _report_paths(business_html: str = "", business_markdown: str = "", business_evidence: str = "", run_html: str = "", run_markdown: str = "", run_evidence: str = "") -> dict:
+    return {
+        "business_report": {
+            "exists": bool(business_html),
+            "html_path": business_html,
+            "markdown_path": business_markdown,
+            "evidence_path": business_evidence,
+        },
+        "run_report": {
+            "exists": bool(run_html),
+            "html_path": run_html,
+            "markdown_path": run_markdown,
+            "evidence_bundle_path": run_evidence,
+        },
+    }
+
+
 def build_demo_story(
     snapshot: dict,
     current_run: dict | None = None,
@@ -75,24 +115,24 @@ def build_demo_story(
     run_type = _detect_story_type(scenario=current_run, fallback_text=" ".join(_frame_text_values(run_frame, current_run, run_event))) if current_run else "unknown"
     if run_frame:
         if selected_scenario and selected_type != "unknown" and run_type != "unknown" and not _story_types_compatible(selected_type, run_type):
-            return _placeholder_story(selected_scenario, selected_type)
+            return _finalize_story(_placeholder_story(selected_scenario, selected_type), current_run, selected_scenario)
         story_type = selected_type if selected_type != "unknown" else run_type
         compatible = selected_type == "unknown" or run_type == "unknown" or selected_type == run_type
-        return _build_story_for_type(story_type, run_frame, run_event, current_run, selected_scenario, compatible)
+        return _finalize_story(_build_story_for_type(story_type, run_frame, run_event, current_run, selected_scenario, compatible), current_run, selected_scenario)
 
     if selected_scenario:
-        return _placeholder_story(selected_scenario, selected_type)
+        return _finalize_story(_placeholder_story(selected_scenario, selected_type), current_run, selected_scenario)
 
     snapshot_frame = snapshot.get("active_frame") if isinstance(snapshot.get("active_frame"), dict) else {}
     if snapshot_frame:
         snapshot_run_type = _detect_story_type(scenario=snapshot, frame=snapshot_frame, fallback_text=" ".join(_frame_text_values(snapshot_frame, snapshot, snapshot.get("active_event") if isinstance(snapshot.get("active_event"), dict) else {})))
         if selected_scenario and selected_type != "unknown" and snapshot_run_type != "unknown" and not _story_types_compatible(selected_type, snapshot_run_type):
-            return _placeholder_story(selected_scenario, selected_type)
+            return _finalize_story(_placeholder_story(selected_scenario, selected_type), current_run, selected_scenario)
         story_type = selected_type if selected_type != "unknown" else snapshot_run_type
         compatible = selected_type == "unknown" or snapshot_run_type == "unknown" or selected_type == snapshot_run_type
-        return _build_story_for_type(story_type, snapshot_frame, snapshot.get("active_event") if isinstance(snapshot.get("active_event"), dict) else {}, current_run, selected_scenario, compatible)
+        return _finalize_story(_build_story_for_type(story_type, snapshot_frame, snapshot.get("active_event") if isinstance(snapshot.get("active_event"), dict) else {}, current_run, selected_scenario, compatible), current_run, selected_scenario)
 
-    return _empty_story()
+    return _finalize_story(_empty_story(), current_run, selected_scenario)
 
 
 def humanize_step_id(step_id: str) -> str:
@@ -249,7 +289,7 @@ def _build_report_story(
         outcome_text = "No business report artifact was found for this run."
     return {
         "story_type": "report_generation",
-        "mode": mode,
+        "mode": "report_generated" if report_generated and mode != "failed_validation" else mode,
         "headline": headline,
         "subheadline": subheadline,
         "request_title": "Report request",
@@ -947,6 +987,158 @@ def _empty_story() -> dict:
         "run_report_markdown_path": "",
         "run_report_evidence_bundle_path": "",
     }
+
+
+def _finalize_story(story: dict, current_run: dict | None, selected_scenario: dict | None) -> dict:
+    story = story if isinstance(story, dict) else {}
+    current_run = current_run if isinstance(current_run, dict) else {}
+    selected_scenario = selected_scenario if isinstance(selected_scenario, dict) else {}
+    story_type = _clean_value(story.get("story_type")) or "unknown"
+    story["scenario_type"] = story_type
+    story["actions"] = _story_actions(
+        show_approve=bool(story.get("can_approve")),
+        show_reject=bool(story.get("can_reject")),
+        show_open_business_report=bool(story.get("can_open_business_report")),
+        show_create_open_run_report=bool(story.get("can_create_open_run_report", False)),
+    )
+    business_report_html_path = _clean_value(story.get("business_report_html_path"))
+    business_report_markdown_path = _clean_value(story.get("business_report_markdown_path"))
+    business_report_evidence_bundle_path = _clean_value(story.get("business_report_evidence_bundle_path"))
+    run_report_html_path = _clean_value(story.get("run_report_html_path"))
+    run_report_markdown_path = _clean_value(story.get("run_report_markdown_path"))
+    run_report_evidence_bundle_path = _clean_value(story.get("run_report_evidence_bundle_path"))
+    story["business_report"] = {
+        "exists": bool(business_report_html_path),
+        "html_path": business_report_html_path,
+        "markdown_path": business_report_markdown_path,
+        "evidence_path": business_report_evidence_bundle_path,
+    }
+    story["run_report"] = {
+        "exists": bool(run_report_html_path),
+        "html_path": run_report_html_path,
+        "markdown_path": run_report_markdown_path,
+        "evidence_bundle_path": run_report_evidence_bundle_path,
+    }
+    story["cards"] = _build_story_cards(story, current_run, selected_scenario)
+    return story
+
+
+def _build_story_cards(story: dict, current_run: dict, selected_scenario: dict) -> list[dict]:
+    story_type = _clean_value(story.get("story_type"))
+    cards: list[dict] = []
+    if story_type == "report_generation":
+        cards.append(_story_card(str(story.get("request_title", "Report request")), "request", str(story.get("request_text", ""))))
+        cards.append(
+            _story_card(
+                str(story.get("worker_title", "What the worker checked")),
+                "steps",
+                "",
+                [f"{step.get('label', '')}" for step in story.get("worker_steps", []) if isinstance(step, dict) and step.get("label")],
+            )
+        )
+        outcome_items = [str(item) for item in story.get("facts", []) if str(item)]
+        if story.get("show_prepared_reply") and story.get("draft_reply"):
+            outcome_items = [f"Prepared reply: {story.get('draft_reply')}"] + outcome_items
+        cards.append(_story_card(str(story.get("outcome_title", "Generated report")), "outcome", str(story.get("outcome_text", "")), outcome_items))
+        decision_items = [str(story.get("subheadline", ""))] if story.get("subheadline") else []
+        if story.get("business_report_html_path"):
+            decision_items.append(f"Business report: {story.get('business_report_html_path')}")
+        if story.get("business_report_markdown_path"):
+            decision_items.append(f"Markdown: {story.get('business_report_markdown_path')}")
+        if story.get("business_report_evidence_bundle_path"):
+            decision_items.append(f"Evidence: {story.get('business_report_evidence_bundle_path')}")
+        if story.get("run_report_html_path"):
+            decision_items.append(f"Run report: {story.get('run_report_html_path')}")
+        if story.get("run_report_markdown_path"):
+            decision_items.append(f"Run markdown: {story.get('run_report_markdown_path')}")
+        if story.get("run_report_evidence_bundle_path"):
+            decision_items.append(f"Run evidence: {story.get('run_report_evidence_bundle_path')}")
+        cards.append(_story_card(str(story.get("decision_title", "Report actions")), "decision", str(story.get("decision_text", "")), decision_items))
+        report_items = []
+        if story.get("business_report_html_path"):
+            report_items.extend(
+                [
+                    "Business report generated",
+                    f"HTML: {story.get('business_report_html_path')}",
+                    f"Markdown: {story.get('business_report_markdown_path')}",
+                    f"Evidence: {story.get('business_report_evidence_bundle_path')}",
+                ]
+            )
+        else:
+            report_items.append("No business report artifact was found for this run.")
+        if story.get("run_report_html_path"):
+            report_items.extend(
+                [
+                    "Run report",
+                    f"HTML: {story.get('run_report_html_path')}",
+                    "This report shows:",
+                    "- manifest steps",
+                    "- step outcomes",
+                    "- validations",
+                    "- evidence",
+                    "- pending actions",
+                ]
+            )
+        else:
+            report_items.append("Run report has not been created yet.")
+        cards.append(_story_card("Report details", "report", "", report_items))
+        return cards
+
+    if story_type in {"customer_status", "procurement", "accounting"}:
+        request_kind = "request"
+        worker_kind = "steps"
+        outcome_kind = "outcome"
+        decision_kind = "decision"
+        cards.append(_story_card(str(story.get("request_title", "Selected demo")), request_kind, str(story.get("request_text", ""))))
+        cards.append(
+            _story_card(
+                str(story.get("worker_title", "What the worker checked")),
+                worker_kind,
+                "",
+                [f"{step.get('label', '')}" for step in story.get("worker_steps", []) if isinstance(step, dict) and step.get("label")],
+            )
+        )
+        outcome_items = [str(item) for item in story.get("facts", []) if str(item)]
+        if story.get("show_prepared_reply") and story.get("draft_reply"):
+            outcome_items.insert(0, f"Prepared reply: {story.get('draft_reply')}")
+        if story.get("failed_check"):
+            outcome_items.append(f"Failed check: {story.get('failed_check')}")
+        if story.get("safe_outcome"):
+            outcome_items.append(f"Safe outcome: {story.get('safe_outcome')}")
+        cards.append(_story_card(str(story.get("outcome_title", "Selected demo")), outcome_kind, str(story.get("outcome_text", "")), outcome_items))
+        decision_items = [str(story.get("decision_text", ""))] if story.get("decision_text") else []
+        if story.get("run_report_html_path"):
+            decision_items.append(f"Run report: {story.get('run_report_html_path')}")
+        if story.get("business_report_html_path"):
+            decision_items.append(f"Business report: {story.get('business_report_html_path')}")
+        cards.append(_story_card(str(story.get("decision_title", "Selected demo")), decision_kind, str(story.get("decision_text", "")), decision_items))
+        report_items = []
+        if story.get("business_report_html_path"):
+            report_items.extend(
+                [
+                    "Business report generated",
+                    f"HTML: {story.get('business_report_html_path')}",
+                    f"Markdown: {story.get('business_report_markdown_path')}",
+                    f"Evidence: {story.get('business_report_evidence_bundle_path')}",
+                ]
+            )
+        if story.get("run_report_html_path"):
+            report_items.extend(
+                [
+                    "Run report",
+                    f"HTML: {story.get('run_report_html_path')}",
+                    f"Markdown: {story.get('run_report_markdown_path')}",
+                    f"Evidence: {story.get('run_report_evidence_bundle_path')}",
+                ]
+            )
+        cards.append(_story_card("Report details", "report", "", report_items))
+        return cards
+
+    cards.append(_story_card(str(story.get("request_title", "Selected demo")), "request", str(story.get("request_text", ""))))
+    cards.append(_story_card(str(story.get("worker_title", "Selected demo")), "steps", "", [step.get("label", "") for step in story.get("worker_steps", []) if isinstance(step, dict) and step.get("label")]))
+    cards.append(_story_card(str(story.get("outcome_title", "Selected demo")), "outcome", str(story.get("outcome_text", "")), [str(item) for item in story.get("facts", []) if str(item)]))
+    cards.append(_story_card(str(story.get("decision_title", "Selected demo")), "decision", str(story.get("decision_text", ""))))
+    return cards
 
 
 def _story_mode(state: str, has_frame: bool, failed_validation: bool) -> str:

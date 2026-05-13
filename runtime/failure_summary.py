@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 
 
 def build_failure_summary(frame: dict) -> dict:

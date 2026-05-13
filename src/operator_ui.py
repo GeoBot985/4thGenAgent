@@ -19,20 +19,19 @@ from runtime.customer_inbox import (
     seed_customer_inbox,
 )
 from src.operator_data import build_footer_text, build_operator_snapshot, group_events_for_queue
-from src.operator_demo_runner import DEMO_MANIFESTS, list_demo_manifests, run_demo_manifest
-from src.operator_cross_workflow_demo import list_demo_packs, run_cross_workflow_demo_pack
+from src.operator_cross_workflow_demo import run_cross_workflow_demo_pack
 from src.operator_scenario_runner import run_scenario
-from src.operator_scenarios import SCENARIO_CATEGORIES, list_categories, list_scenarios
+from src.operator_scenarios import SCENARIO_CATEGORIES, list_scenarios
 from src.operator_artifacts import artifact_paths_match_frame, build_artifact_state, get_openable_artifacts
 from src.operator_playback import build_playback_timeline, build_playback_view
 from src.demo_story_presenter import build_demo_story
-from src.operator_presenter import build_demo_view, humanize_state, humanize_step_id
-from src.operator_reports import generate_report_for_frame, get_latest_report_paths, open_report_folder, open_report_html
-from src.operator_widgets import ScrollablePanel, create_scrolled_text_widget
+from src.operator_presenter import build_demo_view, humanize_step_id
+from src.operator_reports import create_or_open_run_report, generate_report_for_frame, open_report_folder, open_report_html
+from src.operator_widgets import create_scrolled_text_widget
 from runtime.tool_capability_registry import list_tool_capabilities
 from runtime.tool_health import check_all_tool_health, check_tool_health, load_latest_tool_health_snapshot
 from runtime.tool_setup import get_tool_setup_instructions, run_safe_setup_action
-from runtime.run_report import generate_demo_run_report, get_demo_run_report_paths
+from runtime.run_report import generate_demo_run_report
 
 
 TITLE = "Autonomous Business Worker Demo"
@@ -1324,8 +1323,34 @@ class OperatorConsole:
         self.active_artifact_paths = artifact_state.get("paths", {}) if isinstance(artifact_state.get("paths", {}), dict) else {}
         self._render_current_view()
 
+    def on_create_open_run_report(self) -> None:
+        if self.view_mode_var.get() != "Demo":
+            self.on_open_run_report_html()
+            return
+        frame_id = (self.active_frame_id or "").strip()
+        if not frame_id:
+            self.report_status = {"ok": False, "frame_id": "", "markdown_path": "", "html_path": "", "evidence_bundle_path": "", "error": "Run a demo first."}
+            self._render_current_view()
+            return
+        scenario = self._selected_scenario() or {}
+        if not scenario and isinstance(self.current_run, dict):
+            scenario = {
+                "id": self.current_run.get("scenario_id", ""),
+                "label": self.current_run.get("label", ""),
+                "name": self.current_run.get("scenario_title", ""),
+            }
+        result = create_or_open_run_report(self.runtime_root, frame_id, scenario=scenario)
+        self.report_status = result
+        if isinstance(self.current_run, dict):
+            self.current_run = dict(self.current_run)
+            self.current_run["report_result"] = result.get("report_result") or result
+        self.active_report_result = result.get("report_result") if isinstance(result.get("report_result"), dict) else result
+        artifact_state = build_artifact_state(frame_id, self.active_report_result)
+        self.active_artifact_paths = artifact_state.get("paths", {}) if isinstance(artifact_state.get("paths", {}), dict) else {}
+        self._render_current_view()
+
     def on_create_or_open_run_report(self) -> None:
-        self.on_open_run_report_html()
+        self.on_create_open_run_report()
 
     def on_open_run_report_html(self) -> None:
         if self.view_mode_var.get() == "Demo":
@@ -1334,11 +1359,15 @@ class OperatorConsole:
                 self.report_status = {"ok": False, "frame_id": "", "markdown_path": "", "html_path": "", "evidence_bundle_path": "", "error": "Run a demo first."}
                 self._render_current_view()
                 return
-            report_result = self._ensure_demo_report_result(frame_id)
+            report_result = create_or_open_run_report(self.runtime_root, frame_id, scenario=self._selected_scenario() or None)
+            self.report_status = report_result
+            if isinstance(self.current_run, dict):
+                self.current_run = dict(self.current_run)
+                self.current_run["report_result"] = report_result.get("report_result") or report_result
+            self.active_report_result = report_result.get("report_result") if isinstance(report_result.get("report_result"), dict) else report_result
+            artifact_state = build_artifact_state(frame_id, self.active_report_result)
+            self.active_artifact_paths = artifact_state.get("paths", {}) if isinstance(artifact_state.get("paths", {}), dict) else {}
             self._render_current_view()
-            html_path = str((report_result or {}).get("run_report_html_path") or (report_result or {}).get("html_path", "")).strip()
-            if html_path:
-                open_report_html(html_path)
             return
         artifact_state = self._active_artifact_state()
         if not artifact_state.get("has_active_run"):
@@ -1492,14 +1521,16 @@ class OperatorConsole:
             self._set_widget_packed_visible(getattr(self, "demo_toolbar_open_evidence_button", None), False)
             self._set_widget_packed_visible(getattr(self, "demo_toolbar_stop_button", None), False)
             self._set_widget_packed_visible(getattr(self, "demo_start_over_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_decision_button_row", None), bool(story.get("show_approval_actions")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
-            self._set_widget_packed_visible(getattr(self, "demo_approve_button", None), bool(story.get("can_approve")), pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_reject_button", None), bool(story.get("can_reject")), pack_kwargs={"side": "left"})
-            self._set_widget_packed_visible(getattr(self, "demo_report_button_row", None), bool(story.get("show_report_actions")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
-            self._set_widget_packed_visible(getattr(self, "demo_open_business_report_button", None), bool(story.get("story_type") == "report_generation"), pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_open_run_report_button", None), bool(story.get("story_type") == "report_generation"), pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_create_open_run_report_button", None), bool(has_run), pack_kwargs={"side": "left"})
-            self._set_widget_packed_visible(getattr(self, "demo_evidence_text", None), False)
+            actions = story.get("actions", {}) if isinstance(story.get("actions"), dict) else {}
+            self._set_widget_packed_visible(getattr(self, "demo_decision_button_row", None), bool(actions.get("show_approve") or actions.get("show_reject")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
+            self._set_widget_packed_visible(getattr(self, "demo_approve_button", None), bool(actions.get("show_approve")), pack_kwargs={"side": "left", "padx": (0, 6)})
+            self._set_widget_packed_visible(getattr(self, "demo_reject_button", None), bool(actions.get("show_reject")), pack_kwargs={"side": "left"})
+            self._set_widget_packed_visible(getattr(self, "demo_report_button_row", None), bool(actions.get("show_open_business_report") or actions.get("show_create_open_run_report")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
+            self._set_widget_packed_visible(getattr(self, "demo_open_business_report_button", None), bool(actions.get("show_open_business_report")), pack_kwargs={"side": "left", "padx": (0, 6)})
+            self._set_widget_packed_visible(getattr(self, "demo_open_run_report_button", None), False)
+            self._set_widget_packed_visible(getattr(self, "demo_create_open_run_report_button", None), bool(actions.get("show_create_open_run_report")), pack_kwargs={"side": "left"})
+            show_details = bool(story.get("run_report_html_path") or story.get("business_report_html_path"))
+            self._set_widget_packed_visible(getattr(self, "demo_evidence_text", None), show_details, pack_kwargs={"fill": "x", "expand": True, "pady": (10, 0)})
             self._set_widget_packed_visible(getattr(self, "demo_evidence_scrollbar", None), False)
             self._set_widget_packed_visible(getattr(self, "demo_request_scrollbar", None), False)
             self._set_widget_packed_visible(getattr(self, "demo_worker_steps_scrollbar", None), False)
@@ -2376,6 +2407,22 @@ class OperatorConsole:
         if not hasattr(self, "demo_current_run_text"):
             return
         story = self._demo_story_model()
+        cards = [card for card in story.get("cards", []) if isinstance(card, dict)]
+        card_by_kind = {str(card.get("kind", "")).strip(): card for card in cards if str(card.get("kind", "")).strip()}
+
+        def card_to_text(card: dict | None, fallback: str) -> str:
+            if not isinstance(card, dict):
+                return fallback
+            lines: list[str] = []
+            body = str(card.get("body", "") or "").strip()
+            if body:
+                lines.extend(body.splitlines())
+            for item in card.get("items", []):
+                text = str(item or "").strip()
+                if text:
+                    lines.append(text)
+            return "\n".join(lines).strip() or fallback
+
         self.demo_headline_title_label.configure(text=str(story.get("headline", "Select a demo to begin")) or "Select a demo to begin")
         self._set_text(
             self.demo_current_run_text,
@@ -2391,9 +2438,14 @@ class OperatorConsole:
         if hasattr(self, "demo_worker_steps_scrollbar"):
             self.demo_worker_steps_scrollbar.grid_remove()
 
-        request_text = str(story.get("request_text", "") or "").strip()
-        request_lines = request_text.splitlines() if request_text else [story.get("message", "") or "Choose a demo to see the request."]
-        self._set_text(self.demo_request_text, "\n".join(request_lines))
+        request_card = card_by_kind.get("request")
+        worker_card = card_by_kind.get("steps")
+        outcome_card = card_by_kind.get("outcome")
+        decision_card = card_by_kind.get("decision")
+        report_card = card_by_kind.get("report")
+
+        self.demo_request_title_label.configure(text=str(request_card.get("title", story.get("request_title", "Customer request"))) if request_card else str(story.get("request_title", "Customer request")))
+        self._set_text(self.demo_request_text, card_to_text(request_card, str(story.get("request_text", "Choose a demo to see the request."))))
 
         worker_lines: list[str] = []
         for step in story.get("worker_steps", []):
@@ -2402,58 +2454,35 @@ class OperatorConsole:
             status = str(step.get("status", "")).lower()
             symbol = {"done": "✓", "current": "▶", "attention": "⚠", "failed": "✗", "pending": "○", "not_reached": "—"}.get(status, "○")
             worker_lines.append(f"{symbol} {step.get('label', '')}")
+        if not worker_lines and worker_card:
+            worker_lines = [line for line in card_to_text(worker_card, "").splitlines() if line]
+        self.demo_worker_title_label.configure(text=str(worker_card.get("title", story.get("worker_title", "What the worker checked"))) if worker_card else str(story.get("worker_title", "What the worker checked")))
         self._set_text(self.demo_worker_steps_text, "\n".join(worker_lines) if worker_lines else "Choose a demo to see what the worker did.")
 
-        self.demo_result_title_label.configure(text=str(story.get("outcome_title", "Generated report")) or "Generated report")
-        outcome_text = str(story.get("outcome_text", "")) or "No outcome available."
+        self.demo_result_title_label.configure(text=str(outcome_card.get("title", story.get("outcome_title", "Generated report"))) if outcome_card else str(story.get("outcome_title", "Generated report")))
+        outcome_text = card_to_text(outcome_card, str(story.get("outcome_text", "")) or "No outcome available.")
         self._set_text(self.demo_result_text, outcome_text)
 
-        self.demo_approval_title_label.configure(text=str(story.get("decision_title", "Report actions")))
+        self.demo_approval_title_label.configure(text=str(decision_card.get("title", story.get("decision_title", "Report actions"))) if decision_card else str(story.get("decision_title", "Report actions")))
         self.demo_approval_label.configure(text=str(story.get("decision_text", "Click Start demo to generate this report.")))
-        if story.get("story_type") == "report_generation":
-            detail_lines = [str(story.get("subheadline", "Click Start demo to generate this report."))]
+        if story.get("mode") == "failed_validation":
+            self.demo_approval_detail_label.configure(text="\n".join(item for item in (story.get("failed_check", ""), story.get("safe_outcome", "")) if item))
+        elif story.get("story_type") == "report_generation":
+            detail_lines = []
+            if decision_card:
+                detail_lines.extend([line for line in card_to_text(decision_card, "").splitlines() if line])
             if story.get("business_report_html_path"):
                 detail_lines.append(f"Business report: {story.get('business_report_html_path')}")
             if story.get("run_report_html_path"):
                 detail_lines.append(f"Run report: {story.get('run_report_html_path')}")
-            self.demo_approval_detail_label.configure(text="\n".join(line for line in detail_lines if line))
-        elif story.get("mode") == "failed_validation":
-            self.demo_approval_detail_label.configure(text="\n".join(item for item in (story.get("failed_check", ""), story.get("safe_outcome", "")) if item))
+            self.demo_approval_detail_label.configure(text="\n".join(detail_lines) or str(story.get("subheadline", "Click Start demo to generate this report.")))
         else:
             self.demo_approval_detail_label.configure(text=str(story.get("subheadline", "No live customer message will be sent in demo mode.")))
-        evidence_lines = []
-        if story.get("story_type") == "report_generation":
-            if story.get("business_report_html_path"):
-                evidence_lines.extend(
-                    [
-                        "Business report generated",
-                        f"File: {story.get('business_report_html_path')}",
-                        "Also created:",
-                        "- Markdown report",
-                        "- Evidence bundle",
-                    ]
-                )
-            else:
-                evidence_lines.append("No business report artifact was found for this run.")
-            evidence_lines.extend(
-                [
-                    "",
-                    "Run report generated" if story.get("run_report_html_path") else "Run report has not been created yet.",
-                ]
-            )
-            if story.get("run_report_html_path"):
-                evidence_lines.extend(
-                    [
-                        f"File: {story.get('run_report_html_path')}",
-                        "This report shows:",
-                        "- manifest steps",
-                        "- step results",
-                        "- validations",
-                        "- evidence",
-                        "- pending actions",
-                    ]
-                )
-        else:
+
+        evidence_lines: list[str] = []
+        if report_card:
+            evidence_lines.extend([line for line in card_to_text(report_card, "").splitlines() if line])
+        if not evidence_lines:
             if story.get("run_report_html_path"):
                 evidence_lines.extend(
                     [
@@ -2461,7 +2490,7 @@ class OperatorConsole:
                         f"File: {story.get('run_report_html_path')}",
                         "This report shows:",
                         "- manifest steps",
-                        "- step results",
+                        "- step outcomes",
                         "- validations",
                         "- evidence",
                         "- pending actions",
@@ -2470,6 +2499,16 @@ class OperatorConsole:
             else:
                 evidence_lines.append("No run report has been created yet.")
         self._set_text(self.demo_evidence_text, "\n".join(evidence_lines))
+
+        actions = story.get("actions", {}) if isinstance(story.get("actions"), dict) else {}
+        self._set_widget_packed_visible(getattr(self, "demo_approve_button", None), bool(actions.get("show_approve")), pack_kwargs={"side": "left", "padx": (0, 6)})
+        self._set_widget_packed_visible(getattr(self, "demo_reject_button", None), bool(actions.get("show_reject")), pack_kwargs={"side": "left"})
+        self._set_widget_packed_visible(getattr(self, "demo_open_business_report_button", None), bool(actions.get("show_open_business_report")), pack_kwargs={"side": "left", "padx": (0, 6)})
+        self._set_widget_packed_visible(getattr(self, "demo_open_run_report_button", None), bool(actions.get("show_create_open_run_report")), pack_kwargs={"side": "left", "padx": (0, 6)})
+        self._set_widget_packed_visible(getattr(self, "demo_create_open_run_report_button", None), bool(actions.get("show_create_open_run_report")), pack_kwargs={"side": "left"})
+        self._set_widget_packed_visible(getattr(self, "demo_decision_button_row", None), bool(actions.get("show_approve") or actions.get("show_reject")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
+        self._set_widget_packed_visible(getattr(self, "demo_report_button_row", None), bool(actions.get("show_open_business_report") or actions.get("show_create_open_run_report")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
+
         self.update_approval_button_states()
 
 
