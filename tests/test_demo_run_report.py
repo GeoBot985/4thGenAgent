@@ -231,6 +231,49 @@ def _unknown_step_frame(frame_id: str) -> tuple[dict, dict, list[dict]]:
     return frame, frame["outputs"], []
 
 
+def _failed_sheet_frame(frame_id: str) -> tuple[dict, dict, list[dict]]:
+    frame = {
+        "frame_id": frame_id,
+        "manifest_id": "accounting.payment_reconciliation",
+        "state": "FAILED_EXECUTION",
+        "current_step_id": "read_payments_sheet",
+        "trigger": {"event_id": "evt-sheet", "event_type": "manual.accounting_payment_reconciliation", "source": "operator_ui"},
+        "inputs": {"spreadsheet_id": "demo-accounting-sheet", "payments_range": "Payments!A1:H100"},
+        "steps": [
+            {
+                "step_id": "read_payments_sheet",
+                "command": "[t:sheet/read_range -> payments_sheet] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.payments_range",
+                "kind": "tool",
+                "status": "FAILED",
+                "output_alias": "payments_sheet",
+                "error": "invalid_grant Token has been expired or revoked.",
+            }
+        ],
+        "outputs": {},
+        "validations": [],
+        "pending_actions": [],
+        "executed_actions": [],
+        "tool_calls": [
+            {
+                "step_id": "read_payments_sheet",
+                "tool": "sheet/read_range",
+                "action": "read_range",
+                "namespace": "sheet",
+                "args": {"spreadsheet_id": "demo-accounting-sheet", "range_name": "Payments!A1:H100"},
+                "ok": False,
+                "error": "invalid_grant Token has been expired or revoked.",
+            }
+        ],
+        "llm_calls": [],
+        "evidence": [],
+        "errors": [{"step_id": "read_payments_sheet", "message": "invalid_grant Token has been expired or revoked.", "type": "live_tool_execution_failed"}],
+        "audit": [],
+        "completion_gate_result": {"status": "FAILED_EXECUTION"},
+        "final_response": "",
+    }
+    return frame, frame["outputs"], []
+
+
 def test_demo_run_report_creates_html_markdown_and_evidence_bundle(tmp_path):
     frame_id = "frame_demo_customer_happy"
     frame, outputs, audit = _customer_happy_frame(frame_id)
@@ -343,6 +386,43 @@ def test_failed_step_report_shows_safe_outcome(tmp_path):
     assert "This step failed." in text
     assert "Reason: Customer record could not be confirmed." in text
     assert "Safe outcome: Workflow stopped before any unsafe action was taken." in text
+
+
+def test_run_report_failed_external_auth_step_shows_failure_type(tmp_path):
+    frame_id = "frame_demo_failed_sheet_auth"
+    frame, outputs, audit = _failed_sheet_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "accounting_payment_reconciliation_happy_path", "label": "Accounting Payment Reconciliation - Happy Path"})
+    text = Path(report["html_path"]).read_text(encoding="utf-8")
+
+    assert "External authentication failure" in text
+    assert "Google Sheets authentication failed" in text
+    assert "Refresh the Google authentication token" in text
+
+
+def test_run_report_failed_external_auth_step_shows_recommended_action(tmp_path):
+    frame_id = "frame_demo_failed_sheet_auth_recommendation"
+    frame, outputs, audit = _failed_sheet_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "accounting_payment_reconciliation_happy_path", "label": "Accounting Payment Reconciliation - Happy Path"})
+    markdown = Path(report["markdown_path"]).read_text(encoding="utf-8")
+
+    assert "recommended action" in markdown.lower()
+    assert "fixture dry-run mode" in markdown.lower()
+
+
+def test_run_report_failed_step_safe_outcome_is_visible(tmp_path):
+    frame_id = "frame_demo_failed_sheet_auth_safe_outcome"
+    frame, outputs, audit = _failed_sheet_frame(frame_id)
+    _write_run(tmp_path, frame_id, frame, outputs, audit)
+
+    report = generate_demo_run_report(tmp_path, frame_id, scenario={"id": "accounting_payment_reconciliation_happy_path", "label": "Accounting Payment Reconciliation - Happy Path"})
+    markdown = Path(report["markdown_path"]).read_text(encoding="utf-8")
+
+    assert "safe outcome" in markdown.lower()
+    assert "workflow stopped before any side effect was created." in markdown.lower()
 
 
 def test_unknown_step_falls_back_to_output_alias_summary(tmp_path):

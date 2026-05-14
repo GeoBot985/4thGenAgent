@@ -9,6 +9,7 @@ from typing import Any
 from .artifact_cleanup import load_taskframe_safe
 from .evidence_bundle import build_evidence_bundle
 from .failure_summary import build_failure_summary
+from .failure_summary import classify_workbench_failure
 from .persistence import ensure_dir, load_taskframe_dict, read_json, write_json_atomic
 from .taskframe import utc_now
 from src.operator_approval_pack import build_approval_pack_view
@@ -213,7 +214,12 @@ def render_failure_report_markdown(failure_summary: dict) -> str:
         f"- State: {failure_summary.get('state', '')}",
         f"- Failed Step: {failure_summary.get('failed_step_id', '')}",
         f"- Failure Type: {failure_summary.get('failure_type', '')}",
+        f"- Failure Category: {failure_summary.get('failure_category', '')}",
+        f"- Failure Title: {failure_summary.get('failure_title', '')}",
         f"- Failure Message: {failure_summary.get('failure_message', '')}",
+        f"- Failure Reason: {failure_summary.get('failure_reason', '')}",
+        f"- Recommended Action: {failure_summary.get('recommended_action', '')}",
+        f"- Safe Outcome: {failure_summary.get('safe_outcome', '')}",
         f"- Pending Actions: {failure_summary.get('pending_action_count', 0)}",
         f"- Executed Actions: {failure_summary.get('executed_action_count', 0)}",
         "",
@@ -371,9 +377,17 @@ def _markdown_failure_summary(failure_summary: dict) -> str:
         f"- Failed Step: {failure_summary.get('failed_step_id', '')}",
         f"- failure_type: {failure_summary.get('failure_type', '')}",
         f"- Failure Type: {failure_summary.get('failure_type', '')}",
+        f"- failure_category: {failure_summary.get('failure_category', '')}",
+        f"- Failure Category: {failure_summary.get('failure_category', '')}",
+        f"- failure_title: {failure_summary.get('failure_title', '')}",
+        f"- Failure Title: {failure_summary.get('failure_title', '')}",
         f"- failure_message: {failure_summary.get('failure_message', '')}",
         f"- Failure Message: {failure_summary.get('failure_message', '')}",
+        f"- failure_reason: {failure_summary.get('failure_reason', '')}",
+        f"- Failure Reason: {failure_summary.get('failure_reason', '')}",
         f"- Operator Explanation: {failure_summary.get('operator_explanation', '')}",
+        f"- Recommended Action: {failure_summary.get('recommended_action', '')}",
+        f"- Safe Outcome: {failure_summary.get('safe_outcome', '')}",
         f"- Pending Actions: {failure_summary.get('pending_action_count', 0)}",
         f"- Executed Actions: {failure_summary.get('executed_action_count', 0)}",
         f"- Safe To Retry: {failure_summary.get('safe_to_retry', False)}",
@@ -1279,35 +1293,67 @@ def _extract_tracking_reference(outputs: dict, output_value: object) -> str:
 
 def _failed_step_outcome(step_item: dict, frame: dict) -> dict[str, Any]:
     step_id = _string(step_item.get("step_id"))
-    reason = _string(
-        step_item.get("error_text")
-        or step_item.get("reason")
-        or step_item.get("raw_step", {}).get("error")
-        or step_item.get("raw_step", {}).get("last_error")
-        or "Validation failed."
+    tool_calls = step_item.get("tool_calls", []) if isinstance(step_item.get("tool_calls", []), list) else []
+    raw_step = step_item.get("raw_step", {}) if isinstance(step_item.get("raw_step", {}), dict) else {}
+    failure = classify_workbench_failure(
+        _failure_error_for_step(step_item, frame),
+        raw_step or {"step_id": step_id, "kind": step_item.get("status", ""), "output_alias": step_item.get("output_alias", "")},
     )
-    details = ["This step failed."]
-    if step_id == "lookup_customer":
-        customer_id = _extract_customer_id_from_frame(frame)
-        if customer_id:
-            details.append(f"Customer record not found for {customer_id}.")
-    elif step_id == "lookup_order":
-        order_ref = _extract_order_reference(frame.get("inputs", {}), frame.get("outputs", {}), step_item.get("output"))
-        if order_ref:
-            details.append(f"Order record not found for {order_ref}.")
-    elif step_id == "lookup_shipment":
-        tracking = _extract_tracking_reference(frame.get("outputs", {}), step_item.get("output"))
-        if tracking:
-            details.append(f"Shipment record not found for {tracking}.")
-    elif step_id == "read_payment":
-        details.append("Payment record not found.")
-    elif step_id == "extract_order_ref":
-        details.append("No order number could be found.")
-    details.append(f"Reason: {reason}")
-    details.append("Safe outcome: Workflow stopped before any unsafe action was taken.")
+    details = []
+    if failure.get("category") == "external_auth_failure":
+        tool_args = _latest_tool_args(tool_calls)
+        range_name = _string(tool_args.get("range_name"))
+        spreadsheet_id = _string(tool_args.get("spreadsheet_id"))
+        if range_name and spreadsheet_id:
+            details.append(f"Could not read {range_name} from spreadsheet {spreadsheet_id}.")
+        else:
+            details.append(_string(failure.get("summary")) or "This step failed.")
+        details.extend(
+            [
+                f"Failure type: {_failure_label(failure.get('category', 'unknown_failure'))}",
+                f"Reason: {_string(failure.get('reason') or failure.get('summary'))}",
+                "Safe outcome: Workflow stopped before any side effect was created.",
+                f"Recommended action: {_string(failure.get('recommended_action'))}",
+            ]
+        )
+    elif failure.get("category") == "fixture_missing":
+        details.extend(
+            [
+                "Fixture data not available for this tool/range.",
+                f"Failure type: {_failure_label(failure.get('category', 'unknown_failure'))}",
+                f"Recommended action: {_string(failure.get('recommended_action'))}",
+            ]
+        )
+    else:
+        details.append("This step failed.")
+        if step_id == "lookup_customer":
+            customer_id = _extract_customer_id_from_frame(frame)
+            if customer_id:
+                details.append(f"Customer record not found for {customer_id}.")
+        elif step_id == "lookup_order":
+            order_ref = _extract_order_reference(frame.get("inputs", {}), frame.get("outputs", {}), step_item.get("output"))
+            if order_ref:
+                details.append(f"Order record not found for {order_ref}.")
+        elif step_id == "lookup_shipment":
+            tracking = _extract_tracking_reference(frame.get("outputs", {}), step_item.get("output"))
+            if tracking:
+                details.append(f"Shipment record not found for {tracking}.")
+        elif step_id == "read_payment":
+            details.append("Payment record not found.")
+        elif step_id == "extract_order_ref":
+            details.append("No order number could be found.")
+        details.extend(
+            [
+                f"Failure type: {_failure_label(failure.get('category', 'unknown_failure'))}",
+                f"Reason: {_string(failure.get('reason') or failure.get('summary') or step_item.get('error_text') or step_item.get('reason'))}",
+                f"Recommended action: {_string(failure.get('recommended_action'))}",
+            ]
+        )
+        if str(frame.get("state", "")).startswith("FAILED"):
+            details.append("Safe outcome: Workflow stopped before any unsafe action was taken.")
     return {
-        "title": "This step failed.",
-        "summary": "This step failed.",
+        "title": failure.get("title", "This step failed."),
+        "summary": failure.get("summary", "This step failed."),
         "details": details,
     }
 
@@ -1509,11 +1555,75 @@ def _generic_step_outcome(step_item: dict) -> dict[str, Any]:
     output = step_item.get("output")
     if output in ({}, [], None, ""):
         return {"title": "No output recorded", "summary": "No output was recorded for this step.", "details": ["No output was recorded for this step."]}
+    if isinstance(output, dict):
+        metadata = output.get("metadata") if isinstance(output.get("metadata"), dict) else {}
+        if metadata:
+            details = []
+            if metadata.get("source") == "workbench_fixture":
+                details.append("Source: fixture data")
+            elif metadata.get("source"):
+                details.append(f"Source: {_string(metadata.get('source'))}")
+            if "live_external_call" in metadata:
+                details.append(f"Live external call: {'yes' if metadata.get('live_external_call') else 'no'}")
+            if "fixture_mode" in output:
+                details.append(f"Fixture mode: {'yes' if output.get('fixture_mode') else 'no'}")
+            if "dry_run" in output:
+                details.append(f"Dry-run: {'yes' if output.get('dry_run') else 'no'}")
+            if output.get("row_count") is not None:
+                details.append(f"Rows: {output.get('row_count')}")
+            details.append(f"Summary: {_short_step_summary(output)}")
+            return {
+                "title": "Fixture output" if metadata.get("source") == "workbench_fixture" else "Output recorded",
+                "summary": f"Output produced under alias: {output_alias}" if output_alias else "Output recorded.",
+                "details": details,
+            }
     return {
         "title": "Output recorded",
         "summary": f"Output produced under alias: {output_alias}" if output_alias else "Output recorded.",
         "details": [f"Output produced under alias: {output_alias}" if output_alias else "Output recorded.", f"Summary: {_short_step_summary(output)}"],
     }
+
+
+def _failure_error_for_step(step_item: dict, frame: dict) -> dict | str:
+    if isinstance(step_item.get("error_text"), str) and step_item.get("error_text"):
+        return str(step_item.get("error_text"))
+    if isinstance(step_item.get("reason"), str) and step_item.get("reason"):
+        return str(step_item.get("reason"))
+    raw_step = step_item.get("raw_step", {}) if isinstance(step_item.get("raw_step", {}), dict) else {}
+    if raw_step.get("error"):
+        return raw_step.get("error")
+    if raw_step.get("last_error"):
+        return raw_step.get("last_error")
+    for error in frame.get("errors", []) if isinstance(frame.get("errors", []), list) else []:
+        if isinstance(error, dict):
+            if not step_item.get("step_id") or str(error.get("step_id", "")) == str(step_item.get("step_id", "")):
+                return error
+            if error.get("message"):
+                return error
+        elif error:
+            return error
+    return ""
+
+
+def _latest_tool_args(tool_calls: list[dict]) -> dict:
+    if not tool_calls:
+        return {}
+    item = tool_calls[-1] if isinstance(tool_calls[-1], dict) else {}
+    args = item.get("args", {})
+    return args if isinstance(args, dict) else {}
+
+
+def _failure_label(category: str) -> str:
+    return {
+        "manifest_validation_failure": "Manifest/config problem",
+        "missing_required_input": "Missing required input",
+        "tool_execution_failure": "Tool/runtime failure",
+        "external_auth_failure": "External authentication failure",
+        "external_dependency_unavailable": "External dependency unavailable",
+        "business_validation_failure": "Business validation failure",
+        "fixture_missing": "Fixture data not available",
+        "unknown_failure": "Unknown failure",
+    }.get(str(category or ""), "Unknown failure")
 
 
 OUTCOME_BUILDERS = {

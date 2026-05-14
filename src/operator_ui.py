@@ -2,7 +2,10 @@
 
 import json
 import tkinter as tk
+from tkinter import filedialog
+from tkinter import messagebox
 from tkinter import ttk
+from pathlib import Path
 
 from src.operator_approval_actions import (
     approve_pending_action,
@@ -27,20 +30,25 @@ from src.operator_playback import build_playback_timeline, build_playback_view
 from src.demo_story_presenter import build_demo_story
 from src.operator_presenter import build_demo_view, humanize_step_id
 from src.operator_reports import create_or_open_run_report, generate_report_for_frame, open_report_folder, open_report_html
+from src.manifest_manual import open_manifest_manual
 from src.operator_widgets import create_scrolled_text_widget
 from src.manifest_workbench import (
     build_manifest_run_comparison,
     build_manifest_step_rows,
-    build_manifest_summary,
+    build_workbench_selected_step_detail,
+    build_workbench_run_summary,
     create_test_frame,
     generate_workbench_run_report,
     list_manifest_catalog,
+    manifest_filename_for_id,
     load_manifest_for_workbench,
     open_workbench_run_report,
+    new_manifest_template,
     run_workbench_dry_run,
+    save_manifest_json_text,
+    validate_manifest_json_text,
     validate_manifest_for_workbench,
 )
-from src.operator_data import collect_step_errors, collect_step_evidence, collect_step_outputs, collect_step_validations, find_manifest_step, find_runtime_step
 from runtime.tool_capability_registry import list_tool_capabilities
 from runtime.tool_health import check_all_tool_health, check_tool_health, load_latest_tool_health_snapshot
 from runtime.tool_setup import get_tool_setup_instructions, run_safe_setup_action
@@ -60,6 +68,11 @@ TITLE = "Autonomous Business Worker Demo"
 # Selected demo
 # Technical Inspector
 # Manifest Workbench
+# New manifest
+# Edit manifest JSON
+# Save manifest
+# Save manifest as...
+# Open manifest manual
 # Browse demo catalog
 # Create/open run report
 # Select manifest file
@@ -154,6 +167,9 @@ class OperatorConsole:
         self.workbench_input_vars: dict[str, tk.StringVar] = {}
         self.workbench_manifest_var = tk.StringVar(value="")
         self.workbench_raw_json_var = tk.StringVar(value="")
+        self.workbench_manifest_json_var = tk.StringVar(value="")
+        self.workbench_fixture_mode_var = tk.BooleanVar(value=True)
+        self.workbench_manifest_source_path: str = ""
         self.business_dataset_manifest: dict = {}
         self.business_dataset_validation: dict = {}
         self.report_status: dict = {}
@@ -1010,22 +1026,39 @@ class OperatorConsole:
             values=[item["manifest_id"] for item in self.workbench_manifest_catalog if item.get("manifest_id")],
         )
         self.workbench_manifest_entry.grid(row=0, column=1, sticky="ew", padx=(0, 8))
-        self.workbench_manifest_entry.bind("<Return>", lambda _e: self.on_workbench_validate_manifest())
+        self.workbench_manifest_entry.bind("<Return>", lambda _e: self.on_workbench_load_selected_manifest())
+        self.workbench_manifest_entry.bind("<<ComboboxSelected>>", lambda _e: self.on_workbench_load_selected_manifest())
         ttk.Button(selector_row, text="Select manifest file", command=self.on_workbench_select_manifest_file).grid(row=0, column=2, sticky="w", padx=(0, 8))
         ttk.Button(selector_row, text="Reload manifest catalog", command=self.on_workbench_reload_catalog).grid(row=0, column=3, sticky="w")
 
         control_row = ttk.Frame(action_bar, style="Card.TFrame")
         control_row.grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        self.workbench_new_manifest_button = ttk.Button(control_row, text="New manifest", command=self.on_workbench_new_manifest)
+        self.workbench_new_manifest_button.pack(side="left", padx=(0, 6))
+        self.workbench_edit_manifest_button = ttk.Button(control_row, text="Edit manifest JSON", command=self.on_workbench_edit_manifest_json)
+        self.workbench_edit_manifest_button.pack(side="left", padx=(0, 6))
         self.workbench_validate_button = ttk.Button(control_row, text="Validate manifest", command=self.on_workbench_validate_manifest)
         self.workbench_validate_button.pack(side="left", padx=(0, 6))
         self.workbench_run_button = ttk.Button(control_row, text="Run dry-run test", command=self.on_workbench_run_dry_run)
         self.workbench_run_button.pack(side="left", padx=(0, 6))
+        self.workbench_save_button = ttk.Button(control_row, text="Save manifest", command=self.on_workbench_save_manifest)
+        self.workbench_save_button.pack(side="left", padx=(0, 6))
+        self.workbench_save_as_button = ttk.Button(control_row, text="Save manifest as...", command=self.on_workbench_save_manifest_as)
+        self.workbench_save_as_button.pack(side="left", padx=(0, 6))
         self.workbench_step_button = ttk.Button(control_row, text="Step next", command=self.on_workbench_step_next)
         self.workbench_step_button.pack(side="left", padx=(0, 6))
         self.workbench_run_blocked_button = ttk.Button(control_row, text="Run until blocked", command=self.on_workbench_run_until_blocked)
         self.workbench_run_blocked_button.pack(side="left", padx=(0, 6))
         self.workbench_generate_report_button = ttk.Button(control_row, text="Create/open run report", command=self.on_workbench_create_open_report)
         self.workbench_generate_report_button.pack(side="left")
+        self.workbench_open_manual_button = ttk.Button(control_row, text="Open manifest manual", command=self.on_workbench_open_manifest_manual)
+        self.workbench_open_manual_button.pack(side="left", padx=(6, 6))
+        self.workbench_fixture_mode_check = ttk.Checkbutton(
+            control_row,
+            text="Use fixture data for external read tools",
+            variable=self.workbench_fixture_mode_var,
+        )
+        self.workbench_fixture_mode_check.pack(side="right")
 
         content = ttk.Frame(parent, style="Workspace.TFrame")
         content.grid(row=1, column=0, sticky="nsew", pady=(12, 0))
@@ -1068,14 +1101,22 @@ class OperatorConsole:
         middle = ttk.Frame(content, style="Card.TFrame", padding=12)
         middle.grid(row=0, column=1, sticky="nsew", padx=(0, 10))
         middle.columnconfigure(0, weight=1)
-        middle.rowconfigure(3, weight=1)
+        middle.rowconfigure(1, weight=1)
         ttk.Label(middle, text="Test Input Panel", style="Section.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 8))
         self.workbench_input_fields_frame = ttk.Frame(middle, style="Card.TFrame")
         self.workbench_input_fields_frame.grid(row=1, column=0, sticky="ew", pady=(0, 8))
-        ttk.Label(middle, text="Raw JSON input override", style="Meta.TLabel").grid(row=2, column=0, sticky="w")
-        self.workbench_raw_json_text, self.workbench_raw_json_scrollbar = create_scrolled_text_widget(middle, height=10, bg="#f7f8fa", fg="#1f2937", font=("Consolas", 9))
+        editor_panel = ttk.Frame(middle, style="Card.TFrame")
+        editor_panel.grid(row=2, column=0, sticky="nsew")
+        editor_panel.columnconfigure(0, weight=1)
+        editor_panel.rowconfigure(1, weight=1)
+        editor_panel.rowconfigure(3, weight=1)
+        ttk.Label(editor_panel, text="Manifest JSON Editor", style="Section.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 8))
+        self.workbench_manifest_json_text, self.workbench_manifest_json_scrollbar = create_scrolled_text_widget(editor_panel, height=10, bg="#f7f8fa", fg="#1f2937", font=("Consolas", 9))
+        self.workbench_manifest_json_text.scrolled_container.grid(row=1, column=0, sticky="nsew", pady=(0, 8))
+        ttk.Label(editor_panel, text="Raw JSON input override", style="Meta.TLabel").grid(row=2, column=0, sticky="w")
+        self.workbench_raw_json_text, self.workbench_raw_json_scrollbar = create_scrolled_text_widget(editor_panel, height=8, bg="#f7f8fa", fg="#1f2937", font=("Consolas", 9))
         self.workbench_raw_json_text.scrolled_container.grid(row=3, column=0, sticky="nsew", pady=(2, 8))
-        self.workbench_input_status_label = ttk.Label(middle, text="No manifest loaded.", style="Meta.TLabel", wraplength=380, justify="left")
+        self.workbench_input_status_label = ttk.Label(editor_panel, text="No manifest loaded.", style="Meta.TLabel", wraplength=380, justify="left")
         self.workbench_input_status_label.grid(row=4, column=0, sticky="w")
 
         right = ttk.Frame(content, style="Card.TFrame", padding=12)
@@ -2114,11 +2155,40 @@ class OperatorConsole:
             self.workbench_manifest_var.set(str(first.get("manifest_id", "")))
 
     def _workbench_selected_manifest_target(self) -> str:
+        if isinstance(self.workbench_manifest_record, dict):
+            record_path = str(self.workbench_manifest_record.get("path", "")).strip()
+            if record_path:
+                return record_path
         if hasattr(self, "workbench_manifest_entry"):
             value = str(self.workbench_manifest_var.get() or "").strip()
             if value:
                 return value
         return ""
+
+    def _workbench_manifest_dict_for_editor(self) -> dict:
+        if isinstance(self.workbench_manifest_record, dict) and isinstance(self.workbench_manifest_record.get("manifest", {}), dict):
+            return dict(self.workbench_manifest_record["manifest"])
+        if self.workbench_manifest_json_text.winfo_exists():
+            raw_text = self._widget_text_value(self.workbench_manifest_json_text)
+            try:
+                parsed = json.loads(raw_text) if raw_text.strip() else {}
+                return parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                return {}
+        return new_manifest_template()
+
+    def _load_workbench_manifest_json_editor(self, manifest: dict) -> None:
+        self._clear_text_widget(self.workbench_manifest_json_text)
+        self.workbench_manifest_json_text.insert("1.0", json.dumps(manifest, indent=2, ensure_ascii=False))
+
+    def _workbench_manifest_json_text_value(self) -> str:
+        return self._widget_text_value(self.workbench_manifest_json_text)
+
+    def _workbench_manifest_preview_path(self, manifest_id: str) -> Path:
+        preview_dir = Path(self.runtime_root) / "workbench"
+        preview_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = manifest_filename_for_id(manifest_id).replace(".manifest.json", ".preview.manifest.json")
+        return preview_dir / safe_name
 
     def _workbench_selected_frame_id(self) -> str:
         if isinstance(self.workbench_result, dict) and self.workbench_result.get("frame_id"):
@@ -2135,6 +2205,10 @@ class OperatorConsole:
         if manifest_record.get("ok"):
             self.workbench_manifest_record = manifest_record
             self.workbench_manifest_validation = validate_manifest_for_workbench(target)
+            record_path = str(manifest_record.get("path", "")).strip()
+            if record_path and (not self.workbench_manifest_source_path or self.workbench_manifest_source_path != record_path or not self._workbench_manifest_json_text_value().strip()):
+                manifest = manifest_record.get("manifest", {}) if isinstance(manifest_record.get("manifest", {}), dict) else {}
+                self._workbench_load_manifest_into_editor(manifest, record_path)
             self._render_workbench_manifest_summary(manifest_record)
             if not matches_target or not self.workbench_input_vars:
                 self._render_workbench_input_fields(manifest_record)
@@ -2149,6 +2223,7 @@ class OperatorConsole:
             self.workbench_result = {}
             self._render_workbench_failure(manifest_record)
         self.update_approval_button_states()
+        self._update_footer()
 
     def _render_workbench_failure(self, result: dict) -> None:
         summary_lines = [
@@ -2282,22 +2357,36 @@ class OperatorConsole:
         manifest_record = self.workbench_manifest_record if isinstance(self.workbench_manifest_record, dict) else {}
         manifest = manifest_record.get("manifest", {}) if isinstance(manifest_record.get("manifest", {}), dict) else {}
         frame = self.workbench_frame if isinstance(self.workbench_frame, dict) else {}
-        manifest_step = find_manifest_step(manifest, step_id)
-        runtime_step = find_runtime_step(frame, step_id)
-        outputs = collect_step_outputs(frame, step_id, manifest_step)
-        validations = collect_step_validations(frame, step_id)
-        evidence = collect_step_evidence(frame, step_id)
-        errors = collect_step_errors(frame, step_id)
+        selected_step = build_workbench_selected_step_detail(manifest, frame, step_id)
+        manifest_step = selected_step.get("raw_manifest_step", {})
+        runtime_step = selected_step.get("raw_runtime_step", {})
+        outputs = selected_step.get("output_value", {})
+        tool_result_metadata = selected_step.get("tool_result_metadata", {})
+        validations = selected_step.get("validation_result", [])
+        evidence = selected_step.get("evidence", [])
+        errors = selected_step.get("errors", [])
+        step_outcome = selected_step.get("step_outcome", {})
+        failure = selected_step.get("failure", {}) if isinstance(selected_step.get("failure", {}), dict) else {}
+        llm_call_result = selected_step.get("llm_call_result", {})
         lines = [
-            f"Step ID: {step_id or 'None'}",
-            f"Step status: {str(runtime_step.get('status', 'PENDING') if isinstance(runtime_step, dict) else 'PENDING')}",
+            f"Step ID: {selected_step.get('step_id', step_id) or 'None'}",
+            f"Step status: {selected_step.get('step_status', 'PENDING') or 'PENDING'}",
             f"Command: {manifest_step.get('command', '') if isinstance(manifest_step, dict) else ''}",
             f"Kind: {manifest_step.get('kind', '') if isinstance(manifest_step, dict) else ''}",
             f"Resolved inputs: {self._compact_value(self._workbench_input_dict())}",
-            f"Output alias: {manifest_step.get('output_alias', '') if isinstance(manifest_step, dict) else ''}",
-            f"Output value: {self._compact_value(outputs)}",
-            f"Tool call result: {self._compact_value(self._workbench_step_related_items(frame, step_id, 'tool_calls'))}",
-            f"LLM call result: {self._compact_value(self._workbench_step_related_items(frame, step_id, 'llm_calls'))}",
+            f"Output alias: {selected_step.get('output_alias', '')}",
+            "Step outcome:",
+            *step_outcome.get("lines", ["No output value."]),
+            f"Failure category: {failure.get('category', '')}",
+            f"Failure type: {self._workbench_failure_label(failure.get('category', '')) if failure else ''}",
+            f"Reason: {failure.get('reason', '')}",
+            f"Recommended action: {failure.get('recommended_action', '')}",
+            "Output value:",
+            self._compact_value(outputs),
+            "Tool result metadata:",
+            self._compact_value(tool_result_metadata),
+            "LLM call result:",
+            *llm_call_result.get("lines", ["Call completed."]),
             f"Validation result: {self._compact_value(validations)}",
             f"Evidence: {self._compact_value(evidence)}",
             f"Errors: {self._compact_value(errors)}",
@@ -2313,14 +2402,21 @@ class OperatorConsole:
     def _render_workbench_execution_panel(self) -> None:
         frame = self.workbench_frame if isinstance(self.workbench_frame, dict) else {}
         result = self.workbench_result if isinstance(self.workbench_result, dict) else {}
+        run_summary = result.get("run_summary", {}) if isinstance(result.get("run_summary", {}), dict) else {}
+        failure_summary = run_summary.get("failure_summary", {}) if isinstance(run_summary.get("failure_summary", {}), dict) else {}
         lines = [
             f"Frame ID: {result.get('frame_id', frame.get('frame_id', ''))}",
             f"State: {result.get('state', frame.get('state', ''))}",
             f"Current step: {result.get('current_step_id', frame.get('current_step_id', ''))}",
             f"Completed steps: {result.get('completed_steps', self._count_status(frame, 'COMPLETED'))}",
             f"Failed steps: {result.get('failed_steps', self._count_status(frame, 'FAILED'))}",
+            f"Failure category: {result.get('run_summary', {}).get('failure_category', '') if isinstance(result.get('run_summary', {}), dict) else ''}",
+            f"Failed step: {result.get('run_summary', {}).get('failed_step_id', '') if isinstance(result.get('run_summary', {}), dict) else ''}",
+            f"Explanation: {result.get('run_summary', {}).get('operator_explanation', '') if isinstance(result.get('run_summary', {}), dict) else ''}",
+            f"Recommended action: {result.get('run_summary', {}).get('recommended_action', '') if isinstance(result.get('run_summary', {}), dict) else ''}",
             f"Pending actions: {len(frame.get('pending_actions', [])) if isinstance(frame.get('pending_actions', []), list) else 0}",
             f"Errors: {self._compact_value(result.get('errors', frame.get('errors', [])))}",
+            f"Raw failure summary: {self._compact_value(failure_summary)}",
         ]
         self._set_text(self.workbench_execution_text, "\n".join(lines))
         self._sync_workbench_approval_buttons()
@@ -2332,6 +2428,9 @@ class OperatorConsole:
         comparison = self.workbench_result.get("comparison") if isinstance(self.workbench_result, dict) else {}
         if not isinstance(comparison, dict) or not comparison:
             comparison = build_manifest_run_comparison(manifest, frame)
+        run_summary = self.workbench_result.get("run_summary") if isinstance(self.workbench_result, dict) else {}
+        if not isinstance(run_summary, dict) or not run_summary:
+            run_summary = build_workbench_run_summary(frame, manifest)
         lines = [
             f"Manifest expected steps: {comparison.get('manifest_expected_steps', 0)}",
             f"Runtime steps created: {comparison.get('runtime_steps_created', 0)}",
@@ -2339,6 +2438,9 @@ class OperatorConsole:
             f"Failed: {comparison.get('failed', 0)}",
             f"Skipped/not reached: {comparison.get('skipped_not_reached', 0)}",
             f"Completion state: {comparison.get('completion_state', '')}",
+            f"Failure category: {run_summary.get('failure_category', '')}",
+            f"Failed step: {run_summary.get('failed_step_id', '')}",
+            f"Operator explanation: {run_summary.get('operator_explanation', '')}",
         ]
         self._set_text(self.workbench_comparison_text, "\n".join(lines))
 
@@ -2382,9 +2484,39 @@ class OperatorConsole:
             self.workbench_selected_step_id = str(selected[0])
         self._render_workbench_step_detail()
 
-    def on_workbench_select_manifest_file(self) -> None:
-        from tkinter import filedialog
+    def on_workbench_load_selected_manifest(self, manifest_path: str | None = None) -> None:
+        target = str(manifest_path or self._workbench_selected_manifest_target()).strip()
+        if not target:
+            return
+        result = load_manifest_for_workbench(target)
+        if not result.get("ok"):
+            self.workbench_manifest_record = {}
+            self.workbench_manifest_validation = result
+            self._render_workbench_failure(result)
+            return
+        self.workbench_manifest_record = result
+        self.workbench_manifest_validation = result.get("validation", validate_manifest_for_workbench(target))
+        self.workbench_manifest_source_path = str(result.get("path", "")).strip()
+        self.workbench_selected_step_id = ""
+        manifest = result.get("manifest", {}) if isinstance(result.get("manifest", {}), dict) else {}
+        self._load_workbench_manifest_json_editor(manifest)
+        self._render_manifest_workbench_view()
 
+    def _workbench_editor_manifest(self) -> dict:
+        text = self._workbench_manifest_json_text_value()
+        if not text.strip():
+            return new_manifest_template()
+        try:
+            raw = json.loads(text)
+        except Exception:
+            return {}
+        return raw if isinstance(raw, dict) else {}
+
+    def _workbench_load_manifest_into_editor(self, manifest: dict, source_path: str = "") -> None:
+        self.workbench_manifest_source_path = str(source_path or "").strip()
+        self._load_workbench_manifest_json_editor(manifest if isinstance(manifest, dict) else {})
+
+    def on_workbench_select_manifest_file(self) -> None:
         path = filedialog.askopenfilename(
             title="Select manifest file",
             initialdir="manifests",
@@ -2393,30 +2525,127 @@ class OperatorConsole:
         if not path:
             return
         self.workbench_manifest_var.set(path)
-        self.on_workbench_validate_manifest()
+        self.on_workbench_load_selected_manifest(path)
 
     def on_workbench_reload_catalog(self) -> None:
         self._refresh_workbench_manifest_catalog()
         self._render_manifest_workbench_view()
 
+    def on_workbench_new_manifest(self) -> None:
+        template = new_manifest_template()
+        self.workbench_manifest_record = {
+            "ok": True,
+            "path": "",
+            "manifest_id": template.get("manifest_id", ""),
+            "manifest": template,
+            "summary": build_manifest_summary(template),
+            "step_rows": build_manifest_step_rows(template),
+            "validation": {"ok": False, "error": "New manifest template loaded."},
+            "error": "",
+        }
+        self.workbench_manifest_validation = {"ok": False, "error": "New manifest template loaded."}
+        self.workbench_manifest_var.set(str(template.get("manifest_id", "")))
+        self.workbench_selected_step_id = ""
+        self.workbench_frame = {}
+        self.workbench_result = {}
+        self.workbench_manifest_source_path = ""
+        self._load_workbench_manifest_json_editor(template)
+        self._render_manifest_workbench_view()
+
+    def on_workbench_edit_manifest_json(self) -> None:
+        record = self.workbench_manifest_record if isinstance(self.workbench_manifest_record, dict) else {}
+        manifest = record.get("manifest", {}) if isinstance(record.get("manifest", {}), dict) else self._workbench_editor_manifest()
+        if not isinstance(manifest, dict) or not manifest:
+            manifest = new_manifest_template()
+        self._load_workbench_manifest_json_editor(manifest)
+        self.workbench_manifest_json_text.focus_set()
+
     def on_workbench_validate_manifest(self) -> None:
-        target = self._workbench_selected_manifest_target()
-        if not target:
-            self.workbench_manifest_validation = {"ok": False, "error": "Select a manifest."}
+        text = self._workbench_manifest_json_text_value()
+        if not text.strip():
+            self.workbench_manifest_validation = {"ok": False, "error": "Manifest JSON is required."}
             self._render_manifest_workbench_view()
             return
-        result = validate_manifest_for_workbench(target)
+        result = validate_manifest_json_text(text)
         self.workbench_manifest_validation = result
-        loaded = load_manifest_for_workbench(target)
-        if loaded.get("ok"):
-            self.workbench_manifest_record = loaded
+        if result.get("ok"):
+            manifest = result.get("manifest", {}) if isinstance(result.get("manifest", {}), dict) else {}
+            preview_path = self._workbench_manifest_preview_path(str(result.get("manifest_id", "")))
+            try:
+                preview_path.parent.mkdir(parents=True, exist_ok=True)
+                preview_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+            except Exception:
+                pass
+            self.workbench_manifest_record = {
+                "ok": True,
+                "path": str(preview_path),
+                "manifest_id": result.get("manifest_id", ""),
+                "manifest": manifest,
+                "summary": result.get("summary", build_manifest_summary(manifest)),
+                "step_rows": build_manifest_step_rows(manifest),
+                "validation": result,
+                "error": "",
+            }
+            self.workbench_manifest_source_path = str(preview_path)
             self.workbench_selected_step_id = ""
             self._render_manifest_workbench_view()
         else:
             self.workbench_manifest_record = {}
             self.workbench_frame = {}
             self.workbench_result = {}
-            self._render_workbench_failure(loaded)
+            self._render_workbench_failure(result)
+
+    def _save_manifest_from_editor(self, target_path: str | None = None, allow_overwrite: bool = False) -> dict:
+        text = self._workbench_manifest_json_text_value()
+        save_result = save_manifest_json_text(text, target_path=target_path, manifest_dir="manifests", allow_overwrite=allow_overwrite)
+        if save_result.get("ok"):
+            self._refresh_workbench_manifest_catalog()
+            self.workbench_manifest_var.set(str(save_result.get("manifest_id", "")))
+            loaded = load_manifest_for_workbench(str(save_result.get("path", "")))
+            if loaded.get("ok"):
+                self.workbench_manifest_record = loaded
+                self.workbench_manifest_source_path = str(save_result.get("path", ""))
+                self.workbench_manifest_validation = loaded.get("validation", {"ok": True, "error": ""})
+                self.workbench_selected_step_id = ""
+                self._render_manifest_workbench_view()
+        return save_result
+
+    def on_workbench_save_manifest(self) -> None:
+        current_loaded_path = self.workbench_manifest_source_path or str(self.workbench_manifest_record.get("path", "") if isinstance(self.workbench_manifest_record, dict) else "")
+        preview_root = Path(self.runtime_root) / "workbench"
+        target_path = None
+        allow_overwrite = False
+        if current_loaded_path:
+            current_path = Path(current_loaded_path)
+            is_preview = False
+            try:
+                is_preview = preview_root.resolve() in current_path.resolve().parents or current_path.resolve() == preview_root.resolve()
+            except Exception:
+                is_preview = False
+            if not is_preview:
+                target_path = str(current_path)
+                allow_overwrite = True
+        result = self._save_manifest_from_editor(target_path=target_path, allow_overwrite=allow_overwrite)
+        if not result.get("ok"):
+            self._render_workbench_failure(result)
+
+    def on_workbench_save_manifest_as(self) -> None:
+        path = filedialog.asksaveasfilename(
+            title="Save manifest as",
+            defaultextension=".manifest.json",
+            filetypes=(("Manifest JSON", "*.manifest.json"), ("JSON files", "*.json"), ("All files", "*.*")),
+            initialfile=manifest_filename_for_id(str(self.workbench_manifest_var.get() or "").strip() or "example.new_manifest"),
+        )
+        if not path:
+            return
+        target = Path(path)
+        if target.exists():
+            confirmed = messagebox.askyesno("Save manifest as", f"File already exists:\n{target}\n\nOverwrite it?")
+            if not confirmed:
+                return
+        result = self._save_manifest_from_editor(target_path=str(target), allow_overwrite=True)
+        if not result.get("ok"):
+            self._render_workbench_failure(result)
 
     def _workbench_run(self, mode: str, require_frame: bool = False) -> None:
         target = self._workbench_selected_manifest_target()
@@ -2448,9 +2677,13 @@ class OperatorConsole:
         if not frame_id:
             self._render_workbench_failure({"error": "No TaskFrame available for execution."})
             return
-        result = run_workbench_dry_run(frame_id, mode, runtime_data_dir=self.runtime_root)
+        result = run_workbench_dry_run(frame_id, mode, runtime_data_dir=self.runtime_root, fixture_mode=bool(self.workbench_fixture_mode_var.get()))
         self.workbench_result = result
         self.workbench_frame = result.get("frame", {}) if isinstance(result.get("frame", {}), dict) else {}
+        if isinstance(self.workbench_frame, dict) and self.workbench_frame.get("frame_id"):
+            self.active_frame_id = str(self.workbench_frame.get("frame_id", "")).strip() or self.active_frame_id
+            self.last_snapshot = dict(self.last_snapshot) if isinstance(self.last_snapshot, dict) else {}
+            self.last_snapshot["active_frame"] = dict(self.workbench_frame)
         self.workbench_selected_runtime_step_id = str(result.get("current_step_id", "") or self.workbench_selected_step_id)
         if self.workbench_selected_runtime_step_id:
             self.workbench_selected_step_id = self.workbench_selected_runtime_step_id
@@ -2502,6 +2735,11 @@ class OperatorConsole:
             open_workbench_run_report(report["html_path"])
         self.report_status = report
         self._render_manifest_workbench_view()
+
+    def on_workbench_open_manifest_manual(self) -> None:
+        result = open_manifest_manual()
+        if not result.get("ok"):
+            messagebox.showerror("Open manifest manual", result.get("error", "Unable to open manifest manual."))
 
     def _render_runtime_trace(self, view: dict | None = None) -> None:
         lines: list[str] = []
@@ -2862,8 +3100,23 @@ class OperatorConsole:
             return "â€”"
         return str(value)
 
+    def _workbench_failure_label(self, category: str) -> str:
+        return {
+            "manifest_validation_failure": "Manifest/config problem",
+            "missing_required_input": "Missing required input",
+            "tool_execution_failure": "Tool/runtime failure",
+            "external_auth_failure": "External authentication failure",
+            "external_dependency_unavailable": "External dependency unavailable",
+            "business_validation_failure": "Business validation failure",
+            "fixture_missing": "Fixture data not available",
+            "unknown_failure": "Unknown failure",
+        }.get(str(category or ""), "")
+
     def _update_footer(self, view: dict | None = None) -> None:
         snapshot = self.last_snapshot if view is None else {"active_frame": view.get("frame")}
+        if self.view_mode_var.get() == "Manifest Workbench" and isinstance(self.workbench_frame, dict) and self.workbench_frame.get("frame_id"):
+            snapshot = dict(snapshot) if isinstance(snapshot, dict) else {}
+            snapshot["active_frame"] = self.workbench_frame
         self.footer_label.configure(text=build_footer_text(snapshot, self._playback_status()))
 
     def _update_dataset_validation_label(self) -> None:
