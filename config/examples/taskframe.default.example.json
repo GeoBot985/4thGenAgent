@@ -1,0 +1,22 @@
+{
+  "profile": "default",
+  "runtime_data_dir": "runtime_data",
+  "llm": {
+    "provider": "fake",
+    "ollama_model": "granite3.3:8b",
+    "ollama_base_url": "http://127.0.0.1:11434"
+  },
+  "google": {
+    "enabled": false,
+    "credentials_path": "",
+    "token_path": ""
+  },
+  "rpa": {
+    "enabled": false,
+    "browser_user_data_dir": "",
+    "browser_profile_dir": ""
+  },
+  "live_execution": {
+    "enabled": false
+  }
+}

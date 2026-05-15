@@ -1,0 +1,8 @@
+{
+  "spreadsheet_id": "<your-spreadsheet-id>",
+  "tabs": {
+    "payments": "Payments!A1:Z",
+    "ledger": "Ledger!A1:Z",
+    "exceptions": "Exceptions!A1:Z"
+  }
+}

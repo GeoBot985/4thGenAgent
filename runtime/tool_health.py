@@ -9,6 +9,7 @@ from typing import Any
 from .business_store import load_business_dataset as load_business_store_dataset
 from .business_context import get_business_order_context
 from .memory_store import MemoryStore
+from src.config_profiles import resolve_google_credentials_path, resolve_google_token_path
 from .taskframe import utc_now
 from .tool_capabilities import ToolHealthResult
 from .tool_capability_registry import get_tool_capability, list_tool_capabilities
@@ -189,14 +190,18 @@ def _google_dependency_state() -> dict[str, Any]:
 
 def _google_auth_files() -> dict[str, Any]:
     base = Path(__file__).resolve().parents[1]
-    credentials = base / "credentials.json"
-    token = base / "google_token.json"
-    fallback = sorted(base.glob("client_secret*.json"))
+    credentials = resolve_google_credentials_path()
+    token = resolve_google_token_path()
+    fallback = (
+        sorted((Path.home() / ".taskframe" / "google").glob("client_secret*.json"))
+        + sorted(base.glob("client_secret*.json"))
+        + [base / "credentials.json", base / "google_token.json", base / "token.json"]
+    )
     return {
         "credentials": str(credentials),
-        "credentials_exists": credentials.is_file(),
+        "credentials_exists": credentials.is_file() or any(path.is_file() for path in fallback),
         "token": str(token),
-        "token_exists": token.is_file(),
+        "token_exists": token.is_file() or any(path.is_file() for path in [Path.home() / ".taskframe" / "google" / "google_token.json", base / "google_token.json", base / "token.json"]),
         "fallback_files": [str(path) for path in fallback],
     }
 

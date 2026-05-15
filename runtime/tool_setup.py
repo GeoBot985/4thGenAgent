@@ -34,17 +34,17 @@ def get_tool_setup_instructions(tool_id: str) -> dict[str, Any]:
         ]
     elif tool_id == "gmail":
         instructions["steps"] = [
-            "Add Google OAuth credentials and token files.",
+            "Add Google OAuth credentials and token files under ~/.taskframe/google/.",
             "Authorize read-only Gmail access manually.",
         ]
     elif tool_id == "google_sheets":
         instructions["steps"] = [
-            "Add Google OAuth credentials and token files.",
-            "Select a spreadsheet ID in config/accounting_google_sheet.json.",
+            "Add Google OAuth credentials and token files under ~/.taskframe/google/.",
+            "Select a spreadsheet ID in ~/.taskframe/accounting_google_sheet.json.",
         ]
     elif tool_id == "google_calendar":
         instructions["steps"] = [
-            "Add Google OAuth credentials and token files.",
+            "Add Google OAuth credentials and token files under ~/.taskframe/google/.",
             "Authorize Calendar access manually.",
         ]
     elif tool_id == "llm_ollama":

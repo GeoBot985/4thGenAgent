@@ -166,7 +166,7 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(frame.steps[1].status, "COMPLETED")
 
     def test_run_next_step_fails_missing_validation_rule(self):
-        manifest = load_manifest("manifests/smoke_validate_step_fail_fast.manifest.json")
+        manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_validate_step_fail_fast.manifest.json")
         orch = Orchestrator()
         frame = orch.create_frame_from_manifest(manifest)
         frame = orch.prepare_frame(frame)
@@ -254,7 +254,7 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(frame.outputs["unread_mail"]["tool"], "g/check")
 
     def test_run_until_blocked_stops_on_failed_validation(self):
-        manifest = load_manifest("manifests/smoke_validate_step_fail_fast.manifest.json")
+        manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_validate_step_fail_fast.manifest.json")
         orch = Orchestrator()
         frame = orch.create_frame_from_manifest(manifest)
         frame = orch.prepare_frame(frame)

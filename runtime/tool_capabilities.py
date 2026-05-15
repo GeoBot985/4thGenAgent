@@ -17,6 +17,7 @@ class ToolCapability:
     setup_available: bool
     setup_action: str | None
     rpa_live_probe_required: bool
+    excluded_from_default_release: bool = False
     limitations: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

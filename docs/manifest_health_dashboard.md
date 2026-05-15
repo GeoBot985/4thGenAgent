@@ -10,6 +10,12 @@ This is an authoring health feature. It does not change runtime workflow behavio
 
 Only manifests in the active catalog are treated as release/operator manifests. Test, smoke, broken, and internal policy fixtures must live under `tests/fixtures/` and be loaded explicitly by tests. The dashboard intentionally excludes quarantined fixtures and `manifests/archive/`; placing an unsafe manifest in the active catalog should still make catalog health fail.
 
+## Manifest health modes
+
+`taskframe manifest-health` is report mode. It writes the catalog health report and exits successfully so operators can inspect the findings without blocking their workflow.
+
+`taskframe manifest-health --strict --no-smoke` is the release-gate mode. It exits non-zero when the active catalog has failures.
+
 ## Health classifications
 
 | Health | Meaning |

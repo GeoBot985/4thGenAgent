@@ -23,7 +23,9 @@
       "Bash(Get-ChildItem -Path \"d:\\\\Projects\\\\4thGenAgent\\\\src\" -Filter \"*.py\")",
       "Bash(Select-Object -ExpandProperty Name)",
       "Bash(python -m pytest tests/test_manifest_autofix.py -x -q)",
-      "Bash(python -m pytest tests/test_manifest_authoring_regression_gallery.py -x -q)"
+      "Bash(python -m pytest tests/test_manifest_authoring_regression_gallery.py -x -q)",
+      "Bash(python -m pytest tests/test_public_readme_quickstart.py tests/test_portfolio_docs_exist.py tests/test_release_candidate_packaging_cli.py -v)",
+      "Bash(python -m pytest tests/test_optional_rpa_isolation.py tests/test_optional_rpa_cli.py tests/test_optional_rpa_docs.py -v)"
     ]
   }
 }

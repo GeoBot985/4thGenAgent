@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -8,6 +9,30 @@ from runtime.memory_store import MemoryStore
 from runtime.orchestrator import Orchestrator
 from runtime.runtime_engine import RuntimeEngine
 from runtime.validation import run_validation
+
+
+SMOKE_MANIFEST_DIR = Path("tests/fixtures/smoke_manifests")
+
+
+def write_routes(tmpdir: Path, routes: list[dict]) -> Path:
+    path = tmpdir / "event_routes.json"
+    path.write_text(json.dumps({"routes": routes}, indent=2), encoding="utf-8")
+    return path
+
+
+def build_smoke_engine(tmpdir: Path, store: MemoryStore) -> RuntimeEngine:
+    write_routes(
+        tmpdir,
+        [
+            {"event_type": "manual.memory_get", "manifest_id": "smoke.memory_get", "enabled": True},
+        ],
+    )
+    return RuntimeEngine(
+        routes_path=tmpdir / "event_routes.json",
+        manifest_dir=SMOKE_MANIFEST_DIR,
+        runtime_data_dir=tmpdir / "runtime_data",
+        memory_store=store,
+    )
 
 
 class MemoryManifestExecutionTests(unittest.TestCase):
@@ -29,7 +54,7 @@ class MemoryManifestExecutionTests(unittest.TestCase):
             store = MemoryStore(Path(tmp) / "memory_store.json")
             orch = Orchestrator(memory_store=store)
             store.set("supplier.ABC.preferred_channel", "email")
-            manifest = load_manifest("manifests/smoke_memory_get.manifest.json")
+            manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_memory_get.manifest.json")
 
             frame = orch.create_frame_from_manifest(manifest, inputs={"key": "supplier.ABC.preferred_channel"})
             frame = orch.prepare_frame(frame)
@@ -43,7 +68,7 @@ class MemoryManifestExecutionTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             store = MemoryStore(Path(tmp) / "memory_store.json")
             orch = Orchestrator(memory_store=store)
-            manifest = load_manifest("manifests/smoke_memory_get_missing.manifest.json")
+            manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_memory_get_missing.manifest.json")
 
             frame = orch.create_frame_from_manifest(manifest, inputs={"key": "supplier.ABC.lead_time_days"})
             frame = orch.prepare_frame(frame)
@@ -69,7 +94,7 @@ class MemoryManifestExecutionTests(unittest.TestCase):
             store = MemoryStore(Path(tmp) / "memory_store.json")
             store.set("gobook.default_court", "Court 1")
             orch = Orchestrator(memory_store=store)
-            manifest = load_manifest("manifests/smoke_memory_get.manifest.json")
+            manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_memory_get.manifest.json")
 
             frame = orch.create_frame_from_manifest(manifest, inputs={"key": "gobook.default_court"})
             frame = orch.prepare_frame(frame)
@@ -96,7 +121,7 @@ class MemoryManifestExecutionTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             store = MemoryStore(Path(tmp) / "memory_store.json")
             store.set("gobook.default_court", "Court 1")
-            engine = RuntimeEngine(memory_store=store)
+            engine = build_smoke_engine(Path(tmp), store)
             event = create_event(
                 event_type="manual.memory_get",
                 source="manual",
@@ -127,7 +152,7 @@ class MemoryManifestExecutionTests(unittest.TestCase):
             store = MemoryStore(Path(tmp) / "memory_store.json")
             orch = Orchestrator(memory_store=store)
             store.set("supplier.ABC.preferred_channel", "email")
-            manifest = load_manifest("manifests/smoke_memory_get.manifest.json")
+            manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_memory_get.manifest.json")
 
             frame = orch.create_frame_from_manifest(manifest, inputs={"key": "supplier.ABC.preferred_channel"})
             frame = orch.prepare_frame(frame)
@@ -139,7 +164,7 @@ class MemoryManifestExecutionTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             store = MemoryStore(Path(tmp) / "memory_store.json")
             orch = Orchestrator(memory_store=store)
-            manifest = load_manifest("manifests/smoke_memory_get_missing.manifest.json")
+            manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_memory_get_missing.manifest.json")
 
             frame = orch.create_frame_from_manifest(manifest, inputs={"key": "supplier.ABC.lead_time_days"})
             frame = orch.prepare_frame(frame)
@@ -151,7 +176,7 @@ class MemoryManifestExecutionTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             store = MemoryStore(Path(tmp) / "memory_store.json")
             store.set("supplier.ABC.preferred_channel", "email")
-            manifest = load_manifest("manifests/smoke_memory_get.manifest.json")
+            manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_memory_get.manifest.json")
             frame = Orchestrator(memory_store=store).create_frame_from_manifest(manifest, inputs={"key": "supplier.ABC.preferred_channel"})
 
             ok = run_validation(frame, {"id": "memory_key_exists", "type": "memory_key_exists", "key": "supplier.ABC.preferred_channel"}, memory_store=store)

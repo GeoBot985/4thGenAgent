@@ -58,7 +58,7 @@ class ExecutableValidationStepTests(unittest.TestCase):
         self.assertEqual(frame.audit[-1].event_type, "VALIDATION_STEP_PASSED")
 
     def test_run_validation_step_fails_invalid_output_exists_rule(self):
-        manifest = load_manifest("manifests/smoke_validate_step_fail_fast.manifest.json")
+        manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_validate_step_fail_fast.manifest.json")
         frame = create_taskframe(manifest)
 
         result = run_validation_step(frame, manifest, "missing_output_exists")
@@ -90,7 +90,7 @@ class ExecutableValidationStepTests(unittest.TestCase):
         self.assertEqual(frame.steps[1].status, "COMPLETED")
 
     def test_validation_step_fail_marks_step_failed(self):
-        manifest = load_manifest("manifests/smoke_validate_step_fail_fast.manifest.json")
+        manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_validate_step_fail_fast.manifest.json")
         orch = Orchestrator()
         frame = orch.create_frame_from_manifest(manifest)
         frame = orch.prepare_frame(frame)
@@ -102,7 +102,7 @@ class ExecutableValidationStepTests(unittest.TestCase):
         self.assertEqual(frame.steps[1].status, "PENDING")
 
     def test_validation_step_fail_stops_run_until_blocked(self):
-        manifest = load_manifest("manifests/smoke_validate_step_fail_fast.manifest.json")
+        manifest = load_manifest("tests/fixtures/smoke_manifests/smoke_validate_step_fail_fast.manifest.json")
         orch = Orchestrator()
         frame = orch.create_frame_from_manifest(manifest)
         frame = orch.prepare_frame(frame)

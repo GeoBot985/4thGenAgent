@@ -6,7 +6,7 @@
 
 ## Verification Date
 
-- 2026-05-15T10:34:27.448494Z
+- 2026-05-04T00:00:00Z
 
 ## Commands Run
 
@@ -16,11 +16,11 @@
 
 ## Test Summary
 
-- Pytest: 1621 passed, 1 skipped
-- Commands Run: 17
-- Passed Commands: 17
+- Pytest: see release verifier output
+- Commands Run: 1
+- Passed Commands: 1
 - Failed Commands: 0
-- Skipped Checks: 1
+- Skipped Checks: 0
 
 ## Golden Demo Summary
 
@@ -32,37 +32,30 @@
 
 ## Release Verifier Checks
 
-- imports: PASS
-- default_tool_registry: PASS
-- optional_rpa_excluded: PASS
-- default_scenario_pack: PASS
-- golden_demo: PASS
-- release_artifacts: PASS
-- docs_commands: PASS
-- adding_new_tools_doc: PASS
-- tool_contract_checklist_doc: PASS
+- imports: UNKNOWN
+- default_tool_registry: UNKNOWN
+- optional_rpa_excluded: UNKNOWN
+- default_scenario_pack: UNKNOWN
+- golden_demo: UNKNOWN
+- release_artifacts: UNKNOWN
+- docs_commands: UNKNOWN
+- adding_new_tools_doc: UNKNOWN
+- tool_contract_checklist_doc: UNKNOWN
 
 ## Known Limitations
 
-- real_ollama_integration_test_missing
-- google_sheets_integration_test_missing
+- example
 
 ## Evidence Files
 
-- runtime_data\manifest_health\manifest_health_report.json
-- runtime_data\manifest_health\manifest_health_report.md
-- runtime_data\outputs\reports\golden_demo_report.md
-- runtime_data\outputs\reports\golden_demo_report.html
-- runtime_data\outputs\audit\golden_demo_audit.json
+- runtime_data/runs/frame_1/reports/run_report.md
 - runtime_data\audit\release_candidate_verification.json
+- runtime_data\audit\release_status_latest.json
+- runtime_data\audit\release_evidence_pack.json
 - docs\release_candidate_verification.md
 - docs\release_candidate_evidence_index.md
 - docs\current_release_status.md
 - docs\release_evidence_pack.md
-- docs\runtime_contracts.md
+- docs\known_limitations.md
 - docs\adding_new_tools.md
 - docs\tool_contract_checklist.md
-- docs\default_demo_boundary.md
-- docs\known_limitations.md
-- runtime_data\audit\release_status_latest.json
-- runtime_data\audit\release_evidence_pack.json

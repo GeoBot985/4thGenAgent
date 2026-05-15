@@ -7,6 +7,8 @@ from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
+from src.config_profiles import resolve_accounting_config_path
+
 TOOLS_DIR = Path(__file__).resolve().parents[1] / "tools"
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
@@ -59,8 +61,8 @@ DEMO_ACCOUNTING_SHEET_ROWS: dict[str, list[list[str]]] = {
 }
 
 
-def load_accounting_sheet_config(config_path: str = "config/accounting_google_sheet.json") -> dict[str, Any]:
-    path = Path(config_path)
+def load_accounting_sheet_config(config_path: str = "") -> dict[str, Any]:
+    path = Path(config_path).expanduser() if config_path else resolve_accounting_config_path()
     if not path.is_file():
         return {"spreadsheet_id": "", "tabs": {}}
     data = json.loads(path.read_text(encoding="utf-8"))

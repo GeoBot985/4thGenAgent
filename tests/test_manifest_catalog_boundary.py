@@ -17,11 +17,25 @@ SMOKE_FILES = (
     "smoke_live_sheet_create_allowed.manifest.json",
     "smoke_live_sheet_write_allowed.manifest.json",
     "smoke_live_side_effect_blocked_by_tool.manifest.json",
+    "smoke_llm_summarize.manifest.json",
+    "smoke_llm_extract.manifest.json",
+    "smoke_llm_classify.manifest.json",
+    "smoke_llm_draft.manifest.json",
+    "smoke_memory_get.manifest.json",
+    "smoke_memory_get_missing.manifest.json",
+    "smoke_validate_step_fail_fast.manifest.json",
 )
 SMOKE_IDS = {
     "smoke.live_sheet_create_allowed",
     "smoke.live_sheet_write_allowed",
     "smoke.live_side_effect_blocked_by_tool",
+    "smoke.llm_summarize",
+    "smoke.llm_extract",
+    "smoke.llm_classify",
+    "smoke.llm_draft",
+    "smoke.memory_get",
+    "smoke.memory_get_missing",
+    "smoke.validate_step_fail_fast",
 }
 
 

@@ -130,6 +130,7 @@ _CAPABILITIES: tuple[ToolCapability, ...] = (
         setup_available=True,
         setup_action="Install Playwright, pair Google Messages manually, and provide a browser profile.",
         rpa_live_probe_required=True,
+        excluded_from_default_release=True,
         limitations=[
             "Requires local browser state and authenticated Google Messages pairing.",
             "Excluded from clean-clone release verification.",

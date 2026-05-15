@@ -8,6 +8,9 @@ from runtime.llm_adapter import FakeLLMAdapter
 from runtime.runtime_engine import RuntimeEngine
 
 
+SMOKE_MANIFEST_DIR = Path("tests/fixtures/smoke_manifests")
+
+
 def write_manifest(tmpdir: Path, data: dict, filename: str) -> Path:
     path = tmpdir / filename
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -20,47 +23,71 @@ def write_routes(tmpdir: Path, routes: list[dict]) -> Path:
     return path
 
 
+def build_smoke_engine(tmpdir: Path, llm_adapter: FakeLLMAdapter) -> RuntimeEngine:
+    write_routes(
+        tmpdir,
+        [
+            {"event_type": "manual.llm_summarize", "manifest_id": "smoke.llm_summarize", "enabled": True},
+            {"event_type": "manual.llm_extract", "manifest_id": "smoke.llm_extract", "enabled": True},
+            {"event_type": "manual.llm_classify", "manifest_id": "smoke.llm_classify", "enabled": True},
+            {"event_type": "manual.llm_draft", "manifest_id": "smoke.llm_draft", "enabled": True},
+        ],
+    )
+    return RuntimeEngine(
+        routes_path=tmpdir / "event_routes.json",
+        manifest_dir=SMOKE_MANIFEST_DIR,
+        runtime_data_dir=tmpdir / "runtime_data",
+        llm_adapter=llm_adapter,
+    )
+
+
 class LLMManifestExecutionTests(unittest.TestCase):
     def test_smoke_llm_summarize_completes_with_fake_adapter(self):
-        adapter = FakeLLMAdapter({"summarize": "Customer asks for order status on ORD-10042."})
-        engine = RuntimeEngine(llm_adapter=adapter)
-        event = create_event(
-            event_type="manual.llm_summarize",
-            source="manual",
-            payload={"message": "Hi, can you tell me where my order ORD-10042 is?"},
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            adapter = FakeLLMAdapter({"summarize": "Customer asks for order status on ORD-10042."})
+            engine = build_smoke_engine(tmpdir, adapter)
+            event = create_event(
+                event_type="manual.llm_summarize",
+                source="manual",
+                payload={"message": "Hi, can you tell me where my order ORD-10042 is?"},
+            )
 
-        frame = engine.handle_event(event, dry_run=True)
+            frame = engine.handle_event(event, dry_run=True)
 
         self.assertEqual(frame.state, "COMPLETED")
         self.assertEqual(frame.outputs["summary"], "Customer asks for order status on ORD-10042.")
         self.assertTrue(frame.llm_calls[0]["ok"])
 
     def test_smoke_llm_extract_completes_with_fake_adapter_json(self):
-        adapter = FakeLLMAdapter({"extract": '{"order_ref": "ORD-10042", "confidence": "high"}'})
-        engine = RuntimeEngine(llm_adapter=adapter)
-        event = create_event(
-            event_type="manual.llm_extract",
-            source="manual",
-            payload={"message": "Please check order ORD-10042."},
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            adapter = FakeLLMAdapter({"extract": '{"order_ref": "ORD-10042", "confidence": "high"}'})
+            engine = build_smoke_engine(tmpdir, adapter)
+            event = create_event(
+                event_type="manual.llm_extract",
+                source="manual",
+                payload={"message": "Please check order ORD-10042."},
+            )
 
-        frame = engine.handle_event(event, dry_run=True)
+            frame = engine.handle_event(event, dry_run=True)
 
         self.assertEqual(frame.state, "COMPLETED")
         self.assertEqual(frame.outputs["extracted"]["order_ref"], "ORD-10042")
         self.assertIn("extracted_has_required_fields", [item["validation_id"] for item in frame.validations])
 
     def test_smoke_llm_classify_completes_with_fake_adapter_json(self):
-        adapter = FakeLLMAdapter({"classify": '{"label": "order_status", "confidence": "high", "reason": "Asks where order is."}'})
-        engine = RuntimeEngine(llm_adapter=adapter)
-        event = create_event(
-            event_type="manual.llm_classify",
-            source="manual",
-            payload={"message": "Where is my order ORD-10042?"},
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            adapter = FakeLLMAdapter({"classify": '{"label": "order_status", "confidence": "high", "reason": "Asks where order is."}'})
+            engine = build_smoke_engine(tmpdir, adapter)
+            event = create_event(
+                event_type="manual.llm_classify",
+                source="manual",
+                payload={"message": "Where is my order ORD-10042?"},
+            )
 
-        frame = engine.handle_event(event, dry_run=True)
+            frame = engine.handle_event(event, dry_run=True)
 
         self.assertEqual(frame.state, "COMPLETED")
         self.assertEqual(frame.outputs["category"]["label"], "order_status")
@@ -70,56 +97,66 @@ class LLMManifestExecutionTests(unittest.TestCase):
         self.assertIn("category_label_allowed", validation_ids)
 
     def test_smoke_llm_draft_completes_with_fake_adapter(self):
-        adapter = FakeLLMAdapter({"draft": "Sure, here is a short reply."})
-        engine = RuntimeEngine(llm_adapter=adapter)
-        event = create_event(
-            event_type="manual.llm_draft",
-            source="manual",
-            payload={"message": "Please reply to the customer."},
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            adapter = FakeLLMAdapter({"draft": "Sure, here is a short reply."})
+            engine = build_smoke_engine(tmpdir, adapter)
+            event = create_event(
+                event_type="manual.llm_draft",
+                source="manual",
+                payload={"message": "Please reply to the customer."},
+            )
 
-        frame = engine.handle_event(event, dry_run=True)
+            frame = engine.handle_event(event, dry_run=True)
 
         self.assertEqual(frame.state, "COMPLETED")
         self.assertEqual(frame.outputs["reply"], "Sure, here is a short reply.")
         self.assertTrue(frame.llm_calls[0]["ok"])
 
     def test_runtime_engine_handles_manual_llm_summarize_event(self):
-        adapter = FakeLLMAdapter({"summarize": "Summary text."})
-        engine = RuntimeEngine(llm_adapter=adapter)
-        event = create_event("manual.llm_summarize", "manual", payload={"message": "Hello"})
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            adapter = FakeLLMAdapter({"summarize": "Summary text."})
+            engine = build_smoke_engine(tmpdir, adapter)
+            event = create_event("manual.llm_summarize", "manual", payload={"message": "Hello"})
 
-        frame = engine.handle_event(event, dry_run=True)
+            frame = engine.handle_event(event, dry_run=True)
 
         self.assertEqual(frame.manifest_id, "smoke.llm_summarize")
         self.assertEqual(frame.state, "COMPLETED")
 
     def test_runtime_engine_handles_manual_llm_extract_event(self):
-        adapter = FakeLLMAdapter({"extract": '{"order_ref": "ORD-10042", "confidence": "high"}'})
-        engine = RuntimeEngine(llm_adapter=adapter)
-        event = create_event("manual.llm_extract", "manual", payload={"message": "Order ORD-10042"})
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            adapter = FakeLLMAdapter({"extract": '{"order_ref": "ORD-10042", "confidence": "high"}'})
+            engine = build_smoke_engine(tmpdir, adapter)
+            event = create_event("manual.llm_extract", "manual", payload={"message": "Order ORD-10042"})
 
-        frame = engine.handle_event(event, dry_run=True)
+            frame = engine.handle_event(event, dry_run=True)
 
         self.assertEqual(frame.manifest_id, "smoke.llm_extract")
         self.assertEqual(frame.state, "COMPLETED")
 
     def test_runtime_engine_handles_manual_llm_classify_event(self):
-        adapter = FakeLLMAdapter({"classify": '{"label": "order_status", "confidence": "high", "reason": "status"}'})
-        engine = RuntimeEngine(llm_adapter=adapter)
-        event = create_event("manual.llm_classify", "manual", payload={"message": "Where is my order?"})
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            adapter = FakeLLMAdapter({"classify": '{"label": "order_status", "confidence": "high", "reason": "status"}'})
+            engine = build_smoke_engine(tmpdir, adapter)
+            event = create_event("manual.llm_classify", "manual", payload={"message": "Where is my order?"})
 
-        frame = engine.handle_event(event, dry_run=True)
+            frame = engine.handle_event(event, dry_run=True)
 
         self.assertEqual(frame.manifest_id, "smoke.llm_classify")
         self.assertEqual(frame.state, "COMPLETED")
 
     def test_runtime_engine_handles_manual_llm_draft_event(self):
-        adapter = FakeLLMAdapter({"draft": "Reply text."})
-        engine = RuntimeEngine(llm_adapter=adapter)
-        event = create_event("manual.llm_draft", "manual", payload={"message": "Please reply."})
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            adapter = FakeLLMAdapter({"draft": "Reply text."})
+            engine = build_smoke_engine(tmpdir, adapter)
+            event = create_event("manual.llm_draft", "manual", payload={"message": "Please reply."})
 
-        frame = engine.handle_event(event, dry_run=True)
+            frame = engine.handle_event(event, dry_run=True)
 
         self.assertEqual(frame.manifest_id, "smoke.llm_draft")
         self.assertEqual(frame.state, "COMPLETED")

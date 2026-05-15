@@ -1,12 +1,34 @@
 import tempfile
 import unittest
 from pathlib import Path
+import json
 
 from runtime.events import create_event
 from runtime.manifest_loader import load_manifest
 from runtime.persistence import get_frame_dir, load_taskframe_dict, taskframe_exists
 from runtime.run_ledger import find_ledger_record, get_ledger_path
 from runtime.runtime_engine import RuntimeEngine
+
+
+def _write_routes(tmpdir: Path, routes: list[dict]) -> Path:
+    path = tmpdir / "event_routes.json"
+    path.write_text(json.dumps({"routes": routes}, indent=2), encoding="utf-8")
+    return path
+
+
+def _build_failed_validation_engine(tmpdir: Path) -> RuntimeEngine:
+    _write_routes(
+        tmpdir,
+        [
+            {"event_type": "manual.validate_step_fail_fast", "manifest_id": "smoke.validate_step_fail_fast", "enabled": True},
+        ],
+    )
+    return RuntimeEngine(
+        routes_path=tmpdir / "event_routes.json",
+        manifest_dir=Path("tests/fixtures/smoke_manifests"),
+        runtime_data_dir=tmpdir,
+        persist_runs=True,
+    )
 
 
 class RuntimePersistenceIntegrationTests(unittest.TestCase):
@@ -107,7 +129,7 @@ class RuntimePersistenceIntegrationTests(unittest.TestCase):
 
     def test_runtime_engine_persistence_works_for_failed_validation(self):
         with tempfile.TemporaryDirectory() as tmp:
-            engine = RuntimeEngine(runtime_data_dir=tmp, persist_runs=True)
+            engine = _build_failed_validation_engine(Path(tmp))
             event = create_event("manual.validate_step_fail_fast", "manual", payload={})
 
             frame = engine.handle_event(event, dry_run=True)

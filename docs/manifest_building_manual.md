@@ -718,6 +718,12 @@ The **Validate All** action in the Manifest Workbench runs a catalog-wide health
 
 Only manifests in the active catalog are treated as release/operator manifests. Test, smoke, broken, and internal policy fixtures must live under `tests/fixtures/` and be loaded explicitly by tests. This keeps intentionally unsafe test manifests out of the operator UI and out of release health scope without weakening active-catalog checks.
 
+### Manifest health modes
+
+`taskframe manifest-health` is the non-blocking report mode. It writes the manifest health report and exits successfully so operators can review findings.
+
+`taskframe manifest-health --strict --no-smoke` is the release-gate mode. It exits non-zero when the active manifest catalog has failures.
+
 The dashboard summarizes total manifests, healthy and warning-only manifests, failed and critical manifests, smoke results, repairable manifests with low-risk auto-fix proposals, and manifests that still require manual correction.
 
 Each row shows the manifest ID, validation result, smoke status, top findings, repairable count, and recommended next action. Selecting a row reveals detailed validation errors, smoke classification, repair findings, auto-fix proposal counts, and report paths.

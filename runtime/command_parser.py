@@ -68,6 +68,22 @@ def parse_command(command: str) -> ParsedCommand:
     if not header:
         raise CommandParseError("Command header cannot be empty.")
 
+    if header == "validate_required_inputs" or header.startswith("validate_required_inputs:"):
+        validation_action = "required_inputs"
+        if ":" in header:
+            validation_action = header.split(":", 1)[1].strip() or validation_action
+        if payload:
+            raise CommandParseError("Validation commands do not accept payloads.")
+        return ParsedCommand(
+            raw=raw,
+            kind="validate_required_inputs",
+            namespace=None,
+            action=validation_action,
+            output_alias=None,
+            payload="",
+            args={},
+        )
+
     if header.startswith("validate:"):
         validation_id = header[len("validate:") :].strip()
         if not validation_id or any(ch.isspace() for ch in validation_id):

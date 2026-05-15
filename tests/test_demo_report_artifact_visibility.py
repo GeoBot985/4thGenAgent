@@ -175,11 +175,9 @@ def test_report_buttons_use_clear_business_vs_run_labels(tmp_path):
         console.last_snapshot = _report_snapshot()
         console._render_demo_story_view()
 
-        assert console.demo_open_business_report_button.cget("text") == "Open business report"
-        assert console.demo_create_open_run_report_button.cget("text") == "Create/open run report"
-        assert console.demo_open_business_report_button.winfo_manager() == "pack"
-        assert console.demo_open_run_report_button.winfo_manager() == ""
-        assert console.demo_create_open_run_report_button.winfo_manager() == "pack"
+        assert console.primary_demo_action_button.cget("text") == "Approve & execute dry run"
+        assert "pending action" in console.primary_demo_action_helper_label.cget("text").lower()
+        assert console.demo_advanced_actions_frame.winfo_manager() == ""
 
         console.current_run = {
             "frame_id": "frame_1",
@@ -190,9 +188,7 @@ def test_report_buttons_use_clear_business_vs_run_labels(tmp_path):
         console.demo_var.set("Customer Status - Happy Path")
         console._render_demo_story_view()
 
-        assert console.demo_open_business_report_button.winfo_manager() == ""
-        assert console.demo_open_run_report_button.winfo_manager() == ""
-        assert console.demo_create_open_run_report_button.cget("text") == "Create/open run report"
-        assert console.demo_create_open_run_report_button.winfo_manager() == "pack"
+        assert console.primary_demo_action_button.cget("text") in {"Start demo", "Create run report", "Approve & execute dry run", "Open run report"}
+        assert console.primary_demo_action_helper_label.cget("text")
     finally:
         root.destroy()

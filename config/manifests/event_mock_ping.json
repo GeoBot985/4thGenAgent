@@ -23,7 +23,8 @@
         "event_source",
         "event_type",
         "received_at"
-      ]
+      ],
+      "command": "[validate_required_inputs:validate_input]"
     },
     {
       "step_id": "build_mock_response",

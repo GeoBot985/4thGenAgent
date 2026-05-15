@@ -1,19 +1,19 @@
 # Manifest Health Report
 
-Generated: 2026-05-15T10:36:48.325726Z
+Generated: 2026-05-15T19:12:54.061300Z
 
-Verdict: HAS_FAILURES
+Verdict: HEALTHY
 
 ## Summary
 
 | Metric | Count |
 |---|---:|
-| Total manifests | 63 |
+| Total manifests | 56 |
 | Healthy | 0 |
 | Warnings | 0 |
-| Failed | 9 |
-| Repairable | 13 |
-| Manual fix required | 6 |
+| Failed | 0 |
+| Repairable | 12 |
+| Manual fix required | 0 |
 | Critical | 0 |
 
 ## Manifest Results
@@ -58,14 +58,8 @@ Verdict: HAS_FAILURES
 | SMOKE_SKIPPED | smoke.inspect_run_pending_actions | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | smoke.inspect_run_summary | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | smoke.llm_branch_escalation | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
-| FAILED | smoke.llm_classify | PASS | SKIPPED | 0 | unknown_validation_type | Manual fix required. |
 | SMOKE_SKIPPED | smoke.llm_classify_conditional_reply | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | smoke.llm_classify_with_validation_step | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
-| FAILED | smoke.llm_draft | PASS | SKIPPED | 0 | unknown_validation_type | Manual fix required. |
-| FAILED | smoke.llm_extract | PASS | SKIPPED | 0 | unknown_validation_type | Manual fix required. |
-| FAILED | smoke.llm_summarize | PASS | SKIPPED | 0 | unknown_validation_type, unknown_validation_type | Manual fix required. |
-| FAILED | smoke.memory_get | PASS | SKIPPED | 0 | unknown_validation_type | Manual fix required. |
-| FAILED | smoke.memory_get_missing | PASS | SKIPPED | 0 | unknown_validation_type | Manual fix required. |
 | SMOKE_SKIPPED | smoke.memory_set | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | smoke.reject_pending_action | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | smoke.reload_pending_action_flow | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
@@ -76,10 +70,9 @@ Verdict: HAS_FAILURES
 | SMOKE_SKIPPED | smoke.timeout_exceeded | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | smoke.timeout_retry_success | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | smoke.timeout_success | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
-| FAILED | smoke.validate_step_fail_fast | PASS | SKIPPED | 1 | validation_references_missing_output | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | smoke.validate_step_output_exists | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | smoke.whatsapp_stage_send | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | accounting.payment_reconciliation | PASS | SKIPPED | 0 | event_trigger_without_route_note | Run smoke test manually with sample inputs. |
-| FAILED | customer.message_status_check | PASS | SKIPPED | 3 | completion_output_missing, command_parse_error, input_declared_but_not_used | Open Auto-Fix Preview. |
-| FAILED | event.mock_ping | PASS | SKIPPED | 3 | command_parse_error, input_declared_but_not_used, input_declared_but_not_used | Open Auto-Fix Preview. |
+| SMOKE_SKIPPED | customer.message_status_check | PASS | SKIPPED | 3 | input_declared_but_not_used, input_declared_but_not_used, input_declared_but_not_used | Open Auto-Fix Preview. |
+| SMOKE_SKIPPED | event.mock_ping | PASS | SKIPPED | 3 | input_declared_but_not_used, input_declared_but_not_used, input_declared_but_not_used | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | procurement.low_stock_reorder | PASS | SKIPPED | 0 | event_trigger_without_route_note | Run smoke test manually with sample inputs. |

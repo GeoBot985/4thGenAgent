@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import platform
 import subprocess
 import sys
 import time
+import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -19,6 +21,7 @@ OUTPUT_JSON = ROOT / "runtime_data" / "audit" / "release_candidate_verification.
 OUTPUT_MD = ROOT / "docs" / "release_candidate_verification.md"
 EVIDENCE_INDEX_MD = ROOT / "docs" / "release_candidate_evidence_index.md"
 KNOWN_LIMITATIONS_MD = ROOT / "docs" / "known_limitations.md"
+CONFIGURATION_MD = ROOT / "docs" / "configuration.md"
 CURRENT_RELEASE_STATUS_MD = ROOT / "docs" / "current_release_status.md"
 RELEASE_EVIDENCE_PACK_MD = ROOT / "docs" / "release_evidence_pack.md"
 RUNTIME_CONTRACTS_MD = ROOT / "docs" / "runtime_contracts.md"
@@ -109,6 +112,8 @@ def build_verification_result() -> dict[str, Any]:
         "artifact_checks": [],
         "checks": {
             "imports": "PENDING",
+            "packaging_cli": "PENDING",
+            "manifest_health_cli_strict": "PENDING",
             "default_tool_registry": "PENDING",
             "tool_capability_registry": "PENDING",
             "core_tool_health_safe_checks": "PENDING",
@@ -121,6 +126,9 @@ def build_verification_result() -> dict[str, Any]:
             "adding_new_tools_doc": "PENDING",
             "tool_contract_checklist_doc": "PENDING",
             "manifest_catalog_health": "PENDING",
+            "public_quickstart_docs": "PENDING",
+            "optional_rpa_isolation": "PENDING",
+            "config_secrets_hygiene": "PENDING",
         },
         "workflow_checks": {
             "customer": {"status": "PENDING", "count": 0},
@@ -197,6 +205,8 @@ def build_verification_result() -> dict[str, Any]:
 
     static_checks.extend([
         _check_python_imports(),
+        _check_packaging_cli(),
+        _check_manifest_health_cli_strict(),
         _check_default_tool_registry(),
         _check_tool_capability_registry(),
         _check_core_tool_health_safe_checks(),
@@ -215,6 +225,9 @@ def build_verification_result() -> dict[str, Any]:
         _check_docs_command_alignment(),
         _check_generated_manifest_template_quality_gates(),
         _check_manifest_catalog_health(),
+        _check_public_quickstart_docs(),
+        _check_optional_rpa_isolation(),
+        _check_config_secrets_hygiene(),
     ])
     manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     for key in ("json_path", "markdown_path"):
@@ -225,6 +238,10 @@ def build_verification_result() -> dict[str, Any]:
         if check["status"] != "PASS":
             if check["name"] == "python_imports":
                 release_blockers.append("python imports failed")
+            elif check["name"] == "packaging_cli":
+                release_blockers.append("packaging / CLI checks failed")
+            elif check["name"] == "manifest_health_cli_strict":
+                release_blockers.append("manifest health strict CLI failed")
             elif check["name"] == "default_tool_registry":
                 release_blockers.append("default tool registry failed")
             elif check["name"] == "TOOL_CAPABILITY_REGISTRY":
@@ -261,6 +278,12 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("generated manifest template quality gates failed")
             elif check["name"] == "manifest_catalog_health":
                 release_blockers.append("manifest catalog health failed")
+            elif check["name"] == "public_quickstart_docs":
+                release_blockers.append("public quickstart docs check failed")
+            elif check["name"] == "optional_rpa_isolation":
+                release_blockers.append("optional RPA isolation check failed")
+            elif check["name"] == "config_secrets_hygiene":
+                release_blockers.append("config / secrets hygiene failed")
 
     artifact_paths = [
         "README.md",
@@ -268,6 +291,10 @@ def build_verification_result() -> dict[str, Any]:
         "docs/runtime_contracts.md",
         "docs/adding_new_tools.md",
         "docs/tool_contract_checklist.md",
+        "docs/cli_reference.md",
+        "docs/quickstart.md",
+        "docs/index.md",
+        "docs/optional_rpa.md",
         "docs/default_demo_boundary.md",
         "docs/known_limitations.md",
         "docs/current_release_status.md",
@@ -323,6 +350,8 @@ def build_verification_result() -> dict[str, Any]:
 
     checks = {
         "imports": _status_from_commands(commands, "clean_imports"),
+        "packaging_cli": _status_from_static(static_checks, "packaging_cli"),
+        "manifest_health_cli_strict": _status_from_static(static_checks, "manifest_health_cli_strict"),
         "default_tool_registry": _status_from_static(static_checks, "default_tool_registry"),
         "tool_capability_registry": _status_from_static(static_checks, "TOOL_CAPABILITY_REGISTRY"),
         "core_tool_health_safe_checks": _status_from_static(static_checks, "CORE_TOOL_HEALTH_SAFE_CHECKS"),
@@ -335,6 +364,9 @@ def build_verification_result() -> dict[str, Any]:
         "adding_new_tools_doc": _status_from_static(static_checks, "adding_new_tools_doc"),
         "tool_contract_checklist_doc": _status_from_static(static_checks, "tool_contract_checklist_doc"),
         "manifest_catalog_health": _status_from_static(static_checks, "manifest_catalog_health"),
+        "public_quickstart_docs": _status_from_static(static_checks, "public_quickstart_docs"),
+        "optional_rpa_isolation": _status_from_static(static_checks, "optional_rpa_isolation"),
+        "config_secrets_hygiene": _status_from_static(static_checks, "config_secrets_hygiene"),
     }
 
     if release_blockers:
@@ -382,6 +414,10 @@ def build_verification_result() -> dict[str, Any]:
         "docs/runtime_contracts.md",
         "docs/adding_new_tools.md",
         "docs/tool_contract_checklist.md",
+        "docs/cli_reference.md",
+        "docs/quickstart.md",
+        "docs/index.md",
+        "docs/optional_rpa.md",
         "docs/default_demo_boundary.md",
         "docs/known_limitations.md",
         "docs/current_release_status.md",
@@ -901,18 +937,88 @@ def _check_docs_command_alignment() -> dict[str, Any]:
     portfolio = ROOT / "docs" / "portfolio_summary.md"
     readme_text = readme.read_text(encoding="utf-8").lower() if readme.is_file() else ""
     portfolio_text = portfolio.read_text(encoding="utf-8").lower() if portfolio.is_file() else ""
-    markers = [
+    readme_markers = [
+        "pip install -e .",
+        "taskframe demo",
+        "taskframe ui",
+        "taskframe verify",
+        "taskframe config show",
+        "taskframe config paths",
+    ]
+    missing = []
+    for marker in readme_markers:
+        if marker not in readme_text:
+            missing.append(f"README:{marker}")
+    portfolio_markers = [
         "clean release-candidate verification",
         "python scripts/run_golden_demo.py",
         "python scripts/run_release_verification.py",
     ]
-    missing = []
-    for marker in markers:
-        if marker not in readme_text:
-            missing.append(f"README:{marker}")
+    for marker in portfolio_markers:
         if marker not in portfolio_text:
             missing.append(f"portfolio_summary:{marker}")
+    config_doc = ROOT / "docs" / "configuration.md"
+    if not config_doc.is_file():
+        missing.append("docs/configuration.md")
     return {"name": "docs_command_alignment", "status": "PASS" if not missing else "FAIL", "missing": missing}
+
+
+def _check_packaging_cli() -> dict[str, Any]:
+    path = ROOT / "pyproject.toml"
+    if not path.is_file():
+        return {"name": "packaging_cli", "status": "FAIL", "path": str(path), "missing": ["pyproject.toml"]}
+
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {"name": "packaging_cli", "status": "FAIL", "path": str(path), "error": str(exc)}
+
+    project = data.get("project", {}) if isinstance(data, dict) else {}
+    scripts = project.get("scripts", {}) if isinstance(project, dict) else {}
+    deps = [str(item).lower() for item in project.get("dependencies", []) or []]
+    extras = project.get("optional-dependencies", {}) if isinstance(project, dict) else {}
+    missing = []
+    if scripts.get("taskframe") != "src.taskframe_cli:main":
+        missing.append("console_script")
+    if "playwright" in deps or any("google-" in dep or dep == "google-auth" for dep in deps):
+        missing.append("default_dependencies")
+    for extra in ("dev", "google", "rpa"):
+        if extra not in extras:
+            missing.append(f"extra:{extra}")
+    if not (ROOT / "docs" / "cli_reference.md").is_file():
+        missing.append("docs:cli_reference")
+
+    command_results = [
+        run_command("packaging_cli_help", ["python", "-m", "src.taskframe_cli", "--help"], timeout_seconds=120),
+        run_command("packaging_cli_version", ["python", "-m", "src.taskframe_cli", "version"], timeout_seconds=120),
+        run_command("packaging_cli_manifest_health", ["python", "-m", "src.taskframe_cli", "manifest-health", "--no-smoke"], timeout_seconds=300),
+        run_command("packaging_cli_manifest_health_strict", ["python", "-m", "src.taskframe_cli", "manifest-health", "--strict", "--no-smoke"], timeout_seconds=300),
+    ]
+    command_failures = [item for item in command_results if item["status"] != "PASS"]
+    return {
+        "name": "packaging_cli",
+        "status": "PASS" if not missing and not command_failures else "FAIL",
+        "path": str(path),
+        "missing": missing,
+        "commands": command_results,
+        "command_failures": [item["name"] for item in command_failures],
+    }
+
+
+def _check_manifest_health_cli_strict() -> dict[str, Any]:
+    result = run_command(
+        "manifest_health_cli_strict",
+        ["python", "-m", "src.taskframe_cli", "manifest-health", "--strict", "--no-smoke"],
+        timeout_seconds=300,
+    )
+    return {
+        "name": "manifest_health_cli_strict",
+        "status": result["status"],
+        "command": result["command"],
+        "returncode": result["returncode"],
+        "stdout_tail": result["stdout_tail"],
+        "stderr_tail": result["stderr_tail"],
+    }
 
 
 def _check_runtime_contract_docs() -> dict[str, Any]:
@@ -1042,6 +1148,246 @@ def _check_manifest_catalog_health() -> dict[str, Any]:
         "json_path": str(report.get("json_path", "")),
         "markdown_path": str(report.get("markdown_path", "")),
         "error": str(report.get("error", "")),
+    }
+
+
+def _check_optional_rpa_isolation() -> dict[str, Any]:
+    missing: list[str] = []
+
+    if not (ROOT / "docs" / "optional_rpa.md").is_file():
+        missing.append("docs/optional_rpa.md")
+
+    readme = ROOT / "README.md"
+    if readme.is_file():
+        readme_text = readme.read_text(encoding="utf-8")
+        if "docs/optional_rpa.md" not in readme_text:
+            missing.append("README:link:docs/optional_rpa.md")
+    else:
+        missing.append("README.md")
+
+    cli_ref = ROOT / "docs" / "cli_reference.md"
+    if cli_ref.is_file():
+        cli_text = cli_ref.read_text(encoding="utf-8")
+        for cmd in ("taskframe rpa status", "taskframe rpa health"):
+            if cmd not in cli_text:
+                missing.append(f"cli_reference:{cmd}")
+    else:
+        missing.append("docs/cli_reference.md")
+
+    rpa_status = run_command(
+        "rpa_status_no_playwright",
+        ["python", "-m", "src.taskframe_cli", "rpa", "status"],
+        timeout_seconds=30,
+    )
+    if rpa_status["returncode"] != 0:
+        missing.append("rpa_status_command_failed")
+    elif "Optional RPA tools" not in rpa_status["stdout"]:
+        missing.append("rpa_status_missing_expected_output")
+
+    rpa_health = run_command(
+        "rpa_health_default",
+        ["python", "-m", "src.taskframe_cli", "rpa", "health"],
+        timeout_seconds=30,
+    )
+    if rpa_health["returncode"] != 0:
+        missing.append("rpa_health_default_failed")
+
+    rpa_live_probe_no_enable = run_command(
+        "rpa_live_probe_without_enable",
+        ["python", "-m", "src.taskframe_cli", "rpa", "health", "--live-probe"],
+        timeout_seconds=30,
+    )
+    if rpa_live_probe_no_enable["returncode"] == 0:
+        missing.append("rpa_live_probe_should_fail_without_enable_rpa")
+
+    playwright_import_check = run_command(
+        "default_imports_no_playwright",
+        [
+            "python",
+            "-c",
+            (
+                "import sys; "
+                "sys.modules.pop('playwright', None); "
+                "sys.modules.pop('playwright.async_api', None); "
+                "import runtime.tool_registry; "
+                "assert 'playwright' not in sys.modules, 'playwright leaked into default tool_registry import'"
+            ),
+        ],
+        timeout_seconds=30,
+    )
+    if playwright_import_check["returncode"] != 0:
+        missing.append("playwright_leaked_into_default_imports")
+
+    return {
+        "name": "optional_rpa_isolation",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_public_quickstart_docs() -> dict[str, Any]:
+    readme = ROOT / "README.md"
+    quickstart = ROOT / "docs" / "quickstart.md"
+    index = ROOT / "docs" / "index.md"
+    missing: list[str] = []
+
+    if not quickstart.is_file():
+        missing.append("docs/quickstart.md")
+    if not index.is_file():
+        missing.append("docs/index.md")
+
+    if readme.is_file():
+        readme_text = readme.read_text(encoding="utf-8")
+        readme_lower = readme_text.lower()
+        for phrase in [
+            "5-minute quickstart",
+            "pip install -e .",
+            "taskframe demo",
+            "taskframe ui",
+            "taskframe verify",
+            "safe by default",
+            "what this is",
+            "what this is not",
+        ]:
+            if phrase not in readme_lower:
+                missing.append(f"README:{phrase}")
+        for link in [
+            "docs/cli_reference.md",
+            "docs/architecture_overview.md",
+            "docs/quickstart.md",
+            "docs/index.md",
+            "docs/configuration.md",
+        ]:
+            if link not in readme_text:
+                missing.append(f"README:link:{link}")
+        if "not required" not in readme_lower and "not needed" not in readme_lower:
+            missing.append("README:optional integrations not required")
+        if "no live" not in readme_lower:
+            missing.append("README:no live side effects")
+        if "safe default configuration" not in readme_lower:
+            missing.append("README:safe default configuration")
+    else:
+        missing.append("README.md")
+
+    return {
+        "name": "public_quickstart_docs",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_config_secrets_hygiene() -> dict[str, Any]:
+    missing: list[str] = []
+
+    config_dir = ROOT / "config" / "examples"
+    if not config_dir.is_dir():
+        missing.append("config/examples/")
+    else:
+        required_examples = [
+            "taskframe.default.example.json",
+            "taskframe.local-llm.example.json",
+            "taskframe.google-live.example.json",
+            "taskframe.rpa-local.example.json",
+            "accounting_google_sheet.example.json",
+        ]
+        for name in required_examples:
+            if not (config_dir / name).is_file():
+                missing.append(f"config/examples/{name}")
+
+    config_doc = CONFIGURATION_MD
+    if not config_doc.is_file():
+        missing.append("docs/configuration.md")
+    else:
+        text = config_doc.read_text(encoding="utf-8").lower()
+        for phrase in [
+            "do not commit",
+            "credentials",
+            "tokens",
+            "safe default configuration",
+            "config profiles",
+        ]:
+            if phrase not in text:
+                missing.append(f"docs/configuration.md:{phrase}")
+
+    gitignore = ROOT / ".gitignore"
+    if gitignore.is_file():
+        gitignore_text = gitignore.read_text(encoding="utf-8")
+        for pattern in [
+            ".taskframe/",
+            "*.local.json",
+            "config/*.local.json",
+            "config/*credentials*.json",
+            "config/*token*.json",
+            "credentials.json",
+            "google_token.json",
+            "client_secret*.json",
+        ]:
+            if pattern not in gitignore_text:
+                missing.append(f".gitignore:{pattern}")
+    else:
+        missing.append(".gitignore")
+
+    readme = ROOT / "README.md"
+    if readme.is_file():
+        text = readme.read_text(encoding="utf-8").lower()
+        if "docs/configuration.md" not in text:
+            missing.append("README:docs/configuration.md")
+        if "taskframe config show" not in text:
+            missing.append("README:taskframe config show")
+        if "taskframe config paths" not in text:
+            missing.append("README:taskframe config paths")
+    else:
+        missing.append("README.md")
+
+    command_results = [
+        run_command("config_show", ["python", "-m", "src.taskframe_cli", "config", "show"], timeout_seconds=120),
+        run_command("config_paths", ["python", "-m", "src.taskframe_cli", "config", "paths"], timeout_seconds=120),
+    ]
+    command_failures = [item for item in command_results if item["status"] != "PASS"]
+
+    try:
+        from src.config_profiles import load_config_profile
+
+        env_keys = [
+            "TASKFRAME_PROFILE",
+            "TASKFRAME_CONFIG_DIR",
+            "TASKFRAME_RUNTIME_DIR",
+            "TASKFRAME_LLM_PROVIDER",
+            "TASKFRAME_OLLAMA_MODEL",
+            "TASKFRAME_OLLAMA_BASE_URL",
+            "TASKFRAME_ACCOUNTING_SHEET_CONFIG",
+            "ENABLE_OPTIONAL_RPA_TOOLS",
+        ]
+        saved_env = {key: os.environ.get(key) for key in env_keys}
+        for key in env_keys:
+            os.environ.pop(key, None)
+        try:
+            profile = load_config_profile(config_dir=ROOT / "config" / "examples")
+        finally:
+            for key, value in saved_env.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+        if profile.llm_provider != "fake":
+            missing.append("default_profile_llm_provider")
+        if profile.google_enabled:
+            missing.append("default_profile_google_enabled")
+        if profile.rpa_enabled:
+            missing.append("default_profile_rpa_enabled")
+        if profile.live_execution_enabled:
+            missing.append("default_profile_live_execution_enabled")
+        if not str(profile.runtime_data_dir):
+            missing.append("default_profile_runtime_data_dir")
+    except Exception as exc:
+        missing.append(f"default_profile_resolution:{exc}")
+
+    return {
+        "name": "config_secrets_hygiene",
+        "status": "PASS" if not missing and not command_failures else "FAIL",
+        "missing": missing,
+        "commands": command_results,
+        "command_failures": [item["name"] for item in command_failures],
     }
 
 

@@ -65,32 +65,32 @@
     {
       "event_type": "manual.memory_get",
       "manifest_id": "smoke.memory_get",
-      "enabled": true
+      "enabled": false
     },
     {
       "event_type": "manual.memory_get_missing",
       "manifest_id": "smoke.memory_get_missing",
-      "enabled": true
+      "enabled": false
     },
     {
       "event_type": "manual.llm_summarize",
       "manifest_id": "smoke.llm_summarize",
-      "enabled": true
+      "enabled": false
     },
     {
       "event_type": "manual.llm_extract",
       "manifest_id": "smoke.llm_extract",
-      "enabled": true
+      "enabled": false
     },
     {
       "event_type": "manual.llm_classify",
       "manifest_id": "smoke.llm_classify",
-      "enabled": true
+      "enabled": false
     },
     {
       "event_type": "manual.llm_draft",
       "manifest_id": "smoke.llm_draft",
-      "enabled": true
+      "enabled": false
     },
     {
       "event_type": "manual.llm_extract_order_ref",
@@ -148,7 +148,7 @@
     {
       "event_type": "manual.validate_step_fail_fast",
       "manifest_id": "smoke.validate_step_fail_fast",
-      "enabled": true
+      "enabled": false
     },
     {
       "event_type": "manual.llm_classify_with_validation_step",

@@ -1,177 +1,177 @@
 {
   "routes": [
-      {
-        "route_id": "external.stub",
-        "source": "external",
-        "event_type": "stub",
-        "manifest_id": "event.stub",
-        "input_map": {
-          "message": "payload.message",
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type"
-        }
-      },
-      {
-        "route_id": "external.mock_ping",
-        "source": "external",
-        "event_type": "mock_ping",
-        "manifest_id": "event.mock_ping",
-        "input_map": {
-          "message": "payload.message",
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type",
-          "received_at": "received_at"
-        }
-      },
-      {
-        "route_id": "callcenter.customer_message",
-        "source": "callcenter",
-        "event_type": "customer_message",
-        "manifest_id": "customer.message_status_check",
-        "input_map": {
-          "event_id": "event_id",
-          "customer_id": "payload.customer_id",
-          "message": "payload.message",
-          "channel": "payload.channel",
-          "received_at": "received_at"
-        }
-      },
-      {
-        "route_id": "operator_ui.customer_message_status_check",
-        "source": "operator_ui",
-        "event_type": "manual.customer_message_status_check",
-        "manifest_id": "customer.message_status_check",
-        "input_map": {
-          "event_id": "event_id",
-          "customer_id": "payload.customer_id",
-          "message": "payload.message",
-          "channel": "payload.channel",
-          "received_at": "received_at"
-        }
-      },
-      {
-        "route_id": "operator_ui.mock_ping",
-        "source": "operator_ui",
-        "event_type": "manual.mock_ping",
-        "manifest_id": "event.mock_ping",
-        "input_map": {
-          "message": "payload.message",
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type",
-          "received_at": "received_at"
-        }
-      },
-      {
-        "route_id": "operator_ui.llm_extract_order_ref",
-        "source": "operator_ui",
-        "event_type": "manual.llm_extract_order_ref",
-        "manifest_id": "llm.extract_order_ref",
-        "input_map": {
-          "message": "payload.message",
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type"
-        }
-      },
-      {
-        "route_id": "operator_ui.llm_classify_customer_message",
-        "source": "operator_ui",
-        "event_type": "manual.llm_classify_customer_message",
-        "manifest_id": "llm.classify_customer_message",
-        "input_map": {
-          "message": "payload.message",
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type"
-        }
-      },
-      {
-        "route_id": "operator_ui.llm_customer_status_reply",
-        "source": "operator_ui",
-        "event_type": "manual.llm_customer_status_reply",
-        "manifest_id": "llm.customer_status_reply",
-        "input_map": {
-          "message": "payload.message",
-          "customer_id": "payload.customer_id",
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type"
-        }
-      },
-      {
-        "route_id": "operator_ui.customer_status_llm_e2e",
-        "source": "operator_ui",
-        "event_type": "manual.customer_status_llm_e2e",
-        "manifest_id": "customer.status_llm_e2e",
-        "input_map": {
-          "message": "payload.message",
-          "customer_id": "payload.customer_id",
-          "channel": "payload.channel",
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type"
-        }
-      },
-      {
-        "route_id": "customer_inbox.customer_status_llm_e2e",
-        "source": "customer_inbox",
-        "event_type": "manual.customer_status_llm_e2e",
-        "manifest_id": "customer.status_llm_e2e",
-        "input_map": {
-          "message": "payload.message",
-          "customer_id": "payload.customer_id",
-          "channel": "payload.channel",
-          "message_id": "payload.message_id",
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type"
-        }
-      },
-      {
-        "route_id": "operator_ui.procurement_low_stock_reorder",
-        "source": "operator_ui",
-        "event_type": "manual.procurement_low_stock_reorder",
-        "manifest_id": "procurement.low_stock_reorder",
-        "input_map": {
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type",
-          "received_at": "received_at"
-        }
-      },
-      {
-        "route_id": "schedule.procurement_low_stock_reorder",
-        "source": "schedule",
-        "event_type": "daily.low_stock_check",
-        "manifest_id": "procurement.low_stock_reorder",
-        "input_map": {
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type",
-          "received_at": "received_at"
-        }
-      },
-      {
-        "route_id": "operator_ui.accounting_payment_reconciliation",
-        "source": "operator_ui",
-        "event_type": "manual.accounting_payment_reconciliation",
-        "manifest_id": "accounting.payment_reconciliation",
-        "input_map": {
-          "event_id": "event_id",
-          "event_source": "source",
-          "event_type": "event_type",
-          "received_at": "received_at",
-          "spreadsheet_id": "payload.spreadsheet_id",
-          "payments_range": "payload.payments_range",
-          "orders_range": "payload.orders_range",
-          "invoices_range": "payload.invoices_range",
-          "ledger_range": "payload.ledger_range",
-          "recon_runs_range": "payload.recon_runs_range",
-          "recon_exceptions_range": "payload.recon_exceptions_range"
-        }
+    {
+      "route_id": "external.stub",
+      "source": "external",
+      "event_type": "stub",
+      "manifest_id": "event.stub",
+      "input_map": {
+        "message": "payload.message",
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type"
       }
+    },
+    {
+      "route_id": "external.mock_ping",
+      "source": "external",
+      "event_type": "mock_ping",
+      "manifest_id": "event.mock_ping",
+      "input_map": {
+        "message": "payload.message",
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type",
+        "received_at": "received_at"
+      }
+    },
+    {
+      "route_id": "callcenter.customer_message",
+      "source": "callcenter",
+      "event_type": "customer_message",
+      "manifest_id": "customer.message_status_check",
+      "input_map": {
+        "event_id": "event_id",
+        "customer_id": "payload.customer_id",
+        "message": "payload.message",
+        "channel": "payload.channel",
+        "received_at": "received_at"
+      }
+    },
+    {
+      "route_id": "operator_ui.customer_message_status_check",
+      "source": "operator_ui",
+      "event_type": "manual.customer_message_status_check",
+      "manifest_id": "customer.message_status_check",
+      "input_map": {
+        "event_id": "event_id",
+        "customer_id": "payload.customer_id",
+        "message": "payload.message",
+        "channel": "payload.channel",
+        "received_at": "received_at"
+      }
+    },
+    {
+      "route_id": "operator_ui.mock_ping",
+      "source": "operator_ui",
+      "event_type": "manual.mock_ping",
+      "manifest_id": "event.mock_ping",
+      "input_map": {
+        "message": "payload.message",
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type",
+        "received_at": "received_at"
+      }
+    },
+    {
+      "route_id": "operator_ui.llm_extract_order_ref",
+      "source": "operator_ui",
+      "event_type": "manual.llm_extract_order_ref",
+      "manifest_id": "llm.extract_order_ref",
+      "input_map": {
+        "message": "payload.message",
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type"
+      }
+    },
+    {
+      "route_id": "operator_ui.llm_classify_customer_message",
+      "source": "operator_ui",
+      "event_type": "manual.llm_classify_customer_message",
+      "manifest_id": "llm.classify_customer_message",
+      "input_map": {
+        "message": "payload.message",
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type"
+      }
+    },
+    {
+      "route_id": "operator_ui.llm_customer_status_reply",
+      "source": "operator_ui",
+      "event_type": "manual.llm_customer_status_reply",
+      "manifest_id": "llm.customer_status_reply",
+      "input_map": {
+        "message": "payload.message",
+        "customer_id": "payload.customer_id",
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type"
+      }
+    },
+    {
+      "route_id": "operator_ui.customer_status_llm_e2e",
+      "source": "operator_ui",
+      "event_type": "manual.customer_status_llm_e2e",
+      "manifest_id": "customer.status_llm_e2e",
+      "input_map": {
+        "message": "payload.message",
+        "customer_id": "payload.customer_id",
+        "channel": "payload.channel",
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type"
+      }
+    },
+    {
+      "route_id": "customer_inbox.customer_status_llm_e2e",
+      "source": "customer_inbox",
+      "event_type": "manual.customer_status_llm_e2e",
+      "manifest_id": "customer.status_llm_e2e",
+      "input_map": {
+        "message": "payload.message",
+        "customer_id": "payload.customer_id",
+        "channel": "payload.channel",
+        "message_id": "payload.message_id",
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type"
+      }
+    },
+    {
+      "route_id": "operator_ui.procurement_low_stock_reorder",
+      "source": "operator_ui",
+      "event_type": "manual.procurement_low_stock_reorder",
+      "manifest_id": "procurement.low_stock_reorder",
+      "input_map": {
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type",
+        "received_at": "received_at"
+      }
+    },
+    {
+      "route_id": "schedule.procurement_low_stock_reorder",
+      "source": "schedule",
+      "event_type": "daily.low_stock_check",
+      "manifest_id": "procurement.low_stock_reorder",
+      "input_map": {
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type",
+        "received_at": "received_at"
+      }
+    },
+    {
+      "route_id": "operator_ui.accounting_payment_reconciliation",
+      "source": "operator_ui",
+      "event_type": "manual.accounting_payment_reconciliation",
+      "manifest_id": "accounting.payment_reconciliation",
+      "input_map": {
+        "event_id": "event_id",
+        "event_source": "source",
+        "event_type": "event_type",
+        "received_at": "received_at",
+        "spreadsheet_id": "payload.spreadsheet_id",
+        "payments_range": "payload.payments_range",
+        "orders_range": "payload.orders_range",
+        "invoices_range": "payload.invoices_range",
+        "ledger_range": "payload.ledger_range",
+        "recon_runs_range": "payload.recon_runs_range",
+        "recon_exceptions_range": "payload.recon_exceptions_range"
+      }
+    }
   ]
 }

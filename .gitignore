@@ -20,6 +20,11 @@ env/
 Thumbs.db
 
 # Local secrets and auth material
+.taskframe/
+*.local.json
+config/*.local.json
+config/*credentials*.json
+config/*token*.json
 credentials.json
 client_secret*.json
 google_token.json
@@ -30,6 +35,7 @@ bits/secrets.json
 # Repo-local generated artifacts
 consolidated_sources_part_*.txt
 tmp-e2e/
+runtime_data/
 
 # Runtime artifacts and local browser/session state
 runtime_data/outputs/

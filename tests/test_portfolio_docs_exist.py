@@ -58,3 +58,22 @@ def test_readme_mentions_dry_run():
 def test_readme_mentions_ollama():
     text = Path("README.md").read_text(encoding="utf-8")
     assert "Ollama" in text
+
+
+def test_quickstart_doc_exists():
+    assert Path("docs/quickstart.md").is_file()
+
+
+def test_docs_index_exists():
+    assert Path("docs/index.md").is_file()
+
+
+def test_readme_has_public_onboarding_sections():
+    text = Path("README.md").read_text(encoding="utf-8").lower()
+    for phrase in [
+        "what this is",
+        "what this is not",
+        "5-minute quickstart",
+        "safe by default",
+    ]:
+        assert phrase in text, f"README missing: {phrase!r}"

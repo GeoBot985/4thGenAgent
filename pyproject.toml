@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskframe-runtime"
+version = "0.1.0"
+description = "TaskFrame-centered autonomous business automation runtime"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Geo" }]
+license = { text = "Proprietary / license pending" }
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+]
+google = [
+  "google-api-python-client",
+  "google-auth",
+  "google-auth-oauthlib",
+  "google-auth-httplib2",
+]
+rpa = [
+  "playwright",
+]
+llm = []
+all = [
+  "google-api-python-client",
+  "google-auth",
+  "google-auth-oauthlib",
+  "google-auth-httplib2",
+  "playwright",
+]
+
+[project.scripts]
+taskframe = "src.taskframe_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+  "runtime*",
+  "src*",
+  "tools*",
+  "optional_tools*",
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.md", "*.txt", "*.svg", "*.mmd"]

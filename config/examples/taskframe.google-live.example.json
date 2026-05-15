@@ -1,0 +1,25 @@
+{
+  "profile": "google-live",
+  "runtime_data_dir": "runtime_data",
+  "llm": {
+    "provider": "fake",
+    "ollama_model": "granite3.3:8b",
+    "ollama_base_url": "http://127.0.0.1:11434"
+  },
+  "google": {
+    "enabled": true,
+    "credentials_path": "~/.taskframe/google/credentials.json",
+    "token_path": "~/.taskframe/google/google_token.json"
+  },
+  "accounting": {
+    "sheet_config_path": "~/.taskframe/accounting_google_sheet.json"
+  },
+  "rpa": {
+    "enabled": false,
+    "browser_user_data_dir": "",
+    "browser_profile_dir": ""
+  },
+  "live_execution": {
+    "enabled": false
+  }
+}

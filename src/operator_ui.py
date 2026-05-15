@@ -90,6 +90,16 @@ from runtime.run_report import generate_demo_run_report
 
 TITLE = "Autonomous Business Worker Demo"
 
+
+def create_scroll_card(parent: ttk.Widget, title: str, height: int = 8) -> tuple[ttk.Frame, tk.Text]:
+    card = ttk.Frame(parent, style="Card.TFrame", padding=12)
+    card.columnconfigure(0, weight=1)
+    card.rowconfigure(1, weight=1)
+    ttk.Label(card, text=title, style="Section.TLabel").grid(row=0, column=0, sticky="w")
+    text, _ = create_scrolled_text_widget(card, height=height)
+    text.scrolled_container.grid(row=1, column=0, sticky="nsew", pady=(8, 0))
+    return card, text
+
 # Source-compatibility strings for tests that grep the UI source for labels.
 # Incoming Request
 # Automation Progress
@@ -139,6 +149,21 @@ TITLE = "Autonomous Business Worker Demo"
 # Generate evidence for this run
 # Open evidence for this run
 # Advanced settings
+# Run selected demo
+# Progress Animation
+# Refresh current run
+# Play
+# Pause
+# Step
+# Selected Step Detail
+# Event Detail
+# Manifest Step
+# Runtime Result
+# Approval Pack
+# Action Arguments
+# Supporting Evidence
+# Risk / Guardrails
+# View technical evidence
 # No evidence pack has been generated for this run yet
 # Reports
 # Generate Report
@@ -230,9 +255,11 @@ class OperatorConsole:
         self.playback_paused = False
         self.playback_delay_ms = 2000
         self.playback_after_id: str | None = None
+        self.advanced_actions_visible_var = tk.BooleanVar(value=False)
+        self.advanced_settings_visible = False
         self.root.title(TITLE)
-        self.root.geometry("1400x850")
-        self.root.minsize(1100, 700)
+        self.root.geometry("1280x820")
+        self.root.minsize(1180, 720)
         self._configure_styles()
         self._build_layout()
         self.refresh_runtime_data()
@@ -304,7 +331,7 @@ class OperatorConsole:
 
     def _build_demo_view(self, parent: ttk.Frame) -> None:
         parent.columnconfigure(0, weight=1)
-        parent.rowconfigure(3, weight=1)
+        parent.rowconfigure(2, weight=1)
         self.scenario_items = list_scenarios(include_test_only=False)
         self.scenario_map = {item["label"]: item["id"] for item in self.scenario_items}
         self.scenario_by_id = {item["id"]: item for item in self.scenario_items}
@@ -321,11 +348,14 @@ class OperatorConsole:
 
         action_bar = ttk.Frame(parent, style="Card.TFrame", padding=(10, 8))
         action_bar.grid(row=0, column=0, sticky="ew")
+        action_bar.columnconfigure(0, weight=0)
         action_bar.columnconfigure(1, weight=1)
+        action_bar.columnconfigure(2, weight=0)
+        action_bar.columnconfigure(3, weight=0)
         self.demo_action_bar = action_bar
 
         selector_row = ttk.Frame(action_bar, style="Card.TFrame")
-        selector_row.grid(row=0, column=0, sticky="w")
+        selector_row.grid(row=0, column=0, sticky="w", padx=(0, 12))
         ttk.Label(selector_row, text="Demo:", style="Meta.TLabel").pack(side="left", padx=(0, 6))
         self.demo_selector = ttk.Combobox(
             selector_row,
@@ -340,143 +370,84 @@ class OperatorConsole:
         self.demo_browse_button.pack(side="left")
 
         status_row = ttk.Frame(action_bar, style="Card.TFrame")
-        status_row.grid(row=0, column=1, sticky="ew", padx=12)
+        status_row.grid(row=0, column=1, sticky="ew", padx=(0, 12))
         status_row.columnconfigure(0, weight=1)
-        self.current_step_label = ttk.Label(status_row, text="Current: Ready to run | Next: Run selected demo", style="Meta.TLabel")
+        self.current_step_label = ttk.Label(status_row, text="Current run: Ready to run | Next: Start demo", style="Meta.TLabel", wraplength=420, justify="left")
         self.current_step_label.grid(row=0, column=0, sticky="w")
 
-        action_buttons = ttk.Frame(action_bar, style="Card.TFrame")
-        action_buttons.grid(row=0, column=2, sticky="e")
-        self.demo_run_button = ttk.Button(action_buttons, text="Start demo", command=self.on_run_demo)
-        self.demo_run_button.pack(side="left", padx=(0, 6))
-        self.demo_toolbar_approve_button = ttk.Button(action_buttons, text="Approve & execute dry run", command=self._approve_then_execute_dry_run)
-        self.demo_toolbar_approve_button.pack(side="left", padx=(0, 6))
-        self.demo_toolbar_reject_button = ttk.Button(action_buttons, text="Reject", command=self.on_reject_action)
-        self.demo_toolbar_reject_button.pack(side="left", padx=(0, 6))
-        self.demo_toolbar_generate_evidence_button = ttk.Button(action_buttons, text="Create/open run report", command=self.on_create_or_open_run_report)
-        self.demo_toolbar_generate_evidence_button.pack(side="left", padx=(0, 6))
-        self.demo_toolbar_open_evidence_button = ttk.Button(action_buttons, text="Open run report", command=self.on_open_run_report_html)
-        self.demo_toolbar_open_evidence_button.pack(side="left", padx=(0, 6))
-        self.demo_start_over_button = ttk.Button(action_buttons, text="Start over", command=self.on_reset)
-        self.demo_start_over_button.pack(side="left", padx=(0, 6))
-        self.demo_toolbar_stop_button = ttk.Button(action_buttons, text="Cancel / Stop demo", command=self.on_reset)
-        self.demo_toolbar_stop_button.pack(side="left")
+        primary_row = ttk.Frame(action_bar, style="Card.TFrame")
+        primary_row.grid(row=0, column=2, rowspan=2, sticky="e")
+        primary_row.columnconfigure(0, weight=1)
+        self.primary_demo_action_button = ttk.Button(primary_row, text="Start demo", command=self._apply_primary_demo_action)
+        self.primary_demo_action_button.grid(row=0, column=0, sticky="e")
+        self.primary_demo_action_helper_label = ttk.Label(primary_row, text="Click Start demo to run the selected scenario. No live messages or sheet writes will be sent.", style="Meta.TLabel", wraplength=300, justify="left")
+        self.primary_demo_action_helper_label.grid(row=1, column=0, sticky="e", pady=(4, 0))
 
-        current_run_card = ttk.Frame(parent, style="Card.TFrame", padding=(12, 10))
-        current_run_card.grid(row=2, column=0, sticky="ew", pady=(10, 0))
-        current_run_card.columnconfigure(0, weight=1)
+        self.advanced_actions_toggle_button = ttk.Button(action_bar, text="Advanced actions", command=self._toggle_demo_advanced_actions)
+        self.advanced_actions_toggle_button.grid(row=1, column=2, sticky="e", pady=(6, 0))
+
+        current_run_card, self.demo_current_run_text = create_scroll_card(parent, "Current run:", height=4)
+        current_run_card.grid(row=1, column=0, sticky="ew", pady=(10, 0))
         self.current_run_panel = current_run_card
         # Legacy demo headings retained in source for compatibility:
         # Horizontal Demo Flow, Business Result, Approval / Evidence, Run selected demo,
         # Selected Step Detail, Event Detail, Manifest Step, Runtime Result, Approval Pack,
         # Action Arguments, Supporting Evidence, Risk / Guardrails.
-        self.demo_headline_title_label = ttk.Label(current_run_card, text="Select a demo to begin", style="Section.TLabel")
-        self.demo_headline_title_label.pack(anchor="w")
-        self.demo_current_run_text = self._make_text_widget(current_run_card, height=2)
-        self.demo_current_run_text.pack(fill="x", expand=True, pady=(6, 0))
 
         self.demo_main_area = ttk.Frame(parent, style="Workspace.TFrame")
-        self.demo_main_area.grid(row=3, column=0, sticky="nsew", pady=(10, 0))
+        self.demo_main_area.grid(row=2, column=0, sticky="nsew", pady=(10, 0))
         self.demo_main_area.columnconfigure(0, weight=1)
+        self.demo_main_area.columnconfigure(1, weight=1)
         self.demo_main_area.rowconfigure(0, weight=1)
         self.demo_main_area.rowconfigure(1, weight=1)
-        self.demo_main_area.rowconfigure(2, weight=1)
-        self.demo_main_area.rowconfigure(3, weight=1)
 
-        self.demo_request_card = ttk.Frame(self.demo_main_area, style="Card.TFrame", padding=12)
-        self.demo_request_card.grid(row=0, column=0, sticky="ew", pady=(0, 10))
-        self.demo_request_card.columnconfigure(0, weight=1)
-        self.demo_request_title_label = ttk.Label(self.demo_request_card, text="Customer request", style="Section.TLabel")
-        self.demo_request_title_label.pack(anchor="w", pady=(0, 8))
-        self.demo_request_text, self.demo_request_scrollbar = create_scrolled_text_widget(self.demo_request_card, height=5)
-        self.demo_request_text.scrolled_container.pack(fill="x", expand=True)
+        self.demo_request_card, self.demo_request_text = create_scroll_card(self.demo_main_area, "Incoming Request", height=7)
+        self.demo_request_card.grid(row=0, column=0, sticky="nsew", padx=(0, 10), pady=(0, 10))
 
-        self.demo_worker_card = ttk.Frame(self.demo_main_area, style="Card.TFrame", padding=12)
-        self.demo_worker_card.grid(row=1, column=0, sticky="ew", pady=(0, 10))
-        self.demo_worker_card.columnconfigure(0, weight=1)
-        self.demo_worker_title_label = ttk.Label(self.demo_worker_card, text="What the worker did", style="Section.TLabel")
-        self.demo_worker_title_label.pack(anchor="w", pady=(0, 8))
-        self.demo_worker_steps_text, self.demo_worker_steps_scrollbar = create_scrolled_text_widget(self.demo_worker_card, height=5)
-        self.demo_worker_steps_text.scrolled_container.pack(fill="x", expand=True)
+        self.demo_worker_card, self.demo_worker_steps_text = create_scroll_card(self.demo_main_area, "Automation Progress", height=7)
+        self.demo_worker_card.grid(row=0, column=1, sticky="nsew", pady=(0, 10))
 
-        self.demo_result_card = ttk.Frame(self.demo_main_area, style="Card.TFrame", padding=12)
-        self.demo_result_card.grid(row=2, column=0, sticky="ew", pady=(0, 10))
-        self.demo_result_card.columnconfigure(0, weight=1)
-        self.demo_result_title_label = ttk.Label(self.demo_result_card, text="Business result", style="Section.TLabel")
-        self.demo_result_title_label.pack(anchor="w", pady=(0, 8))
-        self.demo_result_text, _ = create_scrolled_text_widget(self.demo_result_card, height=6)
-        self.demo_result_text.scrolled_container.pack(fill="x", expand=True)
+        self.demo_result_card, self.demo_result_text = create_scroll_card(self.demo_main_area, "Business Result", height=7)
+        self.demo_result_card.grid(row=1, column=0, sticky="nsew", padx=(0, 10))
 
-        self.demo_approval_card = ttk.Frame(self.demo_main_area, style="Card.TFrame", padding=12)
-        self.demo_approval_card.grid(row=3, column=0, sticky="ew")
-        self.demo_approval_card.columnconfigure(0, weight=1)
-        self.demo_approval_title_label = ttk.Label(self.demo_approval_card, text="Decision needed", style="Section.TLabel")
-        self.demo_approval_title_label.pack(anchor="w", pady=(0, 8))
-        self.demo_approval_label = ttk.Label(self.demo_approval_card, text="Approve this prepared reply?", style="Body.TLabel", wraplength=1080, justify="left")
-        self.demo_approval_label.pack(anchor="w")
-        self.demo_approval_detail_label = ttk.Label(self.demo_approval_card, text="No live customer message will be sent in demo mode.", style="Meta.TLabel", wraplength=1080, justify="left")
-        self.demo_approval_detail_label.pack(anchor="w", pady=(6, 0))
-        self.demo_decision_button_row = ttk.Frame(self.demo_approval_card, style="Card.TFrame")
-        self.demo_decision_button_row.pack(anchor="w", pady=(10, 0))
-        self.demo_approve_button = ttk.Button(self.demo_decision_button_row, text="Approve dry run", command=self._approve_then_execute_dry_run)
-        self.demo_approve_button.pack(side="left", padx=(0, 6))
-        self.demo_reject_button = ttk.Button(self.demo_decision_button_row, text="Reject", command=self.on_reject_action)
-        self.demo_reject_button.pack(side="left")
-        ttk.Separator(self.demo_approval_card, orient="horizontal").pack(fill="x", pady=(10, 8))
-        self.demo_report_button_row = ttk.Frame(self.demo_approval_card, style="Card.TFrame")
-        self.demo_report_button_row.pack(anchor="w")
-        self.demo_open_business_report_button = ttk.Button(self.demo_report_button_row, text="Open business report", command=self.on_open_business_report_html)
-        self.demo_open_business_report_button.pack(side="left", padx=(0, 6))
-        self.demo_open_run_report_button = ttk.Button(self.demo_report_button_row, text="Open run report", command=self.on_open_run_report_html)
-        self.demo_open_run_report_button.pack(side="left", padx=(0, 6))
-        self.demo_create_open_run_report_button = ttk.Button(self.demo_report_button_row, text="Create/open run report", command=self.on_create_or_open_run_report)
-        self.demo_create_open_run_report_button.pack(side="left")
-        self.demo_open_report_button = self.demo_open_run_report_button
-        self.demo_report_artifact_button = self.demo_create_open_run_report_button
-        self.demo_create_audit_pack_button = self.demo_create_open_run_report_button
-        self.demo_open_audit_pack_button = self.demo_open_run_report_button
-        self.demo_generate_evidence_button = self.demo_create_open_run_report_button
-        self.demo_open_evidence_button = self.demo_open_run_report_button
-        self.demo_evidence_text, self.demo_evidence_scrollbar = create_scrolled_text_widget(self.demo_approval_card, height=4)
-        self.demo_evidence_text.scrolled_container.pack(fill="x", expand=True, pady=(10, 0))
+        self.demo_approval_card, self.demo_approval_text = create_scroll_card(self.demo_main_area, "Approval / Evidence", height=7)
+        self.demo_approval_card.grid(row=1, column=1, sticky="nsew")
 
-        self.demo_main_tabs = ttk.Notebook(parent)
-        self.result_tab = ttk.Frame(self.demo_main_tabs, style="Workspace.TFrame")
-        self.progress_tab = ttk.Frame(self.demo_main_tabs, style="Workspace.TFrame")
-        self.advanced_tab = ttk.Frame(self.demo_main_tabs, style="Workspace.TFrame")
-        self.demo_main_tabs.add(self.result_tab, text="Result")
-        self.demo_main_tabs.add(self.progress_tab, text="Progress Animation")
-        self.demo_main_tabs.add(self.advanced_tab, text="Advanced Settings")
-        self.demo_empty_state_frame = ttk.Frame(self.result_tab, style="Card.TFrame", padding=16)
-        self.demo_empty_state_label = ttk.Label(self.demo_empty_state_frame, text="", style="Body.TLabel", wraplength=1000, justify="left")
-        self.demo_empty_state_label.pack(anchor="w")
-        self.demo_result_stack = ttk.Frame(self.result_tab, style="Workspace.TFrame")
+        self.demo_open_report_button = self.primary_demo_action_button
+        self.demo_toolbar_generate_evidence_button = self.primary_demo_action_button
+        self.demo_toolbar_open_evidence_button = self.primary_demo_action_button
+        self.demo_report_artifact_button = self.primary_demo_action_button
+        self.demo_create_audit_pack_button = self.primary_demo_action_button
+        self.demo_open_audit_pack_button = self.primary_demo_action_button
+        self.demo_generate_evidence_button = self.primary_demo_action_button
+        self.demo_open_evidence_button = self.primary_demo_action_button
 
-        playback_card = ttk.Frame(self.progress_tab, style="Card.TFrame", padding=12)
-        playback_card.pack(fill="both", expand=True)
-        ttk.Label(playback_card, text="Progress animation", style="Section.TLabel").pack(anchor="w")
-        ttk.Label(playback_card, text="This replays the visible progress only. It does not rerun the automation.", style="Meta.TLabel", wraplength=1120, justify="left").pack(anchor="w", pady=(2, 8))
-        playback_row = ttk.Frame(playback_card, style="Card.TFrame")
-        playback_row.pack(anchor="w")
-        ttk.Button(playback_row, text="Play", command=self.on_play).pack(side="left", padx=(0, 6))
-        ttk.Button(playback_row, text="Pause", command=self.on_pause).pack(side="left", padx=(0, 6))
-        ttk.Button(playback_row, text="Step", command=self.on_next_step).pack(side="left", padx=(0, 6))
-        ttk.Label(playback_row, text="Speed:", style="Meta.TLabel").pack(side="left", padx=(8, 6))
-        speed = ttk.Combobox(playback_row, textvariable=self.speed_var, state="readonly", width=4, values=("1s", "2s", "3s"))
-        speed.pack(side="left")
-        speed.bind("<<ComboboxSelected>>", self._on_speed_changed)
-        ttk.Label(playback_card, text="Refresh current run", style="Meta.TLabel").pack(anchor="w", pady=(12, 0))
-        ttk.Button(playback_card, text="Refresh current run", command=self.on_refresh_current_run).pack(anchor="w", pady=(4, 0))
+        self.demo_advanced_actions_frame = ttk.Frame(parent, style="Card.TFrame", padding=12)
+        self.demo_advanced_actions_frame.grid(row=3, column=0, sticky="ew", pady=(10, 0))
+        self.demo_advanced_actions_frame.columnconfigure(0, weight=1)
+        self.demo_advanced_actions_frame.grid_remove()
 
-        advanced = ttk.Frame(self.advanced_tab, style="Card.TFrame", padding=12)
-        advanced.pack(fill="both", expand=True)
-        advanced.columnconfigure(0, weight=1)
-        self.advanced_settings_button = ttk.Button(advanced, text="Advanced settings â–¸", command=self._toggle_advanced_settings)
-        self.advanced_settings_button.grid(row=0, column=0, sticky="w")
-        self.advanced_settings_frame = ttk.Frame(advanced, style="Card.TFrame")
-        self.advanced_settings_frame.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+        advanced_header = ttk.Frame(self.demo_advanced_actions_frame, style="Card.TFrame")
+        advanced_header.grid(row=0, column=0, sticky="ew")
+        advanced_header.columnconfigure(0, weight=1)
+        ttk.Label(advanced_header, text="Advanced actions", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+
+        secondary_actions = ttk.Frame(self.demo_advanced_actions_frame, style="Card.TFrame")
+        secondary_actions.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+        ttk.Button(secondary_actions, text="Reject", command=self.on_reject_action).pack(side="left", padx=(0, 6))
+        ttk.Button(secondary_actions, text="Start over", command=self.on_reset).pack(side="left", padx=(0, 6))
+        ttk.Button(secondary_actions, text="Cancel / Stop demo", command=self.on_reset).pack(side="left", padx=(0, 6))
+        ttk.Button(secondary_actions, text="Open evidence folder", command=self.on_open_report_folder).pack(side="left", padx=(0, 6))
+        ttk.Button(secondary_actions, text="Open business report", command=self.on_open_business_report_html).pack(side="left")
+
+        scenario_header = ttk.Frame(self.demo_advanced_actions_frame, style="Card.TFrame")
+        scenario_header.grid(row=2, column=0, sticky="ew", pady=(12, 0))
+        ttk.Label(scenario_header, text="Advanced settings", style="Meta.TLabel").pack(anchor="w")
+        ttk.Label(scenario_header, text="Scenario pack", style="Meta.TLabel").pack(anchor="w", pady=(4, 0))
+
+        self.advanced_settings_frame = ttk.Frame(self.demo_advanced_actions_frame, style="Card.TFrame")
+        self.advanced_settings_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
         self.advanced_settings_frame.columnconfigure(0, weight=1)
-        ttk.Label(self.advanced_settings_frame, text="Scenario pack", style="Meta.TLabel").grid(row=0, column=0, sticky="w")
         self.scenario_category_selector = ttk.Combobox(
             self.advanced_settings_frame,
             textvariable=self.scenario_category_var,
@@ -484,7 +455,7 @@ class OperatorConsole:
             width=18,
             values=("All",) + tuple(SCENARIO_CATEGORIES.values()),
         )
-        self.scenario_category_selector.grid(row=1, column=0, sticky="w", pady=(2, 4))
+        self.scenario_category_selector.grid(row=0, column=0, sticky="w", pady=(0, 4))
         self.scenario_category_selector.bind("<<ComboboxSelected>>", self._on_scenario_category_selected)
         self.scenario_selector = ttk.Combobox(
             self.advanced_settings_frame,
@@ -493,22 +464,22 @@ class OperatorConsole:
             width=40,
             values=[item["label"] for item in self.scenario_items],
         )
-        self.scenario_selector.grid(row=2, column=0, sticky="w")
+        self.scenario_selector.grid(row=1, column=0, sticky="w")
         self.scenario_selector.bind("<<ComboboxSelected>>", self._on_scenario_selected)
-        self.scenario_description_label = ttk.Label(self.advanced_settings_frame, text="", style="Meta.TLabel", wraplength=1100, justify="left")
-        self.scenario_description_label.grid(row=3, column=0, sticky="w", pady=(4, 0))
-        self.scenario_expected_label = ttk.Label(self.advanced_settings_frame, text="", style="Meta.TLabel", wraplength=1100, justify="left")
-        self.scenario_expected_label.grid(row=4, column=0, sticky="w", pady=(2, 0))
+        self.scenario_description_label = ttk.Label(self.advanced_settings_frame, text="", style="Meta.TLabel", wraplength=1000, justify="left")
+        self.scenario_description_label.grid(row=2, column=0, sticky="w", pady=(4, 0))
+        self.scenario_expected_label = ttk.Label(self.advanced_settings_frame, text="", style="Meta.TLabel", wraplength=1000, justify="left")
+        self.scenario_expected_label.grid(row=3, column=0, sticky="w", pady=(2, 0))
         advanced_row = ttk.Frame(self.advanced_settings_frame, style="Workspace.TFrame")
-        advanced_row.grid(row=5, column=0, sticky="w", pady=(8, 0))
+        advanced_row.grid(row=4, column=0, sticky="w", pady=(8, 0))
         ttk.Checkbutton(advanced_row, text="Reset dataset", variable=self.scenario_reset_dataset_var).pack(side="left", padx=(0, 12))
         ttk.Checkbutton(advanced_row, text="Use local Ollama", variable=self.scenario_use_local_llm_var).pack(side="left", padx=(0, 12))
         ttk.Button(advanced_row, text="Run selected scenario", command=self.on_run_scenario).pack(side="left", padx=(0, 6))
         ttk.Button(advanced_row, text="Run selected scenario and generate evidence", command=self.on_run_scenario_and_report).pack(side="left", padx=(0, 6))
         ttk.Button(advanced_row, text="Run full business workflow demo", command=self.on_run_cross_workflow_demo).pack(side="left")
         self.scenario_result_label = ttk.Label(self.advanced_settings_frame, text="Scenario Result", style="Meta.TLabel")
-        self.scenario_result_label.grid(row=6, column=0, sticky="w", pady=(6, 0))
-        self.advanced_settings_frame.grid_remove()
+        self.scenario_result_label.grid(row=5, column=0, sticky="w", pady=(6, 0))
+
         if self.scenario_items:
             default_label = self.scenario_items[0]["label"]
             self.demo_var.set(default_label)
@@ -636,14 +607,83 @@ class OperatorConsole:
             run.pack(side="left")
             self.demo_card_buttons[scenario_id] = run
 
+    def _toggle_demo_advanced_actions(self) -> None:
+        visible = not bool(self.advanced_actions_visible_var.get())
+        self.advanced_actions_visible_var.set(visible)
+        self.advanced_settings_visible = visible
+        frame = getattr(self, "demo_advanced_actions_frame", None)
+        if frame is not None:
+            if visible:
+                frame.grid()
+            else:
+                frame.grid_remove()
+        button = getattr(self, "advanced_actions_toggle_button", None)
+        if isinstance(button, ttk.Button):
+            button.configure(text="Advanced actions")
+
     def _toggle_advanced_settings(self) -> None:
-        self.advanced_settings_visible = not self.advanced_settings_visible
-        if self.advanced_settings_visible:
-            self.advanced_settings_frame.grid()
-            self.advanced_settings_button.configure(text="Advanced settings â–¾")
-        else:
-            self.advanced_settings_frame.grid_remove()
-            self.advanced_settings_button.configure(text="Advanced settings â–¸")
+        self._toggle_demo_advanced_actions()
+
+    def _primary_demo_action(self) -> dict:
+        story = self._demo_story_model()
+        actions = story.get("actions", {}) if isinstance(story.get("actions"), dict) else {}
+        artifact_state = self._active_artifact_state()
+        frame_state = ""
+        if isinstance(self.current_run, dict):
+            frame_state = str(self.current_run.get("state", "")).strip()
+        if not frame_state and self.view_mode_var.get() == "Demo":
+            frame_state = self._active_frame_state()
+
+        has_run = bool(self.current_run) if self.view_mode_var.get() == "Demo" else bool(self.active_frame_id)
+        report_generated = bool(artifact_state.get("report_generated") or artifact_state.get("evidence_generated"))
+        selected_demo_id = self.selected_demo_id.get().strip()
+        can_run = bool(selected_demo_id or self._selected_demo_id())
+        helper = "Click Start demo to run the selected scenario. No live messages or sheet writes will be sent."
+        label = "Start demo"
+        command_name = "run_demo"
+        enabled = can_run
+
+        if frame_state.startswith("FAILED"):
+            label = "Start over"
+            command_name = "reset"
+            helper = "This run failed. Click Start over to select another demo."
+            enabled = True
+        elif frame_state == "WAITING_FOR_EXECUTE" or bool(actions.get("show_approve")):
+            label = "Approve & execute dry run"
+            command_name = "approve_then_execute_dry_run"
+            helper = "The worker prepared a pending action. Click Approve & execute dry run to simulate execution safely."
+            enabled = bool(self.get_selected_pending_action())
+        elif report_generated:
+            label = "Open run report"
+            command_name = "open_run_report"
+            helper = "This run has evidence available. Click Open run report to review the audit trail."
+            enabled = True
+        elif has_run:
+            label = "Create run report"
+            command_name = "create_run_report"
+            helper = "This run is complete. Click Create run report to generate the audit trail."
+            enabled = True
+
+        return {
+            "label": label,
+            "command_name": command_name,
+            "helper": helper,
+            "enabled": enabled,
+        }
+
+    def _apply_primary_demo_action(self) -> None:
+        action = self._primary_demo_action()
+        command_name = action.get("command_name")
+        if command_name == "run_demo":
+            self.on_run_demo()
+        elif command_name == "approve_then_execute_dry_run":
+            self._approve_then_execute_dry_run()
+        elif command_name == "create_run_report":
+            self.on_create_or_open_run_report()
+        elif command_name == "open_run_report":
+            self.on_open_run_report_html()
+        elif command_name == "reset":
+            self.on_reset()
 
     def _select_demo_scenario(self, scenario_id: str) -> None:
         scenario = self.scenario_by_id.get(scenario_id, {}) if hasattr(self, "scenario_by_id") else {}
@@ -678,28 +718,16 @@ class OperatorConsole:
         self._render_current_view()
 
     def _sync_demo_toolbar_visibility(self, demo_mode: bool) -> None:
-        if not hasattr(self, "demo_action_bar"):
+        frame = getattr(self, "demo_advanced_actions_frame", None)
+        if frame is None:
             return
-        toolbar_widgets = [
-            "demo_browse_button",
-            "current_step_label",
-            "demo_toolbar_approve_button",
-            "demo_toolbar_reject_button",
-            "demo_toolbar_generate_evidence_button",
-            "demo_toolbar_open_evidence_button",
-            "demo_toolbar_stop_button",
-        ]
-        for name in toolbar_widgets:
-            widget = getattr(self, name, None)
-            if not widget:
-                continue
-            try:
-                if demo_mode:
-                    widget.grid_remove()
-                elif widget.winfo_manager() == "":
-                    widget.grid()
-            except Exception:
-                pass
+        try:
+            if demo_mode and self.advanced_actions_visible_var.get():
+                frame.grid()
+            else:
+                frame.grid_remove()
+        except Exception:
+            pass
 
     def _on_demo_selected(self, _event: object) -> None:
         label = self.demo_var.get()
@@ -1381,6 +1409,20 @@ class OperatorConsole:
         tool_id = self._selected_tool_id()
         if not tool_id or tool_id != "rpa_google_messages":
             return
+        confirmed = messagebox.askyesno(
+            "Optional RPA Live Probe",
+            (
+                "This is an optional RPA live probe.\n\n"
+                "Tool: Google Messages RPA\n\n"
+                "It may open or inspect a local authenticated browser session.\n\n"
+                "This tool requires a local browser profile and manual authentication. "
+                "Do not use with sensitive accounts unless you understand the local setup risks.\n\n"
+                "Continue?"
+            ),
+            default="no",
+        )
+        if not confirmed:
+            return
         check_tool_health(tool_id, live=True)
         self.tool_health_snapshot = load_latest_tool_health_snapshot()
         self._render_tool_capabilities_panel()
@@ -1388,6 +1430,25 @@ class OperatorConsole:
     def on_setup_selected_tool(self) -> None:
         tool_id = self._selected_tool_id()
         if not tool_id:
+            return
+        try:
+            from runtime.tool_capability_registry import get_tool_capability
+            cap = get_tool_capability(tool_id)
+            is_rpa = cap.category == "rpa" or cap.rpa_live_probe_required
+        except Exception:
+            is_rpa = False
+        if is_rpa:
+            messagebox.showinfo(
+                "Optional RPA Tool — Setup",
+                (
+                    "Optional RPA tool setup cannot be launched automatically.\n\n"
+                    "This tool is excluded from the default demo path and requires:\n"
+                    "  - Playwright (pip install -e \".[rpa]\" && playwright install)\n"
+                    "  - A local browser profile with manual Google Messages pairing\n"
+                    "  - Manual authentication — do not use sensitive accounts\n\n"
+                    "See docs/optional_rpa.md for the full setup guide."
+                ),
+            )
             return
         run_safe_setup_action(tool_id)
         check_tool_health(tool_id, live=False)
@@ -1765,18 +1826,45 @@ class OperatorConsole:
         can_start_over = bool(has_run and not running)
         can_stop = bool(running)
 
-        for name, enabled in (
-            ("demo_run_button", not has_run),
-            ("demo_toolbar_stop_button", can_stop),
-            ("demo_toolbar_approve_button", can_approve),
-            ("demo_toolbar_reject_button", can_reject),
-            ("demo_toolbar_generate_evidence_button", can_generate),
-            ("demo_toolbar_open_evidence_button", can_open),
-            ("demo_start_over_button", can_start_over),
-        ):
-            button = getattr(self, name, None)
-            if isinstance(button, ttk.Button):
-                button.state(["!disabled"] if enabled else ["disabled"])
+        primary_action = self._primary_demo_action() if demo_mode else {"label": "", "helper": "", "enabled": False}
+        primary_button = getattr(self, "primary_demo_action_button", None)
+        if isinstance(primary_button, ttk.Button):
+            primary_button.configure(text=str(primary_action.get("label", "Start demo")) or "Start demo", command=self._apply_primary_demo_action)
+            primary_button.state(["!disabled"] if bool(primary_action.get("enabled")) else ["disabled"])
+        helper_label = getattr(self, "primary_demo_action_helper_label", None)
+        if isinstance(helper_label, ttk.Label):
+            helper_label.configure(text=str(primary_action.get("helper", "")) or "")
+
+        if hasattr(self, "current_step_label"):
+            if not has_run:
+                self.current_step_label.configure(text=f"Current run: Ready to run | Next: {primary_action.get('label', 'Start demo')}")
+            elif waiting_for_approval:
+                self.current_step_label.configure(text=f"Current run: Waiting for approval | Next: {primary_action.get('label', 'Approve & execute dry run')}")
+            elif completed:
+                if artifact_state.get("report_generated") or artifact_state.get("evidence_generated"):
+                    self.current_step_label.configure(text=f"Current run: Complete | Next: {primary_action.get('label', 'Open run report')}")
+                else:
+                    self.current_step_label.configure(text=f"Current run: Complete | Next: {primary_action.get('label', 'Create run report')}")
+            elif failed:
+                self.current_step_label.configure(text=f"Current run: Failed validation | Next: {primary_action.get('label', 'Start over')}")
+            else:
+                self.current_step_label.configure(text=f"Current run: Run automation | Next: {primary_action.get('label', 'Review result')}")
+
+        advanced_frame = getattr(self, "demo_advanced_actions_frame", None)
+        if isinstance(advanced_frame, ttk.Frame):
+            try:
+                if demo_mode and self.advanced_actions_visible_var.get():
+                    advanced_frame.grid()
+                else:
+                    advanced_frame.grid_remove()
+            except Exception:
+                pass
+
+        if demo_mode:
+            self.advanced_settings_visible = bool(self.advanced_actions_visible_var.get())
+        else:
+            self.advanced_actions_visible_var.set(False)
+            self.advanced_settings_visible = False
 
         workbench_mode = self.view_mode_var.get() == "Manifest Workbench"
         workbench_frame = self.workbench_result if isinstance(self.workbench_result, dict) else {}
@@ -1794,90 +1882,8 @@ class OperatorConsole:
             if isinstance(button, ttk.Button):
                 button.state(["!disabled"] if enabled else ["disabled"])
 
-        if demo_mode:
-            self._set_widget_packed_visible(getattr(self, "demo_browse_button", None), False)
-            self._set_widget_packed_visible(getattr(self, "current_step_label", None), False)
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_approve_button", None), False)
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_reject_button", None), False)
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_generate_evidence_button", None), False)
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_open_evidence_button", None), False)
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_stop_button", None), False)
-            self._set_widget_packed_visible(getattr(self, "demo_start_over_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            actions = story.get("actions", {}) if isinstance(story.get("actions"), dict) else {}
-            self._set_widget_packed_visible(getattr(self, "demo_decision_button_row", None), bool(actions.get("show_approve") or actions.get("show_reject")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
-            self._set_widget_packed_visible(getattr(self, "demo_approve_button", None), bool(actions.get("show_approve")), pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_reject_button", None), bool(actions.get("show_reject")), pack_kwargs={"side": "left"})
-            self._set_widget_packed_visible(getattr(self, "demo_report_button_row", None), bool(actions.get("show_open_business_report") or actions.get("show_create_open_run_report")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
-            self._set_widget_packed_visible(getattr(self, "demo_open_business_report_button", None), bool(actions.get("show_open_business_report")), pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_open_run_report_button", None), False)
-            self._set_widget_packed_visible(getattr(self, "demo_create_open_run_report_button", None), bool(actions.get("show_create_open_run_report")), pack_kwargs={"side": "left"})
-            show_details = bool(story.get("run_report_html_path") or story.get("business_report_html_path"))
-            self._set_widget_packed_visible(getattr(self, "demo_evidence_text", None), show_details, pack_kwargs={"fill": "x", "expand": True, "pady": (10, 0)})
-            self._set_widget_packed_visible(getattr(self, "demo_evidence_scrollbar", None), False)
-            self._set_widget_packed_visible(getattr(self, "demo_request_scrollbar", None), False)
-            self._set_widget_packed_visible(getattr(self, "demo_worker_steps_scrollbar", None), False)
-        elif workbench_mode:
-            self._set_widget_packed_visible(getattr(self, "workbench_approve_button", None), workbench_has_pending, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "workbench_reject_button", None), workbench_has_pending, pack_kwargs={"side": "left"})
-        else:
-            self._set_widget_packed_visible(getattr(self, "demo_browse_button", None), True, pack_kwargs={"side": "left"})
-            self._set_widget_packed_visible(getattr(self, "current_step_label", None), True, pack_kwargs={"sticky": "w"})
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_approve_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_reject_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_generate_evidence_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_open_evidence_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_toolbar_stop_button", None), True, pack_kwargs={"side": "left"})
-            self._set_widget_packed_visible(getattr(self, "demo_start_over_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_decision_button_row", None), True, pack_kwargs={"anchor": "w", "pady": (10, 0)})
-            self._set_widget_packed_visible(getattr(self, "demo_approve_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_reject_button", None), True, pack_kwargs={"side": "left"})
-            self._set_widget_packed_visible(getattr(self, "demo_report_button_row", None), True, pack_kwargs={"anchor": "w", "pady": (10, 0)})
-            self._set_widget_packed_visible(getattr(self, "demo_open_business_report_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_open_run_report_button", None), True, pack_kwargs={"side": "left", "padx": (0, 6)})
-            self._set_widget_packed_visible(getattr(self, "demo_create_open_run_report_button", None), True, pack_kwargs={"side": "left"})
-            self._set_widget_packed_visible(getattr(self, "demo_evidence_text", None), True, pack_kwargs={"fill": "x", "expand": True, "pady": (10, 0)})
-            self._set_widget_packed_visible(getattr(self, "demo_evidence_scrollbar", None), True, pack_kwargs={})
-            self._set_widget_packed_visible(getattr(self, "demo_request_scrollbar", None), True, pack_kwargs={})
-            self._set_widget_packed_visible(getattr(self, "demo_worker_steps_scrollbar", None), True, pack_kwargs={})
-
-        if hasattr(self, "demo_headline_title_label"):
-            self.demo_headline_title_label.configure(text=str(story.get("headline", "")) or "Select a demo to begin")
-        if hasattr(self, "demo_current_run_text"):
-            self._set_text(
-                self.demo_current_run_text,
-                "\n".join(
-                    [
-                        f"Current run: {story.get('headline', '')}",
-                        f"Status: {story.get('subheadline', '')}",
-                    ]
-                ).strip(),
-            )
-        if hasattr(self, "demo_request_title_label"):
-            self.demo_request_title_label.configure(text=str(story.get("request_title", "Customer request")) or "Customer request")
-        if hasattr(self, "demo_worker_title_label"):
-            self.demo_worker_title_label.configure(text=str(story.get("worker_title", "What the worker did")) or "What the worker did")
-        if hasattr(self, "demo_result_title_label"):
-            self.demo_result_title_label.configure(text=str(story.get("outcome_title", "Prepared customer reply")) or "Prepared customer reply")
-        if hasattr(self, "demo_approval_title_label"):
-            self.demo_approval_title_label.configure(text=str(story.get("decision_title", "Decision needed")))
-        if hasattr(self, "demo_approval_label"):
-            self.demo_approval_label.configure(text=str(story.get("decision_text", "Approve this prepared reply?")))
-        if hasattr(self, "demo_approval_detail_label"):
-            if story.get("story_type") == "report_generation":
-                self.demo_approval_detail_label.configure(text=str(story.get("subheadline", "Click Start demo to generate this report.")))
-            else:
-                self.demo_approval_detail_label.configure(text=str(story.get("subheadline", "No live customer message will be sent in demo mode.")))
-        if hasattr(self, "current_step_label"):
-            if not has_run:
-                self.current_step_label.configure(text="Current: Ready to run | Next: Run selected demo")
-            elif waiting_for_approval:
-                self.current_step_label.configure(text="Current: Waiting for approval | Next: Approve & execute dry run")
-            elif completed:
-                self.current_step_label.configure(text="Current: Complete | Next: Generate evidence for this run")
-            elif failed:
-                self.current_step_label.configure(text="Current: Failed validation | Next: Generate failure report")
-            else:
-                self.current_step_label.configure(text="Current: Run automation | Next: Review result")
+        if isinstance(getattr(self, "demo_browse_button", None), ttk.Button):
+            self.demo_browse_button.state(["!disabled"] if demo_mode else ["disabled"])
 
     def on_approve_action(self) -> None:
         action = self.get_selected_pending_action()
@@ -2164,6 +2170,19 @@ class OperatorConsole:
                     f"RPA Live Probe Required: {capability.rpa_live_probe_required}",
                 ]
             )
+            if capability.category == "rpa" or capability.rpa_live_probe_required:
+                lines.extend(
+                    [
+                        "",
+                        "--- Optional RPA tool ---",
+                        "This tool is excluded from the default demo path.",
+                        "It may require Playwright, a local browser profile, and manual",
+                        "authentication. Do not use it with sensitive accounts unless",
+                        "you understand the local setup and data exposure risks.",
+                        "See docs/optional_rpa.md for the full setup guide.",
+                        "-------------------------",
+                    ]
+                )
         if result:
             lines.extend(
                 [
@@ -2179,7 +2198,7 @@ class OperatorConsole:
             lines.extend(["", "Setup Steps:"])
             for step in setup.get("steps", []):
                 lines.append(f"- {step}")
-        text = "\n".join(lines) if lines else "Select a tool to view its capability and health details."
+        text = chr(10).join(lines) if lines else "Select a tool to view its capability and health details."
         if hasattr(self, "live_test_button"):
             if tool_id == "rpa_google_messages":
                 if self.live_test_button.winfo_manager() == "":
@@ -2288,7 +2307,7 @@ class OperatorConsole:
             "Manifest validation failed",
             f"Reason: {result.get('error', 'Unknown error')}",
         ]
-        self._set_text(self.workbench_manifest_summary_text, "\n".join(summary_lines))
+        self._set_text(self.workbench_manifest_summary_text, chr(10).join(summary_lines))
         self._clear_tree(self.workbench_step_tree)
         self._clear_text_widget(self.workbench_raw_json_text)
         self._set_text(self.workbench_execution_text, "No dry-run frame available.")
@@ -2316,7 +2335,7 @@ class OperatorConsole:
                     f"Live execution policy: {self._compact_value(summary.get('live_execution_policy', {}))}",
                 ]
             )
-        self._set_text(self.workbench_manifest_summary_text, "\n".join(lines))
+        self._set_text(self.workbench_manifest_summary_text, chr(10).join(lines))
 
     def _render_workbench_input_fields(self, result: dict) -> None:
         summary = result.get("summary", {}) if isinstance(result, dict) else {}
@@ -2421,7 +2440,7 @@ class OperatorConsole:
             lines.append(f"--- {section_label} ---")
             lines.extend(section_lines if section_lines else ["(none)"])
             lines.append("")
-        self._set_text(self.workbench_step_detail_text, "\n".join(lines).strip())
+        self._set_text(self.workbench_step_detail_text, chr(10).join(lines).strip())
 
     def _render_workbench_execution_panel(self) -> None:
         frame = self.workbench_frame if isinstance(self.workbench_frame, dict) else {}
@@ -2450,7 +2469,7 @@ class OperatorConsole:
         errors = result.get("errors", frame.get("errors", []))
         if errors:
             lines += ["", f"Errors: {self._compact_value(errors)}"]
-        self._set_text(self.workbench_execution_text, "\n".join(lines))
+        self._set_text(self.workbench_execution_text, chr(10).join(lines))
         self._sync_workbench_approval_buttons()
 
     def _render_workbench_comparison_panel(self) -> None:
@@ -2474,7 +2493,7 @@ class OperatorConsole:
             f"Failed step: {run_summary.get('failed_step_id', '')}",
             f"Operator explanation: {run_summary.get('operator_explanation', '')}",
         ]
-        self._set_text(self.workbench_comparison_text, "\n".join(lines))
+        self._set_text(self.workbench_comparison_text, chr(10).join(lines))
 
     def _sync_workbench_approval_buttons(self) -> None:
         pending_actions = self.workbench_frame.get("pending_actions", []) if isinstance(self.workbench_frame, dict) else []
@@ -2583,11 +2602,11 @@ class OperatorConsole:
             messagebox.showwarning("Duplicate manifest", "Select a manifest first.")
             return
         if self._workbench_has_unsaved_editor_changes():
-            messagebox.showwarning("Duplicate manifest", "Cannot duplicate manifest: unsaved editor changes are present.\nSave or discard changes first.")
+            messagebox.showwarning("Duplicate manifest", "Cannot duplicate manifest: unsaved editor changes are present. Save or discard changes first.")
             return
         result = duplicate_manifest(target, manifest_dir="manifests")
         if not result.get("ok"):
-            messagebox.showerror("Duplicate manifest", f"Duplicate failed:\n{result.get('error', 'Unknown error')}")
+            messagebox.showerror("Duplicate manifest", f"Duplicate failed: {result.get('error', 'Unknown error')}")
             return
         self._refresh_workbench_manifest_catalog()
         new_id = str(result.get("new_manifest_id", ""))
@@ -2601,7 +2620,7 @@ class OperatorConsole:
             messagebox.showwarning("Rename manifest", "Select a manifest first.")
             return
         if self._workbench_has_unsaved_editor_changes():
-            messagebox.showwarning("Rename manifest", "Cannot rename manifest: unsaved editor changes are present.\nSave or discard changes first.")
+            messagebox.showwarning("Rename manifest", "Cannot rename manifest: unsaved editor changes are present. Save or discard changes first.")
             return
         dialog = tk.Toplevel(self)
         dialog.title("Rename manifest")
@@ -2634,7 +2653,7 @@ class OperatorConsole:
             return
         result = result_holder[0]
         if not result.get("ok"):
-            messagebox.showerror("Rename manifest", f"Rename failed:\n{result.get('error', 'Unknown error')}")
+            messagebox.showerror("Rename manifest", f"Rename failed: {result.get('error', 'Unknown error')}")
             return
         new_id = str(result.get("new_manifest_id", ""))
         self._refresh_workbench_manifest_catalog()
@@ -2648,14 +2667,14 @@ class OperatorConsole:
             messagebox.showwarning("Archive manifest", "Select a manifest first.")
             return
         if self._workbench_has_unsaved_editor_changes():
-            messagebox.showwarning("Archive manifest", "Cannot archive manifest: unsaved editor changes are present.\nSave or discard changes first.")
+            messagebox.showwarning("Archive manifest", "Cannot archive manifest: unsaved editor changes are present. Save or discard changes first.")
             return
-        confirmed = messagebox.askyesno("Archive manifest", f"Archive manifest:\n{target}\n\nIt will be moved to manifests/archive/ and removed from the active catalog.")
+        confirmed = messagebox.askyesno("Archive manifest", f"Archive manifest: {target}\n\nIt will be moved to manifests/archive/ and removed from the active catalog.")
         if not confirmed:
             return
         result = archive_manifest(target, manifest_dir="manifests")
         if not result.get("ok"):
-            messagebox.showerror("Archive manifest", f"Archive failed:\n{result.get('error', 'Unknown error')}")
+            messagebox.showerror("Archive manifest", f"Archive failed: {result.get('error', 'Unknown error')}")
             return
         manifest_id = str(result.get("manifest_id", ""))
         self.workbench_manifest_record = {}
@@ -2702,7 +2721,7 @@ class OperatorConsole:
             return
         result = result_holder[0]
         if not result.get("ok"):
-            messagebox.showerror("Restore archived", f"Restore failed:\n{result.get('error', 'Unknown error')}")
+            messagebox.showerror("Restore archived", f"Restore failed: {result.get('error', 'Unknown error')}")
             return
         manifest_id = str(result.get("manifest_id", ""))
         self._refresh_workbench_manifest_catalog()
@@ -2717,7 +2736,7 @@ class OperatorConsole:
             messagebox.showwarning("Smoke test manifest", "Select and save a manifest first.")
             return
         if self._workbench_has_unsaved_editor_changes():
-            messagebox.showwarning("Smoke test manifest", "Cannot smoke-test manifest: unsaved editor changes are present.\nSave or discard changes first.")
+            messagebox.showwarning("Smoke test manifest", "Cannot smoke-test manifest: unsaved editor changes are present. Save or discard changes first.")
             return
         result = smoke_run_manifest_file(path, runtime_data_dir=self.runtime_root)
         self.workbench_last_smoke_result = result
@@ -2766,7 +2785,7 @@ class OperatorConsole:
         text_widget.scrolled_container.grid(row=0, column=0, columnspan=3, sticky="nsew", padx=12, pady=(12, 6))
         dialog.columnconfigure(0, weight=1)
         dialog.rowconfigure(0, weight=1)
-        text_widget.insert("1.0", "\n".join(summary_lines))
+        text_widget.insert("1.0", chr(10).join(summary_lines))
         text_widget.config(state="disabled")
 
         btn_row = ttk.Frame(dialog)
@@ -2841,7 +2860,7 @@ class OperatorConsole:
         text_widget.scrolled_container.grid(row=0, column=0, columnspan=3, sticky="nsew", padx=12, pady=(12, 6))
         dialog.columnconfigure(0, weight=1)
         dialog.rowconfigure(0, weight=1)
-        text_widget.insert("1.0", "\n".join(lines))
+        text_widget.insert("1.0", chr(10).join(lines))
         text_widget.config(state="disabled")
 
         btn_row = ttk.Frame(dialog)
@@ -2869,7 +2888,7 @@ class OperatorConsole:
             dialog = tk.Toplevel(self)
             dialog.title("Auto-Fix Preview")
             dialog.grab_set()
-            ttk.Label(dialog, text=f"Cannot parse manifest JSON:\n{err_msg}", wraplength=480, justify="left").pack(padx=16, pady=16)
+            ttk.Label(dialog, text=f"Cannot parse manifest JSON: {err_msg}", wraplength=480, justify="left").pack(padx=16, pady=16)
             ttk.Button(dialog, text="Close", command=dialog.destroy).pack(pady=(0, 12))
             return
 
@@ -3027,7 +3046,7 @@ class OperatorConsole:
                 ]
             )
             self._clear_text_widget(detail_text)
-            detail_text.insert("1.0", "\n".join(lines))
+            detail_text.insert("1.0", chr(10).join(lines))
 
         tree.bind("<<TreeviewSelect>>", render_detail)
         if items:
@@ -3174,7 +3193,7 @@ class OperatorConsole:
                 lines.append("--- After ---")
                 lines.append(after[:800] + ("..." if len(after) > 800 else ""))
 
-            detail_text.insert("1.0", "\n".join(lines))
+            detail_text.insert("1.0", chr(10).join(lines))
             detail_text.config(state="disabled")
 
             can_apply = proposal.get("status") == "PROPOSED" and proposal.get("risk") == "low"
@@ -3217,26 +3236,24 @@ class OperatorConsole:
             try:
                 current_manifest = json.loads(text)
             except Exception as exc:
-                messagebox.showerror("Auto-Fix Preview", f"Cannot parse editor JSON:\n{exc}")
+                messagebox.showerror("Auto-Fix Preview", f"Cannot parse editor JSON: {exc}")
                 return
             confirmed = messagebox.askyesno(
                 "Apply Fix to Editor",
-                f"Apply fix:\n\n{proposal.get('title', '')}\n\n"
-                "This will update the editor buffer. Save the manifest afterwards to persist the change.",
+                f"Apply fix:\n\n{proposal.get('title', '')}\n\nThis will update the editor buffer. Save the manifest afterwards to persist the change.",
             )
             if not confirmed:
                 return
             preview = apply_manifest_fix_preview(current_manifest, proposal)
             if not preview.get("ok"):
-                messagebox.showerror("Auto-Fix Preview", f"Fix could not be applied:\n{preview.get('error', 'Unknown error')}")
+                messagebox.showerror("Auto-Fix Preview", f"Fix could not be applied: {preview.get('error', 'Unknown error')}")
                 return
             patched = preview["manifest"]
             self._clear_text_widget(self.workbench_manifest_json_text)
             self.workbench_manifest_json_text.insert("1.0", json.dumps(patched, indent=2, ensure_ascii=False))
             messagebox.showinfo(
                 "Auto-Fix Applied",
-                "Fix applied to editor buffer.\n\nThe editor now shows the patched manifest. "
-                "Run Validate or Repair Guidance to check remaining issues, then Save.",
+                "Fix applied to editor buffer.\n\nThe editor now shows the patched manifest. Run Validate or Repair Guidance to check remaining issues, then Save.",
             )
 
         def _write_report() -> None:
@@ -3244,10 +3261,10 @@ class OperatorConsole:
             if report.get("ok"):
                 messagebox.showinfo(
                     "Auto-Fix Report",
-                    f"Report written:\n{report.get('markdown_path', '')}",
+                    f"Report written: {report.get('markdown_path', '')}",
                 )
             else:
-                messagebox.showerror("Auto-Fix Report", f"Could not write report:\n{report.get('error', '')}")
+                messagebox.showerror("Auto-Fix Report", f"Could not write report: {report.get('error', '')}")
 
         ttk.Button(btn_row, text="Refresh Proposals", command=_refresh).pack(side="left", padx=(0, 6))
         apply_btn = ttk.Button(btn_row, text="Apply Selected Fix to Editor", command=_apply_to_editor)
@@ -3359,7 +3376,7 @@ class OperatorConsole:
                 _set_preview_text(json.dumps(manifest, indent=2, ensure_ascii=False))
                 validation_label.configure(text="")
             except Exception as exc:
-                _set_preview_text(f"Error building manifest:\n{exc}")
+                _set_preview_text(f"Error building manifest: {exc}")
                 state["manifest"] = None
 
         def _set_preview_text(text: str) -> None:
@@ -3393,7 +3410,7 @@ class OperatorConsole:
             result = write_manifest_candidate(manifest, manifest_dir="manifests")
             if not result.get("ok"):
                 errs = "\n".join(result.get("errors", []))
-                messagebox.showerror("New manifest from template", f"Create failed:\n{errs}", parent=dialog)
+                messagebox.showerror("New manifest from template", f"Create failed: {errs}", parent=dialog)
                 return
             new_id = str(result.get("manifest_id", ""))
             # Show event route snippet if event-driven template
@@ -3538,7 +3555,7 @@ class OperatorConsole:
             return
         target = Path(path)
         if target.exists():
-            confirmed = messagebox.askyesno("Save manifest as", f"File already exists:\n{target}\n\nOverwrite it?")
+            confirmed = messagebox.askyesno("Save manifest as", f"File already exists: {target}\n\nOverwrite it?")
             if not confirmed:
                 return
         result = self._save_manifest_from_editor(target_path=str(target), allow_overwrite=True)
@@ -3650,7 +3667,7 @@ class OperatorConsole:
             lines.extend(self.last_snapshot.get("trace_lines", []))
         self.trace_text.configure(state="normal")
         self.trace_text.delete("1.0", "end")
-        self.trace_text.insert("1.0", "\n".join(lines))
+        self.trace_text.insert("1.0", chr(10).join(lines))
         self.trace_text.configure(state="disabled")
 
     def _render_field(self, parent: ttk.Frame, label: str, value: object) -> None:
@@ -3694,7 +3711,7 @@ class OperatorConsole:
                 parts.append(f"draft_reply.body: {draft_reply.get('body', 'â€”')}")
             if outputs.get("business_lookups"):
                 parts.append("business_lookups: sourced from runtime_data/business")
-            return "\n".join(parts)
+            return chr(10).join(parts)
         return json.dumps(outputs, ensure_ascii=False, separators=(", ", ": "))
 
     def _format_selected_detail(self, selected_detail: dict | None) -> str:
@@ -3728,7 +3745,7 @@ class OperatorConsole:
             for label, key in (("status", "status"), ("outputs produced", "outputs"), ("validations produced", "validations"), ("evidence produced", "evidence"), ("errors", "errors")):
                 if key in runtime_step_result:
                     parts.append(f"{label}: {self._compact_value(runtime_step_result.get(key))}")
-        return "\n".join(parts) if parts else "No playback detail selected."
+        return chr(10).join(parts) if parts else "No playback detail selected."
 
     def _format_validations(self, validations: list) -> str:
         if not validations:
@@ -3742,7 +3759,7 @@ class OperatorConsole:
             status = "ok" if ok is True else "failed" if ok is False else "unknown"
             message = str(item.get("message", "") or "")
             lines.append(f"{step_id} | {status}" + (f" | {message}" if message else ""))
-        return "\n".join(lines) if lines else "No validation data available."
+        return chr(10).join(lines) if lines else "No validation data available."
 
     def _format_pending_actions(self, pending_actions: list) -> str:
         if not pending_actions:
@@ -3758,7 +3775,7 @@ class OperatorConsole:
             body = str(item.get("body", "") or "")
             preview = body if len(body) <= 80 else f"{body[:77]}..."
             lines.append(f"{action_type} | {status} | {customer_id} | {channel} | {preview}")
-        return "\n".join(lines) if lines else "No pending actions."
+        return chr(10).join(lines) if lines else "No pending actions."
 
     def _format_last_action_result(self, result: dict) -> list[str]:
         lines = [
@@ -3794,7 +3811,7 @@ class OperatorConsole:
             "output_keys",
             "completion_status",
         )
-        return "\n".join(f"{field}: {summary.get(field, '')}" for field in fields)
+        return chr(10).join(f"{field}: {summary.get(field, '')}" for field in fields)
 
     def _format_failure_summary(self, failure_summary: dict | None) -> str:
         if not isinstance(failure_summary, dict) or not failure_summary or not failure_summary.get("state", "").startswith("FAILED"):
@@ -3819,12 +3836,12 @@ class OperatorConsole:
         lines.append("Errors:")
         for error in failure_summary.get("blocking_errors", []) or []:
             lines.append(f"- {error}")
-        return "\n".join(lines)
+        return chr(10).join(lines)
 
     def _format_report_status(self, report_status: dict | None) -> str:
         if not isinstance(report_status, dict) or not report_status:
             return "No report generated."
-        return "\n".join(
+        return chr(10).join(
             [
                 f"ok: {report_status.get('ok', False)}",
                 f"business_report_html_path: {report_status.get('business_report_html_path', '')}",
@@ -3872,12 +3889,12 @@ class OperatorConsole:
                     "",
             ]
             )
-        return "\n".join(blocks).strip()
+        return chr(10).join(blocks).strip()
 
     def _format_approval_operation(self, operation: dict | None) -> str:
         if not isinstance(operation, dict):
             return "No approval operation yet."
-        return "\n".join(
+        return chr(10).join(
             [
                 f"operation: {operation.get('operation', '')}",
                 f"ok: {operation.get('ok', False)}",
@@ -3906,12 +3923,12 @@ class OperatorConsole:
                 lines.append(f"{prefix} {item.get('id', '')}: {item.get('actual', '')}")
         else:
             lines.append("No checks available.")
-        return "\n".join(lines)
+        return chr(10).join(lines)
 
     def _format_llm_info(self, llm_info: dict | None) -> str:
         if not isinstance(llm_info, dict) or not llm_info:
             return "No local LLM configured."
-        return "\n".join(
+        return chr(10).join(
             [
                 f"LLM Provider: {llm_info.get('provider', '')}",
                 f"Model: {llm_info.get('model', '')}",
@@ -3922,7 +3939,7 @@ class OperatorConsole:
         if isinstance(value, list):
             if not value:
                 return "None"
-            return "\n".join(f"- {self._compact_value(item)}" for item in value)
+            return chr(10).join(f"- {self._compact_value(item)}" for item in value)
         return self._compact_value(value)
 
     def _compact_bool(self, value: object) -> str:
@@ -4148,36 +4165,40 @@ class OperatorConsole:
         if not hasattr(self, "demo_current_run_text"):
             return
         story = self._demo_story_model()
+        view = self._current_view()
         cards = [card for card in story.get("cards", []) if isinstance(card, dict)]
         card_by_kind = {str(card.get("kind", "")).strip(): card for card in cards if str(card.get("kind", "")).strip()}
 
-        def card_to_text(card: dict | None, fallback: str) -> str:
+        def card_to_lines(card: dict | None, fallback: str) -> list[str]:
             if not isinstance(card, dict):
-                return fallback
+                return [fallback] if fallback else []
             lines: list[str] = []
             body = str(card.get("body", "") or "").strip()
             if body:
-                lines.extend(body.splitlines())
+                lines.extend(line for line in body.splitlines() if line.strip())
             for item in card.get("items", []):
                 text = str(item or "").strip()
                 if text:
                     lines.append(text)
-            return "\n".join(lines).strip() or fallback
+            return lines or ([fallback] if fallback else [])
 
-        self.demo_headline_title_label.configure(text=str(story.get("headline", "Select a demo to begin")) or "Select a demo to begin")
-        self._set_text(
-            self.demo_current_run_text,
-            "\n".join(
-                [
-                    f"Current run: {story.get('headline', 'Select a demo to begin')}",
-                    f"Status: {story.get('subheadline', 'Pick a demo, then start the worker.')}",
-                ]
-            ),
-        )
-        if hasattr(self, "demo_request_scrollbar"):
-            self.demo_request_scrollbar.grid_remove()
-        if hasattr(self, "demo_worker_steps_scrollbar"):
-            self.demo_worker_steps_scrollbar.grid_remove()
+        primary_action = self._primary_demo_action()
+        pending_actions = view.get("pending_actions", []) if isinstance(view.get("pending_actions", []), list) else []
+        validation_count = len(view.get("validations", [])) if isinstance(view.get("validations", []), list) else 0
+        evidence_count = len(view.get("evidence", [])) if isinstance(view.get("evidence", []), list) else 0
+        frame = view.get("frame") if isinstance(view.get("frame"), dict) else {}
+
+        summary_lines = [
+            f"Current run: {str(story.get('headline', 'Select a demo to begin') or 'Select a demo to begin')}",
+            str(story.get("subheadline", "Pick a demo, then start the worker.") or "Pick a demo, then start the worker."),
+            f"Pending actions: {len(pending_actions)}",
+            f"Validation result: {validation_count} check{'s' if validation_count != 1 else ''}",
+            f"Evidence items: {evidence_count}",
+            f"Next: {primary_action.get('label', 'Start demo')}",
+        ]
+        if frame.get("state"):
+            summary_lines.insert(2, f"State: {frame.get('state')}")
+        self._set_text(self.demo_current_run_text, chr(10).join(line for line in summary_lines if line))
 
         request_card = card_by_kind.get("request")
         worker_card = card_by_kind.get("steps")
@@ -4185,70 +4206,41 @@ class OperatorConsole:
         decision_card = card_by_kind.get("decision")
         report_card = card_by_kind.get("report")
 
-        self.demo_request_title_label.configure(text=str(request_card.get("title", story.get("request_title", "Customer request"))) if request_card else str(story.get("request_title", "Customer request")))
-        self._set_text(self.demo_request_text, card_to_text(request_card, str(story.get("request_text", "Choose a demo to see the request."))))
+        request_lines = card_to_lines(request_card, str(story.get("request_text", "Choose a demo to see the request.")))
+        self._set_text(self.demo_request_text, chr(10).join(request_lines))
 
         worker_lines: list[str] = []
         for step in story.get("worker_steps", []):
             if not isinstance(step, dict):
                 continue
             status = str(step.get("status", "")).lower()
-            symbol = {"done": "✓", "current": "▶", "attention": "⚠", "failed": "✗", "pending": "○", "not_reached": "—"}.get(status, "○")
-            worker_lines.append(f"{symbol} {step.get('label', '')}")
-        if not worker_lines and worker_card:
-            worker_lines = [line for line in card_to_text(worker_card, "").splitlines() if line]
-        self.demo_worker_title_label.configure(text=str(worker_card.get("title", story.get("worker_title", "What the worker checked"))) if worker_card else str(story.get("worker_title", "What the worker checked")))
-        self._set_text(self.demo_worker_steps_text, "\n".join(worker_lines) if worker_lines else "Choose a demo to see what the worker did.")
+            symbol = {"done": "?", "current": "?", "attention": "?", "failed": "?", "pending": "?", "not_reached": "?"}.get(status, "?")
+            label = str(step.get("label", "")).strip()
+            if label:
+                worker_lines.append(f"{symbol} {label}")
+        if not worker_lines:
+            worker_lines = card_to_lines(worker_card, str(story.get("worker_title", "Choose a demo to see what the worker did.")))
+        self._set_text(self.demo_worker_steps_text, chr(10).join(worker_lines))
 
-        self.demo_result_title_label.configure(text=str(outcome_card.get("title", story.get("outcome_title", "Generated report"))) if outcome_card else str(story.get("outcome_title", "Generated report")))
-        outcome_text = card_to_text(outcome_card, str(story.get("outcome_text", "")) or "No outcome available.")
-        self._set_text(self.demo_result_text, outcome_text)
+        outcome_lines = card_to_lines(outcome_card, str(story.get("outcome_text", "No outcome available.")) or "No outcome available.")
+        if story.get("facts") and not outcome_card:
+            outcome_lines.extend(f"? {str(item)}" for item in story.get("facts", []) if str(item).strip())
+        self._set_text(self.demo_result_text, chr(10).join(outcome_lines))
 
-        self.demo_approval_title_label.configure(text=str(decision_card.get("title", story.get("decision_title", "Report actions"))) if decision_card else str(story.get("decision_title", "Report actions")))
-        self.demo_approval_label.configure(text=str(story.get("decision_text", "Click Start demo to generate this report.")))
-        if story.get("mode") == "failed_validation":
-            self.demo_approval_detail_label.configure(text="\n".join(item for item in (story.get("failed_check", ""), story.get("safe_outcome", "")) if item))
-        elif story.get("story_type") == "report_generation":
-            detail_lines = []
-            if decision_card:
-                detail_lines.extend([line for line in card_to_text(decision_card, "").splitlines() if line])
-            if story.get("business_report_html_path"):
-                detail_lines.append(f"Business report: {story.get('business_report_html_path')}")
-            if story.get("run_report_html_path"):
-                detail_lines.append(f"Run report: {story.get('run_report_html_path')}")
-            self.demo_approval_detail_label.configure(text="\n".join(detail_lines) or str(story.get("subheadline", "Click Start demo to generate this report.")))
+        approval_lines = card_to_lines(decision_card, str(story.get("decision_text", "Click Start demo to generate this report.")))
+        if story.get("story_type") == "report_generation":
+            approval_lines.append(str(story.get("subheadline", "Click Start demo to generate this report.")))
         else:
-            self.demo_approval_detail_label.configure(text=str(story.get("subheadline", "No live customer message will be sent in demo mode.")))
-
-        evidence_lines: list[str] = []
+            approval_lines.append(str(story.get("subheadline", "No live customer message will be sent in demo mode.")))
+        if story.get("business_report_html_path"):
+            approval_lines.append(f"Business report: {story.get('business_report_html_path')}")
+        if story.get("run_report_html_path"):
+            approval_lines.append(f"Run report: {story.get('run_report_html_path')}")
+        if story.get("run_report_evidence_bundle_path"):
+            approval_lines.append(f"Evidence bundle: {story.get('run_report_evidence_bundle_path')}")
         if report_card:
-            evidence_lines.extend([line for line in card_to_text(report_card, "").splitlines() if line])
-        if not evidence_lines:
-            if story.get("run_report_html_path"):
-                evidence_lines.extend(
-                    [
-                        "Run report generated",
-                        f"File: {story.get('run_report_html_path')}",
-                        "This report shows:",
-                        "- manifest steps",
-                        "- step outcomes",
-                        "- validations",
-                        "- evidence",
-                        "- pending actions",
-                    ]
-                )
-            else:
-                evidence_lines.append("No run report has been created yet.")
-        self._set_text(self.demo_evidence_text, "\n".join(evidence_lines))
-
-        actions = story.get("actions", {}) if isinstance(story.get("actions"), dict) else {}
-        self._set_widget_packed_visible(getattr(self, "demo_approve_button", None), bool(actions.get("show_approve")), pack_kwargs={"side": "left", "padx": (0, 6)})
-        self._set_widget_packed_visible(getattr(self, "demo_reject_button", None), bool(actions.get("show_reject")), pack_kwargs={"side": "left"})
-        self._set_widget_packed_visible(getattr(self, "demo_open_business_report_button", None), bool(actions.get("show_open_business_report")), pack_kwargs={"side": "left", "padx": (0, 6)})
-        self._set_widget_packed_visible(getattr(self, "demo_open_run_report_button", None), bool(actions.get("show_create_open_run_report")), pack_kwargs={"side": "left", "padx": (0, 6)})
-        self._set_widget_packed_visible(getattr(self, "demo_create_open_run_report_button", None), bool(actions.get("show_create_open_run_report")), pack_kwargs={"side": "left"})
-        self._set_widget_packed_visible(getattr(self, "demo_decision_button_row", None), bool(actions.get("show_approve") or actions.get("show_reject")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
-        self._set_widget_packed_visible(getattr(self, "demo_report_button_row", None), bool(actions.get("show_open_business_report") or actions.get("show_create_open_run_report")), pack_kwargs={"anchor": "w", "pady": (10, 0)})
+            approval_lines.extend(card_to_lines(report_card, ""))
+        self._set_text(self.demo_approval_text, chr(10).join(line for line in approval_lines if line))
 
         self.update_approval_button_states()
 

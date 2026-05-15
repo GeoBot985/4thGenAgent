@@ -396,7 +396,7 @@ def _build_markdown_report(result: dict) -> str:
 def _overall_status(summary: dict) -> str:
     if summary.get("failed", 0) or summary.get("critical", 0) or summary.get("validation_failed", 0):
         return "HAS_FAILURES"
-    if summary.get("warnings", 0) or summary.get("smoke_skipped", 0):
+    if summary.get("warnings", 0):
         return "HAS_WARNINGS"
     return "HEALTHY"
 

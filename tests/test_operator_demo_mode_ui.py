@@ -28,14 +28,14 @@ class OperatorDemoModeUITests(unittest.TestCase):
             self.assertEqual(console.demo_action_bar.winfo_manager(), "grid")
             self.assertEqual(console.demo_main_area.winfo_manager(), "grid")
             self.assertEqual(console.demo_action_bar.grid_info()["row"], 0)
-            self.assertEqual(console.current_run_panel.grid_info()["row"], 2)
-            self.assertIn("Start demo", console.demo_run_button.cget("text"))
-            self.assertEqual(console.current_step_label.winfo_manager(), "")
-            self.assertEqual(console.demo_browse_button.winfo_manager(), "")
+            self.assertEqual(console.current_run_panel.grid_info()["row"], 1)
+            self.assertIn("Start demo", console.primary_demo_action_button.cget("text"))
+            self.assertEqual(console.current_step_label.winfo_manager(), "grid")
+            self.assertEqual(console.demo_browse_button.winfo_manager(), "pack")
             self.assertTrue(hasattr(console.demo_request_text, "scrolled_container"))
             self.assertTrue(hasattr(console.demo_worker_steps_text, "scrolled_container"))
             self.assertTrue(hasattr(console.demo_result_text, "scrolled_container"))
-            self.assertTrue(hasattr(console.demo_evidence_text, "scrolled_container"))
+            self.assertTrue(hasattr(console.demo_approval_text, "scrolled_container"))
         finally:
             root.destroy()
 
@@ -49,10 +49,10 @@ class OperatorDemoModeUITests(unittest.TestCase):
             self.assertIsNotNone(console)
             self.assertEqual(console.demo_action_bar.grid_info()["row"], 0)
             self.assertIn("Demo:", console.demo_selector.master.winfo_children()[0].cget("text"))
-            self.assertEqual(console.demo_browse_button.winfo_manager(), "")
-            self.assertTrue(console.demo_run_button.instate(["!disabled"]))
-            self.assertEqual(console.demo_toolbar_generate_evidence_button.cget("text"), "Create/open run report")
-            self.assertEqual(console.demo_toolbar_open_evidence_button.cget("text"), "Open run report")
+            self.assertEqual(console.demo_browse_button.winfo_manager(), "pack")
+            self.assertTrue(console.primary_demo_action_button.instate(["!disabled"]))
+            self.assertEqual(console.primary_demo_action_button.cget("text"), "Start demo")
+            self.assertEqual(console.advanced_actions_toggle_button.cget("text"), "Advanced actions")
         finally:
             root.destroy()
 
@@ -66,7 +66,8 @@ class OperatorDemoModeUITests(unittest.TestCase):
             self.assertIsNotNone(console)
             self.assertIsNone(getattr(console, "demo_catalog_dialog", None))
             self.assertTrue(hasattr(console, "demo_browse_button"))
-            self.assertEqual(console.demo_browse_button.winfo_manager(), "")
+            self.assertEqual(console.demo_browse_button.winfo_manager(), "pack")
+            self.assertEqual(console.demo_advanced_actions_frame.winfo_manager(), "")
         finally:
             root.destroy()
 
@@ -78,8 +79,7 @@ class OperatorDemoModeUITests(unittest.TestCase):
 
         try:
             self.assertIsNotNone(console)
-            self.assertTrue(hasattr(console, "demo_main_tabs"))
-            self.assertEqual(console.demo_main_tabs.winfo_manager(), "")
+            self.assertFalse(hasattr(console, "demo_main_tabs"))
             self.assertEqual(console.demo_result_card.winfo_manager(), "grid")
             self.assertEqual(console.demo_approval_card.winfo_manager(), "grid")
         finally:
@@ -93,10 +93,10 @@ class OperatorDemoModeUITests(unittest.TestCase):
 
         try:
             self.assertIsNotNone(console)
-            self.assertLessEqual(int(console.demo_current_run_text.cget("height")), 2)
+            self.assertLessEqual(int(console.demo_current_run_text.cget("height")), 4)
             text = console.demo_current_run_text.get("1.0", "end")
             self.assertIn("Current run:", text)
-            self.assertIn("Status:", text)
+            self.assertIn("Next:", text)
         finally:
             root.destroy()
 
@@ -168,7 +168,7 @@ class OperatorDemoModeUITests(unittest.TestCase):
             self.assertEqual(console.playback_index, -1)
             self.assertFalse(console.playback_running)
             self.assertFalse(console.playback_paused)
-            self.assertIn("Selected demo: Customer Status - Missing Customer", console.demo_current_run_text.get("1.0", "end"))
+            self.assertIn("Next:", console.demo_current_run_text.get("1.0", "end"))
         finally:
             root.destroy()
 
@@ -232,19 +232,15 @@ class OperatorDemoModeUITests(unittest.TestCase):
                 }
             )
             console._render_current_view()
-            self.assertIn("Draft reply ready", console.demo_current_run_text.get("1.0", "end"))
-            self.assertIn("approval required", console.demo_current_run_text.get("1.0", "end").lower())
-            self.assertEqual(console.current_step_label.winfo_manager(), "")
+            self.assertIn("Waiting for approval", console.current_step_label.cget("text"))
+            self.assertIn("Approve & execute dry run", console.primary_demo_action_button.cget("text"))
             self.assertEqual(console.demo_result_card.winfo_manager(), "grid")
             self.assertEqual(console.demo_approval_card.winfo_manager(), "grid")
             self.assertTrue(console.demo_request_text.cget("yscrollcommand"))
             self.assertTrue(console.demo_worker_steps_text.cget("yscrollcommand"))
             self.assertTrue(console.demo_result_text.cget("yscrollcommand"))
-            self.assertTrue(console.demo_approve_button.instate(["!disabled"]))
-            self.assertTrue(console.demo_reject_button.instate(["!disabled"]))
-            self.assertEqual(console.demo_generate_evidence_button.cget("text"), "Create/open run report")
-            self.assertEqual(console.demo_open_evidence_button.cget("text"), "Open run report")
-            self.assertEqual(console.demo_open_evidence_button.winfo_manager(), "")
+            self.assertEqual(console.demo_advanced_actions_frame.winfo_manager(), "")
+            self.assertIn("Approve", console.demo_approval_text.get("1.0", "end"))
 
             console.view_mode_var.set("Inspector")
             console._switch_view_mode()

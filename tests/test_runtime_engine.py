@@ -302,10 +302,32 @@ class RuntimeEngineTests(unittest.TestCase):
         self.assertIn("unread_mail", frame.outputs)
 
     def test_runtime_engine_handles_manual_validate_step_fail_fast(self):
-        engine = RuntimeEngine()
-        event = create_event("manual.validate_step_fail_fast", "manual")
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            routes_path = tmpdir / "event_routes.json"
+            routes_path.write_text(
+                json.dumps(
+                    {
+                        "routes": [
+                            {
+                                "event_type": "manual.validate_step_fail_fast",
+                                "manifest_id": "smoke.validate_step_fail_fast",
+                                "enabled": True,
+                            }
+                        ]
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            engine = RuntimeEngine(
+                runtime_data_dir=tmpdir,
+                manifest_dir=SMOKE_MANIFEST_DIR,
+                routes_path=routes_path,
+            )
+            event = create_event("manual.validate_step_fail_fast", "manual")
 
-        frame = engine.handle_event(event, dry_run=True)
+            frame = engine.handle_event(event, dry_run=True)
 
         self.assertEqual(frame.state, "FAILED_VALIDATION")
         self.assertEqual(frame.steps[0].status, "FAILED")
