@@ -113,6 +113,13 @@ def build_parser() -> argparse.ArgumentParser:
     execute.add_argument("--confirm", default="")
     execute.add_argument("--json", action="store_true")
 
+    sp = sub.add_parser("safety-pack", help="Build the safety verification pack and live-blocked evidence report.")
+    sp.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    sp.add_argument("--manifest-dir", default="manifests")
+    sp.add_argument("--no-demo", action="store_true", help="Skip demo runs and use static analysis only.")
+    sp.add_argument("--output-dir", default="", help="Override output directory (default: runtime_data/safety_verification).")
+    sp.add_argument("--json", action="store_true")
+
     rpa = sub.add_parser("rpa", help="Optional RPA tool status, health, and documentation.")
     rpa_sub = rpa.add_subparsers(dest="rpa_command", required=True)
 
@@ -154,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_live_preflight(args)
     if args.command == "execute-approved":
         return _run_execute_approved(args)
+    if args.command == "safety-pack":
+        return _run_safety_pack(args)
     if args.command == "rpa":
         return _run_rpa(args)
     parser.print_help()
@@ -682,6 +691,78 @@ def _resolve_tool_health_snapshot(tool_key: str) -> dict | None:
 def _runtime_live_mode_enabled() -> bool:
     value = os.environ.get("TASKFRAME_ENABLE_LIVE_EXECUTION", "").strip().lower()
     return value in {"1", "true", "yes", "on"}
+
+
+def _run_safety_pack(args: argparse.Namespace) -> int:
+    from src.safety_verification_pack import (
+        build_safety_verification_pack,
+        render_safety_verification_markdown,
+        write_safety_verification_pack,
+    )
+
+    runtime_data_dir = str(args.runtime_data_dir or DEFAULT_RUNTIME_DATA_DIR)
+    manifest_dir = str(args.manifest_dir or "manifests")
+    run_demo = not bool(getattr(args, "no_demo", False))
+    output_dir = str(getattr(args, "output_dir", "") or "").strip()
+
+    try:
+        pack = build_safety_verification_pack(
+            runtime_data_dir=runtime_data_dir,
+            manifest_dir=manifest_dir,
+            run_demo=run_demo,
+        )
+    except Exception as exc:
+        print(f"Safety pack: ERROR\nError: {exc}", file=sys.stderr)
+        return 1
+
+    if output_dir:
+        from pathlib import Path as _Path
+        out = _Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        try:
+            paths = write_safety_verification_pack(pack, runtime_data_dir=runtime_data_dir)
+        except Exception as exc:
+            print(f"Safety pack write error: {exc}", file=sys.stderr)
+            paths = {}
+    else:
+        try:
+            paths = write_safety_verification_pack(pack, runtime_data_dir=runtime_data_dir)
+        except Exception as exc:
+            print(f"Safety pack write error: {exc}", file=sys.stderr)
+            paths = {}
+
+    if bool(args.json):
+        payload = json.dumps(pack, indent=2, ensure_ascii=True, default=str)
+        sys.stdout.write(payload + "\n")
+        return 0 if pack.get("ok") else 1
+
+    status = str(pack.get("status", "UNKNOWN"))
+    summary = pack.get("summary", {}) if isinstance(pack.get("summary"), dict) else {}
+    claims_checked = int(summary.get("claims_checked", 0) or 0)
+    claims_passed = int(summary.get("claims_passed", 0) or 0)
+    claims_failed = int(summary.get("claims_failed", 0) or 0)
+
+    print(f"Safety Verification Pack: {status}")
+    print("")
+    print(f"Claims checked: {claims_checked}")
+    print(f"Claims passed: {claims_passed}")
+    print(f"Claims failed: {claims_failed}")
+
+    blockers = pack.get("blockers", []) if isinstance(pack.get("blockers"), list) else []
+    if blockers:
+        print("")
+        print("Blockers:")
+        for b in blockers:
+            print(f"- {b}")
+
+    evidence_paths = [str(p) for p in (paths.values() if isinstance(paths, dict) else []) if p]
+    if evidence_paths:
+        print("")
+        print("Evidence:")
+        for p in evidence_paths:
+            print(f"- {p}")
+
+    return 0 if pack.get("ok") else 1
 
 
 def _run_rpa(args: argparse.Namespace) -> int:

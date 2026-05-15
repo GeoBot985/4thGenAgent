@@ -132,6 +132,9 @@ def build_verification_result() -> dict[str, Any]:
             "live_execution_default_dry_run": "PENDING",
             "optional_rpa_isolation": "PENDING",
             "config_secrets_hygiene": "PENDING",
+            "safety_verification_pack": "PENDING",
+            "live_blocked_evidence_report": "PENDING",
+            "default_no_live_side_effects": "PENDING",
         },
         "workflow_checks": {
             "customer": {"status": "PENDING", "count": 0},
@@ -234,6 +237,7 @@ def build_verification_result() -> dict[str, Any]:
         _check_live_execution_default_dry_run(),
         _check_optional_rpa_isolation(),
         _check_config_secrets_hygiene(),
+        _check_safety_verification_pack(),
     ])
     manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     for key in ("json_path", "markdown_path"):
@@ -296,6 +300,8 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("optional RPA isolation check failed")
             elif check["name"] == "config_secrets_hygiene":
                 release_blockers.append("config / secrets hygiene failed")
+            elif check["name"] == "safety_verification_pack":
+                release_blockers.append("safety verification pack failed")
 
     artifact_paths = [
         "README.md",
@@ -337,6 +343,7 @@ def build_verification_result() -> dict[str, Any]:
         "docs/screenshots/07_tool_health_details.png",
         "docs/screenshots/08_report_output.png",
         "docs/screenshots/09_release_verification.png",
+        "docs/safety_verification.md",
     ]
     for path in artifact_paths:
         item = check_file_exists(path)
@@ -379,6 +386,9 @@ def build_verification_result() -> dict[str, Any]:
         "public_quickstart_docs": _status_from_static(static_checks, "public_quickstart_docs"),
         "optional_rpa_isolation": _status_from_static(static_checks, "optional_rpa_isolation"),
         "config_secrets_hygiene": _status_from_static(static_checks, "config_secrets_hygiene"),
+        "safety_verification_pack": _status_from_static(static_checks, "safety_verification_pack"),
+        "live_blocked_evidence_report": _status_from_static(static_checks, "safety_verification_pack"),
+        "default_no_live_side_effects": _status_from_static(static_checks, "safety_verification_pack"),
     }
 
     if release_blockers:
@@ -460,6 +470,7 @@ def build_verification_result() -> dict[str, Any]:
         "docs/screenshots/07_tool_health_details.png",
         "docs/screenshots/08_report_output.png",
         "docs/screenshots/09_release_verification.png",
+        "docs/safety_verification.md",
     ]
     for path in artifact_paths:
         item = check_file_exists(path)
@@ -1474,6 +1485,44 @@ def _check_config_secrets_hygiene() -> dict[str, Any]:
         "missing": missing,
         "commands": command_results,
         "command_failures": [item["name"] for item in command_failures],
+    }
+
+
+def _check_safety_verification_pack() -> dict[str, Any]:
+    missing: list[str] = []
+
+    if not (ROOT / "docs" / "safety_verification.md").is_file():
+        missing.append("docs/safety_verification.md")
+
+    cli_ref = ROOT / "docs" / "cli_reference.md"
+    if cli_ref.is_file():
+        if "safety-pack" not in cli_ref.read_text(encoding="utf-8"):
+            missing.append("cli_reference:safety-pack")
+    else:
+        missing.append("docs/cli_reference.md")
+
+    result = run_command(
+        "safety_pack_no_demo",
+        ["python", "-m", "src.taskframe_cli", "safety-pack", "--no-demo", "--json"],
+        timeout_seconds=120,
+    )
+    if result["returncode"] != 0:
+        missing.append("safety_pack_command_failed")
+    else:
+        try:
+            import json as _json
+            data = _json.loads(result["stdout"])
+            if not data.get("ok"):
+                missing.append("safety_pack_ok_not_true")
+            if len(data.get("claims", [])) != 9:
+                missing.append(f"safety_pack_expected_9_claims_got_{len(data.get('claims', []))}")
+        except Exception as exc:
+            missing.append(f"safety_pack_json_parse_error:{exc}")
+
+    return {
+        "name": "safety_verification_pack",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
     }
 
 

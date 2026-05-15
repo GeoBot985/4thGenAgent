@@ -1,8 +1,8 @@
 {
   "ok": true,
   "status": "HEALTHY",
-  "generated_at": "2026-05-15T19:31:21.079013Z",
-  "manifest_dir": "D:\\Projects\\4thGenAgent\\manifests",
+  "generated_at": "2026-05-15T20:06:05.573733Z",
+  "manifest_dir": "manifests",
   "summary": {
     "total": 56,
     "healthy": 0,
@@ -21,7 +21,7 @@
     {
       "manifest_id": "customer.status_llm_e2e",
       "name": "Customer Status - LLM Assisted E2E",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\customer_status_llm_e2e.manifest.json",
+      "path": "manifests\\customer_status_llm_e2e.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -41,15 +41,6 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
-            "example": "",
-            "source": "static_manifest_check"
-          },
-          {
-            "id": "input_declared_but_not_used",
-            "severity": "warning",
-            "location": "inputs",
             "message": "Input 'event_id' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
@@ -61,6 +52,15 @@
             "location": "inputs",
             "message": "Input 'channel' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -227,7 +227,7 @@
     {
       "manifest_id": "event.stub",
       "name": "External Event Stub",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\event.stub.manifest.json",
+      "path": "manifests\\event.stub.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -296,7 +296,7 @@
     {
       "manifest_id": "live.calendar_next",
       "name": "Live Calendar Next Events",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\live_calendar_next.manifest.json",
+      "path": "manifests\\live_calendar_next.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -331,7 +331,7 @@
     {
       "manifest_id": "live.gmail_check",
       "name": "Live Gmail Check",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\live_gmail_check.manifest.json",
+      "path": "manifests\\live_gmail_check.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -366,7 +366,7 @@
     {
       "manifest_id": "live.gobook_open_courts",
       "name": "Live GoBook Open Courts",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\live_gobook_open_courts.manifest.json",
+      "path": "manifests\\live_gobook_open_courts.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -401,7 +401,7 @@
     {
       "manifest_id": "llm.classify_customer_message",
       "name": "LLM Classify Customer Message",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\llm_classify_customer_message.manifest.json",
+      "path": "manifests\\llm_classify_customer_message.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -436,7 +436,7 @@
     {
       "manifest_id": "llm.customer_status_reply",
       "name": "LLM Customer Status Reply",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\llm_customer_status_reply.manifest.json",
+      "path": "manifests\\llm_customer_status_reply.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -567,7 +567,7 @@
     {
       "manifest_id": "llm.extract_order_ref",
       "name": "LLM Extract Order Reference",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\llm_extract_order_ref.manifest.json",
+      "path": "manifests\\llm_extract_order_ref.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -602,7 +602,7 @@
     {
       "manifest_id": "maintenance.scheduled",
       "name": "Maintenance - Scheduled Intake Stub",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance.scheduled.manifest.json",
+      "path": "manifests\\maintenance.scheduled.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -671,7 +671,7 @@
     {
       "manifest_id": "maintenance.cleanup_dry_run",
       "name": "Maintenance - Cleanup Dry Run",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_cleanup_dry_run.manifest.json",
+      "path": "manifests\\maintenance_cleanup_dry_run.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -706,7 +706,7 @@
     {
       "manifest_id": "maintenance.artifact_index_rebuild",
       "name": "Maintenance - Rebuild Artifact Index",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_rebuild_artifact_index.manifest.json",
+      "path": "manifests\\maintenance_rebuild_artifact_index.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -741,7 +741,7 @@
     {
       "manifest_id": "maintenance.report_failed_runs",
       "name": "Maintenance - Report Failed Runs",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_report_failed_runs.manifest.json",
+      "path": "manifests\\maintenance_report_failed_runs.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -776,7 +776,7 @@
     {
       "manifest_id": "maintenance.report_live_packs",
       "name": "Maintenance - Report Live Approval Packs",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_report_live_packs.manifest.json",
+      "path": "manifests\\maintenance_report_live_packs.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -811,7 +811,7 @@
     {
       "manifest_id": "maintenance.report_pending_runs",
       "name": "Maintenance - Report Pending Runs",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_report_pending_runs.manifest.json",
+      "path": "manifests\\maintenance_report_pending_runs.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -846,7 +846,7 @@
     {
       "manifest_id": "smoke.approve_pending_action",
       "name": "Smoke Test - Approve Pending Action",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_approve_pending_action.manifest.json",
+      "path": "manifests\\smoke_approve_pending_action.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -881,7 +881,7 @@
     {
       "manifest_id": "smoke.channel_branch_reply",
       "name": "Smoke Test - Channel Branch Reply",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_channel_branch_reply.manifest.json",
+      "path": "manifests\\smoke_channel_branch_reply.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -965,7 +965,7 @@
     {
       "manifest_id": "smoke.cleanup_blocked_without_confirmation",
       "name": "Smoke Test - Cleanup Blocked Without Confirmation",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_cleanup_blocked_without_confirmation.manifest.json",
+      "path": "manifests\\smoke_cleanup_blocked_without_confirmation.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1000,7 +1000,7 @@
     {
       "manifest_id": "smoke.cleanup_dry_run",
       "name": "Smoke Test - Cleanup Dry Run",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_cleanup_dry_run.manifest.json",
+      "path": "manifests\\smoke_cleanup_dry_run.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1035,7 +1035,7 @@
     {
       "manifest_id": "smoke.cleanup_execute_confirmed",
       "name": "Smoke Test - Cleanup Execute Confirmed",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_cleanup_execute_confirmed.manifest.json",
+      "path": "manifests\\smoke_cleanup_execute_confirmed.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1070,7 +1070,7 @@
     {
       "manifest_id": "smoke.cleanup_reports_dry_run",
       "name": "Smoke Test - Cleanup Reports Dry Run",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_cleanup_reports_dry_run.manifest.json",
+      "path": "manifests\\smoke_cleanup_reports_dry_run.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1105,7 +1105,7 @@
     {
       "manifest_id": "smoke.condition_all",
       "name": "Smoke Test - Compound Condition All",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_condition_all.manifest.json",
+      "path": "manifests\\smoke_condition_all.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1124,8 +1124,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'priority' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'priority' from inputs if unused, or reference it in a command as $inputs.priority.",
+            "message": "Input 'channel' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -1133,8 +1133,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'channel' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "message": "Input 'priority' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'priority' from inputs if unused, or reference it in a command as $inputs.priority.",
             "example": "",
             "source": "static_manifest_check"
           }
@@ -1236,7 +1236,7 @@
     {
       "manifest_id": "smoke.condition_any",
       "name": "Smoke Test - Compound Condition Any",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_condition_any.manifest.json",
+      "path": "manifests\\smoke_condition_any.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1255,8 +1255,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'priority' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'priority' from inputs if unused, or reference it in a command as $inputs.priority.",
+            "message": "Input 'category' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'category' from inputs if unused, or reference it in a command as $inputs.category.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -1264,8 +1264,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'category' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'category' from inputs if unused, or reference it in a command as $inputs.category.",
+            "message": "Input 'priority' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'priority' from inputs if unused, or reference it in a command as $inputs.priority.",
             "example": "",
             "source": "static_manifest_check"
           }
@@ -1367,7 +1367,7 @@
     {
       "manifest_id": "smoke.condition_date_window",
       "name": "Smoke Test - Date Window Condition",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_condition_date_window.manifest.json",
+      "path": "manifests\\smoke_condition_date_window.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1454,7 +1454,7 @@
     {
       "manifest_id": "smoke.condition_equals",
       "name": "Smoke Test - Condition Equals",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_condition_equals.manifest.json",
+      "path": "manifests\\smoke_condition_equals.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1489,7 +1489,7 @@
     {
       "manifest_id": "smoke.condition_not",
       "name": "Smoke Test - Compound Condition Not",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_condition_not.manifest.json",
+      "path": "manifests\\smoke_condition_not.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1524,7 +1524,7 @@
     {
       "manifest_id": "smoke.condition_numeric_comparison",
       "name": "Smoke Test - Numeric Comparison Condition",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_condition_numeric_comparison.manifest.json",
+      "path": "manifests\\smoke_condition_numeric_comparison.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1611,7 +1611,7 @@
     {
       "manifest_id": "smoke.condition_skip",
       "name": "Smoke Test - Condition Skip",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_condition_skip.manifest.json",
+      "path": "manifests\\smoke_condition_skip.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1646,7 +1646,7 @@
     {
       "manifest_id": "smoke.condition_time_window",
       "name": "Smoke Test - Time Window Condition",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_condition_time_window.manifest.json",
+      "path": "manifests\\smoke_condition_time_window.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1733,7 +1733,7 @@
     {
       "manifest_id": "smoke.execute_approved_pending_actions",
       "name": "Smoke Test - Execute Approved Pending Actions",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_execute_approved_pending_actions.manifest.json",
+      "path": "manifests\\smoke_execute_approved_pending_actions.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1768,7 +1768,7 @@
     {
       "manifest_id": "smoke.gmail_check",
       "name": "Smoke Test - Gmail Check",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_gmail_check.manifest.json",
+      "path": "manifests\\smoke_gmail_check.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1803,7 +1803,7 @@
     {
       "manifest_id": "smoke.gobook_open_courts",
       "name": "Smoke Test - GoBook Open Courts",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_gobook_open_courts.manifest.json",
+      "path": "manifests\\smoke_gobook_open_courts.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1823,8 +1823,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'start' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'start' from inputs if unused, or reference it in a command as $inputs.start.",
+            "message": "Input 'date' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'date' from inputs if unused, or reference it in a command as $inputs.date.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -1841,8 +1841,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'date' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'date' from inputs if unused, or reference it in a command as $inputs.date.",
+            "message": "Input 'start' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'start' from inputs if unused, or reference it in a command as $inputs.start.",
             "example": "",
             "source": "static_manifest_check"
           }
@@ -1979,7 +1979,7 @@
     {
       "manifest_id": "smoke.gobook_preferred_window",
       "name": "Smoke Test - GoBook Preferred Time Window",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_gobook_preferred_window.manifest.json",
+      "path": "manifests\\smoke_gobook_preferred_window.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2065,7 +2065,7 @@
     {
       "manifest_id": "smoke.gobook_stage_booking",
       "name": "Smoke Test - GoBook Stage Booking",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_gobook_stage_booking.manifest.json",
+      "path": "manifests\\smoke_gobook_stage_booking.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2100,7 +2100,7 @@
     {
       "manifest_id": "smoke.inspect_recent_runs",
       "name": "Smoke Test - Inspect Recent Runs",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_inspect_recent_runs.manifest.json",
+      "path": "manifests\\smoke_inspect_recent_runs.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2135,7 +2135,7 @@
     {
       "manifest_id": "smoke.inspect_run_outputs",
       "name": "Smoke Test - Inspect Run Outputs",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_inspect_run_outputs.manifest.json",
+      "path": "manifests\\smoke_inspect_run_outputs.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2170,7 +2170,7 @@
     {
       "manifest_id": "smoke.inspect_run_pending_actions",
       "name": "Smoke Test - Inspect Run Pending Actions",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_inspect_run_pending_actions.manifest.json",
+      "path": "manifests\\smoke_inspect_run_pending_actions.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2205,7 +2205,7 @@
     {
       "manifest_id": "smoke.inspect_run_summary",
       "name": "Smoke Test - Inspect Run Summary",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_inspect_run_summary.manifest.json",
+      "path": "manifests\\smoke_inspect_run_summary.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2240,7 +2240,7 @@
     {
       "manifest_id": "smoke.llm_branch_escalation",
       "name": "Smoke Test - LLM Branch Escalation",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_llm_branch_escalation.manifest.json",
+      "path": "manifests\\smoke_llm_branch_escalation.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2275,7 +2275,7 @@
     {
       "manifest_id": "smoke.llm_classify_conditional_reply",
       "name": "Smoke Test - LLM Classify Conditional Reply",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_llm_classify_conditional_reply.manifest.json",
+      "path": "manifests\\smoke_llm_classify_conditional_reply.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2310,7 +2310,7 @@
     {
       "manifest_id": "smoke.llm_classify_with_validation_step",
       "name": "Smoke Test - LLM Classify With Executable Validation Step",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_llm_classify_with_validation_step.manifest.json",
+      "path": "manifests\\smoke_llm_classify_with_validation_step.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2345,7 +2345,7 @@
     {
       "manifest_id": "smoke.memory_set",
       "name": "Smoke Test - Memory Set",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_memory_set.manifest.json",
+      "path": "manifests\\smoke_memory_set.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2380,7 +2380,7 @@
     {
       "manifest_id": "smoke.reject_pending_action",
       "name": "Smoke Test - Reject Pending Action",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_reject_pending_action.manifest.json",
+      "path": "manifests\\smoke_reject_pending_action.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2415,7 +2415,7 @@
     {
       "manifest_id": "smoke.reload_pending_action_flow",
       "name": "Smoke Test - Reload Pending Action Flow",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_reload_pending_action_flow.manifest.json",
+      "path": "manifests\\smoke_reload_pending_action_flow.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2450,7 +2450,7 @@
     {
       "manifest_id": "smoke.retry_llm_success_after_failure",
       "name": "Smoke Test - Retry LLM Success After Failure",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_retry_llm_success_after_failure.manifest.json",
+      "path": "manifests\\smoke_retry_llm_success_after_failure.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2485,7 +2485,7 @@
     {
       "manifest_id": "smoke.retry_no_retry_on_validation",
       "name": "Smoke Test - No Retry On Validation Step",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_retry_no_retry_on_validation.manifest.json",
+      "path": "manifests\\smoke_retry_no_retry_on_validation.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2520,7 +2520,7 @@
     {
       "manifest_id": "smoke.retry_tool_exhausted",
       "name": "Smoke Test - Retry Tool Exhausted",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_retry_tool_exhausted.manifest.json",
+      "path": "manifests\\smoke_retry_tool_exhausted.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2555,7 +2555,7 @@
     {
       "manifest_id": "smoke.retry_tool_success_after_failure",
       "name": "Smoke Test - Retry Tool Success After Failure",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_retry_tool_success_after_failure.manifest.json",
+      "path": "manifests\\smoke_retry_tool_success_after_failure.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2590,7 +2590,7 @@
     {
       "manifest_id": "smoke.timeout_exceeded",
       "name": "Smoke Test - Timeout Exceeded",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_timeout_exceeded.manifest.json",
+      "path": "manifests\\smoke_timeout_exceeded.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2625,7 +2625,7 @@
     {
       "manifest_id": "smoke.timeout_retry_success",
       "name": "Smoke Test - Timeout Retry Success",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_timeout_retry_success.manifest.json",
+      "path": "manifests\\smoke_timeout_retry_success.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2660,7 +2660,7 @@
     {
       "manifest_id": "smoke.timeout_success",
       "name": "Smoke Test - Timeout Success",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_timeout_success.manifest.json",
+      "path": "manifests\\smoke_timeout_success.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2695,7 +2695,7 @@
     {
       "manifest_id": "smoke.validate_step_output_exists",
       "name": "Smoke Test - Executable Validation Step Output Exists",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_validate_step_output_exists.manifest.json",
+      "path": "manifests\\smoke_validate_step_output_exists.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2730,7 +2730,7 @@
     {
       "manifest_id": "smoke.whatsapp_stage_send",
       "name": "Smoke Test - WhatsApp Stage Send",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\smoke_whatsapp_stage_send.manifest.json",
+      "path": "manifests\\smoke_whatsapp_stage_send.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -2854,15 +2854,6 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
-            "example": "",
-            "source": "static_manifest_check"
-          },
-          {
-            "id": "input_declared_but_not_used",
-            "severity": "warning",
-            "location": "inputs",
             "message": "Input 'event_id' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
@@ -2874,6 +2865,15 @@
             "location": "inputs",
             "message": "Input 'channel' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -3060,8 +3060,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
+            "message": "Input 'event_source' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_source' from inputs if unused, or reference it in a command as $inputs.event_source.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -3069,8 +3069,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'event_source' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'event_source' from inputs if unused, or reference it in a command as $inputs.event_source.",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },

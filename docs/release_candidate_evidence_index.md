@@ -19,20 +19,4 @@
 - Screenshot Folder: `docs\screenshots`
 
 ## Runtime Reports
-- runtime_data\manifest_health\manifest_health_report.json
-- runtime_data\manifest_health\manifest_health_report.md
-- runtime_data\outputs\reports\golden_demo_report.md
-- runtime_data\outputs\reports\golden_demo_report.html
-- runtime_data\outputs\audit\golden_demo_audit.json
-- runtime_data\audit\release_candidate_verification.json
-- docs\release_candidate_verification.md
-- docs\release_candidate_evidence_index.md
-- docs\current_release_status.md
-- docs\release_evidence_pack.md
-- docs\runtime_contracts.md
-- docs\adding_new_tools.md
-- docs\tool_contract_checklist.md
-- docs\default_demo_boundary.md
-- docs\known_limitations.md
-- runtime_data\audit\release_status_latest.json
-- runtime_data\audit\release_evidence_pack.json
+- runtime_data/runs/frame_1/reports/run_report.md

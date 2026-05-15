@@ -156,6 +156,28 @@ Prints the installed runtime version.
 Exit codes:
 - `0`
 
+### `taskframe safety-pack`
+
+Builds the safety verification pack and live-blocked evidence report.
+
+- `--runtime-data-dir runtime_data`
+- `--manifest-dir manifests`
+- `--no-demo` — use static analysis only, skip demo scenario runs
+- `--output-dir <dir>` — override output directory
+- `--json`
+
+Exit codes:
+- `0` when all safety claims PASS
+- non-zero when any claim fails
+
+Output files:
+- `runtime_data/safety_verification/safety_verification_pack.json`
+- `runtime_data/safety_verification/safety_verification_pack.md`
+- `runtime_data/safety_verification/live_blocked_evidence.json`
+- `runtime_data/safety_verification/live_blocked_evidence.md`
+- `docs/safety_verification_pack.md`
+- `docs/live_blocked_evidence_report.md`
+
 ---
 
 ## Optional RPA commands
