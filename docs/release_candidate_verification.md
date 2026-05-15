@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-- Generated At: 2026-05-14T06:53:34.170288Z
+- Generated At: 2026-05-15T10:34:27.448494Z
 - Commands Run: 17
 - Passed Commands: 17
 - Failed Commands: 0
@@ -17,7 +17,7 @@
 - Python: 3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]
 - Platform: Windows-10-10.0.26200-SP0
 - CWD: .
-- Git Commit: 9bfba382e988f8cb819f630b4b052b6007a02e8a
+- Git Commit: 3941966fb98cecc09fd19143f96d54811df2a934
 - Git Branch: main
 
 ## Architecture Claims Verified
@@ -80,6 +80,8 @@
 - OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC: PASS
 - release_artifacts_manifest: PASS
 - docs_command_alignment: PASS
+- generated_manifest_template_quality_gates: PASS
+- manifest_catalog_health: PASS
 
 ## Side-Effect Safety Checks
 
@@ -164,6 +166,8 @@
 
 ## Report and Evidence Artifact Checks
 
+- runtime_data\manifest_health\manifest_health_report.json
+- runtime_data\manifest_health\manifest_health_report.md
 - runtime_data\outputs\reports\golden_demo_report.md
 - runtime_data\outputs\reports\golden_demo_report.html
 - runtime_data\outputs\audit\golden_demo_audit.json

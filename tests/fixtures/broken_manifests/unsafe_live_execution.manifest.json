@@ -1,0 +1,19 @@
+{
+  "manifest_id": "gallery.unsafe_live_execution",
+  "name": "Gallery: Unsafe Live Execution",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "read_data", "command": "[t:g/check -> result] max_results=5"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"},
+    {"id": "result_exists", "type": "output_exists", "output": "result"}
+  ],
+  "completion": {
+    "success_outputs": ["result"],
+    "acceptable_empty_outputs": ["result"]
+  },
+  "live_execution": {"enabled": true, "requires_approval": true}
+}

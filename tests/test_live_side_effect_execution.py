@@ -18,6 +18,13 @@ from runtime.tool_registry import TOOL_REGISTRY
 from runtime.tool_runner import ToolRunner
 
 
+SMOKE_MANIFEST_DIR = Path("tests/fixtures/smoke_manifests")
+SMOKE_ROUTES_PATH = SMOKE_MANIFEST_DIR / "event_routes.json"
+
+def smoke_manifest_path(name: str) -> Path:
+    return SMOKE_MANIFEST_DIR / name
+
+
 class LiveSideEffectExecutionTests(unittest.TestCase):
     def setUp(self):
         self._saved_registry: dict[str, dict | None] = {}
@@ -51,15 +58,15 @@ class LiveSideEffectExecutionTests(unittest.TestCase):
         payload: dict[str, object] | None = None,
         approve: bool = True,
     ):
-        engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False)
+        engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
         frame = engine.handle_event(create_event(event_type, "manual", payload=payload or {}), dry_run=True)
         self.assertEqual(frame.state, "WAITING_FOR_EXECUTE")
         manifest = load_manifest(
             {
-                "manual.live_sheet_create_allowed": "manifests/smoke_live_sheet_create_allowed.manifest.json",
-                "manual.live_sheet_write_allowed": "manifests/smoke_live_sheet_write_allowed.manifest.json",
-                "manual.live_side_effect_blocked_by_manifest": "manifests/smoke_live_side_effect_blocked_by_manifest.manifest.json",
-                "manual.live_side_effect_blocked_by_tool": "manifests/smoke_live_side_effect_blocked_by_tool.manifest.json",
+                "manual.live_sheet_create_allowed": smoke_manifest_path("smoke_live_sheet_create_allowed.manifest.json"),
+                "manual.live_sheet_write_allowed": smoke_manifest_path("smoke_live_sheet_write_allowed.manifest.json"),
+                "manual.live_side_effect_blocked_by_manifest": smoke_manifest_path("smoke_live_side_effect_blocked_by_manifest.manifest.json"),
+                "manual.live_side_effect_blocked_by_tool": smoke_manifest_path("smoke_live_side_effect_blocked_by_tool.manifest.json"),
             }[event_type]
         )
         if approve:
@@ -169,7 +176,7 @@ class LiveSideEffectExecutionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)
             frame, _ = self._staged_frame(runtime_dir, "manual.live_side_effect_blocked_by_manifest", {"title": "Blocked"})
-            manifest = load_manifest("manifests/smoke_live_side_effect_blocked_by_manifest.manifest.json")
+            manifest = load_manifest(smoke_manifest_path("smoke_live_side_effect_blocked_by_manifest.manifest.json"))
             self._install_sheet_module()
             runner = ToolRunner(dry_run=False)
 

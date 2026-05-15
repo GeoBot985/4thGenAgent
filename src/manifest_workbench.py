@@ -426,6 +426,200 @@ def classify_workbench_failure(error: dict | str, step: dict | None = None) -> d
     return _classify_workbench_failure(error, step)
 
 
+def normalize_workbench_status(state: str) -> str:
+    return {
+        "COMPLETED": "Completed",
+        "COMPLETED_NO_DATA": "Completed",
+        "WAITING_FOR_EXECUTE": "Awaiting approval",
+        "FAILED_VALIDATION": "Stopped by validation",
+        "FAILED_EXECUTION": "Stopped by execution failure",
+        "FAILED": "Stopped by execution failure",
+        "RUNNING": "Running",
+        "READY": "Ready",
+        "CREATED": "Ready",
+        "PENDING": "Pending",
+    }.get(_string(state).upper(), _string(state))
+
+
+def build_workbench_step_outcome(frame: Any, step: Any) -> dict:
+    frame_dict = _frame_to_dict(frame)
+    step_dict = step if isinstance(step, dict) else {}
+    step_id = _string(step_dict.get("step_id") or step_dict.get("id"))
+    manifest_step = step_dict
+    runtime_step = find_runtime_step(frame_dict, step_id) if step_id else {}
+    output_alias = _step_output_alias(manifest_step, runtime_step)
+    output_value = _output_value(frame_dict, output_alias)
+    tool_call = _step_related_items(frame_dict, step_id, "tool_calls")
+    raw_failure = _classify_workbench_failure(_step_failure_error(frame_dict, step_id), runtime_step or manifest_step)
+    step_status_raw = _string(runtime_step.get("status") if isinstance(runtime_step, dict) else "")
+    step_actually_failed = step_status_raw.upper() in {"FAILED", "FAILED_VALIDATION", "FAILED_EXECUTION"}
+    failure = raw_failure if (step_actually_failed and raw_failure.get("category")) else {}
+    base = _build_step_outcome(manifest_step, runtime_step, output_alias, output_value, tool_call, failure)
+    status = step_status_raw
+    metadata = output_value.get("metadata", {}) if isinstance(output_value, dict) else {}
+    source = _string(metadata.get("source")) if isinstance(metadata, dict) else ""
+    live_external_call = bool(metadata.get("live_external_call", False)) if isinstance(metadata, dict) else False
+    recommended_action = _string(failure.get("recommended_action")) if failure else ""
+    return {
+        "title": base.get("title", ""),
+        "summary": base.get("summary", ""),
+        "details": base.get("lines", []),
+        "status": status,
+        "source": "fixture data" if source == "workbench_fixture" else source,
+        "live_external_call": live_external_call,
+        "recommended_action": recommended_action,
+    }
+
+
+def build_workbench_step_inspector_model(manifest: Any, frame: Any, selected_step_id: str | None = None) -> dict:
+    result = build_workbench_step_result(manifest, frame, selected_step_id)
+    frame_dict = _frame_to_dict(frame)
+    manifest_step = result.get("raw_manifest_step", {})
+    runtime_step = result.get("raw_runtime_step", {})
+    step_status = _string(runtime_step.get("status") if isinstance(runtime_step, dict) else "")
+    step_actually_failed = step_status.upper() in {"FAILED", "FAILED_VALIDATION", "FAILED_EXECUTION"}
+    raw_failure = result.get("failure", {}) if isinstance(result.get("failure", {}), dict) else {}
+    failure = raw_failure if (step_actually_failed and raw_failure.get("category")) else {}
+    output_value = result.get("output_value", {})
+    metadata = output_value.get("metadata", {}) if isinstance(output_value, dict) else {}
+    raw_state = _string(runtime_step.get("status") if isinstance(runtime_step, dict) else "")
+    source = _string(metadata.get("source")) if isinstance(metadata, dict) else ""
+    live_external_call = bool(metadata.get("live_external_call", False)) if isinstance(metadata, dict) else False
+
+    # Derive step outcome: use the computed outcome only if step actually failed,
+    # otherwise derive from output_value directly to avoid false failure labels.
+    if step_actually_failed:
+        raw_step_outcome = result.get("step_outcome", {})
+        outcome_lines = raw_step_outcome.get("lines", ["This step failed."])
+    else:
+        outcome_lines = _summarize_output_value(output_value).get("lines", ["No output recorded."])
+
+    sections: dict[str, list[str]] = {
+        "Step outcome": outcome_lines,
+        "Step status": [
+            normalize_workbench_status(raw_state) or "Pending",
+            f"Output alias: {result.get('output_alias', '')}",
+            f"Command: {_string(manifest_step.get('command') if isinstance(manifest_step, dict) else '')}",
+        ],
+        "Output": [],
+        "Validation": [],
+        "Tool / LLM summary": [],
+        "Evidence": [],
+        "Failure diagnostics": [],
+        "Raw technical details": [],
+    }
+
+    # Output section
+    if isinstance(output_value, dict) and output_value:
+        out_lines = []
+        if source == "workbench_fixture":
+            out_lines.append("Source: fixture data")
+        elif source:
+            out_lines.append(f"Source: {source}")
+        if metadata:
+            out_lines.append(f"Live external call: {'yes' if live_external_call else 'no'}")
+        if output_value.get("row_count") is not None:
+            out_lines.append(f"Rows: {output_value.get('row_count')}")
+        if {"label", "confidence", "reason"}.intersection(output_value.keys()):
+            out_lines.append(f"Classified as: {_string(output_value.get('label'))}")
+            out_lines.append(f"Confidence: {_string(output_value.get('confidence'))}")
+            out_lines.append(f"Reason: {_string(output_value.get('reason'))}")
+        if not out_lines:
+            out_lines.append(_compact_json(output_value)[:200])
+        sections["Output"] = out_lines
+    else:
+        sections["Output"] = ["No output value recorded."]
+
+    # Validation section
+    validations = result.get("validation_result", [])
+    if validations:
+        sections["Validation"] = [f"{v.get('rule_id', v.get('id', ''))} — {'PASS' if v.get('ok') else 'FAIL'}: {v.get('message', '')}" for v in validations if isinstance(v, dict)]
+    else:
+        sections["Validation"] = ["No validation rules ran for this step."]
+
+    # Tool / LLM summary
+    tool_result = result.get("tool_call_result", {})
+    llm_result = result.get("llm_call_result", {})
+    tool_lines = tool_result.get("lines", []) if isinstance(tool_result, dict) else []
+    llm_lines = llm_result.get("lines", []) if isinstance(llm_result, dict) else []
+    call_summary = tool_lines or llm_lines or ["No call result available."]
+    sections["Tool / LLM summary"] = call_summary
+
+    # Evidence
+    evidence = result.get("evidence", [])
+    if evidence:
+        sections["Evidence"] = [_compact_json(e)[:120] for e in evidence if e]
+    else:
+        sections["Evidence"] = ["No evidence recorded."]
+
+    # Failure diagnostics
+    if failure and failure.get("category"):
+        sections["Failure diagnostics"] = [
+            f"Failure type: {_failure_label(failure.get('category', ''))}",
+            f"Reason: {_string(failure.get('reason') or failure.get('summary'))}",
+            f"Recommended action: {_string(failure.get('recommended_action'))}",
+        ]
+        if result.get("errors"):
+            sections["Failure diagnostics"].append(f"Errors: {_compact_json(result.get('errors'))[:200]}")
+    else:
+        sections["Failure diagnostics"] = ["No failure recorded for this step."]
+
+    # Raw technical details last
+    sections["Raw technical details"] = [
+        "Raw manifest step:",
+        _compact_json(manifest_step),
+        "",
+        "Raw runtime step:",
+        _compact_json(runtime_step),
+        "",
+        "Raw output value:",
+        _compact_json(output_value)[:400],
+    ]
+
+    return {"step_id": result.get("step_id", ""), "sections": sections}
+
+
+def build_workbench_run_summary_model(frame: Any, manifest: Any = None) -> dict:
+    frame_dict = _frame_to_dict(frame)
+    base = build_workbench_run_summary(frame_dict, manifest)
+    outputs = frame_dict.get("outputs", {})
+    data_source = ""
+    live_external_call = False
+    if isinstance(outputs, dict):
+        for val in outputs.values():
+            if isinstance(val, dict):
+                meta = val.get("metadata", {})
+                if isinstance(meta, dict):
+                    src = _string(meta.get("source"))
+                    if src == "workbench_fixture":
+                        data_source = "fixture data"
+                    elif src and not data_source:
+                        data_source = src
+                    if meta.get("live_external_call"):
+                        live_external_call = True
+    pending_actions = _list_value(frame_dict.get("pending_actions"))
+    pending_summary = []
+    for idx, action in enumerate(pending_actions, start=1):
+        if not isinstance(action, dict):
+            continue
+        tool = _string(action.get("tool") or action.get("action_type"))
+        alias = _string(action.get("output_alias"))
+        status = _string(action.get("status"))
+        label = f"{idx}. {tool}" + (f" → {alias}" if alias else "")
+        pending_summary.append(label)
+        pending_summary.append(f"   Status: {'Pending approval' if status == 'PENDING_APPROVAL' else status}")
+        pending_summary.append(f"   Dry run: yes")
+        pending_summary.append(f"   Live write performed: no")
+    return {
+        **base,
+        "state_label": normalize_workbench_status(base.get("state", "")),
+        "data_source": data_source or "unknown",
+        "live_external_calls": live_external_call,
+        "pending_count": len(pending_actions),
+        "pending_summary": pending_summary,
+    }
+
+
 def build_workbench_run_summary(frame: dict, manifest: dict | None = None) -> dict:
     frame_dict = _frame_to_dict(frame)
     manifest_dict = _manifest_to_dict(manifest) if manifest is not None else {}
@@ -449,6 +643,231 @@ def generate_workbench_run_report(frame_id: str, runtime_data_dir: str = "runtim
 
 def open_workbench_run_report(path: str) -> dict:
     return open_report_html(path)
+
+
+# ---------------------------------------------------------------------------
+# Catalog management helpers (Spec 080)
+# ---------------------------------------------------------------------------
+
+def list_archived_manifests(manifest_dir: str = "manifests") -> list[dict]:
+    archive_dir = Path(manifest_dir) / "archive"
+    if not archive_dir.is_dir():
+        return []
+    entries: list[dict] = []
+    for path in sorted(archive_dir.glob("*.json")):
+        entry = _catalog_entry_for_path(path)
+        if entry is not None:
+            entries.append(entry)
+    entries.sort(key=lambda item: (str(item.get("manifest_id", "")), str(item.get("name", ""))))
+    return entries
+
+
+def duplicate_manifest(
+    manifest_id_or_path: str,
+    manifest_dir: str = "manifests",
+) -> dict:
+    target = str(manifest_id_or_path or "").strip()
+    if not target:
+        return {"ok": False, "source_manifest_id": "", "new_manifest_id": "", "path": "", "error": "manifest_id or path is required."}
+
+    try:
+        record = _load_manifest_record_from_dir(target, manifest_dir)
+    except Exception as exc:
+        return {"ok": False, "source_manifest_id": target, "new_manifest_id": "", "path": "", "error": str(exc)}
+
+    manifest = record["manifest"]
+    manifest_dict = _manifest_to_dict(manifest)
+    source_id = _string(manifest_dict.get("manifest_id") or manifest_dict.get("id"))
+    if not source_id:
+        return {"ok": False, "source_manifest_id": target, "new_manifest_id": "", "path": "", "error": "Source manifest has no manifest_id."}
+
+    # Find a unique copy ID
+    base_copy_id = f"{source_id}_copy"
+    new_id = base_copy_id
+    suffix = 2
+    existing_catalog = {_string(e.get("manifest_id")) for e in list_manifest_catalog(manifest_dir)}
+    while new_id in existing_catalog:
+        new_id = f"{base_copy_id}_{suffix}"
+        suffix += 1
+
+    source_name = _string(manifest_dict.get("name") or source_id)
+    base_copy_name = f"{source_name} Copy"
+    new_name = base_copy_name
+    name_suffix = 2
+    existing_names = {_string(e.get("name")) for e in list_manifest_catalog(manifest_dir)}
+    while new_name in existing_names:
+        new_name = f"{base_copy_name} {name_suffix}"
+        name_suffix += 1
+
+    new_manifest = dict(manifest_dict)
+    new_manifest["manifest_id"] = new_id
+    new_manifest["name"] = new_name
+
+    new_file = Path(manifest_dir) / manifest_filename_for_id(new_id)
+    if new_file.exists():
+        return {"ok": False, "source_manifest_id": source_id, "new_manifest_id": new_id, "path": str(new_file), "error": f"Target file already exists: {new_file}"}
+
+    try:
+        new_file.parent.mkdir(parents=True, exist_ok=True)
+        write_json_atomic(new_file, new_manifest)
+    except Exception as exc:
+        return {"ok": False, "source_manifest_id": source_id, "new_manifest_id": new_id, "path": str(new_file), "error": str(exc)}
+
+    # Validate written file
+    try:
+        runtime_load_manifest(new_file)
+    except Exception as exc:
+        try:
+            new_file.unlink()
+        except Exception:
+            pass
+        return {"ok": False, "source_manifest_id": source_id, "new_manifest_id": new_id, "path": str(new_file), "error": f"Duplicate written but failed validation: {exc}"}
+
+    return {"ok": True, "source_manifest_id": source_id, "new_manifest_id": new_id, "path": str(new_file), "error": ""}
+
+
+def rename_manifest(
+    manifest_id_or_path: str,
+    new_manifest_id: str,
+    new_name: str | None = None,
+    manifest_dir: str = "manifests",
+) -> dict:
+    target = str(manifest_id_or_path or "").strip()
+    new_id = _string(new_manifest_id).strip()
+    if not target:
+        return {"ok": False, "old_manifest_id": "", "new_manifest_id": "", "old_path": "", "new_path": "", "error": "manifest_id or path is required."}
+    if not new_id:
+        return {"ok": False, "old_manifest_id": target, "new_manifest_id": "", "old_path": "", "new_path": "", "error": "new_manifest_id is required."}
+
+    try:
+        record = _load_manifest_record_from_dir(target, manifest_dir)
+    except Exception as exc:
+        return {"ok": False, "old_manifest_id": target, "new_manifest_id": new_id, "old_path": "", "new_path": "", "error": str(exc)}
+
+    old_path = Path(record["path"])
+    manifest = record["manifest"]
+    manifest_dict = _manifest_to_dict(manifest)
+    old_id = _string(manifest_dict.get("manifest_id") or manifest_dict.get("id"))
+
+    if old_id == new_id:
+        return {"ok": False, "old_manifest_id": old_id, "new_manifest_id": new_id, "old_path": str(old_path), "new_path": "", "error": "New manifest_id is the same as current."}
+
+    existing_catalog = {_string(e.get("manifest_id")) for e in list_manifest_catalog(manifest_dir)}
+    if new_id in existing_catalog:
+        return {"ok": False, "old_manifest_id": old_id, "new_manifest_id": new_id, "old_path": str(old_path), "new_path": "", "error": f"Cannot rename manifest: target manifest_id already exists: {new_id}"}
+
+    new_file = Path(manifest_dir) / manifest_filename_for_id(new_id)
+    if new_file.exists():
+        return {"ok": False, "old_manifest_id": old_id, "new_manifest_id": new_id, "old_path": str(old_path), "new_path": str(new_file), "error": f"Target file already exists: {new_file}"}
+
+    updated = dict(manifest_dict)
+    updated["manifest_id"] = new_id
+    updated["name"] = _string(new_name).strip() if new_name else _string(manifest_dict.get("name") or new_id)
+
+    try:
+        new_file.parent.mkdir(parents=True, exist_ok=True)
+        write_json_atomic(new_file, updated)
+    except Exception as exc:
+        return {"ok": False, "old_manifest_id": old_id, "new_manifest_id": new_id, "old_path": str(old_path), "new_path": str(new_file), "error": str(exc)}
+
+    # Validate before removing old file
+    try:
+        runtime_load_manifest(new_file)
+    except Exception as exc:
+        try:
+            new_file.unlink()
+        except Exception:
+            pass
+        return {"ok": False, "old_manifest_id": old_id, "new_manifest_id": new_id, "old_path": str(old_path), "new_path": str(new_file), "error": f"Renamed file failed validation: {exc}"}
+
+    try:
+        old_path.unlink()
+    except Exception as exc:
+        return {"ok": False, "old_manifest_id": old_id, "new_manifest_id": new_id, "old_path": str(old_path), "new_path": str(new_file), "error": f"New file saved but could not remove old file: {exc}"}
+
+    return {"ok": True, "old_manifest_id": old_id, "new_manifest_id": new_id, "old_path": str(old_path), "new_path": str(new_file), "error": ""}
+
+
+def archive_manifest(
+    manifest_id_or_path: str,
+    manifest_dir: str = "manifests",
+) -> dict:
+    target = str(manifest_id_or_path or "").strip()
+    if not target:
+        return {"ok": False, "manifest_id": "", "from_path": "", "archive_path": "", "error": "manifest_id or path is required."}
+
+    try:
+        record = _load_manifest_record_from_dir(target, manifest_dir)
+    except Exception as exc:
+        return {"ok": False, "manifest_id": target, "from_path": "", "archive_path": "", "error": str(exc)}
+
+    from_path = Path(record["path"])
+    manifest = record["manifest"]
+    manifest_dict = _manifest_to_dict(manifest)
+    manifest_id = _string(manifest_dict.get("manifest_id") or manifest_dict.get("id"))
+
+    archive_dir = Path(manifest_dir) / "archive"
+    archive_path = archive_dir / from_path.name
+    if archive_path.exists():
+        return {"ok": False, "manifest_id": manifest_id, "from_path": str(from_path), "archive_path": str(archive_path), "error": f"Archived file already exists: {archive_path}"}
+
+    try:
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        from_path.rename(archive_path)
+    except Exception as exc:
+        return {"ok": False, "manifest_id": manifest_id, "from_path": str(from_path), "archive_path": str(archive_path), "error": str(exc)}
+
+    return {"ok": True, "manifest_id": manifest_id, "from_path": str(from_path), "archive_path": str(archive_path), "error": ""}
+
+
+def restore_archived_manifest(
+    archive_path_or_manifest_id: str,
+    manifest_dir: str = "manifests",
+) -> dict:
+    target = str(archive_path_or_manifest_id or "").strip()
+    if not target:
+        return {"ok": False, "manifest_id": "", "archive_path": "", "restored_path": "", "error": "archive path or manifest_id is required."}
+
+    archive_dir = Path(manifest_dir) / "archive"
+
+    # Resolve archive path
+    candidate = Path(target)
+    if candidate.is_file():
+        archive_file = candidate
+    else:
+        # Search by manifest_id in archive
+        archived = list_archived_manifests(manifest_dir)
+        match = next((e for e in archived if _string(e.get("manifest_id")) == target), None)
+        if not match:
+            return {"ok": False, "manifest_id": target, "archive_path": "", "restored_path": "", "error": f"Archived manifest not found for: {target}"}
+        archive_file = Path(str(match["path"]))
+
+    if not archive_file.is_file():
+        return {"ok": False, "manifest_id": target, "archive_path": str(archive_file), "restored_path": "", "error": f"Archive file not found: {archive_file}"}
+
+    # Load and validate archive
+    try:
+        manifest = runtime_load_manifest(archive_file)
+        manifest_dict = _manifest_to_dict(manifest)
+        manifest_id = _string(manifest_dict.get("manifest_id") or manifest_dict.get("id"))
+    except Exception as exc:
+        return {"ok": False, "manifest_id": target, "archive_path": str(archive_file), "restored_path": "", "error": f"Archived manifest is invalid: {exc}"}
+
+    # Block if active catalog already has this ID
+    existing_catalog = {_string(e.get("manifest_id")) for e in list_manifest_catalog(manifest_dir)}
+    if manifest_id in existing_catalog:
+        return {"ok": False, "manifest_id": manifest_id, "archive_path": str(archive_file), "restored_path": "", "error": f"Cannot restore manifest: active manifest with this ID already exists: {manifest_id}"}
+
+    restored_path = Path(manifest_dir) / archive_file.name
+    if restored_path.exists():
+        return {"ok": False, "manifest_id": manifest_id, "archive_path": str(archive_file), "restored_path": str(restored_path), "error": f"Active manifest file already exists: {restored_path}"}
+
+    try:
+        archive_file.rename(restored_path)
+    except Exception as exc:
+        return {"ok": False, "manifest_id": manifest_id, "archive_path": str(archive_file), "restored_path": str(restored_path), "error": str(exc)}
+
+    return {"ok": True, "manifest_id": manifest_id, "archive_path": str(archive_file), "restored_path": str(restored_path), "error": ""}
 
 
 def _candidate_manifest_dirs(manifest_dir: str) -> list[str]:
@@ -512,6 +931,20 @@ def _catalog_entry_for_path(path: Path) -> dict | None:
             "error": str(exc),
             "raw": raw,
         }
+
+
+def _load_manifest_record_from_dir(path_or_id: str, manifest_dir: str) -> dict:
+    """Like _load_manifest_record but searches only the given manifest_dir."""
+    candidate = Path(path_or_id)
+    if candidate.is_file():
+        manifest = runtime_load_manifest(candidate)
+        return {"path": str(candidate), "manifest": manifest}
+    catalog = list_manifest_catalog(manifest_dir)
+    match = next((item for item in catalog if item.get("manifest_id") == path_or_id and item.get("ok", True) and item.get("path")), None)
+    if match:
+        manifest = runtime_load_manifest(match["path"])
+        return {"path": str(match["path"]), "manifest": manifest}
+    raise ManifestLoadError(f"Manifest not found for manifest_id: {path_or_id}")
 
 
 def _load_manifest_record(path_or_id: str) -> dict:

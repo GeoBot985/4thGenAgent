@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from tools.write_current_release_status import write_current_release_status
+from src.manifest_health import run_manifest_health_check, write_manifest_health_report
 
 OUTPUT_JSON = ROOT / "runtime_data" / "audit" / "release_candidate_verification.json"
 OUTPUT_MD = ROOT / "docs" / "release_candidate_verification.md"
@@ -119,6 +120,7 @@ def build_verification_result() -> dict[str, Any]:
             "docs_commands": "PENDING",
             "adding_new_tools_doc": "PENDING",
             "tool_contract_checklist_doc": "PENDING",
+            "manifest_catalog_health": "PENDING",
         },
         "workflow_checks": {
             "customer": {"status": "PENDING", "count": 0},
@@ -211,7 +213,14 @@ def build_verification_result() -> dict[str, Any]:
         _check_optional_rpa_live_probes_excluded_from_rc(),
         _check_release_artifacts_manifest(),
         _check_docs_command_alignment(),
+        _check_generated_manifest_template_quality_gates(),
+        _check_manifest_catalog_health(),
     ])
+    manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
+    for key in ("json_path", "markdown_path"):
+        value = str(manifest_health_check.get(key, "")).strip()
+        if value:
+            evidence_paths.append(_display_path(Path(value)))
     for check in static_checks:
         if check["status"] != "PASS":
             if check["name"] == "python_imports":
@@ -248,6 +257,10 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("release artifacts manifest failed")
             elif check["name"] == "docs_command_alignment":
                 release_blockers.append("documentation commands mismatch")
+            elif check["name"] == "generated_manifest_template_quality_gates":
+                release_blockers.append("generated manifest template quality gates failed")
+            elif check["name"] == "manifest_catalog_health":
+                release_blockers.append("manifest catalog health failed")
 
     artifact_paths = [
         "README.md",
@@ -321,6 +334,7 @@ def build_verification_result() -> dict[str, Any]:
         "docs_commands": _status_from_static(static_checks, "docs_command_alignment"),
         "adding_new_tools_doc": _status_from_static(static_checks, "adding_new_tools_doc"),
         "tool_contract_checklist_doc": _status_from_static(static_checks, "tool_contract_checklist_doc"),
+        "manifest_catalog_health": _status_from_static(static_checks, "manifest_catalog_health"),
     }
 
     if release_blockers:
@@ -954,6 +968,81 @@ def _check_default_demo_boundary_doc() -> dict[str, Any]:
     required_terms = ["optional rpa", "excluded", "default rc", "customer workflow", "procurement workflow", "accounting workflow"]
     missing = [term for term in required_terms if term not in text]
     return {"name": "default_demo_boundary_doc", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
+def _check_generated_manifest_template_quality_gates() -> dict[str, Any]:
+    import tempfile
+    try:
+        from src.generated_manifest_smoke_runner import run_template_quality_gates
+    except Exception as exc:
+        return {"name": "generated_manifest_template_quality_gates", "status": "FAIL", "error": str(exc)}
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        runtime_data_dir = tmp_path / "runtime_data"
+        manifest_dir = tmp_path / "manifests"
+        runtime_data_dir.mkdir(parents=True, exist_ok=True)
+        manifest_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            result = run_template_quality_gates(
+                runtime_data_dir=runtime_data_dir,
+                manifest_dir=manifest_dir,
+            )
+        except Exception as exc:
+            return {"name": "generated_manifest_template_quality_gates", "status": "FAIL", "error": str(exc)}
+
+    passed = result.get("passed", 0)
+    failed = result.get("failed", 0)
+    template_count = result.get("template_count", 0)
+    status = "PASS" if result.get("ok") and failed == 0 else "FAIL"
+    failures = [
+        f"{r['template_id']}: {r['classification']} {r.get('errors', [])}"
+        for r in result.get("results", [])
+        if r.get("status") != "PASS"
+    ]
+    return {
+        "name": "generated_manifest_template_quality_gates",
+        "status": status,
+        "template_count": template_count,
+        "passed": passed,
+        "failed": failed,
+        "failures": failures,
+    }
+
+
+def _check_manifest_catalog_health() -> dict[str, Any]:
+    try:
+        result = run_manifest_health_check(
+            manifest_dir=ROOT / "manifests",
+            runtime_data_dir=ROOT / "runtime_data",
+            include_smoke=False,
+        )
+        report = write_manifest_health_report(result, runtime_data_dir=ROOT / "runtime_data")
+    except Exception as exc:
+        return {
+            "name": "manifest_catalog_health",
+            "status": "FAIL",
+            "error": str(exc),
+            "json_path": "",
+            "markdown_path": "",
+        }
+
+    summary = result.get("summary") if isinstance(result, dict) else {}
+    summary = summary if isinstance(summary, dict) else {}
+    report_ok = bool(report.get("ok"))
+    validation_failed = int(summary.get("validation_failed", 0) or 0)
+    critical = int(summary.get("critical", 0) or 0)
+    ok = bool(result.get("ok")) and report_ok and validation_failed == 0 and critical == 0
+    return {
+        "name": "manifest_catalog_health",
+        "status": "PASS" if ok else "FAIL",
+        "health_status": result.get("status", "UNKNOWN"),
+        "summary": summary,
+        "report_ok": report_ok,
+        "json_path": str(report.get("json_path", "")),
+        "markdown_path": str(report.get("markdown_path", "")),
+        "error": str(report.get("error", "")),
+    }
 
 
 def _check_known_limitations_doc() -> dict[str, Any]:

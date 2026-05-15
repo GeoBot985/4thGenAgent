@@ -1,0 +1,19 @@
+{
+  "manifest_id": "gallery.input_declared_but_not_used",
+  "name": "Gallery: Input Declared But Not Used",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": ["message"],
+  "steps": [
+    {"id": "read_data", "command": "[t:g/check -> result] max_results=5"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"},
+    {"id": "result_exists", "type": "output_exists", "output": "result"}
+  ],
+  "completion": {
+    "success_outputs": ["result"],
+    "acceptable_empty_outputs": ["result"]
+  },
+  "live_execution": {"enabled": false, "requires_approval": true}
+}

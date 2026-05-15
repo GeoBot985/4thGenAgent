@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "completion_output_missing",
+      "path": "completion_output_missing.manifest.json",
+      "description": "Completion references an output alias that no step produces.",
+      "expected_validation_ok": false,
+      "expected_smoke_classification": "COMPLETION_FAILED",
+      "expected_findings": ["completion_output_missing"],
+      "expected_autofix": {
+        "supported": true,
+        "finding_id": "completion_output_missing",
+        "status": "PROPOSED",
+        "risk": "low"
+      },
+      "notes": ""
+    },
+    {
+      "id": "validation_output_missing",
+      "path": "validation_output_missing.manifest.json",
+      "description": "A validation rule checks an output alias that no step produces.",
+      "expected_validation_ok": false,
+      "expected_smoke_classification": "VALIDATION_FAILED",
+      "expected_findings": ["validation_references_missing_output"],
+      "expected_autofix": {
+        "supported": true,
+        "finding_id": "validation_references_missing_output",
+        "status": "PROPOSED",
+        "risk": "low"
+      },
+      "notes": "Static analysis finding ID is validation_references_missing_output; autofix handles both aliases."
+    },
+    {
+      "id": "unknown_tool",
+      "path": "unknown_tool.manifest.json",
+      "description": "A step command references an unregistered tool namespace.",
+      "expected_validation_ok": true,
+      "expected_smoke_classification": "TOOL_NOT_REGISTERED",
+      "expected_findings": [],
+      "expected_autofix": {
+        "supported": false,
+        "finding_id": "unknown_tool",
+        "status": "NOT_SUPPORTED",
+        "risk": "blocked"
+      },
+      "notes": "Static analysis cannot detect unregistered tools. Finding only appears in smoke results."
+    },
+    {
+      "id": "invalid_command",
+      "path": "invalid_command.manifest.json",
+      "description": "A step command is missing the [t:ns/action -> alias] bracket format entirely.",
+      "expected_validation_ok": false,
+      "expected_smoke_classification": null,
+      "expected_findings": ["command_parse_error"],
+      "expected_autofix": {
+        "supported": false,
+        "finding_id": "command_parse_error",
+        "status": "NOT_SUPPORTED",
+        "risk": "blocked"
+      },
+      "notes": ""
+    },
+    {
+      "id": "input_used_but_not_declared",
+      "path": "input_used_but_not_declared.manifest.json",
+      "description": "A step command references $inputs.message but message is not declared in inputs.",
+      "expected_validation_ok": false,
+      "expected_smoke_classification": null,
+      "expected_findings": ["input_used_but_not_declared"],
+      "expected_autofix": {
+        "supported": true,
+        "finding_id": "input_used_but_not_declared",
+        "status": "PROPOSED",
+        "risk": "low"
+      },
+      "notes": ""
+    },
+    {
+      "id": "input_declared_but_not_used",
+      "path": "input_declared_but_not_used.manifest.json",
+      "description": "An input is declared in inputs but never referenced in any step command.",
+      "expected_validation_ok": true,
+      "expected_smoke_classification": null,
+      "expected_findings": ["input_declared_but_not_used"],
+      "expected_autofix": {
+        "supported": true,
+        "finding_id": "input_declared_but_not_used",
+        "status": "PROPOSED",
+        "risk": "low"
+      },
+      "notes": "Severity is warning. Manifest is otherwise structurally valid."
+    },
+    {
+      "id": "duplicate_step_id",
+      "path": "duplicate_step_id.manifest.json",
+      "description": "Two steps share the same id; second occurrence must be renamed.",
+      "expected_validation_ok": false,
+      "expected_smoke_classification": null,
+      "expected_findings": ["duplicate_step_id"],
+      "expected_autofix": {
+        "supported": true,
+        "finding_id": "duplicate_step_id",
+        "status": "PROPOSED",
+        "risk": "low"
+      },
+      "notes": "No external references exist to the duplicate step id, so rename is safe."
+    },
+    {
+      "id": "unsafe_live_execution",
+      "path": "unsafe_live_execution.manifest.json",
+      "description": "live_execution.enabled is set to true in an authored manifest.",
+      "expected_validation_ok": false,
+      "expected_smoke_classification": null,
+      "expected_findings": ["live_execution_enabled"],
+      "expected_autofix": {
+        "supported": true,
+        "finding_id": "live_execution_enabled",
+        "status": "PROPOSED",
+        "risk": "low"
+      },
+      "notes": "Severity is critical. Autofix disables live execution only; never enables it."
+    },
+    {
+      "id": "missing_output_alias",
+      "path": "missing_output_alias.manifest.json",
+      "description": "A tool command is missing the -> alias segment; no step captures any output.",
+      "expected_validation_ok": false,
+      "expected_smoke_classification": null,
+      "expected_findings": ["step_missing_output_alias"],
+      "expected_autofix": {
+        "supported": false,
+        "finding_id": "step_missing_output_alias",
+        "status": "NOT_SUPPORTED",
+        "risk": "blocked"
+      },
+      "notes": "Root cause is missing -> in command. System cannot safely infer the intended alias."
+    },
+    {
+      "id": "side_effect_without_pending_expectation",
+      "path": "side_effect_without_pending_expectation.manifest.json",
+      "description": "A side-effect command is used without a pending-action approval design.",
+      "expected_validation_ok": false,
+      "expected_smoke_classification": null,
+      "expected_findings": ["side_effect_command_without_pending_expectation"],
+      "expected_autofix": {
+        "supported": false,
+        "finding_id": "side_effect_command_without_pending_expectation",
+        "status": "NOT_SUPPORTED",
+        "risk": "blocked"
+      },
+      "notes": "Approval workflow design must be explicit. System cannot wire it automatically."
+    },
+    {
+      "id": "malformed_json",
+      "path": "malformed_json.manifest.json.txt",
+      "description": "The manifest file contains truncated, invalid JSON.",
+      "expected_validation_ok": false,
+      "expected_smoke_classification": null,
+      "expected_findings": ["json_parse_error"],
+      "expected_autofix": {
+        "supported": false,
+        "finding_id": "json_parse_error",
+        "status": "NOT_SUPPORTED",
+        "risk": "blocked"
+      },
+      "notes": ".txt extension prevents tooling from treating this as a real manifest."
+    }
+  ]
+}

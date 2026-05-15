@@ -23,11 +23,18 @@ from runtime.tool_registry import TOOL_REGISTRY
 from runtime.tool_runner import ToolRunner
 
 
+SMOKE_MANIFEST_DIR = Path("tests/fixtures/smoke_manifests")
+SMOKE_ROUTES_PATH = SMOKE_MANIFEST_DIR / "event_routes.json"
+
+def smoke_manifest_path(name: str) -> Path:
+    return SMOKE_MANIFEST_DIR / name
+
+
 class LiveExecutionGuardrailTests(unittest.TestCase):
     def _staged_live_frame(self, manifest_path: str, payload: dict[str, object] | None = None):
         with tempfile.TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)
-            engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False)
+            engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
             frame = engine.handle_event(
                 __import__("runtime.events", fromlist=["create_event"]).create_event(
                     "manual.live_sheet_create_allowed" if "sheet_create" in manifest_path else "manual.live_sheet_write_allowed",
@@ -70,16 +77,28 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
         with self.assertRaises(LiveExecutionPolicyError):
             validate_live_execution_policy({"enabled": True, "allowed_tools": ["sheet/write"], "requires_approval": False})
 
+    def test_live_sheet_create_allowed_loads_from_smoke_fixture(self):
+        manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_create_allowed.manifest.json"))
+        self.assertEqual(manifest.manifest_id, "smoke.live_sheet_create_allowed")
+
+    def test_live_sheet_write_allowed_loads_from_smoke_fixture(self):
+        manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_write_allowed.manifest.json"))
+        self.assertEqual(manifest.manifest_id, "smoke.live_sheet_write_allowed")
+
+    def test_live_side_effect_blocked_by_tool_loads_from_smoke_fixture(self):
+        manifest = load_manifest(smoke_manifest_path("smoke_live_side_effect_blocked_by_tool.manifest.json"))
+        self.assertEqual(manifest.manifest_id, "smoke.live_side_effect_blocked_by_tool")
+
     def test_manifest_allows_live_tool_true_when_enabled_and_listed(self):
-        manifest = load_manifest("manifests/smoke_live_sheet_write_allowed.manifest.json")
+        manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_write_allowed.manifest.json"))
         self.assertTrue(manifest_allows_live_tool(manifest, "sheet/write"))
 
     def test_manifest_allows_live_tool_false_when_disabled(self):
-        manifest = load_manifest("manifests/smoke_live_side_effect_blocked_by_manifest.manifest.json")
+        manifest = load_manifest(smoke_manifest_path("smoke_live_side_effect_blocked_by_manifest.manifest.json"))
         self.assertFalse(manifest_allows_live_tool(manifest, "sheet/create"))
 
     def test_manifest_allows_live_tool_false_when_tool_missing(self):
-        manifest = load_manifest("manifests/smoke_live_sheet_create_allowed.manifest.json")
+        manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_create_allowed.manifest.json"))
         self.assertFalse(manifest_allows_live_tool(manifest, "sheet/write"))
 
     def test_tool_allows_live_side_effect_true_for_sheet_create(self):
@@ -100,7 +119,7 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
     def test_assert_live_execution_allowed_passes_all_gates(self):
         with tempfile.TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)
-            engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False)
+            engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
             frame = engine.handle_event(
                 __import__("runtime.events", fromlist=["create_event"]).create_event(
                     "manual.live_sheet_create_allowed",
@@ -110,14 +129,14 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
                 dry_run=True,
             )
             approve_action(frame, frame.pending_actions[0]["action_id"], approved_by="tester", reason="approve")
-            manifest = load_manifest("manifests/smoke_live_sheet_create_allowed.manifest.json")
+            manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_create_allowed.manifest.json"))
             tool_spec = deepcopy(TOOL_REGISTRY["sheet/create"])
             assert_live_execution_allowed(frame, manifest, frame.pending_actions[0], tool_spec, runtime_live_mode=True)
 
     def test_assert_live_execution_allowed_blocks_runtime_live_mode_false(self):
         with tempfile.TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)
-            engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False)
+            engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
             frame = engine.handle_event(
                 __import__("runtime.events", fromlist=["create_event"]).create_event(
                     "manual.live_sheet_create_allowed",
@@ -127,7 +146,7 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
                 dry_run=True,
             )
             approve_action(frame, frame.pending_actions[0]["action_id"], approved_by="tester", reason="approve")
-            manifest = load_manifest("manifests/smoke_live_sheet_create_allowed.manifest.json")
+            manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_create_allowed.manifest.json"))
             tool_spec = deepcopy(TOOL_REGISTRY["sheet/create"])
             with self.assertRaises(LiveExecutionBlocked):
                 assert_live_execution_allowed(frame, manifest, frame.pending_actions[0], tool_spec, runtime_live_mode=False)
@@ -135,8 +154,8 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
     def test_assert_live_execution_allowed_blocks_wrong_frame_state(self):
         with tempfile.TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)
-            manifest = load_manifest("manifests/smoke_live_sheet_create_allowed.manifest.json")
-            frame = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False).handle_event(
+            manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_create_allowed.manifest.json"))
+            frame = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH).handle_event(
                 __import__("runtime.events", fromlist=["create_event"]).create_event(
                     "manual.live_sheet_create_allowed",
                     "manual",
@@ -153,8 +172,8 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
     def test_assert_live_execution_allowed_blocks_non_approved_action(self):
         with tempfile.TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)
-            manifest = load_manifest("manifests/smoke_live_sheet_create_allowed.manifest.json")
-            frame = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False).handle_event(
+            manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_create_allowed.manifest.json"))
+            frame = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH).handle_event(
                 __import__("runtime.events", fromlist=["create_event"]).create_event(
                     "manual.live_sheet_create_allowed",
                     "manual",
@@ -169,7 +188,7 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
     def test_assert_live_execution_allowed_blocks_manifest_disabled(self):
         with tempfile.TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)
-            engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False)
+            engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
             frame = engine.handle_event(
                 __import__("runtime.events", fromlist=["create_event"]).create_event(
                     "manual.live_side_effect_blocked_by_manifest",
@@ -179,7 +198,7 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
                 dry_run=True,
             )
             approve_action(frame, frame.pending_actions[0]["action_id"], approved_by="tester", reason="approve")
-            manifest = load_manifest("manifests/smoke_live_side_effect_blocked_by_manifest.manifest.json")
+            manifest = load_manifest(smoke_manifest_path("smoke_live_side_effect_blocked_by_manifest.manifest.json"))
             tool_spec = deepcopy(TOOL_REGISTRY["sheet/create"])
             with self.assertRaises(LiveExecutionBlocked):
                 assert_live_execution_allowed(frame, manifest, frame.pending_actions[0], tool_spec, runtime_live_mode=True)
@@ -187,8 +206,8 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
     def test_assert_live_execution_allowed_blocks_tool_not_in_manifest_allowlist(self):
         with tempfile.TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)
-            manifest = load_manifest("manifests/smoke_live_sheet_create_allowed.manifest.json")
-            frame = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False).handle_event(
+            manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_create_allowed.manifest.json"))
+            frame = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH).handle_event(
                 __import__("runtime.events", fromlist=["create_event"]).create_event(
                     "manual.live_sheet_write_allowed",
                     "manual",
@@ -209,8 +228,8 @@ class LiveExecutionGuardrailTests(unittest.TestCase):
     def test_assert_live_execution_allowed_blocks_tool_registry_disallow(self):
         with tempfile.TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)
-            manifest = load_manifest("manifests/smoke_live_sheet_create_allowed.manifest.json")
-            frame = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False).handle_event(
+            manifest = load_manifest(smoke_manifest_path("smoke_live_sheet_create_allowed.manifest.json"))
+            frame = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH).handle_event(
                 __import__("runtime.events", fromlist=["create_event"]).create_event(
                     "manual.live_sheet_create_allowed",
                     "manual",

@@ -291,26 +291,6 @@
       "enabled": true
     },
     {
-      "event_type": "manual.live_sheet_create_allowed",
-      "manifest_id": "smoke.live_sheet_create_allowed",
-      "enabled": true
-    },
-    {
-      "event_type": "manual.live_sheet_write_allowed",
-      "manifest_id": "smoke.live_sheet_write_allowed",
-      "enabled": true
-    },
-    {
-      "event_type": "manual.live_side_effect_blocked_by_manifest",
-      "manifest_id": "smoke.live_side_effect_blocked_by_manifest",
-      "enabled": true
-    },
-    {
-      "event_type": "manual.live_side_effect_blocked_by_tool",
-      "manifest_id": "smoke.live_side_effect_blocked_by_tool",
-      "enabled": true
-    },
-    {
       "event_type": "manual.cleanup_dry_run",
       "manifest_id": "smoke.cleanup_dry_run",
       "enabled": true

@@ -15,6 +15,10 @@ from runtime.runtime_engine import RuntimeEngine
 from runtime.tool_registry import TOOL_REGISTRY
 
 
+SMOKE_MANIFEST_DIR = Path("tests/fixtures/smoke_manifests")
+SMOKE_ROUTES_PATH = SMOKE_MANIFEST_DIR / "event_routes.json"
+
+
 def write_manifest(tmpdir: Path, manifest_id: str, command: str, validations: list, completion: dict, inputs: list | None = None) -> Path:
     path = tmpdir / f"{manifest_id.replace('.', '_')}.manifest.json"
     path.write_text(
@@ -934,7 +938,7 @@ class RuntimeEngineTests(unittest.TestCase):
 
     def test_runtime_engine_handles_manual_live_sheet_create_allowed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            engine = RuntimeEngine(runtime_data_dir=Path(tmp), persist_runs=False)
+            engine = RuntimeEngine(runtime_data_dir=Path(tmp), persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
             event = create_event("manual.live_sheet_create_allowed", "manual", payload={"title": "Runtime Live Smoke"})
 
             frame = engine.handle_event(event, dry_run=True)
@@ -945,7 +949,7 @@ class RuntimeEngineTests(unittest.TestCase):
 
     def test_runtime_engine_handles_manual_live_sheet_write_allowed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            engine = RuntimeEngine(runtime_data_dir=Path(tmp), persist_runs=False)
+            engine = RuntimeEngine(runtime_data_dir=Path(tmp), persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
             event = create_event(
                 "manual.live_sheet_write_allowed",
                 "manual",
@@ -965,7 +969,7 @@ class RuntimeEngineTests(unittest.TestCase):
 
     def test_runtime_engine_handles_manual_live_side_effect_blocked_by_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:
-            engine = RuntimeEngine(runtime_data_dir=Path(tmp), persist_runs=False)
+            engine = RuntimeEngine(runtime_data_dir=Path(tmp), persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
             event = create_event("manual.live_side_effect_blocked_by_manifest", "manual", payload={"title": "Blocked"})
 
             frame = engine.handle_event(event, dry_run=True)
@@ -976,7 +980,7 @@ class RuntimeEngineTests(unittest.TestCase):
 
     def test_runtime_engine_handles_manual_live_side_effect_blocked_by_tool(self):
         with tempfile.TemporaryDirectory() as tmp:
-            engine = RuntimeEngine(runtime_data_dir=Path(tmp), persist_runs=False)
+            engine = RuntimeEngine(runtime_data_dir=Path(tmp), persist_runs=False, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
             event = create_event("manual.live_side_effect_blocked_by_tool", "manual", payload={})
 
             frame = engine.handle_event(event, dry_run=True)

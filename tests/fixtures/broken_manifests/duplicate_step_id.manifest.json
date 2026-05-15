@@ -1,0 +1,20 @@
+{
+  "manifest_id": "gallery.duplicate_step_id",
+  "name": "Gallery: Duplicate Step ID",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "read_data", "command": "[t:g/check -> result] max_results=5"},
+    {"id": "read_data", "command": "[validate:result_exists]"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"},
+    {"id": "result_exists", "type": "output_exists", "output": "result"}
+  ],
+  "completion": {
+    "success_outputs": ["result"],
+    "acceptable_empty_outputs": ["result"]
+  },
+  "live_execution": {"enabled": false, "requires_approval": true}
+}

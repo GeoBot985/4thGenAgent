@@ -12,12 +12,16 @@ from src.manifest_workbench import (
     build_manifest_step_rows,
     build_manifest_summary,
     build_workbench_run_summary,
+    build_workbench_run_summary_model,
+    build_workbench_step_inspector_model,
+    build_workbench_step_outcome,
     build_workbench_step_result,
     classify_workbench_failure,
     create_test_frame,
     generate_workbench_run_report,
     list_manifest_catalog,
     load_manifest_for_workbench,
+    normalize_workbench_status,
     run_workbench_dry_run,
     validate_manifest_for_workbench,
 )
@@ -539,8 +543,134 @@ class ManifestWorkbenchTests(unittest.TestCase):
 
     def test_operator_ui_has_manifest_workbench_view_constant(self):
         source = UI_SOURCE.read_text(encoding="utf-8")
-        for text in ("Manifest Workbench", "Select manifest file", "Reload manifest catalog", "New manifest", "Edit manifest JSON", "Validate manifest", "Run dry-run test", "Save manifest", "Save manifest as...", "Open manifest manual", "Manifest JSON Editor", "Run until blocked", "Create/open run report", "Use fixture data for external read tools", "Failure category:", "Recommended action:"):
+        for text in ("Manifest Workbench", "Select manifest file", "Reload manifest catalog", "New manifest", "Edit manifest JSON", "Validate manifest", "Run dry-run test", "Save manifest", "Save manifest as...", "Open manifest manual", "Manifest JSON Editor", "Run until blocked", "Create/open run report", "Use fixture data for external read tools"):
             self.assertIn(text, source)
+
+    # --- Spec 079: Inspector polish tests ---
+
+    def test_workbench_status_waiting_for_execute_displays_awaiting_approval(self):
+        self.assertEqual(normalize_workbench_status("WAITING_FOR_EXECUTE"), "Awaiting approval")
+        self.assertEqual(normalize_workbench_status("COMPLETED"), "Completed")
+        self.assertEqual(normalize_workbench_status("FAILED_EXECUTION"), "Stopped by execution failure")
+        self.assertEqual(normalize_workbench_status("FAILED_VALIDATION"), "Stopped by validation")
+        self.assertEqual(normalize_workbench_status("READY"), "Ready")
+
+    def test_workbench_classification_step_outcome_shows_label_confidence_reason(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_dir = Path(tmp) / "runtime"
+            cr = create_test_frame("llm.classify_customer_message", {"message": "Where is my order ORD-10042?"}, runtime_data_dir=str(runtime_dir))
+            self.assertTrue(cr["ok"])
+            run = run_workbench_dry_run(cr["frame_id"], "run_until_blocked", runtime_data_dir=str(runtime_dir))
+            self.assertTrue(run["ok"])
+            manifest = load_manifest_for_workbench("llm.classify_customer_message").get("manifest", {})
+            model = build_workbench_step_inspector_model(manifest, run["frame"])
+            sections = model["sections"]
+            outcome_text = "\n".join(sections.get("Step outcome", []))
+            self.assertIn("order_status", outcome_text)
+            output_text = "\n".join(sections.get("Output", []))
+            self.assertIn("high", output_text)
+
+    def test_workbench_sheet_fixture_step_outcome_shows_fixture_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_dir = Path(tmp) / "runtime"
+            cr = create_test_frame(
+                "accounting.payment_reconciliation",
+                {
+                    "spreadsheet_id": "demo-accounting-sheet",
+                    "payments_range": "Payments!A1:H20",
+                    "orders_range": "Orders!A1:H100",
+                    "invoices_range": "Invoices!A1:H100",
+                    "ledger_range": "Ledger!A1:H100",
+                    "recon_runs_range": "ReconRuns!A1:J100",
+                    "recon_exceptions_range": "ReconExceptions!A1:M100",
+                },
+                runtime_data_dir=str(runtime_dir),
+            )
+            self.assertTrue(cr["ok"])
+            run = run_workbench_dry_run(cr["frame_id"], "run_until_blocked", runtime_data_dir=str(runtime_dir), fixture_mode=True)
+            self.assertTrue(run["ok"])
+            manifest = load_manifest_for_workbench("accounting.payment_reconciliation").get("manifest", {})
+            model = build_workbench_step_inspector_model(manifest, run["frame"])
+            output_text = "\n".join(model["sections"].get("Output", []))
+            self.assertIn("fixture data", output_text)
+            self.assertIn("no", output_text.lower())  # Live external call: no
+
+    def test_workbench_failed_auth_step_outcome_shows_recommended_action(self):
+        frame = _failed_sheet_frame()
+        manifest = {"manifest_id": frame["manifest_id"], "steps": [{"step_id": "read_payments_sheet", "command": frame["steps"][0]["command"], "kind": "tool", "output_alias": "payments_sheet"}]}
+        model = build_workbench_step_inspector_model(manifest, frame, "read_payments_sheet")
+        outcome_text = "\n".join(model["sections"].get("Step outcome", []))
+        self.assertIn("authentication", outcome_text.lower())
+        failure_text = "\n".join(model["sections"].get("Failure diagnostics", []))
+        self.assertIn("Recommended action", failure_text)
+        self.assertIn("refresh", failure_text.lower())
+
+    def test_workbench_pending_actions_summary_is_human_readable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_dir = Path(tmp) / "runtime"
+            cr = create_test_frame(
+                "accounting.payment_reconciliation",
+                {
+                    "spreadsheet_id": "demo-accounting-sheet",
+                    "payments_range": "Payments!A1:H20",
+                    "orders_range": "Orders!A1:H100",
+                    "invoices_range": "Invoices!A1:H100",
+                    "ledger_range": "Ledger!A1:H100",
+                    "recon_runs_range": "ReconRuns!A1:J100",
+                    "recon_exceptions_range": "ReconExceptions!A1:M100",
+                },
+                runtime_data_dir=str(runtime_dir),
+            )
+            self.assertTrue(cr["ok"])
+            run = run_workbench_dry_run(cr["frame_id"], "run_until_blocked", runtime_data_dir=str(runtime_dir), fixture_mode=True)
+            self.assertTrue(run["ok"])
+            self.assertEqual(run["state"], "WAITING_FOR_EXECUTE")
+            run_model = build_workbench_run_summary_model(run["frame"])
+            self.assertEqual(run_model["state_label"], "Awaiting approval")
+            self.assertGreater(run_model["pending_count"], 0)
+            summary_text = "\n".join(run_model["pending_summary"])
+            self.assertIn("Pending approval", summary_text)
+            self.assertIn("no", summary_text.lower())  # Live write performed: no
+
+    def test_workbench_unknown_step_falls_back_to_output_alias_summary(self):
+        frame = {"frame_id": "f1", "state": "COMPLETED", "steps": [], "outputs": {"my_alias": {"value": 42}}, "tool_calls": [], "llm_calls": [], "validations": [], "evidence": [], "errors": [], "pending_actions": []}
+        manifest = {"manifest_id": "test.x", "steps": [{"step_id": "my_step", "command": "[t:test/echo -> my_alias]", "kind": "tool", "output_alias": "my_alias"}]}
+        model = build_workbench_step_inspector_model(manifest, frame, "my_step")
+        self.assertIn("Step outcome", model["sections"])
+        self.assertIn("Output", model["sections"])
+
+    def test_workbench_step_inspector_places_raw_details_last(self):
+        frame = _failed_sheet_frame()
+        manifest = {"manifest_id": frame["manifest_id"], "steps": [{"step_id": "read_payments_sheet", "command": frame["steps"][0]["command"], "kind": "tool", "output_alias": "payments_sheet"}]}
+        model = build_workbench_step_inspector_model(manifest, frame, "read_payments_sheet")
+        section_order = list(model["sections"].keys())
+        raw_idx = section_order.index("Raw technical details")
+        outcome_idx = section_order.index("Step outcome")
+        self.assertLess(outcome_idx, raw_idx, "Step outcome must come before Raw technical details")
+
+    def test_workbench_run_summary_shows_fixture_source_and_no_live_call(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_dir = Path(tmp) / "runtime"
+            cr = create_test_frame(
+                "accounting.payment_reconciliation",
+                {
+                    "spreadsheet_id": "demo-accounting-sheet",
+                    "payments_range": "Payments!A1:H20",
+                    "orders_range": "Orders!A1:H100",
+                    "invoices_range": "Invoices!A1:H100",
+                    "ledger_range": "Ledger!A1:H100",
+                    "recon_runs_range": "ReconRuns!A1:J100",
+                    "recon_exceptions_range": "ReconExceptions!A1:M100",
+                },
+                runtime_data_dir=str(runtime_dir),
+            )
+            self.assertTrue(cr["ok"])
+            run = run_workbench_dry_run(cr["frame_id"], "run_until_blocked", runtime_data_dir=str(runtime_dir), fixture_mode=True)
+            self.assertTrue(run["ok"])
+            run_model = build_workbench_run_summary_model(run["frame"])
+            self.assertEqual(run_model["data_source"], "fixture data")
+            self.assertFalse(run_model["live_external_calls"])
+            self.assertEqual(run_model["state_label"], "Awaiting approval")
 
 
 if __name__ == "__main__":

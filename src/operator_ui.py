@@ -32,18 +32,51 @@ from src.operator_presenter import build_demo_view, humanize_step_id
 from src.operator_reports import create_or_open_run_report, generate_report_for_frame, open_report_folder, open_report_html
 from src.manifest_manual import open_manifest_manual
 from src.operator_widgets import create_scrolled_text_widget
+from src.manifest_template_generator import (
+    build_event_route_snippet,
+    build_manifest_from_template,
+    list_manifest_templates,
+    validate_manifest_candidate,
+    write_manifest_candidate,
+)
+from src.generated_manifest_smoke_runner import (
+    smoke_run_manifest_file,
+    write_smoke_report,
+)
+from src.manifest_authoring_feedback import (
+    analyze_manifest_static,
+    explain_manifest_failure,
+    write_repair_guidance_report,
+)
+from src.manifest_autofix import (
+    apply_manifest_fix_preview,
+    propose_manifest_fixes,
+    write_autofix_report,
+)
+from src.manifest_health import (
+    run_manifest_health_check,
+    write_manifest_health_report,
+)
 from src.manifest_workbench import (
+    archive_manifest,
     build_manifest_run_comparison,
     build_manifest_step_rows,
     build_workbench_selected_step_detail,
     build_workbench_run_summary,
+    build_workbench_run_summary_model,
+    build_workbench_step_inspector_model,
+    normalize_workbench_status,
     create_test_frame,
+    duplicate_manifest,
     generate_workbench_run_report,
+    list_archived_manifests,
     list_manifest_catalog,
     manifest_filename_for_id,
     load_manifest_for_workbench,
     open_workbench_run_report,
     new_manifest_template,
+    rename_manifest,
+    restore_archived_manifest,
     run_workbench_dry_run,
     save_manifest_json_text,
     validate_manifest_json_text,
@@ -170,6 +203,8 @@ class OperatorConsole:
         self.workbench_manifest_json_var = tk.StringVar(value="")
         self.workbench_fixture_mode_var = tk.BooleanVar(value=True)
         self.workbench_manifest_source_path: str = ""
+        self.workbench_manifest_health_result: dict = {}
+        self.workbench_manifest_health_report: dict = {}
         self.business_dataset_manifest: dict = {}
         self.business_dataset_validation: dict = {}
         self.report_status: dict = {}
@@ -1053,6 +1088,29 @@ class OperatorConsole:
         self.workbench_generate_report_button.pack(side="left")
         self.workbench_open_manual_button = ttk.Button(control_row, text="Open manifest manual", command=self.on_workbench_open_manifest_manual)
         self.workbench_open_manual_button.pack(side="left", padx=(6, 6))
+
+        catalog_row = ttk.Frame(action_bar, style="Card.TFrame")
+        catalog_row.grid(row=2, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        ttk.Label(catalog_row, text="Catalog actions:", style="Info.TLabel").pack(side="left", padx=(0, 8))
+        self.workbench_new_from_template_button = ttk.Button(catalog_row, text="New manifest from template", command=self.on_workbench_new_manifest_from_template)
+        self.workbench_new_from_template_button.pack(side="left", padx=(0, 6))
+        self.workbench_duplicate_button = ttk.Button(catalog_row, text="Duplicate manifest", command=self.on_workbench_duplicate_manifest)
+        self.workbench_duplicate_button.pack(side="left", padx=(0, 6))
+        self.workbench_rename_button = ttk.Button(catalog_row, text="Rename manifest", command=self.on_workbench_rename_manifest)
+        self.workbench_rename_button.pack(side="left", padx=(0, 6))
+        self.workbench_archive_button = ttk.Button(catalog_row, text="Archive manifest", command=self.on_workbench_archive_manifest)
+        self.workbench_archive_button.pack(side="left", padx=(0, 6))
+        self.workbench_restore_button = ttk.Button(catalog_row, text="Restore archived", command=self.on_workbench_restore_archived)
+        self.workbench_restore_button.pack(side="left", padx=(0, 6))
+        self.workbench_smoke_test_button = ttk.Button(catalog_row, text="Smoke test manifest", command=self.on_workbench_smoke_test_manifest)
+        self.workbench_smoke_test_button.pack(side="left", padx=(0, 6))
+        self.workbench_repair_guidance_button = ttk.Button(catalog_row, text="Repair Guidance", command=self.on_workbench_repair_guidance)
+        self.workbench_repair_guidance_button.pack(side="left", padx=(0, 6))
+        self.workbench_autofix_preview_button = ttk.Button(catalog_row, text="Auto-Fix Preview", command=self.on_workbench_autofix_preview)
+        self.workbench_autofix_preview_button.pack(side="left", padx=(0, 6))
+        self.workbench_validate_all_button = ttk.Button(catalog_row, text="Validate All", command=self.on_workbench_validate_all_manifests)
+        self.workbench_validate_all_button.pack(side="left", padx=(0, 6))
+
         self.workbench_fixture_mode_check = ttk.Checkbutton(
             control_row,
             text="Use fixture data for external read tools",
@@ -2357,67 +2415,41 @@ class OperatorConsole:
         manifest_record = self.workbench_manifest_record if isinstance(self.workbench_manifest_record, dict) else {}
         manifest = manifest_record.get("manifest", {}) if isinstance(manifest_record.get("manifest", {}), dict) else {}
         frame = self.workbench_frame if isinstance(self.workbench_frame, dict) else {}
-        selected_step = build_workbench_selected_step_detail(manifest, frame, step_id)
-        manifest_step = selected_step.get("raw_manifest_step", {})
-        runtime_step = selected_step.get("raw_runtime_step", {})
-        outputs = selected_step.get("output_value", {})
-        tool_result_metadata = selected_step.get("tool_result_metadata", {})
-        validations = selected_step.get("validation_result", [])
-        evidence = selected_step.get("evidence", [])
-        errors = selected_step.get("errors", [])
-        step_outcome = selected_step.get("step_outcome", {})
-        failure = selected_step.get("failure", {}) if isinstance(selected_step.get("failure", {}), dict) else {}
-        llm_call_result = selected_step.get("llm_call_result", {})
-        lines = [
-            f"Step ID: {selected_step.get('step_id', step_id) or 'None'}",
-            f"Step status: {selected_step.get('step_status', 'PENDING') or 'PENDING'}",
-            f"Command: {manifest_step.get('command', '') if isinstance(manifest_step, dict) else ''}",
-            f"Kind: {manifest_step.get('kind', '') if isinstance(manifest_step, dict) else ''}",
-            f"Resolved inputs: {self._compact_value(self._workbench_input_dict())}",
-            f"Output alias: {selected_step.get('output_alias', '')}",
-            "Step outcome:",
-            *step_outcome.get("lines", ["No output value."]),
-            f"Failure category: {failure.get('category', '')}",
-            f"Failure type: {self._workbench_failure_label(failure.get('category', '')) if failure else ''}",
-            f"Reason: {failure.get('reason', '')}",
-            f"Recommended action: {failure.get('recommended_action', '')}",
-            "Output value:",
-            self._compact_value(outputs),
-            "Tool result metadata:",
-            self._compact_value(tool_result_metadata),
-            "LLM call result:",
-            *llm_call_result.get("lines", ["Call completed."]),
-            f"Validation result: {self._compact_value(validations)}",
-            f"Evidence: {self._compact_value(evidence)}",
-            f"Errors: {self._compact_value(errors)}",
-            "",
-            "Raw manifest step JSON:",
-            self._compact_value(manifest_step),
-            "",
-            "Raw runtime step JSON:",
-            self._compact_value(runtime_step),
-        ]
+        model = build_workbench_step_inspector_model(manifest, frame, step_id)
+        lines = [f"Step ID: {model.get('step_id', step_id) or 'None'}", ""]
+        for section_label, section_lines in model.get("sections", {}).items():
+            lines.append(f"--- {section_label} ---")
+            lines.extend(section_lines if section_lines else ["(none)"])
+            lines.append("")
         self._set_text(self.workbench_step_detail_text, "\n".join(lines).strip())
 
     def _render_workbench_execution_panel(self) -> None:
         frame = self.workbench_frame if isinstance(self.workbench_frame, dict) else {}
         result = self.workbench_result if isinstance(self.workbench_result, dict) else {}
-        run_summary = result.get("run_summary", {}) if isinstance(result.get("run_summary", {}), dict) else {}
-        failure_summary = run_summary.get("failure_summary", {}) if isinstance(run_summary.get("failure_summary", {}), dict) else {}
+        manifest_record = self.workbench_manifest_record if isinstance(self.workbench_manifest_record, dict) else {}
+        manifest = manifest_record.get("manifest", {})
+        run_model = build_workbench_run_summary_model(frame, manifest)
         lines = [
-            f"Frame ID: {result.get('frame_id', frame.get('frame_id', ''))}",
-            f"State: {result.get('state', frame.get('state', ''))}",
-            f"Current step: {result.get('current_step_id', frame.get('current_step_id', ''))}",
-            f"Completed steps: {result.get('completed_steps', self._count_status(frame, 'COMPLETED'))}",
-            f"Failed steps: {result.get('failed_steps', self._count_status(frame, 'FAILED'))}",
-            f"Failure category: {result.get('run_summary', {}).get('failure_category', '') if isinstance(result.get('run_summary', {}), dict) else ''}",
-            f"Failed step: {result.get('run_summary', {}).get('failed_step_id', '') if isinstance(result.get('run_summary', {}), dict) else ''}",
-            f"Explanation: {result.get('run_summary', {}).get('operator_explanation', '') if isinstance(result.get('run_summary', {}), dict) else ''}",
-            f"Recommended action: {result.get('run_summary', {}).get('recommended_action', '') if isinstance(result.get('run_summary', {}), dict) else ''}",
-            f"Pending actions: {len(frame.get('pending_actions', [])) if isinstance(frame.get('pending_actions', []), list) else 0}",
-            f"Errors: {self._compact_value(result.get('errors', frame.get('errors', [])))}",
-            f"Raw failure summary: {self._compact_value(failure_summary)}",
+            f"Frame ID: {run_model.get('frame_id', result.get('frame_id', frame.get('frame_id', '')))}",
+            f"State: {run_model.get('state_label', '')}",
+            f"Completed: {result.get('completed_steps', self._count_status(frame, 'COMPLETED'))}",
+            f"Failed: {result.get('failed_steps', self._count_status(frame, 'FAILED'))}",
+            f"Pending actions: {run_model.get('pending_count', 0)}",
+            f"Data source: {run_model.get('data_source', 'unknown')}",
+            f"Live external calls: {'yes' if run_model.get('live_external_calls') else 'no'}",
         ]
+        if run_model.get("failure_category"):
+            lines += [
+                "",
+                f"Failure category: {run_model.get('failure_category', '')}",
+                f"Failed step: {run_model.get('failed_step_id', '')}",
+                f"Recommended action: {run_model.get('recommended_action', '')}",
+            ]
+        if run_model.get("pending_summary"):
+            lines += ["", "Pending actions"] + run_model["pending_summary"]
+        errors = result.get("errors", frame.get("errors", []))
+        if errors:
+            lines += ["", f"Errors: {self._compact_value(errors)}"]
         self._set_text(self.workbench_execution_text, "\n".join(lines))
         self._sync_workbench_approval_buttons()
 
@@ -2437,7 +2469,7 @@ class OperatorConsole:
             f"Completed: {comparison.get('completed', 0)}",
             f"Failed: {comparison.get('failed', 0)}",
             f"Skipped/not reached: {comparison.get('skipped_not_reached', 0)}",
-            f"Completion state: {comparison.get('completion_state', '')}",
+            f"Completion state: {normalize_workbench_status(comparison.get('completion_state', ''))}",
             f"Failure category: {run_summary.get('failure_category', '')}",
             f"Failed step: {run_summary.get('failed_step_id', '')}",
             f"Operator explanation: {run_summary.get('operator_explanation', '')}",
@@ -2530,6 +2562,872 @@ class OperatorConsole:
     def on_workbench_reload_catalog(self) -> None:
         self._refresh_workbench_manifest_catalog()
         self._render_manifest_workbench_view()
+
+    def _workbench_has_unsaved_editor_changes(self) -> bool:
+        editor_text = self._workbench_manifest_json_text_value()
+        if not editor_text.strip():
+            return False
+        record = self.workbench_manifest_record if isinstance(self.workbench_manifest_record, dict) else {}
+        loaded_manifest = record.get("manifest", {})
+        if not isinstance(loaded_manifest, dict) or not loaded_manifest:
+            return False
+        try:
+            editor_json = json.loads(editor_text)
+        except Exception:
+            return True
+        return editor_json != loaded_manifest
+
+    def on_workbench_duplicate_manifest(self) -> None:
+        target = self._workbench_selected_manifest_target()
+        if not target:
+            messagebox.showwarning("Duplicate manifest", "Select a manifest first.")
+            return
+        if self._workbench_has_unsaved_editor_changes():
+            messagebox.showwarning("Duplicate manifest", "Cannot duplicate manifest: unsaved editor changes are present.\nSave or discard changes first.")
+            return
+        result = duplicate_manifest(target, manifest_dir="manifests")
+        if not result.get("ok"):
+            messagebox.showerror("Duplicate manifest", f"Duplicate failed:\n{result.get('error', 'Unknown error')}")
+            return
+        self._refresh_workbench_manifest_catalog()
+        new_id = str(result.get("new_manifest_id", ""))
+        self.workbench_manifest_var.set(new_id)
+        self.on_workbench_load_selected_manifest(new_id)
+        self.workbench_input_status_label.configure(text=f"Duplicated manifest as {new_id}")
+
+    def on_workbench_rename_manifest(self) -> None:
+        target = self._workbench_selected_manifest_target()
+        if not target:
+            messagebox.showwarning("Rename manifest", "Select a manifest first.")
+            return
+        if self._workbench_has_unsaved_editor_changes():
+            messagebox.showwarning("Rename manifest", "Cannot rename manifest: unsaved editor changes are present.\nSave or discard changes first.")
+            return
+        dialog = tk.Toplevel(self)
+        dialog.title("Rename manifest")
+        dialog.resizable(False, False)
+        dialog.grab_set()
+        ttk.Label(dialog, text="New manifest ID:").grid(row=0, column=0, sticky="w", padx=12, pady=(12, 4))
+        id_var = tk.StringVar(value=target if not target.endswith(".json") else "")
+        ttk.Entry(dialog, textvariable=id_var, width=50).grid(row=0, column=1, padx=(0, 12), pady=(12, 4))
+        ttk.Label(dialog, text="New name (optional):").grid(row=1, column=0, sticky="w", padx=12, pady=(0, 4))
+        name_var = tk.StringVar()
+        ttk.Entry(dialog, textvariable=name_var, width=50).grid(row=1, column=1, padx=(0, 12), pady=(0, 4))
+        result_holder: list[dict] = []
+
+        def do_rename() -> None:
+            new_id = id_var.get().strip()
+            new_name = name_var.get().strip() or None
+            if not new_id:
+                messagebox.showwarning("Rename manifest", "New manifest ID is required.", parent=dialog)
+                return
+            r = rename_manifest(target, new_id, new_name=new_name, manifest_dir="manifests")
+            result_holder.append(r)
+            dialog.destroy()
+
+        btn_row = ttk.Frame(dialog)
+        btn_row.grid(row=2, column=0, columnspan=2, pady=(8, 12))
+        ttk.Button(btn_row, text="Rename", command=do_rename).pack(side="left", padx=6)
+        ttk.Button(btn_row, text="Cancel", command=dialog.destroy).pack(side="left", padx=6)
+        dialog.wait_window()
+        if not result_holder:
+            return
+        result = result_holder[0]
+        if not result.get("ok"):
+            messagebox.showerror("Rename manifest", f"Rename failed:\n{result.get('error', 'Unknown error')}")
+            return
+        new_id = str(result.get("new_manifest_id", ""))
+        self._refresh_workbench_manifest_catalog()
+        self.workbench_manifest_var.set(new_id)
+        self.on_workbench_load_selected_manifest(new_id)
+        self.workbench_input_status_label.configure(text=f"Renamed manifest to {new_id}")
+
+    def on_workbench_archive_manifest(self) -> None:
+        target = self._workbench_selected_manifest_target()
+        if not target:
+            messagebox.showwarning("Archive manifest", "Select a manifest first.")
+            return
+        if self._workbench_has_unsaved_editor_changes():
+            messagebox.showwarning("Archive manifest", "Cannot archive manifest: unsaved editor changes are present.\nSave or discard changes first.")
+            return
+        confirmed = messagebox.askyesno("Archive manifest", f"Archive manifest:\n{target}\n\nIt will be moved to manifests/archive/ and removed from the active catalog.")
+        if not confirmed:
+            return
+        result = archive_manifest(target, manifest_dir="manifests")
+        if not result.get("ok"):
+            messagebox.showerror("Archive manifest", f"Archive failed:\n{result.get('error', 'Unknown error')}")
+            return
+        manifest_id = str(result.get("manifest_id", ""))
+        self.workbench_manifest_record = {}
+        self.workbench_manifest_var.set("")
+        self.workbench_frame = {}
+        self.workbench_result = {}
+        self.workbench_manifest_source_path = ""
+        self._refresh_workbench_manifest_catalog()
+        self._render_manifest_workbench_view()
+        self.workbench_input_status_label.configure(text=f"Archived manifest {manifest_id}")
+
+    def on_workbench_restore_archived(self) -> None:
+        archived = list_archived_manifests(manifest_dir="manifests")
+        if not archived:
+            messagebox.showinfo("Restore archived", "No archived manifests found in manifests/archive/.")
+            return
+        dialog = tk.Toplevel(self)
+        dialog.title("Restore archived manifest")
+        dialog.resizable(False, False)
+        dialog.grab_set()
+        ttk.Label(dialog, text="Select archived manifest to restore:").grid(row=0, column=0, columnspan=2, sticky="w", padx=12, pady=(12, 4))
+        choices = [f"{e.get('manifest_id', '')} — {e.get('name', '')} ({Path(e.get('path', '')).name})" for e in archived]
+        choice_var = tk.StringVar(value=choices[0] if choices else "")
+        combo = ttk.Combobox(dialog, textvariable=choice_var, values=choices, width=60, state="readonly")
+        combo.grid(row=1, column=0, columnspan=2, padx=12, pady=(0, 8))
+        result_holder: list[dict] = []
+
+        def do_restore() -> None:
+            idx = combo.current()
+            if idx < 0 or idx >= len(archived):
+                messagebox.showwarning("Restore archived", "Select an archived manifest.", parent=dialog)
+                return
+            archive_path = str(archived[idx].get("path", ""))
+            r = restore_archived_manifest(archive_path, manifest_dir="manifests")
+            result_holder.append(r)
+            dialog.destroy()
+
+        btn_row = ttk.Frame(dialog)
+        btn_row.grid(row=2, column=0, columnspan=2, pady=(0, 12))
+        ttk.Button(btn_row, text="Restore", command=do_restore).pack(side="left", padx=6)
+        ttk.Button(btn_row, text="Cancel", command=dialog.destroy).pack(side="left", padx=6)
+        dialog.wait_window()
+        if not result_holder:
+            return
+        result = result_holder[0]
+        if not result.get("ok"):
+            messagebox.showerror("Restore archived", f"Restore failed:\n{result.get('error', 'Unknown error')}")
+            return
+        manifest_id = str(result.get("manifest_id", ""))
+        self._refresh_workbench_manifest_catalog()
+        self.workbench_manifest_var.set(manifest_id)
+        self.on_workbench_load_selected_manifest(manifest_id)
+        self.workbench_input_status_label.configure(text=f"Restored manifest {manifest_id}")
+
+    def on_workbench_smoke_test_manifest(self) -> None:
+        record = self.workbench_manifest_record if isinstance(self.workbench_manifest_record, dict) else {}
+        path = str(record.get("path") or self.workbench_manifest_source_path or "").strip()
+        if not path:
+            messagebox.showwarning("Smoke test manifest", "Select and save a manifest first.")
+            return
+        if self._workbench_has_unsaved_editor_changes():
+            messagebox.showwarning("Smoke test manifest", "Cannot smoke-test manifest: unsaved editor changes are present.\nSave or discard changes first.")
+            return
+        result = smoke_run_manifest_file(path, runtime_data_dir=self.runtime_root)
+        self.workbench_last_smoke_result = result
+        report = write_smoke_report(result, runtime_data_dir=self.runtime_root)
+        self._show_smoke_result_dialog(result, report)
+
+    def _show_smoke_result_dialog(self, result: dict, report: dict) -> None:
+        dialog = tk.Toplevel(self)
+        dialog.title("Smoke Test Result")
+        dialog.resizable(True, True)
+        dialog.grab_set()
+
+        status = result.get("status", "UNKNOWN")
+        classification = result.get("classification", "")
+        manifest_id = result.get("manifest_id", "")
+        state = result.get("state", "")
+        step_count = result.get("step_count", 0)
+        completed = result.get("completed_steps", 0)
+        failed = result.get("failed_steps", 0)
+        pending = result.get("pending_action_count", 0)
+        outputs = ", ".join(result.get("output_keys") or []) or "none"
+        warnings = ", ".join(result.get("warnings") or []) or "none"
+        errors = result.get("errors") or []
+
+        summary_lines = [
+            f"Smoke Result: {status}",
+            f"Classification: {classification}",
+            f"Manifest: {manifest_id}",
+            f"Frame State: {state}",
+            f"Steps: {step_count} total, {completed} completed, {failed} failed",
+            f"Pending Actions: {pending}",
+            f"Outputs: {outputs}",
+            f"Warnings: {warnings}",
+        ]
+        if errors:
+            summary_lines.append("")
+            summary_lines.append(f"Errors: {'; '.join(str(e) for e in errors[:3])}")
+        if not result.get("ok") and result.get("suggested_fix"):
+            summary_lines.append("")
+            summary_lines.append(f"Suggested Fix: {result['suggested_fix']}")
+        if report.get("ok"):
+            summary_lines.append("")
+            summary_lines.append(f"Report: {report.get('markdown_path', '')}")
+
+        text_widget, _ = create_scrolled_text_widget(dialog, height=16, bg="#f7f8fa", fg="#1f2937", font=("Consolas", 9))
+        text_widget.scrolled_container.grid(row=0, column=0, columnspan=3, sticky="nsew", padx=12, pady=(12, 6))
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(0, weight=1)
+        text_widget.insert("1.0", "\n".join(summary_lines))
+        text_widget.config(state="disabled")
+
+        btn_row = ttk.Frame(dialog)
+        btn_row.grid(row=1, column=0, columnspan=3, pady=(0, 12), padx=12, sticky="w")
+
+        if report.get("json_path"):
+            ttk.Button(btn_row, text="Open Smoke JSON", command=lambda: open_report_html(report["json_path"])).pack(side="left", padx=(0, 6))
+        if report.get("markdown_path"):
+            ttk.Button(btn_row, text="Open Smoke Markdown", command=lambda: open_report_html(report["markdown_path"])).pack(side="left", padx=(0, 6))
+        ttk.Button(btn_row, text="Close", command=dialog.destroy).pack(side="left")
+
+    def on_workbench_repair_guidance(self) -> None:
+        text = self._workbench_manifest_json_text_value()
+        manifest: dict | None = None
+        parse_exception: Exception | None = None
+
+        if text.strip():
+            try:
+                manifest = json.loads(text)
+            except Exception as exc:
+                parse_exception = exc
+
+        last_smoke = getattr(self, "workbench_last_smoke_result", None)
+        last_validation = self.workbench_manifest_validation if hasattr(self, "workbench_manifest_validation") else None
+
+        guidance = explain_manifest_failure(
+            manifest=manifest,
+            validation_result=last_validation if not manifest else None,
+            smoke_result=last_smoke,
+            exception=parse_exception,
+        )
+
+        report = write_repair_guidance_report(guidance, runtime_data_dir=self.runtime_root)
+        self._show_repair_guidance_dialog(guidance, report)
+
+    def _show_repair_guidance_dialog(self, guidance: dict, report: dict) -> None:
+        dialog = tk.Toplevel(self)
+        dialog.title("Manifest Repair Guidance")
+        dialog.resizable(True, True)
+        dialog.grab_set()
+
+        status = guidance.get("status", "UNKNOWN")
+        severity = guidance.get("severity", "info")
+        summary = guidance.get("summary", "")
+        findings = guidance.get("findings") or []
+        next_action = guidance.get("next_action", "")
+
+        lines = [
+            f"Status: {status}",
+            f"Severity: {severity}",
+            f"Summary: {summary}",
+            "",
+        ]
+        for idx, f in enumerate(findings, 1):
+            lines.append(f"[{idx}] {f.get('id', '')}")
+            if f.get("location"):
+                lines.append(f"  Location: {f['location']}")
+            lines.append(f"  Problem:  {f.get('message', '')}")
+            lines.append(f"  Fix:      {f.get('suggested_fix', '')}")
+            if f.get("example"):
+                lines.append(f"  Example:  {f['example']}")
+            lines.append("")
+
+        if next_action:
+            lines.append(f"Next Action: {next_action}")
+
+        if report.get("ok"):
+            lines.append("")
+            lines.append(f"Report: {report.get('markdown_path', '')}")
+
+        text_widget, _ = create_scrolled_text_widget(dialog, height=20, bg="#f7f8fa", fg="#1f2937", font=("Consolas", 9))
+        text_widget.scrolled_container.grid(row=0, column=0, columnspan=3, sticky="nsew", padx=12, pady=(12, 6))
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(0, weight=1)
+        text_widget.insert("1.0", "\n".join(lines))
+        text_widget.config(state="disabled")
+
+        btn_row = ttk.Frame(dialog)
+        btn_row.grid(row=1, column=0, columnspan=3, pady=(0, 12), padx=12, sticky="w")
+
+        if report.get("json_path"):
+            ttk.Button(btn_row, text="Open Guidance JSON", command=lambda: open_report_html(report["json_path"])).pack(side="left", padx=(0, 6))
+        if report.get("markdown_path"):
+            ttk.Button(btn_row, text="Open Guidance Markdown", command=lambda: open_report_html(report["markdown_path"])).pack(side="left", padx=(0, 6))
+        ttk.Button(btn_row, text="Close", command=dialog.destroy).pack(side="left")
+
+    def on_workbench_autofix_preview(self) -> None:
+        text = self._workbench_manifest_json_text_value()
+        manifest: dict | None = None
+        parse_exception: Exception | None = None
+
+        if text.strip():
+            try:
+                manifest = json.loads(text)
+            except Exception as exc:
+                parse_exception = exc
+
+        if parse_exception is not None or not isinstance(manifest, dict):
+            err_msg = str(parse_exception) if parse_exception else "No manifest loaded in editor."
+            dialog = tk.Toplevel(self)
+            dialog.title("Auto-Fix Preview")
+            dialog.grab_set()
+            ttk.Label(dialog, text=f"Cannot parse manifest JSON:\n{err_msg}", wraplength=480, justify="left").pack(padx=16, pady=16)
+            ttk.Button(dialog, text="Close", command=dialog.destroy).pack(pady=(0, 12))
+            return
+
+        last_smoke = getattr(self, "workbench_last_smoke_result", None)
+        last_validation = self.workbench_manifest_validation if hasattr(self, "workbench_manifest_validation") else None
+
+        guidance = explain_manifest_failure(
+            manifest=manifest,
+            validation_result=last_validation,
+            smoke_result=last_smoke,
+        )
+        fix_result = propose_manifest_fixes(manifest, guidance=guidance)
+        self._show_autofix_preview_dialog(manifest, fix_result)
+
+    def on_workbench_validate_all_manifests(self) -> None:
+        try:
+            result = run_manifest_health_check(
+                manifest_dir="manifests",
+                runtime_data_dir=self.runtime_root,
+            )
+            report = write_manifest_health_report(result, runtime_data_dir=self.runtime_root)
+        except Exception as exc:
+            result = {
+                "ok": False,
+                "status": "FAILED",
+                "generated_at": "",
+                "manifest_dir": "manifests",
+                "summary": {},
+                "manifests": [],
+                "error": str(exc),
+            }
+            report = {"ok": False, "json_path": "", "markdown_path": "", "error": str(exc)}
+        self.workbench_manifest_health_result = result
+        self.workbench_manifest_health_report = report
+        self._show_manifest_health_dashboard(result, report)
+
+    def _show_manifest_health_dashboard(self, result: dict, report: dict) -> None:
+        dialog = tk.Toplevel(self)
+        dialog.title("Manifest Health Dashboard")
+        dialog.resizable(True, True)
+        dialog.grab_set()
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(1, weight=1)
+        dialog.rowconfigure(2, weight=1)
+
+        summary = result.get("summary") if isinstance(result, dict) else {}
+        summary = summary if isinstance(summary, dict) else {}
+
+        top = ttk.Frame(dialog, style="Card.TFrame", padding=10)
+        top.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+        for idx, (label, key) in enumerate(
+            (
+                ("Total", "total"),
+                ("Healthy", "healthy"),
+                ("Warnings", "warnings"),
+                ("Failed", "failed"),
+                ("Repairable", "repairable"),
+                ("Manual Fix", "manual_fix_required"),
+                ("Critical", "critical"),
+            )
+        ):
+            card = ttk.Frame(top, style="Card.TFrame", padding=(8, 4))
+            card.grid(row=0, column=idx, sticky="nsew", padx=(0, 6))
+            ttk.Label(card, text=label, style="Meta.TLabel").pack(anchor="w")
+            ttk.Label(card, text=str(summary.get(key, 0)), style="Section.TLabel").pack(anchor="w")
+            top.columnconfigure(idx, weight=1)
+
+        table_frame = ttk.Frame(dialog, style="Card.TFrame", padding=10)
+        table_frame.grid(row=1, column=0, sticky="nsew", padx=12, pady=6)
+        table_frame.columnconfigure(0, weight=1)
+        table_frame.rowconfigure(1, weight=1)
+        ttk.Label(table_frame, text="Manifest Results", style="Section.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 6))
+        columns = ("health", "manifest_id", "validation", "smoke", "repairable", "top_findings", "next_action")
+        tree = ttk.Treeview(table_frame, columns=columns, show="headings", selectmode="browse", height=10)
+        for column, heading, width in (
+            ("health", "Health", 110),
+            ("manifest_id", "Manifest ID", 220),
+            ("validation", "Validation", 90),
+            ("smoke", "Smoke", 90),
+            ("repairable", "Repairable", 80),
+            ("top_findings", "Top Findings", 240),
+            ("next_action", "Next Action", 240),
+        ):
+            tree.heading(column, text=heading)
+            tree.column(column, width=width, anchor="w")
+        tree.grid(row=1, column=0, sticky="nsew")
+        table_scroll_y = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
+        table_scroll_y.grid(row=1, column=1, sticky="ns")
+        table_scroll_x = ttk.Scrollbar(table_frame, orient="horizontal", command=tree.xview)
+        table_scroll_x.grid(row=2, column=0, sticky="ew")
+        tree.configure(yscrollcommand=table_scroll_y.set, xscrollcommand=table_scroll_x.set)
+
+        items = [item for item in (result.get("manifests") or []) if isinstance(item, dict)]
+        item_by_iid: dict[str, dict] = {}
+        for idx, item in enumerate(items):
+            iid = str(idx)
+            item_by_iid[iid] = item
+            tree.insert(
+                "",
+                "end",
+                iid=iid,
+                values=(
+                    item.get("health", ""),
+                    item.get("manifest_id", ""),
+                    "PASS" if item.get("validation", {}).get("ok") else "FAIL",
+                    item.get("smoke", {}).get("status", ""),
+                    item.get("autofix", {}).get("low_risk_applyable", 0),
+                    ", ".join(item.get("repair_guidance", {}).get("top_findings") or []),
+                    item.get("next_action", ""),
+                ),
+            )
+
+        detail_frame = ttk.Frame(dialog, style="Card.TFrame", padding=10)
+        detail_frame.grid(row=2, column=0, sticky="nsew", padx=12, pady=6)
+        detail_frame.columnconfigure(0, weight=1)
+        detail_frame.rowconfigure(1, weight=1)
+        ttk.Label(detail_frame, text="Selected Manifest Detail", style="Section.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 6))
+        detail_text, _detail_scroll = create_scrolled_text_widget(detail_frame, height=11, bg="#f7f8fa", fg="#1f2937", font=("Consolas", 9))
+        detail_text.scrolled_container.grid(row=1, column=0, sticky="nsew")
+
+        def selected_item() -> dict | None:
+            selected = tree.selection()
+            return item_by_iid.get(selected[0]) if selected else None
+
+        def render_detail(_event: object | None = None) -> None:
+            item = selected_item()
+            lines: list[str] = []
+            if not result.get("ok", True):
+                lines.append(f"Dashboard error: {result.get('error', 'Unknown error')}")
+            elif item is None:
+                lines.append("Select a manifest to inspect validation, smoke, repair, and auto-fix detail.")
+            else:
+                lines.extend(
+                    [
+                        f"Path: {item.get('path', '')}",
+                        f"Validation errors: {', '.join(item.get('validation', {}).get('errors') or []) or 'none'}",
+                        f"Smoke classification: {item.get('smoke', {}).get('classification', '')}",
+                        f"Smoke reason: {item.get('smoke', {}).get('reason', '') or 'none'}",
+                        f"Repair findings: {', '.join(item.get('repair_guidance', {}).get('top_findings') or []) or 'none'}",
+                        (
+                            "Auto-fix proposals: "
+                            f"{item.get('autofix', {}).get('proposal_count', 0)} total, "
+                            f"{item.get('autofix', {}).get('supported_count', 0)} supported, "
+                            f"{item.get('autofix', {}).get('unsupported_count', 0)} unsupported, "
+                            f"{item.get('autofix', {}).get('low_risk_applyable', 0)} low-risk applyable"
+                        ),
+                        f"Next action: {item.get('next_action', '')}",
+                    ]
+                )
+            lines.extend(
+                [
+                    "",
+                    f"JSON report: {report.get('json_path', '')}",
+                    f"Markdown report: {report.get('markdown_path', '')}",
+                ]
+            )
+            self._clear_text_widget(detail_text)
+            detail_text.insert("1.0", "\n".join(lines))
+
+        tree.bind("<<TreeviewSelect>>", render_detail)
+        if items:
+            tree.selection_set("0")
+            tree.focus("0")
+        render_detail()
+
+        def load_selected() -> None:
+            item = selected_item()
+            if item is None:
+                messagebox.showwarning("Manifest Health Dashboard", "Select a manifest first.", parent=dialog)
+                return
+            self.on_workbench_load_selected_manifest(str(item.get("path", "")))
+
+        def open_repair_guidance() -> None:
+            load_selected()
+            self.on_workbench_repair_guidance()
+
+        def open_autofix_preview() -> None:
+            load_selected()
+            self.on_workbench_autofix_preview()
+
+        def smoke_selected() -> None:
+            item = selected_item()
+            if item is None:
+                messagebox.showwarning("Manifest Health Dashboard", "Select a manifest first.", parent=dialog)
+                return
+            load_selected()
+            self.on_workbench_smoke_test_manifest()
+
+        button_row = ttk.Frame(dialog)
+        button_row.grid(row=3, column=0, sticky="ew", padx=12, pady=(6, 12))
+        ttk.Button(button_row, text="Run Validate All", command=lambda: self._refresh_manifest_health_dashboard(dialog)).pack(side="left", padx=(0, 6))
+        ttk.Button(button_row, text="Open Selected Manifest", command=load_selected).pack(side="left", padx=(0, 6))
+        ttk.Button(button_row, text="Repair Guidance", command=open_repair_guidance).pack(side="left", padx=(0, 6))
+        ttk.Button(button_row, text="Auto-Fix Preview", command=open_autofix_preview).pack(side="left", padx=(0, 6))
+        ttk.Button(button_row, text="Smoke Test Selected", command=smoke_selected).pack(side="left", padx=(0, 6))
+        if report.get("json_path"):
+            ttk.Button(button_row, text="Open JSON Report", command=lambda: open_report_html(report["json_path"])).pack(side="left", padx=(0, 6))
+        if report.get("markdown_path"):
+            ttk.Button(button_row, text="Open Markdown Report", command=lambda: open_report_html(report["markdown_path"])).pack(side="left", padx=(0, 6))
+        ttk.Button(button_row, text="Close", command=dialog.destroy).pack(side="left")
+
+    def _refresh_manifest_health_dashboard(self, dialog: tk.Toplevel) -> None:
+        dialog.destroy()
+        self.on_workbench_validate_all_manifests()
+
+    def _show_autofix_preview_dialog(self, manifest: dict, fix_result: dict) -> None:
+        dialog = tk.Toplevel(self)
+        dialog.title("Manifest Auto-Fix Preview")
+        dialog.resizable(True, True)
+        dialog.grab_set()
+        dialog.columnconfigure(0, weight=1)
+        dialog.columnconfigure(1, weight=2)
+        dialog.rowconfigure(1, weight=1)
+
+        proposals = fix_result.get("proposals") or []
+
+        # Header row
+        header = ttk.Frame(dialog)
+        header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=12, pady=(12, 4))
+        status_text = (
+            f"Status: {fix_result.get('status', 'UNKNOWN')}  |  "
+            f"Manifest: {fix_result.get('manifest_id', '')}  |  "
+            f"Proposals: {fix_result.get('proposal_count', 0)}  "
+            f"(Supported: {fix_result.get('supported_count', 0)}, "
+            f"Unsupported: {fix_result.get('unsupported_count', 0)})"
+        )
+        ttk.Label(header, text=status_text, style="Meta.TLabel", wraplength=860).pack(anchor="w")
+
+        # Left: proposal list
+        left = ttk.Frame(dialog, style="Card.TFrame", padding=8)
+        left.grid(row=1, column=0, sticky="nsew", padx=(12, 4), pady=(4, 4))
+        left.rowconfigure(1, weight=1)
+        left.columnconfigure(0, weight=1)
+        ttk.Label(left, text="Proposals", style="Section.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 6))
+
+        proposal_listbox = tk.Listbox(left, width=38, selectmode="single", font=("Consolas", 9), exportselection=False)
+        proposal_listbox.grid(row=1, column=0, sticky="nsew")
+        list_scroll = ttk.Scrollbar(left, orient="vertical", command=proposal_listbox.yview)
+        list_scroll.grid(row=1, column=1, sticky="ns")
+        proposal_listbox.configure(yscrollcommand=list_scroll.set)
+
+        for p in proposals:
+            label = f"[{p.get('status', '')}] {p.get('finding_id', '')} | {p.get('risk', '')}"
+            proposal_listbox.insert("end", label)
+            if p.get("status") == "NOT_SUPPORTED":
+                proposal_listbox.itemconfig("end", fg="#9ca3af")
+
+        # Right: detail panel
+        right = ttk.Frame(dialog, style="Card.TFrame", padding=8)
+        right.grid(row=1, column=1, sticky="nsew", padx=(4, 12), pady=(4, 4))
+        right.rowconfigure(1, weight=1)
+        right.columnconfigure(0, weight=1)
+        ttk.Label(right, text="Details", style="Section.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 6))
+
+        detail_text, _ = create_scrolled_text_widget(right, height=22, bg="#f7f8fa", fg="#1f2937", font=("Consolas", 9))
+        detail_text.scrolled_container.grid(row=1, column=0, sticky="nsew")
+
+        selected_proposal: list[dict | None] = [None]
+        apply_button_ref: list = []
+
+        def _show_proposal(proposal: dict) -> None:
+            detail_text.config(state="normal")
+            detail_text.delete("1.0", "end")
+            lines = [
+                f"Finding ID:  {proposal.get('finding_id', '')}",
+                f"Title:       {proposal.get('title', '')}",
+                f"Status:      {proposal.get('status', '')}",
+                f"Risk:        {proposal.get('risk', '')}",
+                f"Confidence:  {proposal.get('confidence', '')}",
+                f"Location:    {proposal.get('location', '')}",
+                "",
+                f"Summary:",
+                f"  {proposal.get('summary', '')}",
+                "",
+            ]
+            warnings = proposal.get("warnings") or []
+            if warnings:
+                lines.append("Warnings:")
+                for w in warnings:
+                    lines.append(f"  ! {w}")
+                lines.append("")
+
+            patches = proposal.get("patches") or []
+            if patches:
+                lines.append("Patch Operations:")
+                lines.append(json.dumps(patches, indent=2, ensure_ascii=False))
+                lines.append("")
+
+            diff = proposal.get("diff") or []
+            if diff:
+                lines.append("Diff:")
+                lines.extend(diff)
+                lines.append("")
+
+            before = proposal.get("before_preview", "")
+            after = proposal.get("after_preview", "")
+            if before:
+                lines.append("--- Before ---")
+                lines.append(before[:800] + ("..." if len(before) > 800 else ""))
+                lines.append("")
+            if after:
+                lines.append("--- After ---")
+                lines.append(after[:800] + ("..." if len(after) > 800 else ""))
+
+            detail_text.insert("1.0", "\n".join(lines))
+            detail_text.config(state="disabled")
+
+            can_apply = proposal.get("status") == "PROPOSED" and proposal.get("risk") == "low"
+            if apply_button_ref:
+                apply_button_ref[0].config(state="normal" if can_apply else "disabled")
+
+        def _on_select(event: object = None) -> None:
+            idxs = proposal_listbox.curselection()
+            if not idxs:
+                return
+            idx = int(idxs[0])
+            if 0 <= idx < len(proposals):
+                selected_proposal[0] = proposals[idx]
+                _show_proposal(proposals[idx])
+
+        proposal_listbox.bind("<<ListboxSelect>>", _on_select)
+
+        if proposals:
+            proposal_listbox.selection_set(0)
+            selected_proposal[0] = proposals[0]
+            _show_proposal(proposals[0])
+
+        # Button row
+        btn_row = ttk.Frame(dialog)
+        btn_row.grid(row=2, column=0, columnspan=2, sticky="w", padx=12, pady=(4, 12))
+
+        def _refresh() -> None:
+            dialog.destroy()
+            self.on_workbench_autofix_preview()
+
+        def _apply_to_editor() -> None:
+            proposal = selected_proposal[0]
+            if not proposal:
+                messagebox.showwarning("Auto-Fix Preview", "Select a proposal first.")
+                return
+            if proposal.get("status") != "PROPOSED" or proposal.get("risk") != "low":
+                messagebox.showwarning("Auto-Fix Preview", "Only low-risk PROPOSED fixes can be applied.")
+                return
+            text = self._workbench_manifest_json_text_value()
+            try:
+                current_manifest = json.loads(text)
+            except Exception as exc:
+                messagebox.showerror("Auto-Fix Preview", f"Cannot parse editor JSON:\n{exc}")
+                return
+            confirmed = messagebox.askyesno(
+                "Apply Fix to Editor",
+                f"Apply fix:\n\n{proposal.get('title', '')}\n\n"
+                "This will update the editor buffer. Save the manifest afterwards to persist the change.",
+            )
+            if not confirmed:
+                return
+            preview = apply_manifest_fix_preview(current_manifest, proposal)
+            if not preview.get("ok"):
+                messagebox.showerror("Auto-Fix Preview", f"Fix could not be applied:\n{preview.get('error', 'Unknown error')}")
+                return
+            patched = preview["manifest"]
+            self._clear_text_widget(self.workbench_manifest_json_text)
+            self.workbench_manifest_json_text.insert("1.0", json.dumps(patched, indent=2, ensure_ascii=False))
+            messagebox.showinfo(
+                "Auto-Fix Applied",
+                "Fix applied to editor buffer.\n\nThe editor now shows the patched manifest. "
+                "Run Validate or Repair Guidance to check remaining issues, then Save.",
+            )
+
+        def _write_report() -> None:
+            report = write_autofix_report(fix_result, runtime_data_dir=self.runtime_root)
+            if report.get("ok"):
+                messagebox.showinfo(
+                    "Auto-Fix Report",
+                    f"Report written:\n{report.get('markdown_path', '')}",
+                )
+            else:
+                messagebox.showerror("Auto-Fix Report", f"Could not write report:\n{report.get('error', '')}")
+
+        ttk.Button(btn_row, text="Refresh Proposals", command=_refresh).pack(side="left", padx=(0, 6))
+        apply_btn = ttk.Button(btn_row, text="Apply Selected Fix to Editor", command=_apply_to_editor)
+        apply_btn.pack(side="left", padx=(0, 6))
+        apply_button_ref.append(apply_btn)
+        first_can_apply = bool(proposals and proposals[0].get("status") == "PROPOSED" and proposals[0].get("risk") == "low")
+        apply_btn.config(state="normal" if first_can_apply else "disabled")
+        ttk.Button(btn_row, text="Write Auto-Fix Report", command=_write_report).pack(side="left", padx=(0, 6))
+        ttk.Button(btn_row, text="Close", command=dialog.destroy).pack(side="left")
+
+    def on_workbench_new_manifest_from_template(self) -> None:
+        if self._workbench_has_unsaved_editor_changes():
+            confirmed = messagebox.askyesno(
+                "New manifest from template",
+                "The editor has unsaved changes.\n\nDiscard unsaved changes and open the wizard?",
+            )
+            if not confirmed:
+                return
+        self._open_new_manifest_wizard()
+
+    def _open_new_manifest_wizard(self) -> None:
+        templates = list_manifest_templates()
+        template_names = [f"{t['name']} [{t['template_id']}]" for t in templates]
+
+        dialog = tk.Toplevel(self)
+        dialog.title("New Manifest from Template")
+        dialog.resizable(True, True)
+        dialog.grab_set()
+        dialog.columnconfigure(1, weight=1)
+
+        # --- Template selection ---
+        ttk.Label(dialog, text="Template:", anchor="w").grid(row=0, column=0, sticky="w", padx=12, pady=(14, 4))
+        template_var = tk.StringVar(value=template_names[0] if template_names else "")
+        template_combo = ttk.Combobox(dialog, textvariable=template_var, values=template_names, width=52, state="readonly")
+        template_combo.grid(row=0, column=1, padx=(0, 12), pady=(14, 4), sticky="ew")
+
+        desc_label = ttk.Label(dialog, text="", style="Meta.TLabel", wraplength=480, justify="left")
+        desc_label.grid(row=1, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 8))
+
+        def _update_desc(*_: object) -> None:
+            idx = template_combo.current()
+            if 0 <= idx < len(templates):
+                desc_label.configure(text=templates[idx]["description"])
+        template_combo.bind("<<ComboboxSelected>>", _update_desc)
+        _update_desc()
+
+        # --- Basic details ---
+        ttk.Separator(dialog, orient="horizontal").grid(row=2, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 8))
+        ttk.Label(dialog, text="Manifest ID:", anchor="w").grid(row=3, column=0, sticky="w", padx=12, pady=(0, 4))
+        id_var = tk.StringVar()
+        ttk.Entry(dialog, textvariable=id_var, width=52).grid(row=3, column=1, padx=(0, 12), pady=(0, 4), sticky="ew")
+
+        ttk.Label(dialog, text="Name:", anchor="w").grid(row=4, column=0, sticky="w", padx=12, pady=(0, 4))
+        name_var = tk.StringVar()
+        ttk.Entry(dialog, textvariable=name_var, width=52).grid(row=4, column=1, padx=(0, 12), pady=(0, 4), sticky="ew")
+
+        # --- Inputs / Command ---
+        ttk.Separator(dialog, orient="horizontal").grid(row=5, column=0, columnspan=2, sticky="ew", padx=12, pady=(4, 8))
+        ttk.Label(dialog, text="Inputs (comma-separated):", anchor="w").grid(row=6, column=0, sticky="w", padx=12, pady=(0, 4))
+        inputs_var = tk.StringVar()
+        ttk.Entry(dialog, textvariable=inputs_var, width=52).grid(row=6, column=1, padx=(0, 12), pady=(0, 4), sticky="ew")
+
+        ttk.Label(dialog, text="Primary command (optional):", anchor="w").grid(row=7, column=0, sticky="w", padx=12, pady=(0, 4))
+        command_var = tk.StringVar()
+        ttk.Entry(dialog, textvariable=command_var, width=52).grid(row=7, column=1, padx=(0, 12), pady=(0, 4), sticky="ew")
+
+        ttk.Label(dialog, text="Output alias (optional):", anchor="w").grid(row=8, column=0, sticky="w", padx=12, pady=(0, 4))
+        alias_var = tk.StringVar()
+        ttk.Entry(dialog, textvariable=alias_var, width=52).grid(row=8, column=1, padx=(0, 12), pady=(0, 4), sticky="ew")
+
+        # --- Preview ---
+        ttk.Separator(dialog, orient="horizontal").grid(row=9, column=0, columnspan=2, sticky="ew", padx=12, pady=(4, 8))
+        ttk.Label(dialog, text="Preview JSON:", anchor="w").grid(row=10, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 4))
+        preview_text_widget, _ = create_scrolled_text_widget(dialog, height=14, bg="#f7f8fa", fg="#1f2937", font=("Consolas", 9))
+        preview_text_widget.scrolled_container.grid(row=11, column=0, columnspan=2, sticky="nsew", padx=12, pady=(0, 4))
+        dialog.rowconfigure(11, weight=1)
+
+        validation_label = ttk.Label(dialog, text="", style="Meta.TLabel", wraplength=500, justify="left")
+        validation_label.grid(row=12, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 4))
+
+        # State
+        state: dict = {"manifest": None, "valid": False}
+
+        def _get_inputs() -> list[str]:
+            raw = inputs_var.get().strip()
+            return [p.strip() for p in raw.split(",") if p.strip()] if raw else []
+
+        def _get_template_id() -> str:
+            idx = template_combo.current()
+            if 0 <= idx < len(templates):
+                return templates[idx]["template_id"]
+            return ""
+
+        def _preview() -> None:
+            tid = _get_template_id()
+            mid = id_var.get().strip()
+            mname = name_var.get().strip() or mid
+            if not tid or not mid:
+                _set_preview_text("Fill in Template and Manifest ID to preview.")
+                return
+            try:
+                manifest = build_manifest_from_template(
+                    tid, mid, mname,
+                    command=command_var.get().strip(),
+                    inputs=_get_inputs(),
+                    output_alias=alias_var.get().strip(),
+                )
+                state["manifest"] = manifest
+                _set_preview_text(json.dumps(manifest, indent=2, ensure_ascii=False))
+                validation_label.configure(text="")
+            except Exception as exc:
+                _set_preview_text(f"Error building manifest:\n{exc}")
+                state["manifest"] = None
+
+        def _set_preview_text(text: str) -> None:
+            preview_text_widget.config(state="normal")
+            preview_text_widget.delete("1.0", "end")
+            preview_text_widget.insert("1.0", text)
+            preview_text_widget.config(state="disabled")
+
+        def _validate() -> None:
+            _preview()
+            manifest = state.get("manifest")
+            if not manifest:
+                validation_label.configure(text="Build a preview first.")
+                state["valid"] = False
+                create_btn.config(state="disabled")
+                return
+            ok, errors = validate_manifest_candidate(manifest, manifest_dir="manifests")
+            state["valid"] = ok
+            if ok:
+                validation_label.configure(text="Validation passed. Ready to create.")
+                create_btn.config(state="normal")
+            else:
+                validation_label.configure(text="Validation errors:\n" + "\n".join(f"• {e}" for e in errors))
+                create_btn.config(state="disabled")
+
+        def _create() -> None:
+            if not state.get("valid") or not state.get("manifest"):
+                messagebox.showwarning("New manifest from template", "Validate the manifest before creating.", parent=dialog)
+                return
+            manifest = state["manifest"]
+            result = write_manifest_candidate(manifest, manifest_dir="manifests")
+            if not result.get("ok"):
+                errs = "\n".join(result.get("errors", []))
+                messagebox.showerror("New manifest from template", f"Create failed:\n{errs}", parent=dialog)
+                return
+            new_id = str(result.get("manifest_id", ""))
+            # Show event route snippet if event-driven template
+            if _get_template_id() == "event_driven_stub":
+                snippet = build_event_route_snippet(manifest)
+                messagebox.showinfo(
+                    "Event route snippet",
+                    f"Manifest created.\n\nRegister this route manually in config/event_routes.json:\n\n{snippet}",
+                    parent=dialog,
+                )
+            saved_path = str(result.get("path", ""))
+            dialog.destroy()
+            self._refresh_workbench_manifest_catalog()
+            self.workbench_manifest_var.set(new_id)
+            self.on_workbench_load_selected_manifest(new_id)
+            self.workbench_input_status_label.configure(text=f"Created manifest {new_id}")
+            # Offer smoke test
+            run_smoke = messagebox.askyesno(
+                "Manifest created",
+                f"Manifest '{new_id}' created.\n\nRun smoke test now?",
+            )
+            if run_smoke and saved_path:
+                smoke_result = smoke_run_manifest_file(saved_path, runtime_data_dir=self.runtime_root)
+                smoke_report = write_smoke_report(smoke_result, runtime_data_dir=self.runtime_root)
+                self._show_smoke_result_dialog(smoke_result, smoke_report)
+
+        # --- Buttons ---
+        btn_row = ttk.Frame(dialog)
+        btn_row.grid(row=13, column=0, columnspan=2, pady=(4, 14), padx=12, sticky="w")
+        ttk.Button(btn_row, text="Preview", command=_preview).pack(side="left", padx=(0, 6))
+        ttk.Button(btn_row, text="Validate", command=_validate).pack(side="left", padx=(0, 6))
+        create_btn = ttk.Button(btn_row, text="Create Manifest", command=_create, state="disabled")
+        create_btn.pack(side="left", padx=(0, 6))
+        ttk.Button(btn_row, text="Cancel", command=dialog.destroy).pack(side="left")
 
     def on_workbench_new_manifest(self) -> None:
         template = new_manifest_template()
@@ -3372,4 +4270,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

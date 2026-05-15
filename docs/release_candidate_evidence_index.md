@@ -19,6 +19,8 @@
 - Screenshot Folder: `docs\screenshots`
 
 ## Runtime Reports
+- runtime_data\manifest_health\manifest_health_report.json
+- runtime_data\manifest_health\manifest_health_report.md
 - runtime_data\outputs\reports\golden_demo_report.md
 - runtime_data\outputs\reports\golden_demo_report.html
 - runtime_data\outputs\audit\golden_demo_audit.json

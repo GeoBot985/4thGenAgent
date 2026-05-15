@@ -1,0 +1,32 @@
+{
+  "manifest_id": "smoke.live_side_effect_blocked_by_tool",
+  "name": "Smoke Test - Live Side Effect Blocked By Tool",
+  "version": 1,
+  "live_execution": {
+    "enabled": true,
+    "allowed_tools": ["wa/send"],
+    "requires_approval": true
+  },
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "stage_whatsapp_send",
+      "command": "[t:wa/send -> sent_msg] chat=\"Cornelia\"; message=\"Live should be blocked\""
+    }
+  ],
+  "validations": [
+    {
+      "id": "whatsapp_send_pending",
+      "type": "pending_action_exists",
+      "tool": "wa/send",
+      "output": "sent_msg"
+    }
+  ],
+  "completion": {
+    "success_pending_actions": ["sent_msg"],
+    "allow_pending_approval": true
+  }
+}

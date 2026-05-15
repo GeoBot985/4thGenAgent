@@ -6,7 +6,7 @@
 
 ## Verification Date
 
-- 2026-05-14T06:53:34.170288Z
+- 2026-05-15T10:34:27.448494Z
 
 ## Commands Run
 
@@ -16,7 +16,7 @@
 
 ## Test Summary
 
-- Pytest: 1433 passed, 1 skipped
+- Pytest: 1621 passed, 1 skipped
 - Commands Run: 17
 - Passed Commands: 17
 - Failed Commands: 0
@@ -49,6 +49,8 @@
 
 ## Evidence Files
 
+- runtime_data\manifest_health\manifest_health_report.json
+- runtime_data\manifest_health\manifest_health_report.md
 - runtime_data\outputs\reports\golden_demo_report.md
 - runtime_data\outputs\reports\golden_demo_report.html
 - runtime_data\outputs\audit\golden_demo_audit.json

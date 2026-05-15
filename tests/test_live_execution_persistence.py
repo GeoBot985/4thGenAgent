@@ -17,6 +17,10 @@ from runtime.taskframe import create_taskframe
 from runtime.tool_registry import TOOL_REGISTRY
 
 
+SMOKE_MANIFEST_DIR = Path("tests/fixtures/smoke_manifests")
+SMOKE_ROUTES_PATH = SMOKE_MANIFEST_DIR / "event_routes.json"
+
+
 class LiveExecutionPersistenceTests(unittest.TestCase):
     def setUp(self):
         self._saved_registry: dict[str, dict | None] = {}
@@ -115,7 +119,7 @@ class LiveExecutionPersistenceTests(unittest.TestCase):
         return frame
 
     def _stage_target(self, runtime_dir: Path, event_type: str, payload: dict[str, object]):
-        engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=True)
+        engine = RuntimeEngine(runtime_data_dir=runtime_dir, persist_runs=True, manifest_dir=SMOKE_MANIFEST_DIR, routes_path=SMOKE_ROUTES_PATH)
         target = engine.handle_event(create_event(event_type, "manual", payload=payload), dry_run=True)
         action_id = target.pending_actions[0]["action_id"]
         approval_frame = engine.handle_event(
@@ -141,7 +145,7 @@ class LiveExecutionPersistenceTests(unittest.TestCase):
             self._install_sheet_tools()
             command_frame = self._make_live_command_frame(target.frame_id, confirm_live="false")
             command_frame.inputs["action_id"] = action_id
-            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir)
+            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir, manifest_dir=SMOKE_MANIFEST_DIR)
 
             result = runner.run_step(command_frame, command_frame.steps[0])
 
@@ -155,7 +159,7 @@ class LiveExecutionPersistenceTests(unittest.TestCase):
             self._install_sheet_tools()
             command_frame = self._make_live_command_frame(target.frame_id, confirm_live="true")
             command_frame.inputs["action_id"] = action_id
-            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir)
+            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir, manifest_dir=SMOKE_MANIFEST_DIR)
 
             result = runner.run_step(command_frame, command_frame.steps[0])
 
@@ -170,7 +174,7 @@ class LiveExecutionPersistenceTests(unittest.TestCase):
             self._install_sheet_tools()
             command_frame = self._make_live_command_frame(target.frame_id, confirm_live="true")
             command_frame.inputs["action_id"] = action_id
-            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir)
+            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir, manifest_dir=SMOKE_MANIFEST_DIR)
 
             result = runner.run_step(command_frame, command_frame.steps[0])
 
@@ -185,7 +189,7 @@ class LiveExecutionPersistenceTests(unittest.TestCase):
             engine, target, action_id = self._stage_target(runtime_dir, "manual.live_sheet_create_allowed", {"title": "Runtime Live Smoke"})
             command_frame = self._make_live_command_frame(target.frame_id, confirm_live="true")
             command_frame.inputs["action_id"] = action_id
-            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir)
+            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir, manifest_dir=SMOKE_MANIFEST_DIR)
 
             result = runner.run_step(command_frame, command_frame.steps[0])
             PersistenceManager(runtime_dir).save_snapshot(command_frame)
@@ -217,7 +221,7 @@ class LiveExecutionPersistenceTests(unittest.TestCase):
             )
             command_frame = self._make_live_command_frame(target.frame_id, confirm_live="true")
             command_frame.inputs["action_id"] = action_id
-            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir)
+            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir, manifest_dir=SMOKE_MANIFEST_DIR)
 
             result = runner.run_step(command_frame, command_frame.steps[0])
             PersistenceManager(runtime_dir).save_snapshot(command_frame)
@@ -234,7 +238,7 @@ class LiveExecutionPersistenceTests(unittest.TestCase):
             engine, target, action_id = self._stage_target(runtime_dir, "manual.live_sheet_create_allowed", {"title": "Runtime Live Smoke"})
             command_frame = self._make_live_command_frame(target.frame_id, confirm_live="true")
             command_frame.inputs["action_id"] = action_id
-            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir)
+            runner = ApprovalCommandRunner(runtime_data_dir=runtime_dir, manifest_dir=SMOKE_MANIFEST_DIR)
 
             result = runner.run_step(command_frame, command_frame.steps[0])
             PersistenceManager(runtime_dir).save_snapshot(command_frame)

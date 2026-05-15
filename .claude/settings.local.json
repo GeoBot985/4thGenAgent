@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/test_manifest_tool_reference.py -v)",
+      "Bash(python -m pytest --tb=no -q)",
+      "Bash(python scripts/run_golden_demo.py)",
+      "Bash(python scripts/run_release_verification.py)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(python -c \"from runtime.tool_registry import TOOL_REGISTRY; import json; r = next\\(\\(v for k,v in TOOL_REGISTRY.items\\(\\) if v.get\\('side_effect'\\)\\), {}\\); print\\(json.dumps\\(r, indent=2\\)\\)\")",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

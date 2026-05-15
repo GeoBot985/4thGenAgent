@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/test_manifest_workbench.py -v)",
+      "Bash(python -c ' *)",
+      "Bash(python -m pytest tests/test_manifest_workbench.py -v --tb=short)",
+      "Bash(python -m pytest tests/test_manifest_workbench_catalog_management.py -v)",
+      "Bash(python -m pytest tests/test_manifest_workbench_catalog_management.py::test_duplicate_manifest_creates_copy_with_new_id -v)",
+      "Bash(python -m pytest tests/test_manifest_workbench_catalog_management.py tests/test_manifest_workbench.py tests/test_manifest_workbench_save.py -v)",
+      "Bash(python -m pytest -x -q)",
+      "Bash(python -m pytest tests/test_manifest_template_generator.py tests/test_operator_manifest_wizard.py -v)",
+      "Bash(echo \"release exit: $?\")",
+      "Bash(python -c \"from runtime.tool_registry import TOOL_REGISTRY; print\\(list\\(TOOL_REGISTRY.keys\\(\\)\\)[:5]\\)\")",
+      "Bash(python -c \"from runtime.command_parser import parse_command; print\\(parse_command\\('[t:g/check -> result] max_results=5'\\)\\)\")",
+      "Bash(python -c \"from runtime.command_parser import parse_command; print\\(parse_command\\('[q:classify -> category] text=hello'\\)\\)\")",
+      "Bash(python -c \"from runtime.command_parser import parse_command; print\\(parse_command\\('not_valid'\\)\\)\")",
+      "Bash(python -m pytest tests/test_generated_manifest_smoke_runner.py -v)",
+      "Bash(python -m pytest tests/test_manifest_template_quality_gates.py -v)",
+      "Bash(python -m pytest tests/test_generated_manifest_smoke_runner.py tests/test_manifest_template_quality_gates.py -v)",
+      "Bash(python -m pytest tests/test_operator_manifest_wizard.py tests/test_manifest_template_quality_gates.py tests/test_generated_manifest_smoke_runner.py tests/test_manifest_template_generator.py tests/test_manifest_workbench_catalog_management.py -v --tb=short)",
+      "Bash(python -m pytest --tb=short -q)",
+      "Bash(python -m pytest tests/test_manifest_authoring_feedback.py -v --tb=short)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Projects\\\\4thGenAgent\\\\src\" -Filter \"*.py\")",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(python -m pytest tests/test_manifest_autofix.py -x -q)",
+      "Bash(python -m pytest tests/test_manifest_authoring_regression_gallery.py -x -q)"
+    ]
+  }
+}
