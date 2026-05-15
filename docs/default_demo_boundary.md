@@ -18,6 +18,7 @@ This document freezes what belongs in the default clean-clone RC path and what d
 - Optional RPA tools
 - Live WhatsApp or Gmail sending
 - Live browser automation
+- Live execution from the default demo path
 - Unbounded LLM tool choice
 - Production credentials
 - Real customer or supplier data
@@ -36,3 +37,4 @@ A new tool is excluded from the default RC path unless:
 - it has deterministic tests
 - it does not require live credentials for default verification
 - it does not enable live side effects by default
+- it keeps live execution behind explicit safety guardrails and confirmation

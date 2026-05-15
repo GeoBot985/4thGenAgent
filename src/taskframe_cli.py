@@ -18,6 +18,16 @@ from src.config_profiles import (
     load_config_profile,
     resolve_profile_name,
 )
+from src.live_safety_status import build_live_safety_status
+from src.operator_data import build_operator_snapshot
+from runtime.live_execution_safety import build_live_execution_preflight, confirmation_phrase, redact_pending_action_args
+from runtime.manifest_loader import load_manifest_by_id
+from runtime.pending_actions import get_pending_action, list_pending_actions
+from runtime.taskframe_reload import load_taskframe
+from runtime.tool_health import load_latest_tool_health_snapshot
+from runtime.tool_registry import get_tool_spec
+from runtime.tool_runner import ToolRunner
+from runtime.persistence import persist_frame_update
 
 VERSION = "0.1.0"
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +86,33 @@ def build_parser() -> argparse.ArgumentParser:
     mh.add_argument("--strict", action="store_true")
     mh.add_argument("--json", action="store_true")
 
+    safety = sub.add_parser("safety-status", help="Show a live execution safety snapshot.")
+    safety.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    safety.add_argument("--json", action="store_true")
+
+    pending = sub.add_parser("pending-actions", help="List pending actions and live safety readiness.")
+    pending.add_argument("--frame-id", default="")
+    pending.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    pending.add_argument("--json", action="store_true")
+
+    preflight = sub.add_parser("live-preflight", help="Run a live execution preflight for one pending action.")
+    preflight.add_argument("--frame-id", required=True)
+    preflight.add_argument("--action-id", required=True)
+    preflight.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    preflight.add_argument("--manifest-dir", default="manifests")
+    preflight.add_argument("--json", action="store_true")
+
+    execute = sub.add_parser("execute-approved", help="Execute an approved pending action in dry-run or live mode.")
+    execute.add_argument("--frame-id", required=True)
+    execute.add_argument("--action-id", required=True)
+    execute.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    execute.add_argument("--manifest-dir", default="manifests")
+    execute.add_argument("--dry-run", action="store_true")
+    execute.add_argument("--live", action="store_true")
+    execute.add_argument("--i-understand-live-side-effects", action="store_true")
+    execute.add_argument("--confirm", default="")
+    execute.add_argument("--json", action="store_true")
+
     rpa = sub.add_parser("rpa", help="Optional RPA tool status, health, and documentation.")
     rpa_sub = rpa.add_subparsers(dest="rpa_command", required=True)
 
@@ -109,6 +146,14 @@ def main(argv: list[str] | None = None) -> int:
         return _run_config(args)
     if args.command == "manifest-health":
         return _run_manifest_health(args)
+    if args.command == "safety-status":
+        return _run_safety_status(args)
+    if args.command == "pending-actions":
+        return _run_pending_actions(args)
+    if args.command == "live-preflight":
+        return _run_live_preflight(args)
+    if args.command == "execute-approved":
+        return _run_execute_approved(args)
     if args.command == "rpa":
         return _run_rpa(args)
     parser.print_help()
@@ -339,6 +384,304 @@ def _run_manifest_health(args: argparse.Namespace) -> int:
     if bool(args.strict) and int(summary.get("failed", 0) or 0) > 0:
         return 1
     return 0
+
+
+def _load_frame_for_cli(frame_id: str, runtime_data_dir: str):
+    if not str(frame_id or "").strip():
+        return None
+    try:
+        return load_taskframe(frame_id, runtime_data_dir)
+    except Exception:
+        return None
+
+
+def _run_safety_status(args: argparse.Namespace) -> int:
+    payload = build_live_safety_status(runtime_data_dir=args.runtime_data_dir)
+    if bool(args.json):
+        print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+    else:
+        print("Live safety status:")
+        print(f"Live execution env enabled: {str(payload.get('live_execution_env_enabled', False)).lower()}")
+        print(f"Default mode: {payload.get('default_mode', 'dry_run')}")
+        print(f"Optional RPA enabled: {str(payload.get('optional_rpa_enabled', False)).lower()}")
+        print(f"Pending action count: {payload.get('pending_action_count', 0)}")
+        print(f"Approved pending action count: {payload.get('approved_pending_action_count', 0)}")
+        print(f"Live-ready action count: {payload.get('live_ready_action_count', 0)}")
+        print(f"Blocked action count: {payload.get('blocked_action_count', 0)}")
+        print(f"Tool health snapshot path: {payload.get('tool_health_snapshot_path', '')}")
+        print(f"Summary: {payload.get('summary', '')}")
+    return 0
+
+
+def _run_pending_actions(args: argparse.Namespace) -> int:
+    if str(args.frame_id or "").strip():
+        frame = _load_frame_for_cli(args.frame_id, args.runtime_data_dir)
+    else:
+        snapshot = build_operator_snapshot(args.runtime_data_dir)
+        frame = snapshot.get("active_frame") if isinstance(snapshot, dict) else None
+        if not isinstance(frame, dict):
+            frame = None
+    if frame is None:
+        payload = {"frame_id": args.frame_id or "", "ok": True, "pending_actions": [], "summary": "No pending actions."}
+    else:
+        if isinstance(frame, dict):
+            pending_actions = [dict(item) for item in frame.get("pending_actions", []) if isinstance(item, dict)]
+        else:
+            pending_actions = [dict(item) for item in list_pending_actions(frame)]
+        payload = {
+            "frame_id": str(frame.get("frame_id", "")) if isinstance(frame, dict) else str(frame.frame_id),
+            "manifest_id": str(frame.get("manifest_id", "")) if isinstance(frame, dict) else str(frame.manifest_id),
+            "state": str(frame.get("state", "")) if isinstance(frame, dict) else str(frame.state),
+            "ok": True,
+            "pending_actions": [
+                {
+                    "action_id": str(item.get("action_id", "")),
+                    "tool": str(item.get("tool", "")),
+                    "status": str(item.get("status", "")),
+                    "output_alias": str(item.get("output_alias", "")),
+                    "guardrail": str(item.get("guardrail", "")),
+                    "args": redact_pending_action_args(dict(item.get("args", {}) or {})),
+                }
+                for item in pending_actions
+            ],
+            "summary": f"{len(pending_actions)} pending action(s).",
+        }
+    if bool(args.json):
+        print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+    else:
+        print(f"Frame: {payload.get('frame_id', '') or '<none>'}")
+        print(f"Pending actions: {len(payload.get('pending_actions', []))}")
+        if payload.get("pending_actions"):
+            for item in payload["pending_actions"]:
+                print(f"- {item.get('action_id', '')} | {item.get('tool', '')} | {item.get('status', '')}")
+        else:
+            print("No pending actions.")
+    return 0
+
+
+def _run_live_preflight(args: argparse.Namespace) -> int:
+    context = _load_live_context(args.frame_id, args.action_id, args.runtime_data_dir, args.manifest_dir)
+    if context is None:
+        print("LIVE EXECUTION BLOCKED")
+        print(f"Frame: {args.frame_id}")
+        print(f"Action: {args.action_id}")
+        print("Status: LIVE_BLOCKED")
+        print("Blockers:")
+        print("- frame_not_found: Frame could not be loaded.")
+        return 1
+    frame, manifest, pending_action, tool_spec, tool_health, runtime_live_mode = context
+    preflight = build_live_execution_preflight(
+        frame=frame,
+        manifest=manifest,
+        pending_action=pending_action,
+        tool_spec=tool_spec,
+        runtime_live_mode=runtime_live_mode,
+        tool_health=tool_health,
+    )
+    payload = dict(preflight)
+    if bool(args.json):
+        print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+    else:
+        _print_live_preflight(payload)
+    return 0 if preflight.get("ok", False) else 1
+
+
+def _run_execute_approved(args: argparse.Namespace) -> int:
+    context = _load_live_context(args.frame_id, args.action_id, args.runtime_data_dir, args.manifest_dir)
+    if context is None:
+        print("LIVE EXECUTION BLOCKED")
+        print(f"Frame: {args.frame_id}")
+        print(f"Action: {args.action_id}")
+        print("Status: LIVE_BLOCKED")
+        print("Blockers:")
+        print("- frame_not_found: Frame could not be loaded.")
+        print(f"Safe option: taskframe execute-approved --frame-id {args.frame_id} --action-id {args.action_id} --dry-run")
+        return 1
+
+    frame, manifest, pending_action, tool_spec, tool_health, runtime_live_mode = context
+    preflight = build_live_execution_preflight(
+        frame=frame,
+        manifest=manifest,
+        pending_action=pending_action,
+        tool_spec=tool_spec,
+        runtime_live_mode=runtime_live_mode,
+        tool_health=tool_health,
+    )
+
+    if not bool(args.live):
+        result = _run_dry_run_pending_action(frame, pending_action, args.runtime_data_dir)
+        if bool(args.json):
+            print(json.dumps(result, separators=(",", ":"), ensure_ascii=False))
+        else:
+            _print_execute_result(result, mode="dry-run")
+        return 0 if result.get("ok", False) else 1
+
+    confirm_phrase = confirmation_phrase(str(frame.frame_id), str(pending_action.get("action_id", "")))
+    if not runtime_live_mode:
+        return _print_live_blocked(
+            frame,
+            pending_action,
+            preflight,
+            "TASKFRAME_ENABLE_LIVE_EXECUTION is not enabled.",
+        )
+    if not bool(args.i_understand_live_side_effects):
+        return _print_live_blocked(
+            frame,
+            pending_action,
+            preflight,
+            "--i-understand-live-side-effects is required.",
+        )
+    if str(args.confirm or "").strip() != confirm_phrase:
+        return _print_live_blocked(
+            frame,
+            pending_action,
+            preflight,
+            "Typed confirmation phrase does not match.",
+        )
+    if preflight.get("status") != "LIVE_READY_REQUIRES_CONFIRMATION":
+        return _print_live_blocked(frame, pending_action, preflight, "Preflight did not pass.")
+
+    runner = ToolRunner(dry_run=False)
+    result = runner.execute_live_pending_action(frame, manifest, pending_action, runtime_live_mode=True)
+    try:
+        persist_frame_update(frame, args.runtime_data_dir)
+    except Exception:
+        pass
+    payload = {
+        "ok": bool(result.ok),
+        "mode": "live",
+        "frame_id": str(frame.frame_id),
+        "action_id": str(pending_action.get("action_id", "")),
+        "tool": str(pending_action.get("tool", "")),
+        "status": str(pending_action.get("status", "")),
+        "message": str(result.error or result.type or "Live execution completed."),
+        "preflight": preflight,
+    }
+    if bool(args.json):
+        print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+    else:
+        _print_execute_result(payload, mode="live")
+    return 0 if result.ok else 1
+
+
+def _print_live_preflight(payload: dict[str, Any]) -> None:
+    print(f"Frame: {payload.get('frame_id', '')}")
+    print(f"Action: {payload.get('action_id', '')}")
+    print(f"Tool: {payload.get('tool', '')}")
+    print(f"Status: {payload.get('status', '')}")
+    print(f"Severity: {payload.get('severity', '')}")
+    if payload.get("blockers"):
+        print("Blockers:")
+        for blocker in payload["blockers"]:
+            print(f"- {blocker.get('id', '')}: {blocker.get('message', '')}")
+    if payload.get("warnings"):
+        print("Warnings:")
+        for warning in payload["warnings"]:
+            print(f"- {warning}")
+    guardrail = payload.get("guardrail", {})
+    print(f"Guardrail: {guardrail.get('name', '')} | ok={str(guardrail.get('ok', False)).lower()}")
+    print(f"Confirmation: {payload.get('confirmation_phrase', '')}")
+    print(f"Safe option: {payload.get('safe_default_command', '')}")
+
+
+def _print_execute_result(payload: dict[str, Any], *, mode: str) -> None:
+    print(f"Frame: {payload.get('frame_id', '')}")
+    print(f"Action: {payload.get('action_id', '')}")
+    print(f"Tool: {payload.get('tool', '')}")
+    print(f"Mode: {mode}")
+    print(f"Status: {payload.get('status', '')}")
+    print(f"Message: {payload.get('message', '')}")
+    if payload.get("preflight"):
+        print(f"Preflight: {payload['preflight'].get('status', '')}")
+
+
+def _print_live_blocked(frame: Any, pending_action: dict[str, Any], preflight: dict[str, Any], reason: str) -> int:
+    print("LIVE EXECUTION BLOCKED")
+    print(f"Frame: {getattr(frame, 'frame_id', '') if frame is not None else ''}")
+    print(f"Action: {pending_action.get('action_id', '')}")
+    print(f"Tool: {pending_action.get('tool', '')}")
+    print(f"Status: {preflight.get('status', 'LIVE_BLOCKED')}")
+    print("Blockers:")
+    blockers = list(preflight.get("blockers", []))
+    if reason:
+        blockers.insert(0, {"id": "cli_guardrail", "message": reason, "source": "cli"})
+    for blocker in blockers:
+        print(f"- {blocker.get('id', '')}: {blocker.get('message', '')}")
+    print(f"Safe option: {preflight.get('safe_default_command', '')}")
+    return 1
+
+
+def _run_dry_run_pending_action(frame: Any, pending_action: dict[str, Any], runtime_data_dir: str) -> dict[str, Any]:
+    approved = pending_action
+    if str(approved.get("status", "")) != "APPROVED":
+        return {
+            "ok": False,
+            "mode": "dry-run",
+            "frame_id": getattr(frame, "frame_id", ""),
+            "action_id": approved.get("action_id", ""),
+            "tool": approved.get("tool", ""),
+            "status": approved.get("status", ""),
+            "message": f"Pending action must be APPROVED before execution: {approved.get('status', '')}",
+        }
+    runner = ToolRunner(dry_run=True)
+    result = runner.execute_pending_action(frame, approved)
+    try:
+        persist_frame_update(frame, runtime_data_dir)
+    except Exception:
+        pass
+    return {
+        "ok": bool(result.ok),
+        "mode": "dry-run",
+        "frame_id": getattr(frame, "frame_id", ""),
+        "action_id": approved.get("action_id", ""),
+        "tool": approved.get("tool", ""),
+        "status": approved.get("status", ""),
+        "message": str(result.error or result.type or "Dry-run execution completed."),
+    }
+
+
+def _load_live_context(frame_id: str, action_id: str, runtime_data_dir: str, manifest_dir: str) -> tuple[Any, Any, dict[str, Any], dict[str, Any], dict | None, bool] | None:
+    try:
+        frame = load_taskframe(frame_id, runtime_data_dir)
+        pending_action = get_pending_action(frame, action_id)
+        manifest = load_manifest_by_id(frame.manifest_id, manifest_dir)
+        tool_key = str(pending_action.get("tool", "")).strip()
+        tool_spec = _tool_spec_from_key(tool_key)
+        tool_health = _resolve_tool_health_snapshot(tool_key)
+        runtime_live_mode = _runtime_live_mode_enabled()
+        return frame, manifest, pending_action, tool_spec, tool_health, runtime_live_mode
+    except Exception:
+        return None
+
+
+def _tool_spec_from_key(tool_key: str) -> dict[str, Any]:
+    if not tool_key or "/" not in tool_key:
+        return {}
+    namespace, action = tool_key.split("/", 1)
+    try:
+        return get_tool_spec(namespace, action)
+    except Exception:
+        return {}
+
+
+def _resolve_tool_health_snapshot(tool_key: str) -> dict | None:
+    snapshot = load_latest_tool_health_snapshot()
+    if not isinstance(snapshot, dict):
+        return None
+    by_tool = snapshot.get("by_tool")
+    if isinstance(by_tool, dict) and tool_key in by_tool and isinstance(by_tool[tool_key], dict):
+        return dict(by_tool[tool_key])
+    results = snapshot.get("results", [])
+    if isinstance(results, list):
+        for item in results:
+            if isinstance(item, dict) and str(item.get("tool_id", "")) == tool_key:
+                return dict(item)
+    return None
+
+
+def _runtime_live_mode_enabled() -> bool:
+    value = os.environ.get("TASKFRAME_ENABLE_LIVE_EXECUTION", "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
 
 
 def _run_rpa(args: argparse.Namespace) -> int:

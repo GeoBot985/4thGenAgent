@@ -44,8 +44,12 @@ def validate_live_execution_policy(policy: dict[str, Any]) -> None:
         raise LiveExecutionPolicyError("live_execution.requires_approval must remain true in Spec 019.")
 
 
-def manifest_allows_live_tool(manifest: Manifest, tool_key: str) -> bool:
-    policy = normalize_live_execution_policy(getattr(manifest, "live_execution", None))
+def manifest_allows_live_tool(manifest: Manifest | dict[str, Any], tool_key: str) -> bool:
+    if isinstance(manifest, dict):
+        live_policy = manifest.get("live_execution")
+    else:
+        live_policy = getattr(manifest, "live_execution", None)
+    policy = normalize_live_execution_policy(live_policy)
     try:
         validate_live_execution_policy(policy)
     except LiveExecutionPolicyError:

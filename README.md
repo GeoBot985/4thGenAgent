@@ -73,6 +73,7 @@ If everything is working:
 - `taskframe verify` runs the release verification checks.
 - `taskframe config show` prints the active safe configuration profile.
 - `taskframe config paths` prints the config lookup paths.
+- The default portfolio demo does not perform live side effects.
 - No live email, message, RPA, or Google Sheet action is performed by default.
 
 See [docs/quickstart.md](docs/quickstart.md) for a detailed setup guide including troubleshooting.
@@ -88,6 +89,8 @@ Live integrations should use user-local config under `~/.taskframe/` or a direct
 Do not commit credentials, tokens, browser profiles, or local config files.
 
 See [docs/configuration.md](docs/configuration.md).
+
+The live-execution safety boundary is documented in [docs/live_execution_safety.md](docs/live_execution_safety.md).
 
 ---
 

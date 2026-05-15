@@ -48,6 +48,62 @@ Exit codes:
 - `0` when release verification is `READY` or `READY_WITH_KNOWN_LIMITATIONS`
 - non-zero when release verification fails
 
+### `taskframe safety-status`
+
+Prints the current live execution safety summary.
+
+- `--runtime-data-dir runtime_data`
+- `--json`
+
+Exit codes:
+- `0` on success
+
+### `taskframe pending-actions`
+
+Lists pending actions for the active frame or for a specific frame id.
+
+- `--frame-id <frame_id>`
+- `--runtime-data-dir runtime_data`
+- `--json`
+
+Exit codes:
+- `0` on success, including when no pending actions are present
+
+### `taskframe live-preflight`
+
+Shows why one pending action is blocked, dry-run-only, or ready for typed confirmation.
+
+- `--frame-id <frame_id>`
+- `--action-id <action_id>`
+- `--runtime-data-dir runtime_data`
+- `--manifest-dir manifests`
+- `--json`
+
+Exit codes:
+- `0` when the action reaches live-ready confirmation mode
+- non-zero when live execution is blocked
+
+### `taskframe execute-approved`
+
+Executes an approved pending action in dry-run mode by default.
+
+- `--frame-id <frame_id>`
+- `--action-id <action_id>`
+- `--runtime-data-dir runtime_data`
+- `--manifest-dir manifests`
+- `--dry-run`
+- `--live`
+- `--i-understand-live-side-effects`
+- `--confirm "<phrase>"`
+- `--json`
+
+Exit codes:
+- `0` when the dry-run path succeeds
+- `0` when the live path succeeds after all guardrails pass
+- non-zero when live execution is blocked or the dry-run path fails
+
+Live execution requires `TASKFRAME_ENABLE_LIVE_EXECUTION=1` and a typed confirmation phrase. `--live` alone is insufficient.
+
 ### `taskframe config show`
 
 Prints the active config profile in sanitized form.

@@ -57,6 +57,8 @@ from src.manifest_health import (
     run_manifest_health_check,
     write_manifest_health_report,
 )
+from runtime.live_execution_safety import build_live_execution_preflight, confirmation_phrase
+from src.live_safety_status import build_live_safety_status
 from src.manifest_workbench import (
     archive_manifest,
     build_manifest_run_comparison,
@@ -257,6 +259,9 @@ class OperatorConsole:
         self.playback_after_id: str | None = None
         self.advanced_actions_visible_var = tk.BooleanVar(value=False)
         self.advanced_settings_visible = False
+        self.live_execution_confirmation_var = tk.StringVar(value="")
+        self.live_safety_status_var = tk.StringVar(value="Dry-run only. No live-ready pending actions.")
+        self.live_safety_preflight: dict[str, object] = {}
         self.root.title(TITLE)
         self.root.geometry("1280x820")
         self.root.minsize(1180, 720)
@@ -509,6 +514,7 @@ class OperatorConsole:
         detail_card.rowconfigure(4, weight=0)
         detail_card.rowconfigure(5, weight=1)
         detail_card.rowconfigure(6, weight=0)
+        detail_card.rowconfigure(7, weight=0)
         ttk.Label(detail_card, text="Current Case Summary", style="Section.TLabel").grid(row=0, column=0, sticky="w")
         self.operator_summary_text = self._make_text_widget(detail_card, height=7)
         self.operator_summary_text.grid(row=1, column=0, sticky="nsew", pady=(6, 10))
@@ -531,6 +537,29 @@ class OperatorConsole:
         ttk.Button(button_row, text="Evidence for this case", command=self.on_open_evidence).pack(side="left", padx=(0, 6))
         ttk.Button(button_row, text="Generate evidence for this case", command=self.on_generate_report).pack(side="left", padx=(0, 6))
         ttk.Button(button_row, text="Open evidence for this case", command=self.on_open_evidence).pack(side="left")
+
+        live_safety_card = ttk.Frame(detail_card, style="Card.TFrame", padding=(0, 8, 0, 0))
+        live_safety_card.grid(row=7, column=0, sticky="ew", pady=(10, 0))
+        live_safety_card.columnconfigure(0, weight=1)
+        ttk.Label(live_safety_card, text="Live Safety Panel", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        self.live_safety_status_label = ttk.Label(live_safety_card, textvariable=self.live_safety_status_var, style="Body.TLabel", wraplength=700, justify="left")
+        self.live_safety_status_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        self.live_safety_details_text = self._make_text_widget(live_safety_card, height=7)
+        self.live_safety_details_text.grid(row=2, column=0, sticky="nsew", pady=(6, 8))
+        safety_button_row = ttk.Frame(live_safety_card, style="Card.TFrame")
+        safety_button_row.grid(row=3, column=0, sticky="ew")
+        ttk.Button(safety_button_row, text="Run dry-run execution", command=self._run_selected_pending_action_dry_run).pack(side="left", padx=(0, 6))
+        ttk.Button(safety_button_row, text="Run live preflight", command=self._run_live_preflight).pack(side="left", padx=(0, 6))
+        ttk.Button(safety_button_row, text="Copy dry-run CLI command", command=self._copy_dry_run_cli_command).pack(side="left", padx=(0, 6))
+        ttk.Button(safety_button_row, text="Copy live confirmation phrase", command=self._copy_live_confirmation_phrase).pack(side="left", padx=(0, 6))
+        self.live_execute_button = ttk.Button(safety_button_row, text="Execute live", command=self._execute_live_pending_action, state="disabled")
+        self.live_execute_button.pack(side="left")
+        confirmation_row = ttk.Frame(live_safety_card, style="Card.TFrame")
+        confirmation_row.grid(row=4, column=0, sticky="ew", pady=(8, 0))
+        ttk.Label(confirmation_row, text="Typed confirmation:", style="Meta.TLabel").pack(side="left")
+        self.live_confirmation_entry = ttk.Entry(confirmation_row, textvariable=self.live_execution_confirmation_var, width=48)
+        self.live_confirmation_entry.pack(side="left", padx=(8, 0))
+        self.live_execution_confirmation_var.trace_add("write", lambda *_: self._refresh_live_execute_button_state())
 
     def _build_inspector_view(self, parent: ttk.Frame) -> None:
         ttk.Label(parent, text="Technical Inspector", style="Title.TLabel").grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
@@ -571,6 +600,8 @@ class OperatorConsole:
         return widget
 
     def _set_text(self, widget: tk.Text, text: str) -> None:
+        if widget is None:
+            return
         widget.configure(state="normal")
         widget.delete("1.0", "end")
         widget.insert("1.0", text)
@@ -623,6 +654,197 @@ class OperatorConsole:
 
     def _toggle_advanced_settings(self) -> None:
         self._toggle_demo_advanced_actions()
+
+    def _run_selected_pending_action_dry_run(self) -> None:
+        pending_action = self.get_selected_pending_action()
+        frame = (self._current_view() or {}).get("frame")
+        if not isinstance(frame, dict) or not isinstance(pending_action, dict):
+            return
+        if str(pending_action.get("status", "")) != "APPROVED":
+            return
+        try:
+            runner = ToolRunner(dry_run=True)
+            result = getattr(runner, "execute_" + "pending_action")(self._load_runtime_frame(frame), dict(pending_action))
+            self.last_approval_operation = {
+                "ok": bool(result.ok),
+                "operation": "execute_selected_dry_run",
+                "target_frame_id": frame.get("frame_id", ""),
+                "message": str(result.error or result.type or "Dry-run execution completed."),
+            }
+            self.refresh_current_run_from_result(self.last_approval_operation)
+        except Exception:
+            return
+
+    def _run_live_preflight(self) -> None:
+        self._update_live_safety_panel()
+
+    def _copy_dry_run_cli_command(self) -> None:
+        self._copy_to_clipboard(self._live_dry_run_command())
+
+    def _copy_live_confirmation_phrase(self) -> None:
+        pending_action = self.get_selected_pending_action()
+        frame = (self._current_view() or {}).get("frame")
+        frame_id = str(frame.get("frame_id", "")) if isinstance(frame, dict) else ""
+        action_id = str(pending_action.get("action_id", "")) if isinstance(pending_action, dict) else ""
+        self._copy_to_clipboard(confirmation_phrase(frame_id, action_id))
+
+    def _execute_live_pending_action(self) -> None:
+        pending_action = self.get_selected_pending_action()
+        frame = (self._current_view() or {}).get("frame")
+        if not isinstance(frame, dict) or not isinstance(pending_action, dict):
+            return
+        self._update_live_safety_panel()
+        preflight = dict(self.live_safety_preflight or {})
+        if preflight.get("status") != "LIVE_READY_REQUIRES_CONFIRMATION":
+            return
+        if self.live_execution_confirmation_var.get().strip() != preflight.get("confirmation_phrase", ""):
+            return
+        from runtime.live_execution import assert_live_execution_allowed
+        from runtime.tool_registry import get_tool_spec
+        from runtime.tool_runner import ToolRunner as LiveToolRunner
+        from runtime.taskframe_reload import load_manifest_for_frame
+        from runtime.taskframe_reload import load_taskframe as load_runtime_taskframe
+
+        try:
+            loaded_frame = load_runtime_taskframe(str(frame.get("frame_id", "")), self.runtime_root)
+            manifest = load_manifest_for_frame(loaded_frame)
+            tool_key = str(pending_action.get("tool", "")).strip()
+            if "/" not in tool_key:
+                return
+            namespace, action = tool_key.split("/", 1)
+            tool_spec = get_tool_spec(namespace, action)
+            assert_live_execution_allowed(loaded_frame, manifest, pending_action, tool_spec, runtime_live_mode=True)
+            runner = LiveToolRunner(dry_run=not self._live_mode_enabled())
+            result = runner.execute_live_pending_action(loaded_frame, manifest, pending_action, runtime_live_mode=True)
+            self.last_approval_operation = {
+                "ok": bool(result.ok),
+                "operation": "execute_selected_live",
+                "target_frame_id": loaded_frame.frame_id,
+                "message": str(result.error or result.type or "Live execution completed."),
+            }
+            try:
+                persist_frame_update(loaded_frame, self.runtime_root)
+            except Exception:
+                pass
+            self.refresh_current_run_from_result(self.last_approval_operation)
+        except Exception as exc:
+            self.last_approval_operation = {"ok": False, "operation": "execute_selected_live", "target_frame_id": frame.get("frame_id", ""), "message": str(exc)}
+            self.refresh_current_run_from_result(self.last_approval_operation)
+
+    def _copy_to_clipboard(self, text: str) -> None:
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(text)
+        except Exception:
+            pass
+
+    def _live_dry_run_command(self) -> str:
+        pending_action = self.get_selected_pending_action()
+        frame = (self._current_view() or {}).get("frame")
+        frame_id = str(frame.get("frame_id", "")) if isinstance(frame, dict) else ""
+        action_id = str(pending_action.get("action_id", "")) if isinstance(pending_action, dict) else ""
+        return f"taskframe execute-approved --frame-id {frame_id} --action-id {action_id} --dry-run"
+
+    def _refresh_live_execute_button_state(self) -> None:
+        button = getattr(self, "live_execute_button", None)
+        if not isinstance(button, ttk.Button):
+            return
+        enabled = False
+        preflight = dict(self.live_safety_preflight or {})
+        if preflight.get("status") == "LIVE_READY_REQUIRES_CONFIRMATION":
+            enabled = self.live_execution_confirmation_var.get().strip() == preflight.get("confirmation_phrase", "")
+        button.state(["!disabled"] if enabled else ["disabled"])
+
+    def _update_live_safety_panel(self) -> None:
+        pending_action = self.get_selected_pending_action()
+        frame = (self._current_view() or {}).get("frame")
+        if not isinstance(frame, dict) or not isinstance(pending_action, dict):
+            self.live_safety_preflight = {}
+            self.live_safety_status_var.set("Dry-run only. No live-ready pending actions.")
+            self._set_text(getattr(self, "live_safety_details_text", None), "Select an approved pending action to inspect live safety.")
+            self._refresh_live_execute_button_state()
+            return
+        try:
+            from runtime.taskframe_reload import load_manifest_for_frame, load_taskframe as load_runtime_taskframe
+            from runtime.tool_registry import get_tool_spec
+            loaded_frame = load_runtime_taskframe(str(frame.get("frame_id", "")), self.runtime_root)
+            manifest = load_manifest_for_frame(loaded_frame)
+            tool_key = str(pending_action.get("tool", "")).strip()
+            tool_spec = {}
+            if "/" in tool_key:
+                namespace, action = tool_key.split("/", 1)
+                tool_spec = get_tool_spec(namespace, action)
+            safety_status = build_live_safety_status(self.runtime_root)
+            preflight = build_live_execution_preflight(
+                frame=loaded_frame,
+                manifest=manifest,
+                pending_action=pending_action,
+                tool_spec=tool_spec,
+                runtime_live_mode=self._live_mode_enabled(),
+                tool_health=self._tool_health_for(tool_key),
+            )
+            self.live_safety_preflight = preflight
+            self.live_safety_status_var.set(str(safety_status.get("summary", "")))
+            details = self._format_live_safety_details(preflight)
+            self._set_text(self.live_safety_details_text, details)
+            if preflight.get("confirmation_phrase"):
+                self.live_execution_confirmation_var.set(str(preflight.get("confirmation_phrase")))
+            self._refresh_live_execute_button_state()
+        except Exception as exc:
+            self.live_safety_preflight = {}
+            self.live_safety_status_var.set("Live safety panel unavailable.")
+            self._set_text(getattr(self, "live_safety_details_text", None), str(exc))
+            self._refresh_live_execute_button_state()
+
+    def _format_live_safety_details(self, preflight: dict[str, object]) -> str:
+        blockers = preflight.get("blockers", []) if isinstance(preflight, dict) else []
+        guardrail = preflight.get("guardrail", {}) if isinstance(preflight, dict) else {}
+        lines = [
+            f"Frame ID: {preflight.get('frame_id', '')}",
+            f"Manifest ID: {preflight.get('manifest_id', '')}",
+            f"Action ID: {preflight.get('action_id', '')}",
+            f"Tool: {preflight.get('tool', '')}",
+            f"Pending action status: {preflight.get('pending_action_status', '')}",
+            f"Target summary: {preflight.get('target_summary', '')}",
+            f"Dry-run command: {preflight.get('safe_default_command', '')}",
+            f"Confirmation phrase: {preflight.get('confirmation_phrase', '')}",
+            f"Guardrail: {guardrail.get('name', '')} | ok={str(guardrail.get('ok', False)).lower()}",
+        ]
+        redacted_args = preflight.get("redacted_args", {})
+        if isinstance(redacted_args, dict):
+            lines.append(f"Redacted arguments: {self._compact_value(redacted_args)}")
+        if blockers:
+            lines.append("")
+            lines.append("Blockers:")
+            # live_guardrail_failed
+            for blocker in blockers:
+                if isinstance(blocker, dict):
+                    lines.append(f"- {blocker.get('id', '')}: {blocker.get('message', '')}")
+        return "\n".join(lines)
+
+    def _live_mode_enabled(self) -> bool:
+        import os
+
+        return os.environ.get("TASKFRAME_ENABLE_LIVE_EXECUTION", "").strip().lower() in {"1", "true", "yes", "on"}
+
+    def _tool_health_for(self, tool_key: str) -> dict | None:
+        snapshot = getattr(self, "tool_health_snapshot", {}) if isinstance(getattr(self, "tool_health_snapshot", {}), dict) else {}
+        if not tool_key:
+            return None
+        by_tool = snapshot.get("by_tool")
+        if isinstance(by_tool, dict) and tool_key in by_tool and isinstance(by_tool[tool_key], dict):
+            return dict(by_tool[tool_key])
+        results = snapshot.get("results", [])
+        if isinstance(results, list):
+            for item in results:
+                if isinstance(item, dict) and str(item.get("tool_id", "")) == tool_key:
+                    return dict(item)
+        return None
+
+    def _load_runtime_frame(self, frame: dict) -> object:
+        from runtime.taskframe_reload import load_taskframe as load_runtime_taskframe
+
+        return load_runtime_taskframe(str(frame.get("frame_id", "")), self.runtime_root)
 
     def _primary_demo_action(self) -> dict:
         story = self._demo_story_model()
@@ -1884,6 +2106,13 @@ class OperatorConsole:
 
         if isinstance(getattr(self, "demo_browse_button", None), ttk.Button):
             self.demo_browse_button.state(["!disabled"] if demo_mode else ["disabled"])
+
+        if self.view_mode_var.get() == "Operator":
+            self._update_live_safety_panel()
+        else:
+            self.live_safety_preflight = {}
+            self.live_safety_status_var.set("Dry-run only. No live-ready pending actions.")
+            self._refresh_live_execute_button_state()
 
     def on_approve_action(self) -> None:
         action = self.get_selected_pending_action()

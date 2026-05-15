@@ -127,6 +127,9 @@ def build_verification_result() -> dict[str, Any]:
             "tool_contract_checklist_doc": "PENDING",
             "manifest_catalog_health": "PENDING",
             "public_quickstart_docs": "PENDING",
+            "live_safety_docs": "PENDING",
+            "live_cli_guardrails": "PENDING",
+            "live_execution_default_dry_run": "PENDING",
             "optional_rpa_isolation": "PENDING",
             "config_secrets_hygiene": "PENDING",
         },
@@ -226,6 +229,9 @@ def build_verification_result() -> dict[str, Any]:
         _check_generated_manifest_template_quality_gates(),
         _check_manifest_catalog_health(),
         _check_public_quickstart_docs(),
+        _check_live_safety_docs(),
+        _check_live_cli_guardrails(),
+        _check_live_execution_default_dry_run(),
         _check_optional_rpa_isolation(),
         _check_config_secrets_hygiene(),
     ])
@@ -280,6 +286,12 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("manifest catalog health failed")
             elif check["name"] == "public_quickstart_docs":
                 release_blockers.append("public quickstart docs check failed")
+            elif check["name"] == "live_safety_docs":
+                release_blockers.append("live safety docs missing")
+            elif check["name"] == "live_cli_guardrails":
+                release_blockers.append("live CLI guardrail tests failed")
+            elif check["name"] == "live_execution_default_dry_run":
+                release_blockers.append("default live execution safety path failed")
             elif check["name"] == "optional_rpa_isolation":
                 release_blockers.append("optional RPA isolation check failed")
             elif check["name"] == "config_secrets_hygiene":
@@ -1272,6 +1284,80 @@ def _check_public_quickstart_docs() -> dict[str, Any]:
     return {
         "name": "public_quickstart_docs",
         "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_live_safety_docs() -> dict[str, Any]:
+    missing: list[str] = []
+    live_doc = ROOT / "docs" / "live_execution_safety.md"
+    readme = ROOT / "README.md"
+    if not live_doc.is_file():
+        missing.append("docs/live_execution_safety.md")
+    else:
+        text = live_doc.read_text(encoding="utf-8").lower()
+        for phrase in [
+            "default portfolio demo does not perform live side effects",
+            "taskframe_enable_live_execution",
+            "typed confirmation",
+            "taskframe safety-status",
+            "taskframe live-preflight",
+            "taskframe execute-approved",
+        ]:
+            if phrase not in text:
+                missing.append(f"docs/live_execution_safety.md:{phrase}")
+    if readme.is_file():
+        readme_text = readme.read_text(encoding="utf-8").lower()
+        if "docs/live_execution_safety.md" not in readme_text:
+            missing.append("README:link:docs/live_execution_safety.md")
+        if "does not perform live side effects" not in readme_text:
+            missing.append("README:default portfolio no live side effects")
+    return {
+        "name": "live_safety_docs",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_live_cli_guardrails() -> dict[str, Any]:
+    command_results = [
+        run_command(
+            "live_cli_guardrails_tests",
+            [
+                "python",
+                "-m",
+                "pytest",
+                "tests/test_live_execution_safety.py",
+                "tests/test_cli_live_guardrails.py",
+                "tests/test_operator_live_safety_source.py",
+                "tests/test_live_safety_docs.py",
+            ],
+            timeout_seconds=600,
+        )
+    ]
+    command_failures = [item for item in command_results if item["status"] != "PASS"]
+    return {
+        "name": "live_cli_guardrails",
+        "status": "PASS" if not command_failures else "FAIL",
+        "commands": command_results,
+        "command_failures": [item["name"] for item in command_failures],
+    }
+
+
+def _check_live_execution_default_dry_run() -> dict[str, Any]:
+    command = run_command("live_execution_default_dry_run", ["python", "-m", "src.taskframe_cli", "safety-status"], timeout_seconds=120)
+    text = (command.get("stdout", "") + command.get("stderr", "")).lower()
+    missing: list[str] = []
+    if command["status"] != "PASS":
+        missing.append("cli:safety-status")
+    if "dry-run only" not in text:
+        missing.append("summary:dry-run only")
+    if "live-ready pending action" in text and "no live-ready pending actions" not in text:
+        missing.append("summary:no live-ready pending actions")
+    return {
+        "name": "live_execution_default_dry_run",
+        "status": "PASS" if not missing else "FAIL",
+        "command": command,
         "missing": missing,
     }
 
