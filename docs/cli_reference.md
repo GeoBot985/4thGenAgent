@@ -156,6 +156,58 @@ Prints the installed runtime version.
 Exit codes:
 - `0`
 
+### `taskframe tools discover`
+
+Discovers configured tool packs and reports whether they are enabled, valid, and registered.
+
+- `--config-path config/enabled_toolpacks.json`
+- `--json`
+
+Exit codes:
+- `0` on success
+
+### `taskframe tools list`
+
+Lists registered tools, including any external tool-pack tools that are currently enabled.
+
+- `--config-path config/enabled_toolpacks.json`
+- `--json`
+
+Exit codes:
+- `0` on success
+
+### `taskframe tools inspect <tool_or_toolpack_id>`
+
+Inspects one built-in tool or one external tool pack.
+
+- `--config-path config/enabled_toolpacks.json`
+- `--json`
+
+Exit codes:
+- `0` on success
+- non-zero when the target cannot be found
+
+### `taskframe tools validate <toolpack_path>`
+
+Validates a tool pack descriptor.
+
+- `--json`
+
+Exit codes:
+- `0` when validation passes
+- non-zero when validation fails
+
+### `taskframe tools health <toolpack_id>`
+
+Runs the tool pack health check for one pack.
+
+- `--config-path config/enabled_toolpacks.json`
+- `--json`
+
+Exit codes:
+- `0` when the tool pack is healthy or intentionally disabled
+- non-zero when health fails
+
 ### `taskframe safety-pack`
 
 Builds the safety verification pack and live-blocked evidence report.

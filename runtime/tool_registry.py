@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import copy
 import os
 
-from .errors import ToolArgumentError, ToolNotRegisteredError
+from .errors import ToolArgumentError, ToolNotRegisteredError, ToolRegistryError
 
 
 TOOL_REGISTRY = {
@@ -972,6 +973,25 @@ TOOL_REGISTRY = {
         "arg_types": {"confirm": "bool", "slowmo": "int"},
     },
 }
+
+
+BUILTIN_TOOL_REGISTRY = copy.deepcopy(TOOL_REGISTRY)
+
+
+def build_tool_registry(include_external: bool = True, *, config_path: str | Path = "config/enabled_toolpacks.json") -> dict[str, dict]:
+    registry = dict(BUILTIN_TOOL_REGISTRY)
+    if include_external:
+        from src.toolpack_loader import build_external_tool_registry
+
+        external_registry = build_external_tool_registry(config_path=config_path)
+        for key, spec in external_registry.items():
+            if key in registry:
+                raise ToolRegistryError(f"External tool cannot override built-in tool: {key}")
+            registry[key] = spec
+    return registry
+
+
+TOOL_REGISTRY = build_tool_registry(include_external=True)
 
 
 def tool_key(namespace: str, action: str) -> str:

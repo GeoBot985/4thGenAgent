@@ -112,9 +112,14 @@ def build_verification_result() -> dict[str, Any]:
         "artifact_checks": [],
         "checks": {
             "imports": "PENDING",
-            "packaging_cli": "PENDING",
-            "manifest_health_cli_strict": "PENDING",
-            "default_tool_registry": "PENDING",
+        "packaging_cli": "PENDING",
+        "manifest_health_cli_strict": "PENDING",
+        "toolpack_contract": "PENDING",
+        "toolpack_loader": "PENDING",
+        "toolpack_registry_integration": "PENDING",
+        "toolpack_cli": "PENDING",
+        "external_toolpacks_default_safe": "PENDING",
+        "default_tool_registry": "PENDING",
             "tool_capability_registry": "PENDING",
             "core_tool_health_safe_checks": "PENDING",
             "optional_rpa_excluded": "PENDING",
@@ -181,6 +186,11 @@ def build_verification_result() -> dict[str, Any]:
         ("golden_demo", ["python", "scripts/run_golden_demo.py"]),
         ("portfolio_boundary", ["python", "-m", "pytest", "tests/test_portfolio_boundary.py", "tests/test_demo_scenarios.py", "tests/test_portfolio_docs_exist.py"]),
         ("portfolio_docs", ["python", "-m", "pytest", "tests/test_portfolio_docs_exist.py"]),
+        ("toolpack_loader_tests", ["python", "-m", "pytest", "tests/test_toolpack_loader.py"]),
+        ("toolpack_registry_tests", ["python", "-m", "pytest", "tests/test_toolpack_registry_integration.py"]),
+        ("toolpack_cli_tests", ["python", "-m", "pytest", "tests/test_toolpack_cli.py"]),
+        ("toolpack_health_tests", ["python", "-m", "pytest", "tests/test_toolpack_health.py"]),
+        ("toolpack_manifest_execution_tests", ["python", "-m", "pytest", "tests/test_toolpack_manifest_execution.py"]),
     ]
 
     for name, command in command_groups:
@@ -213,6 +223,11 @@ def build_verification_result() -> dict[str, Any]:
         _check_python_imports(),
         _check_packaging_cli(),
         _check_manifest_health_cli_strict(),
+        _check_toolpack_contract(),
+        _check_toolpack_loader(),
+        _check_toolpack_registry_integration(),
+        _check_toolpack_cli(),
+        _check_external_toolpacks_default_safe(),
         _check_default_tool_registry(),
         _check_tool_capability_registry(),
         _check_core_tool_health_safe_checks(),
@@ -252,6 +267,16 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("packaging / CLI checks failed")
             elif check["name"] == "manifest_health_cli_strict":
                 release_blockers.append("manifest health strict CLI failed")
+            elif check["name"] == "toolpack_contract":
+                release_blockers.append("tool pack contract docs or example pack failed")
+            elif check["name"] == "toolpack_loader":
+                release_blockers.append("tool pack loader tests failed")
+            elif check["name"] == "toolpack_registry_integration":
+                release_blockers.append("tool pack registry integration failed")
+            elif check["name"] == "toolpack_cli":
+                release_blockers.append("tool pack CLI failed")
+            elif check["name"] == "external_toolpacks_default_safe":
+                release_blockers.append("external tool pack default safety failed")
             elif check["name"] == "default_tool_registry":
                 release_blockers.append("default tool registry failed")
             elif check["name"] == "TOOL_CAPABILITY_REGISTRY":
@@ -309,6 +334,9 @@ def build_verification_result() -> dict[str, Any]:
         "docs/runtime_contracts.md",
         "docs/adding_new_tools.md",
         "docs/tool_contract_checklist.md",
+        "docs/toolpack_contract.md",
+        "docs/toolpack_authoring_guide.md",
+        "docs/toolpack_examples.md",
         "docs/cli_reference.md",
         "docs/quickstart.md",
         "docs/index.md",
@@ -319,6 +347,10 @@ def build_verification_result() -> dict[str, Any]:
         "docs/release_evidence_pack.md",
         "scripts/run_release_verification.py",
         "scripts/run_golden_demo.py",
+        "config/enabled_toolpacks.json",
+        "tool_packs/README.md",
+        "tool_packs/demo_echo/toolpack.json",
+        "tool_packs/demo_echo/README.md",
         "runtime/business_context.py",
         "docs/architecture_overview.md",
         "docs/demo_walkthrough.md",
@@ -371,6 +403,11 @@ def build_verification_result() -> dict[str, Any]:
         "imports": _status_from_commands(commands, "clean_imports"),
         "packaging_cli": _status_from_static(static_checks, "packaging_cli"),
         "manifest_health_cli_strict": _status_from_static(static_checks, "manifest_health_cli_strict"),
+        "toolpack_contract": _status_from_static(static_checks, "toolpack_contract"),
+        "toolpack_loader": _status_from_static(static_checks, "toolpack_loader"),
+        "toolpack_registry_integration": _status_from_static(static_checks, "toolpack_registry_integration"),
+        "toolpack_cli": _status_from_static(static_checks, "toolpack_cli"),
+        "external_toolpacks_default_safe": _status_from_static(static_checks, "external_toolpacks_default_safe"),
         "default_tool_registry": _status_from_static(static_checks, "default_tool_registry"),
         "tool_capability_registry": _status_from_static(static_checks, "TOOL_CAPABILITY_REGISTRY"),
         "core_tool_health_safe_checks": _status_from_static(static_checks, "CORE_TOOL_HEALTH_SAFE_CHECKS"),
@@ -496,10 +533,17 @@ def build_verification_result() -> dict[str, Any]:
         _display_path(RUNTIME_CONTRACTS_MD),
         _display_path(ADDING_NEW_TOOLS_MD),
         _display_path(TOOL_CONTRACT_CHECKLIST_MD),
+        _display_path(ROOT / "docs" / "toolpack_contract.md"),
+        _display_path(ROOT / "docs" / "toolpack_authoring_guide.md"),
+        _display_path(ROOT / "docs" / "toolpack_examples.md"),
         _display_path(DEFAULT_DEMO_BOUNDARY_MD),
         _display_path(KNOWN_LIMITATIONS_MD),
         _display_path(RELEASE_STATUS_JSON),
         _display_path(RELEASE_EVIDENCE_JSON),
+        _display_path(ROOT / "config" / "enabled_toolpacks.json"),
+        _display_path(ROOT / "tool_packs" / "README.md"),
+        _display_path(ROOT / "tool_packs" / "demo_echo" / "toolpack.json"),
+        _display_path(ROOT / "tool_packs" / "demo_echo" / "README.md"),
     ])
 
     checks["release_artifacts"] = _status_from_artifacts(artifact_checks, [
@@ -507,10 +551,17 @@ def build_verification_result() -> dict[str, Any]:
         "docs/runtime_contracts.md",
         "docs/adding_new_tools.md",
         "docs/tool_contract_checklist.md",
+        "docs/toolpack_contract.md",
+        "docs/toolpack_authoring_guide.md",
+        "docs/toolpack_examples.md",
         "docs/default_demo_boundary.md",
         "docs/known_limitations.md",
         "docs/current_release_status.md",
         "docs/release_evidence_pack.md",
+        "config/enabled_toolpacks.json",
+        "tool_packs/README.md",
+        "tool_packs/demo_echo/toolpack.json",
+        "tool_packs/demo_echo/README.md",
         "scripts/run_golden_demo.py",
         "runtime_data/outputs/reports/golden_demo_report.md",
         "runtime_data/outputs/reports/golden_demo_report.html",
@@ -967,6 +1018,7 @@ def _check_docs_command_alignment() -> dict[str, Any]:
         "taskframe verify",
         "taskframe config show",
         "taskframe config paths",
+        "tool packs",
     ]
     missing = []
     for marker in readme_markers:
@@ -1062,6 +1114,8 @@ def _check_adding_new_tools_doc() -> dict[str, Any]:
         "setup instructions",
         "pendingaction",
         "live guardrails",
+        "toolpack.json",
+        "tool pack",
     ]
     missing = [term for term in required_terms if term not in text]
     return {"name": "adding_new_tools_doc", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
@@ -1070,9 +1124,111 @@ def _check_adding_new_tools_doc() -> dict[str, Any]:
 def _check_tool_contract_checklist_doc() -> dict[str, Any]:
     path = TOOL_CONTRACT_CHECKLIST_MD
     text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
-    required_terms = ["- [ ]", "tool_registry", "pendingaction", "health check", "live execution"]
+    required_terms = ["- [ ]", "tool_registry", "pendingaction", "health check", "live execution", "toolpack.json"]
     missing = [term for term in required_terms if term not in text]
     return {"name": "tool_contract_checklist_doc", "status": "PASS" if path.is_file() and not missing else "FAIL", "path": str(path), "missing": missing}
+
+
+def _check_toolpack_contract() -> dict[str, Any]:
+    required_paths = [
+        ROOT / "docs" / "toolpack_contract.md",
+        ROOT / "docs" / "toolpack_authoring_guide.md",
+        ROOT / "docs" / "toolpack_examples.md",
+        ROOT / "tool_packs" / "README.md",
+        ROOT / "tool_packs" / "demo_echo" / "toolpack.json",
+        ROOT / "tool_packs" / "demo_echo" / "README.md",
+        ROOT / "config" / "enabled_toolpacks.json",
+    ]
+    missing_paths = [str(path.relative_to(ROOT)) for path in required_paths if not path.is_file()]
+    readme_text = (ROOT / "README.md").read_text(encoding="utf-8").lower() if (ROOT / "README.md").is_file() else ""
+    docs_text = " ".join(
+        path.read_text(encoding="utf-8").lower()
+        for path in required_paths
+        if path.is_file() and path.suffix in {".md", ".json"}
+    )
+    required_terms = [
+        "tool pack",
+        "toolpack.json",
+        "external tool packs",
+        "safety fields",
+        "manifest usage",
+    ]
+    missing_terms = [term for term in required_terms if term not in docs_text and term not in readme_text]
+    status = "PASS" if not missing_paths and not missing_terms else "FAIL"
+    return {
+        "name": "toolpack_contract",
+        "status": status,
+        "missing_paths": missing_paths,
+        "missing_terms": missing_terms,
+    }
+
+
+def _check_toolpack_loader() -> dict[str, Any]:
+    result = run_command("toolpack_loader_tests", ["python", "-m", "pytest", "tests/test_toolpack_loader.py"], timeout_seconds=180)
+    return {
+        "name": "toolpack_loader",
+        "status": result["status"],
+        "command": result["command"],
+        "returncode": result["returncode"],
+        "stdout_tail": result["stdout_tail"],
+        "stderr_tail": result["stderr_tail"],
+    }
+
+
+def _check_toolpack_registry_integration() -> dict[str, Any]:
+    result = run_command("toolpack_registry_tests", ["python", "-m", "pytest", "tests/test_toolpack_registry_integration.py"], timeout_seconds=180)
+    return {
+        "name": "toolpack_registry_integration",
+        "status": result["status"],
+        "command": result["command"],
+        "returncode": result["returncode"],
+        "stdout_tail": result["stdout_tail"],
+        "stderr_tail": result["stderr_tail"],
+    }
+
+
+def _check_toolpack_cli() -> dict[str, Any]:
+    commands = [
+        run_command("toolpack_cli_discover", ["python", "-m", "src.taskframe_cli", "tools", "discover"], timeout_seconds=180),
+        run_command("toolpack_cli_list", ["python", "-m", "src.taskframe_cli", "tools", "list"], timeout_seconds=180),
+        run_command("toolpack_cli_validate", ["python", "-m", "src.taskframe_cli", "tools", "validate", "tool_packs/demo_echo/toolpack.json"], timeout_seconds=180),
+        run_command("toolpack_cli_health", ["python", "-m", "src.taskframe_cli", "tools", "health", "demo_echo"], timeout_seconds=180),
+    ]
+    ok = all(item["status"] == "PASS" for item in commands)
+    return {
+        "name": "toolpack_cli",
+        "status": "PASS" if ok else "FAIL",
+        "commands": commands,
+        "command_failures": [item["name"] for item in commands if item["status"] != "PASS"],
+    }
+
+
+def _check_external_toolpacks_default_safe() -> dict[str, Any]:
+    try:
+        from runtime.tool_registry import build_tool_registry
+        from src.toolpack_loader import build_external_tool_registry, discover_toolpacks
+
+        builtin_only = build_tool_registry(include_external=False)
+        full_registry = build_tool_registry(include_external=True)
+        external_registry = build_external_tool_registry()
+        discovery = discover_toolpacks(include_disabled=True)
+        has_demo_echo = any(str(item.get("toolpack_id", "")) == "demo_echo" for item in discovery.get("toolpacks", []))
+        ok = (
+            "echo/echo" not in builtin_only
+            and "echo/echo" not in full_registry
+            and not external_registry
+            and has_demo_echo
+        )
+        return {
+            "name": "external_toolpacks_default_safe",
+            "status": "PASS" if ok else "FAIL",
+            "builtin_count": len(builtin_only),
+            "full_count": len(full_registry),
+            "external_count": len(external_registry),
+            "discovered_demo_echo": has_demo_echo,
+        }
+    except Exception as exc:
+        return {"name": "external_toolpacks_default_safe", "status": "FAIL", "error": str(exc)}
 
 
 def _check_current_release_status_doc() -> dict[str, Any]:

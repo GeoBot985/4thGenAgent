@@ -18,6 +18,22 @@ class ToolRegistryError(RuntimeSpecError):
     pass
 
 
+class ToolPackError(RuntimeSpecError):
+    pass
+
+
+class ToolPackLoadError(ToolPackError):
+    pass
+
+
+class ToolPackValidationError(ToolPackError):
+    pass
+
+
+class ToolPackHealthError(ToolPackError):
+    pass
+
+
 class ToolNotRegisteredError(ToolRegistryError):
     pass
 

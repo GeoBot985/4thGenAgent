@@ -88,6 +88,7 @@ from runtime.tool_capability_registry import list_tool_capabilities
 from runtime.tool_health import check_all_tool_health, check_tool_health, load_latest_tool_health_snapshot
 from runtime.tool_setup import get_tool_setup_instructions, run_safe_setup_action
 from runtime.run_report import generate_demo_run_report
+from src.toolpack_loader import discover_toolpacks, load_toolpack_descriptor, validate_toolpack_descriptor
 
 
 TITLE = "Autonomous Business Worker Demo"
@@ -237,6 +238,7 @@ class OperatorConsole:
         self.report_status: dict = {}
         self.scenario_result: dict = {}
         self.tool_health_snapshot: dict = {}
+        self.toolpack_discovery_snapshot: dict = {}
         self.selected_tool_id: str = ""
         self.view_mode_var = tk.StringVar(value="Demo")
         self.selected_demo_id = tk.StringVar(value="")
@@ -1463,20 +1465,28 @@ class OperatorConsole:
         controls.pack(fill="x", anchor="w", pady=(0, 8))
         ttk.Button(controls, text="Run Safe Health Checks", command=self.on_run_all_tool_health).pack(side="left", padx=(0, 6))
         ttk.Button(controls, text="Refresh", command=self.on_refresh_tool_health).pack(side="left", padx=(0, 6))
+        ttk.Button(controls, text="Refresh Tool Packs", command=self.on_refresh_tool_packs).pack(side="left", padx=(0, 6))
+        ttk.Button(controls, text="Validate Tool Packs", command=self.on_validate_tool_packs).pack(side="left", padx=(0, 6))
         ttk.Button(controls, text="Test Selected", command=self.on_test_selected_tool).pack(side="left", padx=(0, 6))
         ttk.Button(controls, text="Retry", command=self.on_retry_selected_tool).pack(side="left", padx=(0, 6))
         self.live_test_button = ttk.Button(controls, text="Live Test", command=self.on_live_test_selected_tool)
         self.live_test_button.pack(side="left", padx=(0, 6))
         ttk.Button(controls, text="Setup", command=self.on_setup_selected_tool).pack(side="left", padx=(0, 6))
+        ttk.Button(controls, text="Open Tool Pack README", command=self.on_open_selected_toolpack_readme).pack(side="left", padx=(0, 6))
         ttk.Button(controls, text="Details", command=self._render_tool_details).pack(side="left")
 
-        columns = ("tool", "category", "core_optional", "status", "last_checked", "test", "setup", "details")
+        columns = ("tool", "category", "core_optional", "status", "source", "path", "enabled", "registered", "valid", "last_checked", "test", "setup", "details")
         self.tool_health_tree = ttk.Treeview(panel, columns=columns, show="headings", height=8, selectmode="browse")
         self.tool_health_tree.heading("tool", text="Tool")
         self.tool_health_tree.column("tool", width=120, anchor="w")
         self.tool_health_tree.heading("category", text="Category")
         self.tool_health_tree.heading("core_optional", text="Core / Optional")
         self.tool_health_tree.heading("status", text="Status")
+        self.tool_health_tree.heading("source", text="Source")
+        self.tool_health_tree.heading("path", text="Path")
+        self.tool_health_tree.heading("enabled", text="Enabled")
+        self.tool_health_tree.heading("registered", text="Registered")
+        self.tool_health_tree.heading("valid", text="Valid")
         self.tool_health_tree.heading("last_checked", text="Last Checked")
         self.tool_health_tree.heading("test", text="Test")
         self.tool_health_tree.heading("setup", text="Setup")
@@ -1484,6 +1494,11 @@ class OperatorConsole:
         self.tool_health_tree.column("category", width=120, anchor="w")
         self.tool_health_tree.column("core_optional", width=90, anchor="center")
         self.tool_health_tree.column("status", width=110, anchor="center")
+        self.tool_health_tree.column("source", width=110, anchor="w")
+        self.tool_health_tree.column("path", width=240, anchor="w")
+        self.tool_health_tree.column("enabled", width=70, anchor="center")
+        self.tool_health_tree.column("registered", width=85, anchor="center")
+        self.tool_health_tree.column("valid", width=70, anchor="center")
         self.tool_health_tree.column("last_checked", width=140, anchor="center")
         self.tool_health_tree.column("test", width=60, anchor="center")
         self.tool_health_tree.column("setup", width=70, anchor="center")
@@ -1556,6 +1571,7 @@ class OperatorConsole:
         self.customer_messages = load_customer_messages(self.runtime_root)
         self.business_dataset_manifest = load_dataset_manifest(self.runtime_root)
         self.business_dataset_validation = validate_business_dataset(self.runtime_root)
+        self._ensure_toolpack_discovery_snapshot()
         self._refresh_workbench_manifest_catalog()
         self._ensure_tool_health_snapshot()
         self.last_action_result = None
@@ -1576,6 +1592,12 @@ class OperatorConsole:
         if not self.tool_health_snapshot.get("results"):
             check_all_tool_health(include_optional=True, live_rpa=False)
             self.tool_health_snapshot = load_latest_tool_health_snapshot()
+
+    def _ensure_toolpack_discovery_snapshot(self) -> None:
+        try:
+            self.toolpack_discovery_snapshot = discover_toolpacks(include_disabled=True)
+        except Exception:
+            self.toolpack_discovery_snapshot = {"ok": False, "toolpacks": [], "enabled_count": 0, "disabled_count": 0, "registered_tool_count": 0}
 
     def on_seed_inbox(self) -> None:
         seed_customer_inbox(self.runtime_root, overwrite=False)
@@ -1610,6 +1632,29 @@ class OperatorConsole:
     def on_refresh_tool_health(self) -> None:
         self.tool_health_snapshot = load_latest_tool_health_snapshot()
         self._render_tool_capabilities_panel()
+
+    def on_refresh_tool_packs(self) -> None:
+        self._ensure_toolpack_discovery_snapshot()
+        self._render_tool_capabilities_panel()
+
+    def on_validate_tool_packs(self) -> None:
+        self._ensure_toolpack_discovery_snapshot()
+        self._render_tool_capabilities_panel()
+
+    def on_open_selected_toolpack_readme(self) -> None:
+        tool_id = self._selected_tool_id()
+        if not tool_id.startswith("toolpack:"):
+            return
+        pack_id = tool_id.removeprefix("toolpack:")
+        discovery = self.toolpack_discovery_snapshot if isinstance(self.toolpack_discovery_snapshot, dict) else {}
+        entry = next((item for item in discovery.get("toolpacks", []) if str(item.get("toolpack_id", "")) == pack_id), None)
+        if not entry:
+            return
+        readme = Path(str(entry.get("path", ""))).with_name("README.md")
+        try:
+            open_report_html(str(readme))
+        except Exception:
+            pass
 
     def on_run_all_tool_health(self) -> None:
         check_all_tool_health(include_optional=True, live_rpa=False)
@@ -2349,6 +2394,11 @@ class OperatorConsole:
                 capability.category,
                 capability.core_or_optional,
                 status,
+                capability.source,
+                capability.path,
+                "yes" if capability.enabled else "no",
+                "yes" if capability.registered else "no",
+                "yes" if capability.valid else "no",
                 checked_at,
                 "Run",
                 "Open",
@@ -2399,6 +2449,18 @@ class OperatorConsole:
                     f"RPA Live Probe Required: {capability.rpa_live_probe_required}",
                 ]
             )
+            if getattr(capability, "source", "") == "external_toolpack":
+                lines.extend(
+                    [
+                        f"Source: {capability.source}",
+                        f"Path: {capability.path}",
+                        f"Enabled: {capability.enabled}",
+                        f"Registered: {capability.registered}",
+                        f"Valid: {capability.valid}",
+                        f"Tool Count: {capability.tool_count}",
+                        f"Tool Pack: {capability.toolpack_id}",
+                    ]
+                )
             if capability.category == "rpa" or capability.rpa_live_probe_required:
                 lines.extend(
                     [
@@ -2427,6 +2489,14 @@ class OperatorConsole:
             lines.extend(["", "Setup Steps:"])
             for step in setup.get("steps", []):
                 lines.append(f"- {step}")
+        if self.toolpack_discovery_snapshot:
+            lines.extend(["", "Tool Pack Discovery:"])
+            for pack in self.toolpack_discovery_snapshot.get("toolpacks", []):
+                lines.append(
+                    f"- {pack.get('toolpack_id', '')} | enabled={str(pack.get('enabled', False)).lower()} | "
+                    f"registered={str(pack.get('registered', False)).lower()} | valid={str(pack.get('valid', False)).lower()} | "
+                    f"tools={pack.get('tool_count', 0)}"
+                )
         text = chr(10).join(lines) if lines else "Select a tool to view its capability and health details."
         if hasattr(self, "live_test_button"):
             if tool_id == "rpa_google_messages":

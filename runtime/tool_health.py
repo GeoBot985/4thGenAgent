@@ -10,6 +10,7 @@ from .business_store import load_business_dataset as load_business_store_dataset
 from .business_context import get_business_order_context
 from .memory_store import MemoryStore
 from src.config_profiles import resolve_google_credentials_path, resolve_google_token_path
+from src.toolpack_loader import check_toolpack_health
 from .taskframe import utc_now
 from .tool_capabilities import ToolHealthResult
 from .tool_capability_registry import get_tool_capability, list_tool_capabilities
@@ -94,6 +95,8 @@ def _check_tool_health(tool_id: str, *, live: bool = False) -> ToolHealthResult:
         return _check_report_generator(capability, checked_at)
     if tool_id == "rpa_google_messages":
         return _check_google_messages_rpa(capability, checked_at, live=live)
+    if str(tool_id).startswith("toolpack:"):
+        return _check_toolpack(capability, checked_at, live=live)
 
     return ToolHealthResult(
         tool_id=tool_id,
@@ -587,6 +590,26 @@ def _failed_result(capability, checked_at: str, status: str, message: str, error
         recommended_action=None,
         checked_at=checked_at,
         details=payload,
+    )
+
+
+def _check_toolpack(capability, checked_at: str, *, live: bool = False) -> ToolHealthResult:
+    pack_id = str(capability.toolpack_id or capability.tool_id.removeprefix("toolpack:"))
+    result = check_toolpack_health(pack_id, live=live)
+    status = str(result.get("status", "unknown"))
+    severity = str(result.get("severity", "warning"))
+    message = str(result.get("message", "Tool pack health check completed."))
+    ok = bool(result.get("ok", False))
+    return ToolHealthResult(
+        tool_id=capability.tool_id,
+        ok=ok,
+        status=status,
+        severity=severity,
+        message=message,
+        can_auto_resolve=False,
+        recommended_action=None,
+        checked_at=checked_at,
+        details=dict(result),
     )
 
 

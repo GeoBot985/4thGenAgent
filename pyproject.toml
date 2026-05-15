@@ -44,6 +44,7 @@ include = [
   "src*",
   "tools*",
   "optional_tools*",
+  "tool_packs*",
 ]
 
 [tool.setuptools.package-data]

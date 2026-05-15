@@ -92,6 +92,10 @@ See [docs/configuration.md](docs/configuration.md).
 
 The live-execution safety boundary is documented in [docs/live_execution_safety.md](docs/live_execution_safety.md).
 
+Tools can also be added through external tool packs. Adding a tool pack does not automatically add it to the default demo or release-candidate path.
+
+See [docs/toolpack_contract.md](docs/toolpack_contract.md) and [docs/toolpack_authoring_guide.md](docs/toolpack_authoring_guide.md).
+
 ---
 
 ## What you should see

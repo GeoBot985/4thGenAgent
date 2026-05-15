@@ -16,6 +16,7 @@ This document freezes what belongs in the default clean-clone RC path and what d
 ## Excluded From Default RC
 
 - Optional RPA tools
+- External tool packs not explicitly enabled for the default path
 - Live WhatsApp or Gmail sending
 - Live browser automation
 - Live execution from the default demo path
@@ -27,6 +28,8 @@ This document freezes what belongs in the default clean-clone RC path and what d
 
 Optional tools may exist in the repo, but they must not be imported or required by the default RC verification path.
 The default release candidate remains manifest-driven, TaskFrame-centered, approval-gated, and validation-based.
+
+External tool packs are configuration-driven. Adding a pack does not automatically add it to the default demo or release-candidate path.
 
 Adding a tool does not automatically add it to the default RC path.
 

@@ -46,6 +46,7 @@ def test_cli_help_works() -> None:
     assert proc.returncode == 0
     assert "taskframe" in proc.stdout.lower()
     assert "demo" in proc.stdout.lower()
+    assert "tools" in proc.stdout.lower()
 
 
 def test_cli_version_works() -> None:

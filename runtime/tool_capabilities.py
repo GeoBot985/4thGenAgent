@@ -18,6 +18,13 @@ class ToolCapability:
     setup_action: str | None
     rpa_live_probe_required: bool
     excluded_from_default_release: bool = False
+    source: str = "builtin"
+    path: str = ""
+    enabled: bool = True
+    registered: bool = True
+    valid: bool = True
+    toolpack_id: str = ""
+    tool_count: int = 0
     limitations: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

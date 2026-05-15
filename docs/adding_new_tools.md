@@ -64,7 +64,22 @@ Tool functions perform capability work. The runtime records the tool call. The m
 
 ## Tool Registry
 
-Register the tool in `TOOL_REGISTRY` with a single explicit command namespace and action.
+Built-in tools remain registered in `TOOL_REGISTRY`.
+
+External tools should be packaged as tool packs and enabled through configuration.
+
+Example tool pack descriptor:
+
+```json
+{
+  "toolpack_id": "demo_echo",
+  "name": "Demo Echo Tool Pack",
+  "module_prefix": "tool_packs.demo_echo",
+  "tools": []
+}
+```
+
+Register a new built-in tool in `TOOL_REGISTRY` only when the tool truly belongs in the core runtime.
 
 ```json
 {
@@ -165,6 +180,8 @@ ToolCapability(
 ```
 
 If a tool is not in the capability registry, the operator cannot properly assess its readiness.
+
+External tool packs must also provide `toolpack.json`, a README, and a safe health check.
 
 ## Tool Health
 

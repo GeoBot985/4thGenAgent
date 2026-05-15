@@ -23,6 +23,7 @@
 ## Registry
 
 - [ ] Tool is registered in `TOOL_REGISTRY`.
+- [ ] If the tool is external, it is described by `toolpack.json` and enabled through configuration.
 - [ ] `required_args` are complete.
 - [ ] `optional_args` are complete.
 - [ ] `arg_types` are defined where coercion is needed.

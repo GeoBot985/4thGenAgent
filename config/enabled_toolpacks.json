@@ -1,0 +1,7 @@
+{
+  "enabled_toolpacks": [
+    "tool_packs/demo_echo/toolpack.json"
+  ],
+  "disabled_toolpacks": [],
+  "allow_optional_toolpacks": false
+}
