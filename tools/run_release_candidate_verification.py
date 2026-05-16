@@ -115,10 +115,19 @@ def build_verification_result() -> dict[str, Any]:
         "packaging_cli": "PENDING",
         "manifest_health_cli_strict": "PENDING",
         "toolpack_contract": "PENDING",
+        "google_workspace_toolpack_descriptor": "PENDING",
+        "google_workspace_read_only_safety": "PENDING",
+        "google_workspace_health_safe": "PENDING",
+        "google_workspace_docs": "PENDING",
+        "google_workspace_optional_boundary": "PENDING",
         "toolpack_loader": "PENDING",
         "toolpack_registry_integration": "PENDING",
         "toolpack_cli": "PENDING",
         "external_toolpacks_default_safe": "PENDING",
+        "builtin_toolpack_migration": "PENDING",
+        "tool_registry_compatibility": "PENDING",
+        "tool_inventory": "PENDING",
+        "migrated_toolpack_health": "PENDING",
         "default_tool_registry": "PENDING",
             "tool_capability_registry": "PENDING",
             "core_tool_health_safe_checks": "PENDING",
@@ -140,6 +149,10 @@ def build_verification_result() -> dict[str, Any]:
             "safety_verification_pack": "PENDING",
             "live_blocked_evidence_report": "PENDING",
             "default_no_live_side_effects": "PENDING",
+            "toolpack_scaffold": "PENDING",
+            "toolpack_contract_runner": "PENDING",
+            "toolpack_generated_pack_execution": "PENDING",
+            "toolpack_governance": "PENDING",
         },
         "workflow_checks": {
             "customer": {"status": "PENDING", "count": 0},
@@ -191,6 +204,26 @@ def build_verification_result() -> dict[str, Any]:
         ("toolpack_cli_tests", ["python", "-m", "pytest", "tests/test_toolpack_cli.py"]),
         ("toolpack_health_tests", ["python", "-m", "pytest", "tests/test_toolpack_health.py"]),
         ("toolpack_manifest_execution_tests", ["python", "-m", "pytest", "tests/test_toolpack_manifest_execution.py"]),
+        ("google_workspace_descriptor_tests", ["python", "-m", "pytest", "tests/test_google_workspace_toolpack_descriptor.py"]),
+        ("google_workspace_auth_tests", ["python", "-m", "pytest", "tests/test_google_workspace_toolpack_auth.py"]),
+        ("google_workspace_tool_tests", ["python", "-m", "pytest", "tests/test_google_workspace_toolpack_tools.py"]),
+        ("google_workspace_health_tests", ["python", "-m", "pytest", "tests/test_google_workspace_toolpack_health.py"]),
+        ("google_workspace_cli_tests", ["python", "-m", "pytest", "tests/test_google_workspace_toolpack_cli.py"]),
+        ("google_workspace_manifest_examples_tests", ["python", "-m", "pytest", "tests/test_google_workspace_toolpack_manifest_examples.py"]),
+        ("google_workspace_safety_tests", ["python", "-m", "pytest", "tests/test_google_workspace_toolpack_safety.py"]),
+        ("google_workspace_docs_tests", ["python", "-m", "pytest", "tests/test_google_workspace_toolpack_docs.py"]),
+        ("builtin_toolpack_migration_tests", ["python", "-m", "pytest", "tests/test_builtin_toolpack_migration.py"]),
+        ("tool_registry_compat_tests", ["python", "-m", "pytest", "tests/test_tool_registry_compat.py"]),
+        ("tool_inventory_tests", ["python", "-m", "pytest", "tests/test_tool_inventory.py"]),
+        ("builtin_toolpack_health_tests", ["python", "-m", "pytest", "tests/test_builtin_toolpack_health.py"]),
+        ("builtin_toolpack_manifest_compatibility_tests", ["python", "-m", "pytest", "tests/test_builtin_toolpack_manifest_compatibility.py"]),
+        ("builtin_toolpack_cli_tests", ["python", "-m", "pytest", "tests/test_builtin_toolpack_cli.py"]),
+        ("builtin_toolpack_docs_tests", ["python", "-m", "pytest", "tests/test_builtin_toolpack_docs.py"]),
+        ("toolpack_scaffold_tests", ["python", "-m", "pytest", "tests/test_toolpack_scaffold.py"]),
+        ("toolpack_contract_runner_tests", ["python", "-m", "pytest", "tests/test_toolpack_contract_runner.py"]),
+        ("toolpack_scaffold_cli_tests", ["python", "-m", "pytest", "tests/test_toolpack_scaffold_cli.py"]),
+        ("toolpack_generated_pack_execution_tests", ["python", "-m", "pytest", "tests/test_toolpack_generated_pack_execution.py"]),
+        ("toolpack_governance_tests", ["python", "-m", "pytest", "tests/test_toolpack_governance.py", "tests/test_toolpack_governance_report.py", "tests/test_toolpack_governance_cli.py", "tests/test_toolpack_governance_docs.py", "tests/test_toolpack_governance_release_verifier.py"]),
     ]
 
     for name, command in command_groups:
@@ -224,10 +257,19 @@ def build_verification_result() -> dict[str, Any]:
         _check_packaging_cli(),
         _check_manifest_health_cli_strict(),
         _check_toolpack_contract(),
+        _check_google_workspace_toolpack_descriptor(),
+        _check_google_workspace_read_only_safety(),
+        _check_google_workspace_health_safe(),
+        _check_google_workspace_docs(),
+        _check_google_workspace_optional_boundary(),
         _check_toolpack_loader(),
         _check_toolpack_registry_integration(),
         _check_toolpack_cli(),
         _check_external_toolpacks_default_safe(),
+        _check_builtin_toolpack_migration(),
+        _check_tool_registry_compatibility(),
+        _check_tool_inventory(),
+        _check_migrated_toolpack_health(),
         _check_default_tool_registry(),
         _check_tool_capability_registry(),
         _check_core_tool_health_safe_checks(),
@@ -253,6 +295,7 @@ def build_verification_result() -> dict[str, Any]:
         _check_optional_rpa_isolation(),
         _check_config_secrets_hygiene(),
         _check_safety_verification_pack(),
+        _check_toolpack_governance(),
     ])
     manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     for key in ("json_path", "markdown_path"):
@@ -269,6 +312,16 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("manifest health strict CLI failed")
             elif check["name"] == "toolpack_contract":
                 release_blockers.append("tool pack contract docs or example pack failed")
+            elif check["name"] == "google_workspace_toolpack_descriptor":
+                release_blockers.append("google workspace descriptor failed")
+            elif check["name"] == "google_workspace_read_only_safety":
+                release_blockers.append("google workspace read-only safety failed")
+            elif check["name"] == "google_workspace_health_safe":
+                release_blockers.append("google workspace health failed")
+            elif check["name"] == "google_workspace_docs":
+                release_blockers.append("google workspace docs missing")
+            elif check["name"] == "google_workspace_optional_boundary":
+                release_blockers.append("google workspace optional boundary failed")
             elif check["name"] == "toolpack_loader":
                 release_blockers.append("tool pack loader tests failed")
             elif check["name"] == "toolpack_registry_integration":
@@ -277,6 +330,14 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("tool pack CLI failed")
             elif check["name"] == "external_toolpacks_default_safe":
                 release_blockers.append("external tool pack default safety failed")
+            elif check["name"] == "builtin_toolpack_migration":
+                release_blockers.append("built-in tool pack migration failed")
+            elif check["name"] == "tool_registry_compatibility":
+                release_blockers.append("tool registry compatibility failed")
+            elif check["name"] == "tool_inventory":
+                release_blockers.append("tool inventory failed")
+            elif check["name"] == "migrated_toolpack_health":
+                release_blockers.append("migrated tool pack health failed")
             elif check["name"] == "default_tool_registry":
                 release_blockers.append("default tool registry failed")
             elif check["name"] == "TOOL_CAPABILITY_REGISTRY":
@@ -327,6 +388,19 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("config / secrets hygiene failed")
             elif check["name"] == "safety_verification_pack":
                 release_blockers.append("safety verification pack failed")
+            elif check["name"] == "toolpack_governance":
+                release_blockers.append("toolpack governance policy check failed")
+
+    for name, blocker in [
+        ("toolpack_scaffold_tests", "scaffold tests failed"),
+        ("toolpack_contract_runner_tests", "toolpack contract runner tests failed"),
+        ("toolpack_scaffold_cli_tests", "toolpack scaffold CLI tests failed"),
+        ("toolpack_generated_pack_execution_tests", "toolpack generated pack execution tests failed"),
+        ("toolpack_governance_tests", "toolpack governance tests failed"),
+    ]:
+        cmd = next((c for c in commands if c.get("name") == name), None)
+        if cmd and cmd.get("status") != "PASS":
+            release_blockers.append(blocker)
 
     artifact_paths = [
         "README.md",
@@ -337,6 +411,8 @@ def build_verification_result() -> dict[str, Any]:
         "docs/toolpack_contract.md",
         "docs/toolpack_authoring_guide.md",
         "docs/toolpack_examples.md",
+        "docs/builtin_toolpack_migration.md",
+        "docs/tool_inventory.md",
         "docs/cli_reference.md",
         "docs/quickstart.md",
         "docs/index.md",
@@ -351,6 +427,20 @@ def build_verification_result() -> dict[str, Any]:
         "tool_packs/README.md",
         "tool_packs/demo_echo/toolpack.json",
         "tool_packs/demo_echo/README.md",
+        "tool_packs/google_workspace/toolpack.json",
+        "tool_packs/google_workspace/tools.py",
+        "tool_packs/google_workspace/health.py",
+        "tool_packs/google_workspace/auth.py",
+        "tool_packs/google_workspace/README.md",
+        "tool_packs/google_workspace/examples/smoke_gmail_list_unread.manifest.json",
+        "tool_packs/google_workspace/examples/smoke_calendar_search.manifest.json",
+        "tool_packs/google_workspace/examples/smoke_sheets_read_range.manifest.json",
+        "tool_packs/core_business/toolpack.json",
+        "tool_packs/core_memory/toolpack.json",
+        "tool_packs/core_llm_micro/toolpack.json",
+        "tool_packs/core_reports/toolpack.json",
+        "src/tool_registry_compat.py",
+        "src/tool_inventory.py",
         "runtime/business_context.py",
         "docs/architecture_overview.md",
         "docs/demo_walkthrough.md",
@@ -376,6 +466,13 @@ def build_verification_result() -> dict[str, Any]:
         "docs/screenshots/08_report_output.png",
         "docs/screenshots/09_release_verification.png",
         "docs/safety_verification.md",
+        "src/toolpack_scaffold.py",
+        "src/toolpack_contract_runner.py",
+        "docs/toolpack_scaffold_wizard.md",
+        "docs/toolpack_contract_testing.md",
+        "src/toolpack_governance.py",
+        "docs/toolpack_governance.md",
+        "config/toolpack_governance.json",
     ]
     for path in artifact_paths:
         item = check_file_exists(path)
@@ -404,10 +501,19 @@ def build_verification_result() -> dict[str, Any]:
         "packaging_cli": _status_from_static(static_checks, "packaging_cli"),
         "manifest_health_cli_strict": _status_from_static(static_checks, "manifest_health_cli_strict"),
         "toolpack_contract": _status_from_static(static_checks, "toolpack_contract"),
+        "google_workspace_toolpack_descriptor": _status_from_static(static_checks, "google_workspace_toolpack_descriptor"),
+        "google_workspace_read_only_safety": _status_from_static(static_checks, "google_workspace_read_only_safety"),
+        "google_workspace_health_safe": _status_from_static(static_checks, "google_workspace_health_safe"),
+        "google_workspace_docs": _status_from_static(static_checks, "google_workspace_docs"),
+        "google_workspace_optional_boundary": _status_from_static(static_checks, "google_workspace_optional_boundary"),
         "toolpack_loader": _status_from_static(static_checks, "toolpack_loader"),
         "toolpack_registry_integration": _status_from_static(static_checks, "toolpack_registry_integration"),
         "toolpack_cli": _status_from_static(static_checks, "toolpack_cli"),
         "external_toolpacks_default_safe": _status_from_static(static_checks, "external_toolpacks_default_safe"),
+        "builtin_toolpack_migration": _status_from_static(static_checks, "builtin_toolpack_migration"),
+        "tool_registry_compatibility": _status_from_static(static_checks, "tool_registry_compatibility"),
+        "tool_inventory": _status_from_static(static_checks, "tool_inventory"),
+        "migrated_toolpack_health": _status_from_static(static_checks, "migrated_toolpack_health"),
         "default_tool_registry": _status_from_static(static_checks, "default_tool_registry"),
         "tool_capability_registry": _status_from_static(static_checks, "TOOL_CAPABILITY_REGISTRY"),
         "core_tool_health_safe_checks": _status_from_static(static_checks, "CORE_TOOL_HEALTH_SAFE_CHECKS"),
@@ -426,6 +532,10 @@ def build_verification_result() -> dict[str, Any]:
         "safety_verification_pack": _status_from_static(static_checks, "safety_verification_pack"),
         "live_blocked_evidence_report": _status_from_static(static_checks, "safety_verification_pack"),
         "default_no_live_side_effects": _status_from_static(static_checks, "safety_verification_pack"),
+        "toolpack_scaffold": _status_from_commands(commands, "toolpack_scaffold_tests"),
+        "toolpack_contract_runner": _status_from_commands(commands, "toolpack_contract_runner_tests"),
+        "toolpack_generated_pack_execution": _status_from_commands(commands, "toolpack_generated_pack_execution_tests"),
+        "toolpack_governance": _status_from_static(static_checks, "toolpack_governance"),
     }
 
     if release_blockers:
@@ -508,6 +618,13 @@ def build_verification_result() -> dict[str, Any]:
         "docs/screenshots/08_report_output.png",
         "docs/screenshots/09_release_verification.png",
         "docs/safety_verification.md",
+        "src/toolpack_scaffold.py",
+        "src/toolpack_contract_runner.py",
+        "docs/toolpack_scaffold_wizard.md",
+        "docs/toolpack_contract_testing.md",
+        "src/toolpack_governance.py",
+        "docs/toolpack_governance.md",
+        "config/toolpack_governance.json",
     ]
     for path in artifact_paths:
         item = check_file_exists(path)
@@ -536,6 +653,8 @@ def build_verification_result() -> dict[str, Any]:
         _display_path(ROOT / "docs" / "toolpack_contract.md"),
         _display_path(ROOT / "docs" / "toolpack_authoring_guide.md"),
         _display_path(ROOT / "docs" / "toolpack_examples.md"),
+        _display_path(ROOT / "docs" / "builtin_toolpack_migration.md"),
+        _display_path(ROOT / "docs" / "tool_inventory.md"),
         _display_path(DEFAULT_DEMO_BOUNDARY_MD),
         _display_path(KNOWN_LIMITATIONS_MD),
         _display_path(RELEASE_STATUS_JSON),
@@ -544,6 +663,10 @@ def build_verification_result() -> dict[str, Any]:
         _display_path(ROOT / "tool_packs" / "README.md"),
         _display_path(ROOT / "tool_packs" / "demo_echo" / "toolpack.json"),
         _display_path(ROOT / "tool_packs" / "demo_echo" / "README.md"),
+        _display_path(ROOT / "tool_packs" / "core_business" / "toolpack.json"),
+        _display_path(ROOT / "tool_packs" / "core_memory" / "toolpack.json"),
+        _display_path(ROOT / "tool_packs" / "core_llm_micro" / "toolpack.json"),
+        _display_path(ROOT / "tool_packs" / "core_reports" / "toolpack.json"),
     ])
 
     checks["release_artifacts"] = _status_from_artifacts(artifact_checks, [
@@ -554,6 +677,11 @@ def build_verification_result() -> dict[str, Any]:
         "docs/toolpack_contract.md",
         "docs/toolpack_authoring_guide.md",
         "docs/toolpack_examples.md",
+        "docs/google_workspace_readonly_toolpack.md",
+        "docs/google_workspace_setup.md",
+        "docs/google_workspace_integration_tests.md",
+        "docs/builtin_toolpack_migration.md",
+        "docs/tool_inventory.md",
         "docs/default_demo_boundary.md",
         "docs/known_limitations.md",
         "docs/current_release_status.md",
@@ -562,6 +690,10 @@ def build_verification_result() -> dict[str, Any]:
         "tool_packs/README.md",
         "tool_packs/demo_echo/toolpack.json",
         "tool_packs/demo_echo/README.md",
+        "tool_packs/core_business/toolpack.json",
+        "tool_packs/core_memory/toolpack.json",
+        "tool_packs/core_llm_micro/toolpack.json",
+        "tool_packs/core_reports/toolpack.json",
         "scripts/run_golden_demo.py",
         "runtime_data/outputs/reports/golden_demo_report.md",
         "runtime_data/outputs/reports/golden_demo_report.html",
@@ -1163,6 +1295,106 @@ def _check_toolpack_contract() -> dict[str, Any]:
     }
 
 
+def _check_google_workspace_toolpack_descriptor() -> dict[str, Any]:
+    required_paths = [
+        ROOT / "tool_packs" / "google_workspace" / "toolpack.json",
+        ROOT / "tool_packs" / "google_workspace" / "README.md",
+        ROOT / "tool_packs" / "google_workspace" / "auth.py",
+        ROOT / "tool_packs" / "google_workspace" / "tools.py",
+        ROOT / "tool_packs" / "google_workspace" / "health.py",
+    ]
+    missing_paths = [str(path.relative_to(ROOT)) for path in required_paths if not path.is_file()]
+    if missing_paths:
+        return {"name": "google_workspace_toolpack_descriptor", "status": "FAIL", "missing_paths": missing_paths}
+    try:
+        from src.toolpack_loader import load_toolpack_descriptor, validate_toolpack_descriptor
+
+        descriptor = load_toolpack_descriptor(ROOT / "tool_packs" / "google_workspace" / "toolpack.json")
+        validation = validate_toolpack_descriptor(descriptor, base_path=ROOT / "tool_packs" / "google_workspace")
+        ok = bool(validation.get("ok", False)) and int(validation.get("tool_count", 0) or 0) == 7
+        return {
+            "name": "google_workspace_toolpack_descriptor",
+            "status": "PASS" if ok else "FAIL",
+            "validation": validation,
+        }
+    except Exception as exc:
+        return {"name": "google_workspace_toolpack_descriptor", "status": "FAIL", "error": str(exc)}
+
+
+def _check_google_workspace_read_only_safety() -> dict[str, Any]:
+    try:
+        from src.google_workspace_safety_scan import scan_google_workspace_pack_for_forbidden_calls
+
+        descriptor = json.loads((ROOT / "tool_packs" / "google_workspace" / "toolpack.json").read_text(encoding="utf-8"))
+        side_effect_tools = [item.get("tool", "") for item in descriptor.get("tools", []) if isinstance(item, dict) and (item.get("side_effect") or item.get("allow_live_side_effect"))]
+        scan = scan_google_workspace_pack_for_forbidden_calls(ROOT / "tool_packs" / "google_workspace")
+        ok = not side_effect_tools and scan.get("ok", False)
+        return {
+            "name": "google_workspace_read_only_safety",
+            "status": "PASS" if ok else "FAIL",
+            "side_effect_tools": side_effect_tools,
+            "scan": scan,
+        }
+    except Exception as exc:
+        return {"name": "google_workspace_read_only_safety", "status": "FAIL", "error": str(exc)}
+
+
+def _check_google_workspace_health_safe() -> dict[str, Any]:
+    try:
+        from src.toolpack_loader import check_toolpack_health
+
+        result = check_toolpack_health("google_workspace", config_path=ROOT / "config" / "enabled_toolpacks.json", live=False)
+        ok = result.get("status") in {"ready", "needs_auth", "missing_dependency"} and not bool(result.get("live_checked", False))
+        return {
+            "name": "google_workspace_health_safe",
+            "status": "PASS" if ok else "FAIL",
+            "health": result,
+        }
+    except Exception as exc:
+        return {"name": "google_workspace_health_safe", "status": "FAIL", "error": str(exc)}
+
+
+def _check_google_workspace_docs() -> dict[str, Any]:
+    required_paths = [
+        ROOT / "docs" / "google_workspace_readonly_toolpack.md",
+        ROOT / "docs" / "google_workspace_setup.md",
+        ROOT / "docs" / "google_workspace_integration_tests.md",
+    ]
+    missing = [str(path.relative_to(ROOT)) for path in required_paths if not path.is_file()]
+    readme_text = (ROOT / "README.md").read_text(encoding="utf-8").lower() if (ROOT / "README.md").is_file() else ""
+    docs_text = " ".join(path.read_text(encoding="utf-8").lower() for path in required_paths if path.is_file())
+    required_terms = ["google workspace", "read-only", "oauth", "integration tests", "tool pack"]
+    missing_terms = [term for term in required_terms if term not in docs_text and term not in readme_text]
+    ok = not missing and not missing_terms
+    return {
+        "name": "google_workspace_docs",
+        "status": "PASS" if ok else "FAIL",
+        "missing_paths": missing,
+        "missing_terms": missing_terms,
+    }
+
+
+def _check_google_workspace_optional_boundary() -> dict[str, Any]:
+    try:
+        from runtime.tool_registry import build_tool_registry
+        from src.toolpack_loader import build_external_tool_registry, discover_toolpacks
+
+        discovery = discover_toolpacks(include_disabled=True)
+        pack = next((item for item in discovery.get("toolpacks", []) if str(item.get("toolpack_id", "")) == "google_workspace"), None)
+        external_registry = build_external_tool_registry()
+        registry = build_tool_registry(include_external=True)
+        ok = bool(pack) and not external_registry and "gmail/list_unread" not in registry
+        return {
+            "name": "google_workspace_optional_boundary",
+            "status": "PASS" if ok else "FAIL",
+            "discovered": bool(pack),
+            "external_registry_count": len(external_registry),
+            "registry_contains_google": "gmail/list_unread" in registry,
+        }
+    except Exception as exc:
+        return {"name": "google_workspace_optional_boundary", "status": "FAIL", "error": str(exc)}
+
+
 def _check_toolpack_loader() -> dict[str, Any]:
     result = run_command("toolpack_loader_tests", ["python", "-m", "pytest", "tests/test_toolpack_loader.py"], timeout_seconds=180)
     return {
@@ -1193,6 +1425,8 @@ def _check_toolpack_cli() -> dict[str, Any]:
         run_command("toolpack_cli_list", ["python", "-m", "src.taskframe_cli", "tools", "list"], timeout_seconds=180),
         run_command("toolpack_cli_validate", ["python", "-m", "src.taskframe_cli", "tools", "validate", "tool_packs/demo_echo/toolpack.json"], timeout_seconds=180),
         run_command("toolpack_cli_health", ["python", "-m", "src.taskframe_cli", "tools", "health", "demo_echo"], timeout_seconds=180),
+        run_command("toolpack_cli_inventory", ["python", "-m", "src.taskframe_cli", "tools", "inventory"], timeout_seconds=180),
+        run_command("toolpack_cli_compat_check", ["python", "-m", "src.taskframe_cli", "tools", "compat-check"], timeout_seconds=180),
     ]
     ok = all(item["status"] == "PASS" for item in commands)
     return {
@@ -1229,6 +1463,86 @@ def _check_external_toolpacks_default_safe() -> dict[str, Any]:
         }
     except Exception as exc:
         return {"name": "external_toolpacks_default_safe", "status": "FAIL", "error": str(exc)}
+
+
+def _check_builtin_toolpack_migration() -> dict[str, Any]:
+    required_paths = [
+        ROOT / "tool_packs" / "core_business" / "toolpack.json",
+        ROOT / "tool_packs" / "core_memory" / "toolpack.json",
+        ROOT / "tool_packs" / "core_llm_micro" / "toolpack.json",
+        ROOT / "tool_packs" / "core_reports" / "toolpack.json",
+        ROOT / "src" / "tool_registry_compat.py",
+        ROOT / "src" / "tool_inventory.py",
+        ROOT / "docs" / "builtin_toolpack_migration.md",
+        ROOT / "docs" / "tool_inventory.md",
+    ]
+    missing = [str(path.relative_to(ROOT)) for path in required_paths if not path.is_file()]
+    return {
+        "name": "builtin_toolpack_migration",
+        "status": "PASS" if not missing else "FAIL",
+        "missing_paths": missing,
+    }
+
+
+def _check_tool_registry_compatibility() -> dict[str, Any]:
+    try:
+        from runtime.tool_registry import BUILTIN_LEGACY_TOOL_REGISTRY
+        from src.tool_registry_compat import build_compatibility_registry, compare_legacy_and_toolpack_registry
+
+        migrated_registry = build_compatibility_registry()
+        comparison = compare_legacy_and_toolpack_registry(BUILTIN_LEGACY_TOOL_REGISTRY, migrated_registry)
+        return {
+            "name": "tool_registry_compatibility",
+            "status": "PASS" if comparison.get("ok", False) else "FAIL",
+            "summary": {
+                "migrated_toolpack_tools": len(migrated_registry),
+                "legacy_fallback_tools": len(BUILTIN_LEGACY_TOOL_REGISTRY),
+                "new_tools": len(comparison.get("new_tools", [])),
+                "changed_tools": len(comparison.get("changed_tools", [])),
+                "missing_tools": len(comparison.get("missing_tools", [])),
+            },
+            "comparison": comparison,
+        }
+    except Exception as exc:
+        return {"name": "tool_registry_compatibility", "status": "FAIL", "error": str(exc)}
+
+
+def _check_tool_inventory() -> dict[str, Any]:
+    try:
+        from src.tool_inventory import build_tool_inventory_report
+
+        report = build_tool_inventory_report(runtime_data_dir=ROOT / "runtime_data")
+        ok = bool(report.get("ok", False))
+        return {
+            "name": "tool_inventory",
+            "status": "PASS" if ok else "FAIL",
+            "summary": report.get("summary", {}),
+            "json_path": report.get("json_path", ""),
+            "markdown_path": report.get("markdown_path", ""),
+            "docs_path": report.get("docs_path", ""),
+        }
+    except Exception as exc:
+        return {"name": "tool_inventory", "status": "FAIL", "error": str(exc)}
+
+
+def _check_migrated_toolpack_health() -> dict[str, Any]:
+    try:
+        from runtime.tool_health import check_all_tool_health, check_tool_health
+
+        results = check_all_tool_health(include_optional=False, live_rpa=False)
+        ids = {item.tool_id for item in results}
+        required_ids = {"toolpack:core_business", "toolpack:core_memory", "toolpack:core_llm_micro", "toolpack:core_reports"}
+        single = check_tool_health("toolpack:core_business", live=False)
+        ok = required_ids.issubset(ids) and bool(single.ok)
+        return {
+            "name": "migrated_toolpack_health",
+            "status": "PASS" if ok else "FAIL",
+            "required_ids": sorted(required_ids),
+            "observed_ids": sorted(required_ids.intersection(ids)),
+            "single_health": single.to_dict() if hasattr(single, "to_dict") else {},
+        }
+    except Exception as exc:
+        return {"name": "migrated_toolpack_health", "status": "FAIL", "error": str(exc)}
 
 
 def _check_current_release_status_doc() -> dict[str, Any]:
@@ -1677,6 +1991,47 @@ def _check_safety_verification_pack() -> dict[str, Any]:
 
     return {
         "name": "safety_verification_pack",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_toolpack_governance() -> dict[str, Any]:
+    missing: list[str] = []
+
+    gov_config = ROOT / "config" / "toolpack_governance.json"
+    if not gov_config.is_file():
+        missing.append("config/toolpack_governance.json")
+
+    gov_doc = ROOT / "docs" / "toolpack_governance.md"
+    if not gov_doc.is_file():
+        missing.append("docs/toolpack_governance.md")
+    else:
+        text = gov_doc.read_text(encoding="utf-8")
+        for required in ("core", "optional", "experimental", "high_risk", "blocked",
+                         "demo", "release", "tools policy", "tools enable", "tools disable"):
+            if required not in text:
+                missing.append(f"governance_doc_missing:{required}")
+
+    cli_ref = ROOT / "docs" / "cli_reference.md"
+    if cli_ref.is_file():
+        cli_text = cli_ref.read_text(encoding="utf-8")
+        for cmd in ("tools policy", "tools enable", "tools disable", "tools governance-report"):
+            if cmd not in cli_text:
+                missing.append(f"cli_reference_missing:{cmd}")
+    else:
+        missing.append("docs/cli_reference.md")
+
+    try:
+        from src.toolpack_governance import validate_governance_for_release
+        result = validate_governance_for_release()
+        if not result.get("ok"):
+            missing.extend(result.get("errors", [f"governance_release_validation_failed"]))
+    except Exception as exc:
+        missing.append(f"governance_import_error:{exc}")
+
+    return {
+        "name": "toolpack_governance",
         "status": "PASS" if not missing else "FAIL",
         "missing": missing,
     }

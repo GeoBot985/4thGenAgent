@@ -1,0 +1,17 @@
+{
+  "manifest_id": "toolpack.google_workspace.smoke_calendar_search",
+  "name": "Smoke Calendar Search",
+  "version": 1,
+  "trigger": { "type": "manual" },
+  "inputs": ["query"],
+  "steps": [
+    { "id": "calendar_search", "command": "[t:calendar/search -> calendar_entries] query=$inputs.query; days=30; max_results=20" }
+  ],
+  "validations": [
+    { "id": "calendar_entries_output_exists", "type": "output_exists", "output": "calendar_entries" }
+  ],
+  "completion": {
+    "success_outputs": ["calendar_entries"],
+    "acceptable_empty_outputs": ["calendar_entries"]
+  }
+}

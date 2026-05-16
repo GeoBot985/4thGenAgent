@@ -1,0 +1,35 @@
+{
+  "toolpack_id": "core_memory",
+  "name": "Core Memory Tool Pack",
+  "version": "1.0.0",
+  "runtime_contract_version": 1,
+  "core_or_optional": "core",
+  "description": "Migrated built-in memory tools backed by the local memory store.",
+  "module_prefix": "tool_packs.core_memory",
+  "health": {
+    "module": "tool_packs.core_memory.health",
+    "function": "check_health"
+  },
+  "tools": [
+    {
+      "tool": "memory/set",
+      "namespace": "memory",
+      "action": "set",
+      "module": "tool_packs.core_memory.tools",
+      "function": "memory_set",
+      "side_effect": true,
+      "requires_approval": true,
+      "allow_live": false,
+      "allow_live_side_effect": false,
+      "live_guardrail": "blocked",
+      "output_type": "memory_set_result",
+      "required_args": ["key", "value"],
+      "optional_args": ["runtime_root"],
+      "arg_types": {
+        "key": "str",
+        "value": "str",
+        "runtime_root": "str"
+      }
+    }
+  ]
+}

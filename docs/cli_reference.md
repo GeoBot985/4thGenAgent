@@ -208,6 +208,110 @@ Exit codes:
 - `0` when the tool pack is healthy or intentionally disabled
 - non-zero when health fails
 
+### `taskframe tools inventory`
+
+Builds the merged tool inventory report.
+
+- `--runtime-data-dir runtime_data`
+- `--json`
+
+Exit codes:
+- `0` on success
+
+### `taskframe tools compat-check`
+
+Compares the migrated built-in tool packs with the legacy fallback registry.
+
+- `--json`
+
+Exit codes:
+- `0` when compatibility passes
+- non-zero when a migrated tool becomes less safe or a required migrated tool is missing
+
+### `taskframe tools scaffold <toolpack_id>`
+
+Generates a new tool pack scaffold.
+
+- `--namespace <namespace>` — tool namespace (defaults to toolpack_id)
+- `--tool <action>` — tool action name (defaults to `run`)
+- `--safe-read` — generate a safe read-only tool (default)
+- `--side-effect` — generate a side-effect tool that requires approval
+- `--output-dir tool_packs` — output directory
+- `--force` — overwrite existing scaffold
+- `--json`
+
+Exit codes:
+- `0` when scaffold is created
+- non-zero when the pack ID is invalid or the directory exists without `--force`
+
+### `taskframe tools test <toolpack_path>`
+
+Runs contract tests for a tool pack.
+
+- `--runtime-data-dir runtime_data`
+- `--no-manifest-smoke` — skip example manifest smoke runs
+- `--json`
+
+Exit codes:
+- `0` when all contract checks pass
+- non-zero when any check fails
+
+Checks: descriptor valid, imports, tool smoke call, result shape, safety policy, health check, manifest smoke.
+
+### `taskframe tools examples <toolpack_path>`
+
+Prints example manifest step commands for each tool in a pack.
+
+- `--json`
+
+Exit codes:
+- `0` on success
+
+### `taskframe tools policy [toolpack_id]`
+
+Shows the governance policy for a single tool pack, or all packs if no ID is given.
+
+- `--json`
+
+Exit codes:
+- `0` on success
+
+### `taskframe tools enable <toolpack_id>`
+
+Records a governance decision to enable a tool pack in specified environments.
+
+- `--classification <cls>` — required; one of: `core`, `optional`, `experimental`, `high_risk`, `blocked`
+- `--env <envs>` — comma-separated environments (default: `dev,test`)
+- `--by <name>` — who is enabling the pack (default: `operator`)
+- `--reason <text>` — reason for enablement
+- `--json`
+
+Exit codes:
+- `0` on success
+- non-zero if classification or environments are invalid
+
+### `taskframe tools disable <toolpack_id>`
+
+Records a governance decision to disable a tool pack in specified or all environments.
+
+- `--env <envs>` — comma-separated environments to disable (omit to disable in all)
+- `--by <name>` — who is disabling the pack
+- `--reason <text>` — reason for disabling
+- `--json`
+
+Exit codes:
+- `0` on success
+
+### `taskframe tools governance-report`
+
+Generates a governance report listing all tool packs by classification and environment, and flags any policy violations.
+
+- `--json`
+
+Exit codes:
+- `0` when no violations are found
+- non-zero when policy violations exist
+
 ### `taskframe safety-pack`
 
 Builds the safety verification pack and live-blocked evidence report.
@@ -276,3 +380,15 @@ Prints the path to `docs/optional_rpa.md` and a short summary.
 
 Exit codes:
 - `0`
+
+
+## Google Workspace tool pack
+
+- `taskframe tools discover`
+- `taskframe tools list`
+- `taskframe tools inspect gmail/list_unread`
+- `taskframe tools inspect toolpack:google_workspace`
+- `taskframe tools validate tool_packs/google_workspace/toolpack.json`
+- `taskframe tools health google_workspace`
+
+The tool pack is optional and read-only. Default demo paths do not require Google credentials.

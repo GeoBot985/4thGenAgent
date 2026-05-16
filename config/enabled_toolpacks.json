@@ -1,6 +1,7 @@
 {
   "enabled_toolpacks": [
-    "tool_packs/demo_echo/toolpack.json"
+    "tool_packs/demo_echo/toolpack.json",
+    "tool_packs/google_workspace/toolpack.json"
   ],
   "disabled_toolpacks": [],
   "allow_optional_toolpacks": false

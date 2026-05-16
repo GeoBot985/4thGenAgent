@@ -31,7 +31,11 @@
       "Bash(python -m pytest tests/test_safety_verification_pack.py tests/test_live_blocked_evidence_report.py tests/test_cli_safety_pack.py tests/test_safety_verification_docs.py tests/test_release_verifier_safety_pack.py -q)",
       "Bash(python -m pytest -x -q --timeout=120)",
       "Bash(python -c \"import json; v=json.loads\\(open\\('runtime_data/audit/release_candidate_verification.json'\\).read\\(\\)\\); s=json.loads\\(open\\('runtime_data/audit/release_status_latest.json'\\).read\\(\\)\\); print\\('verifier:', v.get\\('verdict'\\), v.get\\('generated_at'\\)\\); print\\('status:', s.get\\('verdict'\\), s.get\\('verification_date'\\)\\)\")",
-      "Bash(python -m pytest -q --ignore=tests/test_current_release_status_doc.py)"
+      "Bash(python -m pytest -q --ignore=tests/test_current_release_status_doc.py)",
+      "Bash(python -m pytest tests/test_toolpack_scaffold.py tests/test_toolpack_contract_runner.py tests/test_toolpack_scaffold_docs.py -x -q)",
+      "Bash(python -m pytest tests/test_toolpack_scaffold.py tests/test_toolpack_contract_runner.py tests/test_toolpack_scaffold_docs.py tests/test_toolpack_generated_pack_execution.py -x -q)",
+      "Bash(python -m pytest tests/test_toolpack_scaffold_cli.py -x -q)",
+      "Bash(python -m pytest tests/test_toolpack_scaffold.py tests/test_toolpack_contract_runner.py tests/test_toolpack_scaffold_cli.py tests/test_toolpack_generated_pack_execution.py tests/test_toolpack_scaffold_docs.py -q)"
     ]
   }
 }

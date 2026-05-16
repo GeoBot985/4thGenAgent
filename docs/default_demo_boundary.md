@@ -31,6 +31,8 @@ The default release candidate remains manifest-driven, TaskFrame-centered, appro
 
 External tool packs are configuration-driven. Adding a pack does not automatically add it to the default demo or release-candidate path.
 
+Migrated core tool packs are part of the core runtime path and remain compatible with existing manifests.
+
 Adding a tool does not automatically add it to the default RC path.
 
 A new tool is excluded from the default RC path unless:
@@ -41,3 +43,10 @@ A new tool is excluded from the default RC path unless:
 - it does not require live credentials for default verification
 - it does not enable live side effects by default
 - it keeps live execution behind explicit safety guardrails and confirmation
+
+
+## Google Workspace boundary
+
+The default demo path does not depend on Google Workspace credentials or live Google APIs.
+
+The Google Workspace tool pack may be discoverable and inspectable, but it is not part of the default demo flow.

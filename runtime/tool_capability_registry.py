@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from .tool_capabilities import ToolCapability
+from src.tool_registry_compat import build_builtin_toolpack_capabilities
 from src.toolpack_loader import build_external_tool_capabilities
 
 
@@ -144,6 +145,31 @@ _CAPABILITY_BY_ID = {item.tool_id: item for item in _CAPABILITIES}
 
 def list_tool_capabilities() -> list[ToolCapability]:
     capabilities = [replace(item) for item in _CAPABILITIES]
+    for item in build_builtin_toolpack_capabilities():
+        capabilities.append(
+            ToolCapability(
+                tool_id=str(item.get("tool_id", "")),
+                display_name=str(item.get("display_name", item.get("name", ""))),
+                category=str(item.get("category", "toolpack")),
+                description=str(item.get("description", "")),
+                core_or_optional=str(item.get("core_or_optional", "core")),
+                side_effect_level=str(item.get("side_effect_level", "read_only")),
+                auth_required=bool(item.get("auth_required", False)),
+                auth_type=item.get("auth_type"),
+                setup_available=bool(item.get("setup_available", False)),
+                setup_action=item.get("setup_action"),
+                rpa_live_probe_required=bool(item.get("rpa_live_probe_required", False)),
+                excluded_from_default_release=bool(item.get("excluded_from_default_release", False)),
+                source=str(item.get("source", "migrated_toolpack")),
+                path=str(item.get("path", "")),
+                enabled=bool(item.get("enabled", True)),
+                registered=bool(item.get("registered", True)),
+                valid=bool(item.get("valid", True)),
+                toolpack_id=str(item.get("toolpack_id", "")),
+                tool_count=int(item.get("tool_count", 0) or 0),
+                limitations=list(item.get("limitations", [])),
+            )
+        )
     for item in build_external_tool_capabilities():
         capabilities.append(
             ToolCapability(
@@ -176,6 +202,30 @@ def get_tool_capability(tool_id: str) -> ToolCapability:
     try:
         return replace(_CAPABILITY_BY_ID[tool_id])
     except KeyError as exc:
+        for item in build_builtin_toolpack_capabilities():
+            if str(item.get("tool_id", "")) == tool_id:
+                return ToolCapability(
+                    tool_id=str(item.get("tool_id", "")),
+                    display_name=str(item.get("display_name", item.get("name", ""))),
+                    category=str(item.get("category", "toolpack")),
+                    description=str(item.get("description", "")),
+                    core_or_optional=str(item.get("core_or_optional", "core")),
+                    side_effect_level=str(item.get("side_effect_level", "read_only")),
+                    auth_required=bool(item.get("auth_required", False)),
+                    auth_type=item.get("auth_type"),
+                    setup_available=bool(item.get("setup_available", False)),
+                    setup_action=item.get("setup_action"),
+                    rpa_live_probe_required=bool(item.get("rpa_live_probe_required", False)),
+                    excluded_from_default_release=bool(item.get("excluded_from_default_release", False)),
+                    source=str(item.get("source", "migrated_toolpack")),
+                    path=str(item.get("path", "")),
+                    enabled=bool(item.get("enabled", True)),
+                    registered=bool(item.get("registered", True)),
+                    valid=bool(item.get("valid", True)),
+                    toolpack_id=str(item.get("toolpack_id", "")),
+                    tool_count=int(item.get("tool_count", 0) or 0),
+                    limitations=list(item.get("limitations", [])),
+                )
         for item in build_external_tool_capabilities():
             if str(item.get("tool_id", "")) == tool_id:
                 return ToolCapability(

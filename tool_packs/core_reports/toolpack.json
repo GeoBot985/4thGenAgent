@@ -1,0 +1,35 @@
+{
+  "toolpack_id": "core_reports",
+  "name": "Core Reports Tool Pack",
+  "version": "1.0.0",
+  "runtime_contract_version": 1,
+  "core_or_optional": "core",
+  "description": "Migrated built-in report generation tools that create local report artifacts.",
+  "module_prefix": "tool_packs.core_reports",
+  "health": {
+    "module": "tool_packs.core_reports.health",
+    "function": "check_health"
+  },
+  "tools": [
+    {
+      "tool": "report/generate",
+      "namespace": "report",
+      "action": "generate",
+      "module": "tool_packs.core_reports.tools",
+      "function": "report_generate",
+      "side_effect": false,
+      "requires_approval": false,
+      "allow_live": true,
+      "allow_live_side_effect": false,
+      "live_guardrail": "blocked",
+      "output_type": "report_result",
+      "required_args": ["frame_id"],
+      "optional_args": ["runtime_data_dir"],
+      "arg_types": {
+        "frame_id": "str",
+        "runtime_data_dir": "str"
+      },
+      "dry_run_executes": true
+    }
+  ]
+}

@@ -15,13 +15,15 @@ def _temporary_external_tools(config_path: Path):
 
     saved = tool_registry.build_tool_registry(include_external=True)
     external = tool_registry.build_tool_registry(include_external=True, config_path=config_path)
-    tool_registry.TOOL_REGISTRY = dict(external)
+    tool_registry.TOOL_REGISTRY.clear()
+    tool_registry.TOOL_REGISTRY.update(external)
     saved_get_tool_spec = tool_runner.get_tool_spec
     tool_runner.get_tool_spec = lambda namespace, action: external[f"{namespace}/{action}"]
     try:
         yield
     finally:
-        tool_registry.TOOL_REGISTRY = dict(saved)
+        tool_registry.TOOL_REGISTRY.clear()
+        tool_registry.TOOL_REGISTRY.update(saved)
         tool_runner.get_tool_spec = saved_get_tool_spec
 
 

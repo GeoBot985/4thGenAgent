@@ -1,0 +1,17 @@
+{
+  "manifest_id": "toolpack.google_workspace.smoke_gmail_list_unread",
+  "name": "Smoke Gmail List Unread",
+  "version": 1,
+  "trigger": { "type": "manual" },
+  "inputs": [],
+  "steps": [
+    { "id": "list_unread", "command": "[t:gmail/list_unread -> unread_messages] max_results=5" }
+  ],
+  "validations": [
+    { "id": "unread_messages_output_exists", "type": "output_exists", "output": "unread_messages" }
+  ],
+  "completion": {
+    "success_outputs": ["unread_messages"],
+    "acceptable_empty_outputs": ["unread_messages"]
+  }
+}

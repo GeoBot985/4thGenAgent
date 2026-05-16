@@ -16,6 +16,17 @@ DEFAULT_CONFIG = {
     "disabled_toolpacks": [],
     "allow_optional_toolpacks": False,
 }
+BUILTIN_TOOLPACK_PATHS = {
+    "core_business": TOOLPACKS_DIR / "core_business" / "toolpack.json",
+    "core_memory": TOOLPACKS_DIR / "core_memory" / "toolpack.json",
+    "core_llm_micro": TOOLPACKS_DIR / "core_llm_micro" / "toolpack.json",
+    "core_reports": TOOLPACKS_DIR / "core_reports" / "toolpack.json",
+}
+
+
+def get_builtin_toolpack_path(toolpack_id: str) -> Path | None:
+    path = BUILTIN_TOOLPACK_PATHS.get(str(toolpack_id).strip())
+    return path if isinstance(path, Path) and path.is_file() else None
 
 
 def load_toolpack_descriptor(path: str | Path) -> dict[str, Any]:
@@ -34,7 +45,12 @@ def load_toolpack_descriptor(path: str | Path) -> dict[str, Any]:
     return payload
 
 
-def validate_toolpack_descriptor(descriptor: dict[str, Any], *, base_path: str | Path | None = None) -> dict[str, Any]:
+def validate_toolpack_descriptor(
+    descriptor: dict[str, Any],
+    *,
+    base_path: str | Path | None = None,
+    validate_health: bool = True,
+) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
     base_dir = _resolve_path(base_path or ROOT, ROOT)
@@ -155,7 +171,7 @@ def validate_toolpack_descriptor(descriptor: dict[str, Any], *, base_path: str |
         )
         _validate_import_target(module_name, function_name, tool_key, base_dir, errors)
 
-    if health_supported:
+    if health_supported and validate_health:
         health_module = str(health.get("module", "")).strip()
         health_function = str(health.get("function", "")).strip()
         if not health_module:
@@ -346,6 +362,24 @@ def check_toolpack_health(
 ) -> dict[str, Any]:
     discovery = discover_toolpacks(config_path=config_path, include_disabled=True)
     entry = next((item for item in discovery.get("toolpacks", []) if str(item.get("toolpack_id", "")) == toolpack_id), None)
+    if entry is None and toolpack_id in BUILTIN_TOOLPACK_PATHS:
+        builtin_path = BUILTIN_TOOLPACK_PATHS[toolpack_id]
+        if builtin_path.is_file():
+            entry = {
+                "toolpack_id": toolpack_id,
+                "path": _display_path(builtin_path),
+                "enabled": True,
+                "registered": True,
+                "valid": True,
+                "tool_count": 0,
+                "errors": [],
+                "warnings": [],
+                "core_or_optional": "core",
+                "allow_optional_toolpacks": False,
+                "health_supported": True,
+                "name": toolpack_id,
+                "version": "",
+            }
     if entry is None:
         return {
             "ok": False,

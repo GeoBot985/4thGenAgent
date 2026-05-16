@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "toolpack_id": "core_business",
+      "classification": "core",
+      "enabled_environments": ["demo", "dev", "test", "release", "live"],
+      "enabled_by": "system",
+      "enabled_at": "2026-05-16T00:00:00+00:00",
+      "reason": "Core built-in business tool pack."
+    },
+    {
+      "toolpack_id": "core_memory",
+      "classification": "core",
+      "enabled_environments": ["demo", "dev", "test", "release", "live"],
+      "enabled_by": "system",
+      "enabled_at": "2026-05-16T00:00:00+00:00",
+      "reason": "Core built-in memory tool pack."
+    },
+    {
+      "toolpack_id": "core_llm_micro",
+      "classification": "core",
+      "enabled_environments": ["demo", "dev", "test", "release", "live"],
+      "enabled_by": "system",
+      "enabled_at": "2026-05-16T00:00:00+00:00",
+      "reason": "Core built-in LLM micro tool pack."
+    },
+    {
+      "toolpack_id": "core_reports",
+      "classification": "core",
+      "enabled_environments": ["demo", "dev", "test", "release", "live"],
+      "enabled_by": "system",
+      "enabled_at": "2026-05-16T00:00:00+00:00",
+      "reason": "Core built-in reports tool pack."
+    },
+    {
+      "toolpack_id": "demo_echo",
+      "classification": "optional",
+      "enabled_environments": ["demo", "dev", "test"],
+      "enabled_by": "system",
+      "enabled_at": "2026-05-16T00:00:00+00:00",
+      "reason": "Safe demo echo pack. Excluded from release and live environments."
+    },
+    {
+      "toolpack_id": "google_workspace",
+      "classification": "optional",
+      "enabled_environments": ["dev", "test"],
+      "enabled_by": "system",
+      "enabled_at": "2026-05-16T00:00:00+00:00",
+      "reason": "Optional Google Workspace integration. Requires auth. Excluded from demo/release/live until auth and live guardrails are verified."
+    }
+  ]
+}

@@ -1,0 +1,384 @@
+Metadata-Version: 2.4
+Name: taskframe-runtime
+Version: 0.1.0
+Summary: TaskFrame-centered autonomous business automation runtime
+Author: Geo
+License: Proprietary / license pending
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Provides-Extra: google
+Requires-Dist: google-api-python-client; extra == "google"
+Requires-Dist: google-auth; extra == "google"
+Requires-Dist: google-auth-oauthlib; extra == "google"
+Requires-Dist: google-auth-httplib2; extra == "google"
+Provides-Extra: rpa
+Requires-Dist: playwright; extra == "rpa"
+Provides-Extra: llm
+Provides-Extra: all
+Requires-Dist: google-api-python-client; extra == "all"
+Requires-Dist: google-auth; extra == "all"
+Requires-Dist: google-auth-oauthlib; extra == "all"
+Requires-Dist: google-auth-httplib2; extra == "all"
+Requires-Dist: playwright; extra == "all"
+
+# TaskFrame Runtime
+
+TaskFrame Runtime is a local automation workbench for controlled business operations.
+
+It demonstrates how autonomous workers can follow defined procedures, validations, approval gates, and audit trails instead of freely choosing tools or actions like a chatbot.
+
+The system runs safe dry-run business demos for Customer Support, Procurement, and Accounting workflows.
+
+---
+
+## What this is
+
+TaskFrame Runtime is:
+
+- a local operator toolkit;
+- a manifest-driven automation runtime;
+- a demo of controlled autonomous business workflows;
+- a dry-run-safe portfolio project;
+- an audit-friendly automation architecture.
+
+---
+
+## What this is not
+
+TaskFrame Runtime is not:
+
+- a chatbot;
+- a free-roaming agent;
+- a production SaaS platform;
+- a multi-user cloud service;
+- a system that sends live emails, messages, or sheet updates by default.
+
+This distinction is important for trust.
+
+---
+
+## 5-minute quickstart
+
+### Windows PowerShell
+
+```powershell
+git clone <repo-url>
+cd <repo-folder>
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e .
+taskframe demo
+taskframe ui
+taskframe verify
+taskframe config show
+taskframe config paths
+```
+
+### Linux / macOS
+
+```bash
+git clone <repo-url>
+cd <repo-folder>
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+taskframe demo
+taskframe ui
+taskframe verify
+taskframe config show
+taskframe config paths
+```
+
+If everything is working:
+
+- `taskframe demo` runs a safe deterministic demo.
+- `taskframe ui` opens the Operator Demo Console.
+- `taskframe verify` runs the release verification checks.
+- `taskframe config show` prints the active safe configuration profile.
+- `taskframe config paths` prints the config lookup paths.
+- The default portfolio demo does not perform live side effects.
+- No live email, message, RPA, or Google Sheet action is performed by default.
+
+See [docs/quickstart.md](docs/quickstart.md) for a detailed setup guide including troubleshooting.
+
+---
+
+## Configuration and secrets
+
+The default demo uses a safe default configuration and does not require secrets.
+
+Live integrations should use user-local config under `~/.taskframe/` or a directory specified by `TASKFRAME_CONFIG_DIR`.
+
+Do not commit credentials, tokens, browser profiles, or local config files.
+
+See [docs/configuration.md](docs/configuration.md).
+
+The live-execution safety boundary is documented in [docs/live_execution_safety.md](docs/live_execution_safety.md).
+
+Tools can also be added through external tool packs. Adding a tool pack does not automatically add it to the default demo or release-candidate path.
+
+See [docs/toolpack_contract.md](docs/toolpack_contract.md) and [docs/toolpack_authoring_guide.md](docs/toolpack_authoring_guide.md).
+
+Core tools are being migrated behind the same tool-pack contract, with a compatibility registry preserving existing manifests and workflows.
+
+---
+
+## What you should see
+
+### `taskframe demo`
+
+Runs a safe dry-run business scenario and prints:
+
+- scenario name;
+- final TaskFrame state;
+- frame ID;
+- report path, if generated.
+
+### `taskframe ui`
+
+Opens the Operator Demo Console.
+
+The normal demo path is:
+
+```
+Select demo → Start demo → Review result → Approve dry-run action → Open report
+```
+
+### `taskframe verify`
+
+Runs the release verification script and writes JSON and Markdown evidence.
+
+Screenshots of the console are available in [docs/screenshots/](docs/screenshots/):
+
+- [01_operator_home.png](docs/screenshots/01_operator_home.png)
+- [02_demo_customer_happy_path.png](docs/screenshots/02_demo_customer_happy_path.png)
+- [03_demo_customer_pending_approval.png](docs/screenshots/03_demo_customer_pending_approval.png)
+- [04_run_report_step_outcomes.png](docs/screenshots/04_run_report_step_outcomes.png)
+- [05_demo_customer_failed_validation.png](docs/screenshots/05_demo_customer_failed_validation.png)
+- [06_report_generation_demo.png](docs/screenshots/06_report_generation_demo.png)
+- [07_business_report_visible_path.png](docs/screenshots/07_business_report_visible_path.png)
+- [08_tool_status_panel.png](docs/screenshots/08_tool_status_panel.png)
+- [09_release_verification.png](docs/screenshots/09_release_verification.png)
+
+---
+
+## Safe by default
+
+The default install and demo path are dry-run safe.
+
+By default:
+
+- no live emails are sent;
+- no live Google Sheets are written;
+- no live calendar events are created;
+- no browser/RPA tools are launched;
+- no live WhatsApp or Google Messages actions are performed;
+- LLM calls use the deterministic fake path unless explicitly configured otherwise.
+
+Side-effecting actions are staged as pending actions and require approval before execution. The default demo execution remains dry-run safe.
+
+---
+
+## Demo workflows
+
+The default scenario pack demonstrates controlled automation across:
+
+| Workflow | What it demonstrates |
+|---|---|
+| Customer Support | Classify a customer request, retrieve order context, draft a response, validate it against facts. |
+| Procurement | Detect low stock, prepare a purchase order, validate totals, stage supplier communication. |
+| Accounting | Reconcile payment and accounting data, identify exceptions, produce audit evidence. |
+| Cross-workflow demo | Shows multiple workflows running as a coherent business automation pack. |
+
+Each workflow ends with a staged pending action and an audit-ready run report. No workflow sends live messages or writes live data by default.
+
+---
+
+## Architecture in one picture
+
+```
+Command / Event
+      ↓
+Manifest
+      ↓
+TaskFrame
+      ↓
+Orchestrator
+      ↓
+Tools / LLM micro-tools
+      ↓
+Validation / Approval Gate
+      ↓
+Evidence / Report
+```
+
+The manifest defines the allowed workflow.  
+The TaskFrame records the full task state, evidence, outputs, validations, pending actions, and audit trail.  
+The orchestrator executes known manifest steps.  
+The LLM is only used inside bounded micro-tools for extraction, drafting, classification, comparison, or summarisation.
+
+See [docs/architecture_overview.md](docs/architecture_overview.md) for the detailed architecture.
+
+---
+
+## CLI commands
+
+| Command | Purpose |
+|---|---|
+| `taskframe demo` | Run a safe default demo scenario. |
+| `taskframe ui` | Open the Operator Demo Console. |
+| `taskframe golden-demo` | Run the full golden demo pack. |
+| `taskframe verify` | Run release verification. |
+| `taskframe manifest-health` | Generate a manifest catalog health report. |
+| `taskframe manifest-health --strict --no-smoke` | Run manifest health as a release gate. |
+| `taskframe version` | Print the installed version. |
+| `taskframe tools inventory` | Build the tool inventory report. |
+| `taskframe tools compat-check` | Compare migrated built-in packs with the legacy registry. |
+
+See [docs/cli_reference.md](docs/cli_reference.md) for full CLI usage.
+
+---
+
+## Optional integrations
+
+The default demo does not require Google APIs, Playwright, browser profiles, or Ollama. Optional integrations are installed separately.
+
+### Google tools
+
+```bash
+pip install -e ".[google]"
+```
+
+### RPA tools
+
+```bash
+pip install -e ".[rpa]"
+playwright install
+```
+
+### Development tools
+
+```bash
+pip install -e ".[dev]"
+python -m pytest
+```
+
+Optional RPA tools are excluded from the default portfolio path. They require local browser setup and manual authentication. Live integrations require local configuration and are not needed for the default demo.
+
+---
+
+## Optional RPA tools
+
+Optional RPA tools are excluded from the default demo path.
+
+They are not installed by default and are not required for `taskframe demo`, `taskframe ui`, or `taskframe verify`.
+
+Browser-backed RPA tools may interact with local authenticated browser sessions. Do not enable them against sensitive accounts.
+
+See [docs/optional_rpa.md](docs/optional_rpa.md) for the full setup guide, safety warnings, and troubleshooting.
+
+---
+
+## Developer guide
+
+For development:
+
+```bash
+pip install -e ".[dev]"
+python -m pytest
+python scripts/run_golden_demo.py
+python scripts/run_release_verification.py
+```
+
+Useful docs:
+
+- [docs/cli_reference.md](docs/cli_reference.md)
+- [docs/architecture_overview.md](docs/architecture_overview.md)
+- [docs/manifest_building_manual.md](docs/manifest_building_manual.md)
+- [docs/adding_new_tools.md](docs/adding_new_tools.md)
+- [docs/tool_contract_checklist.md](docs/tool_contract_checklist.md)
+- [docs/release_candidate_verification.md](docs/release_candidate_verification.md)
+- [docs/toolpack_scaffold_wizard.md](docs/toolpack_scaffold_wizard.md)
+- [docs/toolpack_contract_testing.md](docs/toolpack_contract_testing.md)
+
+Developers can generate a new external tool pack with `taskframe tools scaffold`, validate it with `taskframe tools validate`, and run its contract tests with `taskframe tools test`.
+
+---
+
+## Documentation index
+
+See [docs/index.md](docs/index.md) for the full documentation index.
+
+---
+
+## Current release status
+
+Current status is tracked in:
+
+- [docs/current_release_status.md](docs/current_release_status.md)
+- [docs/release_candidate_verification.md](docs/release_candidate_verification.md)
+- [docs/known_limitations.md](docs/known_limitations.md)
+
+---
+
+## Known limitations
+
+This project is currently a local operator toolkit and portfolio/demo runtime.
+
+Known limitations:
+
+- not a hosted multi-user service;
+- not designed for high-concurrency production workloads;
+- live integrations require local setup;
+- optional RPA tools are experimental and excluded from the default path;
+- screenshots may lag behind UI changes unless regenerated.
+
+See [docs/known_limitations.md](docs/known_limitations.md) for the current generated list.
+
+---
+
+## Repository structure
+
+| Path | Purpose |
+|---|---|
+| `runtime/` | Core runtime, TaskFrame, orchestration, tools, validation, and report generation |
+| `src/` | Tkinter UI, presenters, scenario/demo orchestration, and report launchers |
+| `manifests/` | Manifest-defined workflows and event routes |
+| `config/` | Demo configuration and route definitions |
+| `scripts/` | Golden demo and release verification scripts |
+| `docs/` | Architecture, boundary, demo, screenshots, and release docs |
+| `tests/` | Unit, integration, boundary, and verification tests |
+| `optional_tools/` | Optional/private tools excluded from the default RC path |
+| `runtime_data/` | Seeded demo data and generated artifacts |
+
+---
+
+## Supporting docs
+
+- [docs/quickstart.md](docs/quickstart.md)
+- [docs/index.md](docs/index.md)
+- [docs/architecture_overview.md](docs/architecture_overview.md)
+- [docs/cli_reference.md](docs/cli_reference.md)
+- [docs/demo_walkthrough.md](docs/demo_walkthrough.md)
+- [docs/final_portfolio_walkthrough.md](docs/final_portfolio_walkthrough.md)
+- [docs/product_boundary.md](docs/product_boundary.md)
+- [docs/portfolio_summary.md](docs/portfolio_summary.md)
+- [docs/current_release_status.md](docs/current_release_status.md)
+- [docs/release_evidence_pack.md](docs/release_evidence_pack.md)
+- [docs/default_demo_boundary.md](docs/default_demo_boundary.md)
+- [docs/known_limitations.md](docs/known_limitations.md)
+- [docs/release_candidate_verification.md](docs/release_candidate_verification.md)
+- [docs/release_artifacts.md](docs/release_artifacts.md)
+- [docs/core_concepts.md](docs/core_concepts.md)
+- [docs/adding_new_tools.md](docs/adding_new_tools.md)
+- [docs/tool_contract_checklist.md](docs/tool_contract_checklist.md)
+
+---
+
+## Runtime notes
+
+- Ollama can provide the bounded LLM helper used by the customer, Procurement, and Accounting workflows when a local endpoint is available.
+- The accounting demo scenarios default to the local demo sheet id `demo-sheet-local` so they run deterministically without a live Google Sheets connection. Update `config/accounting_google_sheet.json` if you want to point the scenarios at a real spreadsheet.
+- Optional browser-backed RPA tools are excluded from the default portfolio path and from default clean-clone release verification because they depend on local browser state, external authentication, and changing web UIs.

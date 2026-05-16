@@ -96,6 +96,8 @@ Tools can also be added through external tool packs. Adding a tool pack does not
 
 See [docs/toolpack_contract.md](docs/toolpack_contract.md) and [docs/toolpack_authoring_guide.md](docs/toolpack_authoring_guide.md).
 
+Core tools are being migrated behind the same tool-pack contract, with a compatibility registry preserving existing manifests and workflows.
+
 ---
 
 ## What you should see
@@ -207,6 +209,8 @@ See [docs/architecture_overview.md](docs/architecture_overview.md) for the detai
 | `taskframe manifest-health` | Generate a manifest catalog health report. |
 | `taskframe manifest-health --strict --no-smoke` | Run manifest health as a release gate. |
 | `taskframe version` | Print the installed version. |
+| `taskframe tools inventory` | Build the tool inventory report. |
+| `taskframe tools compat-check` | Compare migrated built-in packs with the legacy registry. |
 
 See [docs/cli_reference.md](docs/cli_reference.md) for full CLI usage.
 
@@ -271,6 +275,10 @@ Useful docs:
 - [docs/adding_new_tools.md](docs/adding_new_tools.md)
 - [docs/tool_contract_checklist.md](docs/tool_contract_checklist.md)
 - [docs/release_candidate_verification.md](docs/release_candidate_verification.md)
+- [docs/toolpack_scaffold_wizard.md](docs/toolpack_scaffold_wizard.md)
+- [docs/toolpack_contract_testing.md](docs/toolpack_contract_testing.md)
+
+Developers can generate a new external tool pack with `taskframe tools scaffold`, validate it with `taskframe tools validate`, and run its contract tests with `taskframe tools test`.
 
 ---
 
@@ -349,3 +357,12 @@ See [docs/known_limitations.md](docs/known_limitations.md) for the current gener
 - Ollama can provide the bounded LLM helper used by the customer, Procurement, and Accounting workflows when a local endpoint is available.
 - The accounting demo scenarios default to the local demo sheet id `demo-sheet-local` so they run deterministically without a live Google Sheets connection. Update `config/accounting_google_sheet.json` if you want to point the scenarios at a real spreadsheet.
 - Optional browser-backed RPA tools are excluded from the default portfolio path and from default clean-clone release verification because they depend on local browser state, external authentication, and changing web UIs.
+
+
+## Tool packs and Google Workspace
+
+Tools can be added through external tool packs. Adding a tool pack does not automatically add it to the default demo or release-candidate path.
+
+The Google Workspace tool pack is optional and read-only. It can inspect Gmail, Calendar, and Sheets data when OAuth credentials are configured, but it does not send, create, update, delete, move, or write anything.
+
+See `docs/google_workspace_readonly_toolpack.md` and `docs/google_workspace_setup.md`.

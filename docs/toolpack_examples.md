@@ -31,3 +31,10 @@ Registered tool count: 0
 taskframe tools validate tool_packs/demo_echo/toolpack.json
 Status: PASS
 ```
+
+
+## Google Workspace examples
+
+The Google Workspace tool pack includes example manifests for Gmail unread checks, Calendar search, and Sheets range reads under `tool_packs/google_workspace/examples/`.
+
+These examples are read-only and are intended for explicit validation or integration testing only.

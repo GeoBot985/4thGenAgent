@@ -18,21 +18,18 @@ from src.config_profiles import (
     load_config_profile,
     resolve_profile_name,
 )
-from src.live_safety_status import build_live_safety_status
-from src.operator_data import build_operator_snapshot
 from runtime.live_execution_safety import build_live_execution_preflight, confirmation_phrase, redact_pending_action_args
 from runtime.manifest_loader import load_manifest_by_id
 from runtime.pending_actions import get_pending_action, list_pending_actions
 from runtime.taskframe_reload import load_taskframe
 from runtime.tool_health import load_latest_tool_health_snapshot
-from runtime.tool_registry import get_tool_spec
-from runtime.tool_runner import ToolRunner
 from runtime.persistence import persist_frame_update
 from src.toolpack_loader import (
     build_external_tool_capabilities,
     build_external_tool_registry,
     check_toolpack_health,
     discover_toolpacks,
+    get_builtin_toolpack_path,
     load_toolpack_descriptor,
     validate_toolpack_descriptor,
 )
@@ -145,6 +142,55 @@ def build_parser() -> argparse.ArgumentParser:
     tools_health.add_argument("toolpack_id")
     tools_health.add_argument("--config-path", default="config/enabled_toolpacks.json")
     tools_health.add_argument("--json", action="store_true")
+
+    tools_inventory = tools_sub.add_parser("inventory", help="Build the tool inventory report.")
+    tools_inventory.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    tools_inventory.add_argument("--json", action="store_true")
+
+    tools_compat = tools_sub.add_parser("compat-check", help="Compare the legacy registry with migrated tool packs.")
+    tools_compat.add_argument("--json", action="store_true")
+
+    tools_scaffold = tools_sub.add_parser("scaffold", help="Generate a new tool pack scaffold.")
+    tools_scaffold.add_argument("toolpack_id", help="Snake_case tool pack identifier.")
+    tools_scaffold.add_argument("--namespace", default="", help="Tool namespace (defaults to toolpack_id).")
+    tools_scaffold.add_argument("--tool", default="", help="Tool action name (defaults to 'run').")
+    tools_scaffold.add_argument("--safe-read", action="store_true", help="Generate a safe read-only tool (default).")
+    tools_scaffold.add_argument("--side-effect", action="store_true", help="Generate a side-effect tool (requires approval).")
+    tools_scaffold.add_argument("--output-dir", default="tool_packs", help="Output directory for scaffold.")
+    tools_scaffold.add_argument("--force", action="store_true", help="Overwrite existing scaffold.")
+    tools_scaffold.add_argument("--json", action="store_true")
+
+    tools_test = tools_sub.add_parser("test", help="Run contract tests for a tool pack.")
+    tools_test.add_argument("toolpack_path", help="Path to toolpack.json.")
+    tools_test.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    tools_test.add_argument("--no-manifest-smoke", action="store_true", help="Skip example manifest smoke runs.")
+    tools_test.add_argument("--json", action="store_true")
+
+    tools_examples = tools_sub.add_parser("examples", help="Print example manifest steps for a tool pack.")
+    tools_examples.add_argument("toolpack_path", help="Path to toolpack.json.")
+    tools_examples.add_argument("--json", action="store_true")
+
+    tools_policy = tools_sub.add_parser("policy", help="Show governance policy for a tool pack or all packs.")
+    tools_policy.add_argument("toolpack_id", nargs="?", default="", help="Tool pack ID (omit for all).")
+    tools_policy.add_argument("--json", action="store_true")
+
+    tools_enable = tools_sub.add_parser("enable", help="Enable a tool pack in one or more environments.")
+    tools_enable.add_argument("toolpack_id", help="Tool pack ID to enable.")
+    tools_enable.add_argument("--classification", required=True, choices=["core", "optional", "experimental", "high_risk", "blocked"], help="Governance classification.")
+    tools_enable.add_argument("--env", default="dev,test", help="Comma-separated environments (demo,dev,test,release,live).")
+    tools_enable.add_argument("--by", default="operator", help="Who is enabling this pack.")
+    tools_enable.add_argument("--reason", default="", help="Reason for enablement.")
+    tools_enable.add_argument("--json", action="store_true")
+
+    tools_disable = tools_sub.add_parser("disable", help="Disable a tool pack in one or more environments.")
+    tools_disable.add_argument("toolpack_id", help="Tool pack ID to disable.")
+    tools_disable.add_argument("--env", default="", help="Comma-separated environments to disable (omit for all).")
+    tools_disable.add_argument("--by", default="operator", help="Who is disabling this pack.")
+    tools_disable.add_argument("--reason", default="", help="Reason for disabling.")
+    tools_disable.add_argument("--json", action="store_true")
+
+    tools_gov_report = tools_sub.add_parser("governance-report", help="Generate a tool pack governance report.")
+    tools_gov_report.add_argument("--json", action="store_true")
 
     sp = sub.add_parser("safety-pack", help="Build the safety verification pack and live-blocked evidence report.")
     sp.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
@@ -440,6 +486,8 @@ def _load_frame_for_cli(frame_id: str, runtime_data_dir: str):
 
 
 def _run_safety_status(args: argparse.Namespace) -> int:
+    from src.live_safety_status import build_live_safety_status
+
     payload = build_live_safety_status(runtime_data_dir=args.runtime_data_dir)
     if bool(args.json):
         print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
@@ -458,6 +506,8 @@ def _run_safety_status(args: argparse.Namespace) -> int:
 
 
 def _run_pending_actions(args: argparse.Namespace) -> int:
+    from src.operator_data import build_operator_snapshot
+
     if str(args.frame_id or "").strip():
         frame = _load_frame_for_cli(args.frame_id, args.runtime_data_dir)
     else:
@@ -531,6 +581,8 @@ def _run_live_preflight(args: argparse.Namespace) -> int:
 
 
 def _run_execute_approved(args: argparse.Namespace) -> int:
+    from runtime.tool_runner import ToolRunner
+
     context = _load_live_context(args.frame_id, args.action_id, args.runtime_data_dir, args.manifest_dir)
     if context is None:
         print("LIVE EXECUTION BLOCKED")
@@ -656,6 +708,8 @@ def _print_live_blocked(frame: Any, pending_action: dict[str, Any], preflight: d
 
 
 def _run_dry_run_pending_action(frame: Any, pending_action: dict[str, Any], runtime_data_dir: str) -> dict[str, Any]:
+    from runtime.tool_runner import ToolRunner
+
     approved = pending_action
     if str(approved.get("status", "")) != "APPROVED":
         return {
@@ -703,6 +757,8 @@ def _tool_spec_from_key(tool_key: str) -> dict[str, Any]:
         return {}
     namespace, action = tool_key.split("/", 1)
     try:
+        from runtime.tool_registry import get_tool_spec
+
         return get_tool_spec(namespace, action)
     except Exception:
         return {}
@@ -812,6 +868,24 @@ def _run_tools(args: argparse.Namespace) -> int:
         return _run_tools_validate(args)
     if command == "health":
         return _run_tools_health(args)
+    if command == "inventory":
+        return _run_tools_inventory(args)
+    if command == "compat-check":
+        return _run_tools_compat_check(args)
+    if command == "scaffold":
+        return _run_tools_scaffold(args)
+    if command == "test":
+        return _run_tools_test(args)
+    if command == "examples":
+        return _run_tools_examples(args)
+    if command == "policy":
+        return _run_tools_policy(args)
+    if command == "enable":
+        return _run_tools_enable(args)
+    if command == "disable":
+        return _run_tools_disable(args)
+    if command == "governance-report":
+        return _run_tools_governance_report(args)
     print("Unknown tools command.")
     return 2
 
@@ -838,6 +912,20 @@ def _run_tools_list(args: argparse.Namespace) -> int:
     from runtime.tool_registry import build_tool_registry
 
     registry = build_tool_registry(include_external=True, config_path=args.config_path)
+    discovery = discover_toolpacks(config_path=args.config_path, include_disabled=True)
+    discovered_toolpacks = [
+        {
+            "toolpack_id": str(item.get("toolpack_id", "")),
+            "name": str(item.get("name", item.get("toolpack_id", ""))),
+            "path": str(item.get("path", "")),
+            "enabled": bool(item.get("enabled", False)),
+            "registered": bool(item.get("registered", False)),
+            "valid": bool(item.get("valid", False)),
+            "tool_count": int(item.get("tool_count", 0) or 0),
+            "source": "external_toolpack",
+        }
+        for item in discovery.get("toolpacks", [])
+    ]
     payload = {
         "ok": True,
         "tool_count": len(registry),
@@ -848,6 +936,7 @@ def _run_tools_list(args: argparse.Namespace) -> int:
             }
             for tool_key, spec in sorted(registry.items())
         ],
+        "toolpacks": discovered_toolpacks,
     }
     if bool(args.json):
         print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
@@ -856,6 +945,15 @@ def _run_tools_list(args: argparse.Namespace) -> int:
     for item in payload["tools"]:
         source = str(item.get("source", "builtin"))
         print(f"- {item['tool']} | source={source} | module={item.get('module', '')} | function={item.get('function', '')}")
+    if payload["toolpacks"]:
+        print("")
+        print("Discovered tool packs:")
+        for pack in payload["toolpacks"]:
+            print(
+                f"- {pack['toolpack_id']} | enabled={str(pack['enabled']).lower()} | "
+                f"registered={str(pack['registered']).lower()} | valid={str(pack['valid']).lower()} | "
+                f"tools={pack['tool_count']} | path={pack['path']}"
+            )
     return 0
 
 
@@ -912,12 +1010,310 @@ def _run_tools_health(args: argparse.Namespace) -> int:
     payload = check_toolpack_health(args.toolpack_id, config_path=args.config_path, live=False)
     if bool(args.json):
         print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
-        return 0 if payload.get("ok", False) else 1
+        return 0
     print(f"Tool pack: {payload.get('toolpack_id', '')}")
     print(f"Status: {payload.get('status', '')}")
     print(f"Severity: {payload.get('severity', '')}")
     print(f"Message: {payload.get('message', '')}")
+    return 0
+
+
+def _run_tools_inventory(args: argparse.Namespace) -> int:
+    from src.tool_inventory import build_tool_inventory_report
+
+    report = build_tool_inventory_report(runtime_data_dir=args.runtime_data_dir)
+    payload = {
+        "ok": bool(report.get("ok", False)),
+        "report_type": report.get("report_type", "tool_inventory"),
+        "version": report.get("version", 1),
+        "generated_at": report.get("generated_at", ""),
+        "summary": report.get("summary", {}),
+        "json_path": report.get("json_path", ""),
+        "markdown_path": report.get("markdown_path", ""),
+        "docs_path": report.get("docs_path", ""),
+    }
+    if bool(args.json):
+        print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+        return 0 if payload.get("ok", False) else 1
+    summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    print("Tool inventory:")
+    print(f"Total tools: {int(summary.get('total_tools', 0) or 0)}")
+    print(f"Migrated tool-pack tools: {int(summary.get('migrated_toolpack_tools', 0) or 0)}")
+    print(f"Legacy fallback tools: {int(summary.get('legacy_fallback_tools', 0) or 0)}")
+    print(f"External enabled tools: {int(summary.get('external_enabled_tools', 0) or 0)}")
+    print(f"Optional disabled tools: {int(summary.get('optional_disabled_tools', 0) or 0)}")
+    print(f"Side-effect tools: {int(summary.get('side_effect_tools', 0) or 0)}")
+    print(f"Live-side-effect allowed: {int(summary.get('live_side_effect_allowed', 0) or 0)}")
+    print(f"JSON: {payload.get('json_path', '')}")
+    print(f"Markdown: {payload.get('markdown_path', '')}")
+    print(f"Docs: {payload.get('docs_path', '')}")
     return 0 if payload.get("ok", False) else 1
+
+
+def _run_tools_compat_check(args: argparse.Namespace) -> int:
+    from runtime.tool_registry import BUILTIN_LEGACY_TOOL_REGISTRY
+    from src.tool_registry_compat import build_compatibility_registry, compare_legacy_and_toolpack_registry
+    from src.toolpack_loader import discover_toolpacks
+
+    migrated_registry = build_compatibility_registry()
+    result = compare_legacy_and_toolpack_registry(BUILTIN_LEGACY_TOOL_REGISTRY, migrated_registry)
+    discovery = discover_toolpacks(include_disabled=True)
+    optional_disabled_tools = sum(
+        int(item.get("tool_count", 0) or 0)
+        for item in discovery.get("toolpacks", [])
+        if isinstance(item, dict)
+        and str(item.get("core_or_optional", "optional")) == "optional"
+        and not bool(item.get("registered", False))
+    )
+    payload = {
+        "ok": bool(result.get("ok", False)),
+        "summary": {
+            "migrated_toolpack_tools": len(migrated_registry),
+            "legacy_fallback_tools": len(BUILTIN_LEGACY_TOOL_REGISTRY),
+            "new_tools": len(result.get("new_tools", [])),
+            "changed_tools": len(result.get("changed_tools", [])),
+            "compatible_tools": len(result.get("compatible_tools", [])),
+            "optional_disabled_tools": optional_disabled_tools,
+        },
+        **result,
+    }
+    if bool(args.json):
+        print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+        return 0 if payload.get("ok", False) else 1
+    print("Tool Registry Compatibility: " + ("PASS" if payload.get("ok", False) else "FAIL"))
+    print(f"Migrated tool-pack tools: {payload['summary']['migrated_toolpack_tools']}")
+    print(f"Legacy fallback tools: {payload['summary']['legacy_fallback_tools']}")
+    print(f"External enabled tools: {len(build_external_tool_registry())}")
+    print(f"Optional disabled tools: {payload['summary']['optional_disabled_tools']}")
+    print("Live side-effect allowed: 0")
+    if payload.get("warnings"):
+        print("Warnings:")
+        for item in payload["warnings"]:
+            print(f"- {item}")
+    if payload.get("changed_tools"):
+        print("Changed tools:")
+        for item in payload["changed_tools"]:
+            print(f"- {item}")
+    return 0 if payload.get("ok", False) else 1
+
+
+def _run_tools_scaffold(args: argparse.Namespace) -> int:
+    from src.toolpack_scaffold import scaffold_toolpack
+
+    toolpack_id = str(args.toolpack_id or "").strip()
+    namespace = str(getattr(args, "namespace", "") or "").strip() or None
+    tool_name = str(getattr(args, "tool", "") or "").strip() or None
+    is_side_effect = bool(getattr(args, "side_effect", False))
+    is_safe_read = bool(getattr(args, "safe_read", False)) or not is_side_effect
+    output_dir = str(getattr(args, "output_dir", "tool_packs") or "tool_packs")
+    force = bool(getattr(args, "force", False))
+
+    result = scaffold_toolpack(
+        toolpack_id=toolpack_id,
+        namespace=namespace,
+        tool_name=tool_name,
+        side_effect=is_side_effect,
+        safe_read=is_safe_read,
+        output_dir=output_dir,
+        force=force,
+    )
+
+    if bool(args.json):
+        print(json.dumps(result, indent=2, ensure_ascii=True, default=str))
+        return 0 if result.get("ok") else 1
+
+    if not result.get("ok"):
+        print(f"Tool pack scaffold: FAIL", file=sys.stderr)
+        for err in result.get("errors", []):
+            print(f"Error: {err}", file=sys.stderr)
+        return 1
+
+    print(f"Tool pack scaffold created: {result.get('path', '')}")
+    print(f"Descriptor: {result.get('toolpack_json', '')}")
+    print("")
+    print("Files created:")
+    for f in result.get("files_created", []):
+        print(f"  {f}")
+    print("")
+    print("Next steps:")
+    print(f"  taskframe tools validate {result.get('toolpack_json', '')}")
+    print(f"  taskframe tools test {result.get('toolpack_json', '')}")
+    for w in result.get("warnings", []):
+        print(f"Warning: {w}")
+    return 0
+
+
+def _run_tools_test(args: argparse.Namespace) -> int:
+    from src.toolpack_contract_runner import run_toolpack_contract_tests
+
+    result = run_toolpack_contract_tests(
+        args.toolpack_path,
+        runtime_data_dir=str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR),
+        include_manifest_smoke=not bool(getattr(args, "no_manifest_smoke", False)),
+    )
+
+    if bool(args.json):
+        print(json.dumps(result, indent=2, ensure_ascii=True, default=str))
+        return 0 if result.get("ok") else 1
+
+    print(f"Tool pack: {result.get('toolpack_id', args.toolpack_path)}")
+    for check in result.get("checks", []):
+        print(f"  {check['id']}: {check['status']}")
+    for tc in result.get("tool_checks", []):
+        tool = tc.get("tool", "")
+        import_ok = "PASS" if tc.get("import_ok") else "FAIL"
+        smoke_ok = "PASS" if tc.get("smoke_ok") else "FAIL"
+        shape_ok = "PASS" if tc.get("result_shape_ok") else "FAIL"
+        safety_ok = "PASS" if tc.get("safety_ok") else "FAIL"
+        print(f"  {tool}: import={import_ok} smoke={smoke_ok} shape={shape_ok} safety={safety_ok}")
+        for err in tc.get("errors", []):
+            print(f"    Error: {err}")
+    if result.get("errors"):
+        print("")
+        for err in result["errors"]:
+            print(f"Error: {err}")
+    return 0 if result.get("ok") else 1
+
+
+def _run_tools_examples(args: argparse.Namespace) -> int:
+    from src.toolpack_loader import load_toolpack_descriptor, validate_toolpack_descriptor
+
+    try:
+        descriptor = load_toolpack_descriptor(args.toolpack_path)
+        validation = validate_toolpack_descriptor(descriptor, base_path=Path(args.toolpack_path).parent)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    descriptor_data = validation.get("descriptor", {})
+    tools = descriptor_data.get("tools", [])
+    examples = []
+    for tool_spec in tools:
+        tool_key = str(tool_spec.get("tool", ""))
+        output_alias = str(tool_spec.get("action", "")).replace("/", "_") + "_result"
+        args_parts: list[str] = []
+        arg_types = dict(tool_spec.get("arg_types", {}))
+        for arg in tool_spec.get("required_args", []):
+            arg_type = arg_types.get(arg, "str")
+            if arg_type == "str":
+                args_parts.append(f'{arg}="TEST"')
+            elif arg_type == "int":
+                args_parts.append(f"{arg}=1")
+            elif arg_type == "bool":
+                args_parts.append(f"{arg}=false")
+            else:
+                args_parts.append(f"{arg}=TEST")
+        args_str = "; ".join(args_parts)
+        examples.append({
+            "id": str(tool_spec.get("action", tool_key)),
+            "command": f"[t:{tool_key} -> {output_alias}] {args_str}".strip(),
+            "side_effect": bool(tool_spec.get("side_effect", False)),
+            "requires_approval": bool(tool_spec.get("requires_approval", False)),
+        })
+
+    if bool(args.json):
+        print(json.dumps(examples, indent=2, ensure_ascii=True))
+        return 0
+
+    print(f"Tool pack: {descriptor_data.get('toolpack_id', args.toolpack_path)}")
+    print(f"Examples:")
+    for ex in examples:
+        print(f"  {ex['command']}")
+        if ex["requires_approval"]:
+            print(f"    (side-effect — requires approval before execution)")
+    return 0
+
+
+def _run_tools_policy(args: argparse.Namespace) -> int:
+    from src.toolpack_governance import get_all_policies, get_pack_policy
+
+    if args.toolpack_id:
+        policy = get_pack_policy(args.toolpack_id)
+        if bool(args.json):
+            sys.stdout.write(json.dumps(policy, indent=2, ensure_ascii=True) + "\n")
+            return 0
+        print(f"Tool pack: {policy['toolpack_id']}")
+        print(f"  Classification:       {policy.get('classification', 'unknown')}")
+        print(f"  Enabled environments: {', '.join(policy.get('enabled_environments', [])) or 'none'}")
+        print(f"  Enabled by:           {policy.get('enabled_by', '')}")
+        print(f"  Reason:               {policy.get('reason', '')}")
+        if policy.get("errors"):
+            for e in policy["errors"]:
+                print(f"  WARNING: {e}", file=sys.stderr)
+        return 0
+
+    policies = get_all_policies()
+    if bool(args.json):
+        sys.stdout.write(json.dumps(policies, indent=2, ensure_ascii=True) + "\n")
+        return 0
+    if not policies:
+        print("No governance entries found.")
+        return 0
+    print(f"{'Tool Pack':<30} {'Classification':<16} {'Environments'}")
+    print("-" * 70)
+    for p in policies:
+        envs = ", ".join(p.get("enabled_environments", [])) or "none"
+        print(f"{p.get('toolpack_id', ''):<30} {p.get('classification', ''):<16} {envs}")
+    return 0
+
+
+def _run_tools_enable(args: argparse.Namespace) -> int:
+    from src.toolpack_governance import enable_pack
+
+    environments = [e.strip() for e in args.env.split(",") if e.strip()]
+    result = enable_pack(
+        args.toolpack_id,
+        classification=args.classification,
+        environments=environments,
+        enabled_by=args.by,
+        reason=args.reason,
+    )
+    if bool(args.json):
+        sys.stdout.write(json.dumps(result, indent=2, ensure_ascii=True) + "\n")
+        return 0 if result["ok"] else 1
+    if not result["ok"]:
+        for e in result.get("errors", []):
+            print(f"Error: {e}", file=sys.stderr)
+        return 1
+    print(f"Enabled: {result['toolpack_id']}")
+    print(f"  Classification: {result['classification']}")
+    print(f"  Environments:   {', '.join(result.get('environments', []))}")
+    return 0
+
+
+def _run_tools_disable(args: argparse.Namespace) -> int:
+    from src.toolpack_governance import disable_pack
+
+    environments: list[str] | None = None
+    if args.env:
+        environments = [e.strip() for e in args.env.split(",") if e.strip()]
+    result = disable_pack(
+        args.toolpack_id,
+        environments=environments,
+        disabled_by=args.by,
+        reason=args.reason,
+    )
+    if bool(args.json):
+        sys.stdout.write(json.dumps(result, indent=2, ensure_ascii=True) + "\n")
+        return 0 if result["ok"] else 1
+    if not result["ok"]:
+        for e in result.get("errors", []):
+            print(f"Error: {e}", file=sys.stderr)
+        return 1
+    scope = f"in {args.env}" if args.env else "in all environments"
+    print(f"Disabled: {args.toolpack_id} {scope}")
+    return 0
+
+
+def _run_tools_governance_report(args: argparse.Namespace) -> int:
+    from src.toolpack_governance import build_governance_report, render_governance_markdown
+
+    report = build_governance_report()
+    if bool(args.json):
+        sys.stdout.write(json.dumps(report, indent=2, ensure_ascii=True) + "\n")
+        return 0 if report["ok"] else 1
+    print(render_governance_markdown(report))
+    return 0 if report["ok"] else 1
 
 
 def _inspect_tool(tool_key: str, *, config_path: str = "config/enabled_toolpacks.json") -> dict[str, Any]:
@@ -931,6 +1327,28 @@ def _inspect_tool(tool_key: str, *, config_path: str = "config/enabled_toolpacks
         spec.setdefault("ok", True)
         return spec
     except Exception as exc:
+        discovery = discover_toolpacks(config_path=config_path, include_disabled=True)
+        for pack in discovery.get("toolpacks", []):
+            try:
+                descriptor = load_toolpack_descriptor(pack["path"])
+                validation = validate_toolpack_descriptor(descriptor, base_path=Path(pack["path"]).parent)
+            except Exception:
+                continue
+            descriptor_data = validation.get("descriptor", {})
+            for tool in descriptor_data.get("tools", []):
+                if str(tool.get("tool", "")).strip() != tool_key:
+                    continue
+                payload = dict(tool)
+                payload.setdefault("tool", tool_key)
+                payload.setdefault("ok", bool(validation.get("ok", False)))
+                payload.setdefault("status", "discovered")
+                payload.setdefault("source", "external_toolpack")
+                payload.setdefault("toolpack_id", descriptor_data.get("toolpack_id", pack.get("toolpack_id", "")))
+                payload.setdefault("toolpack_name", descriptor_data.get("name", pack.get("name", "")))
+                payload.setdefault("toolpack_path", str(pack.get("path", "")))
+                payload.setdefault("toolpack_core_or_optional", descriptor_data.get("core_or_optional", "optional"))
+                payload.setdefault("toolpack_registered", bool(pack.get("registered", False)))
+                return payload
         return {"ok": False, "status": "not_found", "tool": tool_key, "error": str(exc)}
 
 
@@ -938,8 +1356,24 @@ def _inspect_toolpack(toolpack_id: str, *, config_path: str = "config/enabled_to
     discovery = discover_toolpacks(config_path=config_path, include_disabled=True)
     entry = next((item for item in discovery.get("toolpacks", []) if str(item.get("toolpack_id", "")) == toolpack_id), None)
     if not entry:
+        builtin_path = get_builtin_toolpack_path(toolpack_id)
+        if builtin_path is not None:
+            entry = {
+                "toolpack_id": toolpack_id,
+                "path": str(builtin_path),
+                "enabled": True,
+                "registered": True,
+                "valid": True,
+                "tool_count": 0,
+                "errors": [],
+                "warnings": [],
+                "core_or_optional": "core",
+                "name": toolpack_id,
+                "version": "",
+            }
+    if not entry:
         return {"ok": False, "status": "not_found", "toolpack_id": toolpack_id, "error": "Tool pack not found."}
-    health = check_toolpack_health(toolpack_id)
+    health = check_toolpack_health(toolpack_id, config_path=config_path)
     try:
         descriptor = load_toolpack_descriptor(entry["path"])
     except Exception as exc:

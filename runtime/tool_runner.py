@@ -142,6 +142,9 @@ class ToolRunner:
                 "function": tool_spec["function"],
                 "args": dict(coerced_args),
                 "output_alias": step.output_alias,
+                "source": str(tool_spec.get("source", "legacy_fallback")),
+                "toolpack_id": str(tool_spec.get("toolpack_id", "")),
+                "toolpack_name": str(tool_spec.get("toolpack_name", "")),
             }
         )
 

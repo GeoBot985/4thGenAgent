@@ -1,0 +1,150 @@
+{
+  "toolpack_id": "google_workspace",
+  "name": "Google Workspace Read-Only Tool Pack",
+  "version": "1.0.0",
+  "runtime_contract_version": 1,
+  "core_or_optional": "optional",
+  "risk_class": "external_auth_read_only",
+  "description": "Read-only Gmail, Calendar, and Sheets tools using Google OAuth.",
+  "module_prefix": "tool_packs.google_workspace",
+  "health": {
+    "module": "tool_packs.google_workspace.health",
+    "function": "check_health"
+  },
+  "tools": [
+    {
+      "tool": "google/auth_status",
+      "namespace": "google",
+      "action": "auth_status",
+      "module": "tool_packs.google_workspace.tools",
+      "function": "google_auth_status",
+      "side_effect": false,
+      "requires_approval": false,
+      "allow_live": true,
+      "allow_live_side_effect": false,
+      "live_guardrail": "read_only_google_workspace",
+      "output_type": "google_auth_status",
+      "required_args": [],
+      "optional_args": ["service", "live"],
+      "arg_types": {
+        "service": "str",
+        "live": "bool"
+      },
+      "dry_run_executes": true
+    },
+    {
+      "tool": "gmail/list_unread",
+      "namespace": "gmail",
+      "action": "list_unread",
+      "module": "tool_packs.google_workspace.tools",
+      "function": "gmail_list_unread",
+      "side_effect": false,
+      "requires_approval": false,
+      "allow_live": true,
+      "allow_live_side_effect": false,
+      "live_guardrail": "read_only_google_workspace",
+      "output_type": "gmail_message_metadata_list",
+      "required_args": [],
+      "optional_args": ["max_results"],
+      "arg_types": {
+        "max_results": "int"
+      },
+      "dry_run_executes": true
+    },
+    {
+      "tool": "gmail/search",
+      "namespace": "gmail",
+      "action": "search",
+      "module": "tool_packs.google_workspace.tools",
+      "function": "gmail_search",
+      "side_effect": false,
+      "requires_approval": false,
+      "allow_live": true,
+      "allow_live_side_effect": false,
+      "live_guardrail": "read_only_google_workspace",
+      "output_type": "gmail_message_metadata_list",
+      "required_args": ["query"],
+      "optional_args": ["max_results"],
+      "arg_types": {
+        "max_results": "int"
+      },
+      "dry_run_executes": true
+    },
+    {
+      "tool": "gmail/read_metadata",
+      "namespace": "gmail",
+      "action": "read_metadata",
+      "module": "tool_packs.google_workspace.tools",
+      "function": "gmail_read_metadata",
+      "side_effect": false,
+      "requires_approval": false,
+      "allow_live": true,
+      "allow_live_side_effect": false,
+      "live_guardrail": "read_only_google_workspace",
+      "output_type": "gmail_message_metadata",
+      "required_args": ["message_id"],
+      "optional_args": [],
+      "arg_types": {},
+      "dry_run_executes": true
+    },
+    {
+      "tool": "calendar/search",
+      "namespace": "calendar",
+      "action": "search",
+      "module": "tool_packs.google_workspace.tools",
+      "function": "calendar_search",
+      "side_effect": false,
+      "requires_approval": false,
+      "allow_live": true,
+      "allow_live_side_effect": false,
+      "live_guardrail": "read_only_google_workspace",
+      "output_type": "calendar_entry_list",
+      "required_args": [],
+      "optional_args": ["query", "calendar_id", "time_min", "time_max", "days", "max_results"],
+      "arg_types": {
+        "days": "int",
+        "max_results": "int"
+      },
+      "dry_run_executes": true
+    },
+    {
+      "tool": "calendar/list_upcoming",
+      "namespace": "calendar",
+      "action": "list_upcoming",
+      "module": "tool_packs.google_workspace.tools",
+      "function": "calendar_list_upcoming",
+      "side_effect": false,
+      "requires_approval": false,
+      "allow_live": true,
+      "allow_live_side_effect": false,
+      "live_guardrail": "read_only_google_workspace",
+      "output_type": "calendar_entry_list",
+      "required_args": [],
+      "optional_args": ["calendar_id", "days", "max_results"],
+      "arg_types": {
+        "days": "int",
+        "max_results": "int"
+      },
+      "dry_run_executes": true
+    },
+    {
+      "tool": "sheets/read_range",
+      "namespace": "sheets",
+      "action": "read_range",
+      "module": "tool_packs.google_workspace.tools",
+      "function": "sheets_read_range",
+      "side_effect": false,
+      "requires_approval": false,
+      "allow_live": true,
+      "allow_live_side_effect": false,
+      "live_guardrail": "read_only_google_workspace",
+      "output_type": "sheets_range_values",
+      "required_args": ["spreadsheet_id", "range_name"],
+      "optional_args": ["major_dimension"],
+      "arg_types": {
+        "major_dimension": "str"
+      },
+      "dry_run_executes": true
+    }
+  ]
+}

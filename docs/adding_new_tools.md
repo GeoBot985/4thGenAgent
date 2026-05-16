@@ -11,6 +11,18 @@ Live execution is blocked by default.
 
 ## Tool Onboarding Overview
 
+**For external tool packs**, use the scaffold wizard as the starting point:
+
+```bash
+taskframe tools scaffold my_pack --namespace mypkg --tool run --safe-read
+taskframe tools validate tool_packs/my_pack/toolpack.json
+taskframe tools test tool_packs/my_pack/toolpack.json
+```
+
+See [toolpack_scaffold_wizard.md](toolpack_scaffold_wizard.md) and [toolpack_contract_testing.md](toolpack_contract_testing.md).
+
+**For built-in tools**, follow the full onboarding sequence:
+
 1. Classify the tool
 2. Implement the tool function
 3. Register the tool
@@ -67,6 +79,8 @@ Tool functions perform capability work. The runtime records the tool call. The m
 Built-in tools remain registered in `TOOL_REGISTRY`.
 
 External tools should be packaged as tool packs and enabled through configuration.
+
+Selected built-in tools are being migrated behind the same tool-pack contract. The compatibility registry keeps old manifests working while the migration proceeds.
 
 Example tool pack descriptor:
 

@@ -24,6 +24,7 @@
 
 - [ ] Tool is registered in `TOOL_REGISTRY`.
 - [ ] If the tool is external, it is described by `toolpack.json` and enabled through configuration.
+- [ ] If the tool is a migrated built-in tool, it is also represented by a core tool pack and covered by the compatibility registry.
 - [ ] `required_args` are complete.
 - [ ] `optional_args` are complete.
 - [ ] `arg_types` are defined where coercion is needed.
@@ -65,6 +66,16 @@
 - [ ] Approval is required before execution.
 - [ ] Tests cover blocked live execution.
 
+## Scaffold and contract test harness
+
+- [ ] Pack was generated with `taskframe tools scaffold` or follows the same layout.
+- [ ] `taskframe tools validate` exits 0 with no errors.
+- [ ] `taskframe tools test` exits 0 with `ok: true` and `status: PASS`.
+- [ ] Generated contract tests in `tests/test_{id}_contract.py` pass.
+- [ ] Generated health tests in `tests/test_{id}_health.py` pass.
+- [ ] Generated tool tests in `tests/test_{id}_tools.py` pass.
+- [ ] Example manifest in `examples/` validates in manifest smoke check.
+
 ## Tests
 
 - [ ] Registry test added.
@@ -82,3 +93,12 @@
 - [ ] Operator setup notes are documented.
 - [ ] Known limitations are documented.
 - [ ] Default RC inclusion or exclusion is documented.
+
+
+## Google Workspace read-only checklist
+
+- `toolpack.json` exists and validates.
+- All tools are `side_effect: false`.
+- All tools are `requires_approval: false`.
+- All tools are `allow_live_side_effect: false`.
+- No executable `.py` file contains write/send/delete API calls.

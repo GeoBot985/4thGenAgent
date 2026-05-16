@@ -31,5 +31,4 @@ It is not presented as production-ready for unsupervised live operations.
 - Expanded business scenario packs.
 
 ## Verifier Notes
-- real_ollama_integration_test_missing
-- google_sheets_integration_test_missing
+- None recorded by the release verifier.

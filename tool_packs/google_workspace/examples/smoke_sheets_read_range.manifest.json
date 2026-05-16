@@ -1,0 +1,17 @@
+{
+  "manifest_id": "toolpack.google_workspace.smoke_sheets_read_range",
+  "name": "Smoke Sheets Read Range",
+  "version": 1,
+  "trigger": { "type": "manual" },
+  "inputs": ["spreadsheet_id", "range_name"],
+  "steps": [
+    { "id": "read_range", "command": "[t:sheets/read_range -> sheet_rows] spreadsheet_id=$inputs.spreadsheet_id; range_name=$inputs.range_name" }
+  ],
+  "validations": [
+    { "id": "sheet_rows_output_exists", "type": "output_exists", "output": "sheet_rows" }
+  ],
+  "completion": {
+    "success_outputs": ["sheet_rows"],
+    "acceptable_empty_outputs": ["sheet_rows"]
+  }
+}

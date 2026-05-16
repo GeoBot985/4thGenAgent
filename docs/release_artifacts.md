@@ -16,3 +16,8 @@ This repository uses a deterministic golden demo to produce RC artifacts in `run
 | Accounting workflow report | `runtime_data/outputs/reports/accounting_workflow_report.md` | `scripts/run_golden_demo.py` | Accounting lane evidence | Yes |
 | Accounting workflow HTML | `runtime_data/outputs/reports/accounting_workflow_report.html` | `scripts/run_golden_demo.py` | Browser-friendly accounting lane evidence | Yes |
 | Accounting workflow audit JSON | `runtime_data/outputs/audit/accounting_workflow_audit.json` | `scripts/run_golden_demo.py` | Accounting lane structured audit trail | Yes |
+
+
+## Google Workspace tool pack artifacts
+
+The release evidence set includes the Google Workspace read-only tool pack descriptor, safety scan, setup guide, and integration-test documentation.

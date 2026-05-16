@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import os
+from pathlib import Path
 
 from .errors import ToolArgumentError, ToolNotRegisteredError, ToolRegistryError
 
@@ -975,23 +976,42 @@ TOOL_REGISTRY = {
 }
 
 
-BUILTIN_TOOL_REGISTRY = copy.deepcopy(TOOL_REGISTRY)
+BUILTIN_LEGACY_TOOL_REGISTRY = copy.deepcopy(TOOL_REGISTRY)
+BUILTIN_TOOL_REGISTRY = BUILTIN_LEGACY_TOOL_REGISTRY
 
 
-def build_tool_registry(include_external: bool = True, *, config_path: str | Path = "config/enabled_toolpacks.json") -> dict[str, dict]:
-    registry = dict(BUILTIN_TOOL_REGISTRY)
+def build_tool_registry(
+    *,
+    include_migrated_toolpacks: bool = True,
+    include_external: bool = True,
+    include_legacy_fallback: bool = True,
+    config_path: str | Path = "config/enabled_toolpacks.json",
+) -> dict[str, dict]:
+    registry: dict[str, dict] = {}
+
+    if include_migrated_toolpacks:
+        from src.tool_registry_compat import assert_registry_compatibility, build_compatibility_registry
+
+        migrated_registry = build_compatibility_registry()
+        assert_registry_compatibility(BUILTIN_LEGACY_TOOL_REGISTRY, migrated_registry)
+        registry.update(_decorate_registry(migrated_registry, source="migrated_toolpack"))
+
     if include_external:
         from src.toolpack_loader import build_external_tool_registry
 
         external_registry = build_external_tool_registry(config_path=config_path)
         for key, spec in external_registry.items():
-            if key in registry:
+            if key in registry or key in BUILTIN_LEGACY_TOOL_REGISTRY:
                 raise ToolRegistryError(f"External tool cannot override built-in tool: {key}")
-            registry[key] = spec
+            registry[key] = _decorate_tool_spec(spec, source=str(spec.get("source", "external_toolpack")))
+
+    if include_legacy_fallback:
+        for key, spec in BUILTIN_LEGACY_TOOL_REGISTRY.items():
+            if key in registry:
+                continue
+            registry[key] = _decorate_tool_spec(spec, source="legacy_fallback")
+
     return registry
-
-
-TOOL_REGISTRY = build_tool_registry(include_external=True)
 
 
 def tool_key(namespace: str, action: str) -> str:
@@ -1055,6 +1075,25 @@ def _coerce_bool(key: str, value: object) -> bool:
     if lowered in {"false", "0", "no", "off"}:
         return False
     raise ToolArgumentError(f"Argument {key} must be a boolean.")
+
+
+def _decorate_registry(registry: dict[str, dict], *, source: str) -> dict[str, dict]:
+    return {key: _decorate_tool_spec(spec, source=source) for key, spec in registry.items()}
+
+
+def _decorate_tool_spec(spec: dict, *, source: str) -> dict:
+    decorated = dict(spec)
+    decorated.setdefault("source", source)
+    decorated.setdefault("toolpack_id", "")
+    decorated.setdefault("toolpack_name", "")
+    decorated.setdefault("toolpack_version", "")
+    decorated.setdefault("toolpack_path", "")
+    decorated.setdefault("toolpack_core_or_optional", "core")
+    decorated.setdefault("toolpack_registered", source != "legacy_fallback")
+    return decorated
+
+
+TOOL_REGISTRY = build_tool_registry(include_migrated_toolpacks=True, include_external=True, include_legacy_fallback=True)
 
 
 def register_optional_absa_tools(registry: dict[str, dict] | None = None) -> None:

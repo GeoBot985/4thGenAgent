@@ -119,6 +119,31 @@
 - `sheet_rows` (str)
 
 ---
+## business/get_order_context
+
+| Field | Value |
+|---|---|
+| Namespace | business |
+| Action | get_order_context |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `business_order_context` |
+
+### Command form
+
+```text
+[t:business/get_order_context -> output_name] order_id=$inputs.order_id
+```
+
+### Required arguments
+
+- `order_id` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
+
+---
 ## cal/create
 
 | Field | Value |
@@ -711,6 +736,34 @@
 ```
 
 ---
+## memory/set
+
+| Field | Value |
+|---|---|
+| Namespace | memory |
+| Action | set |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `memory_set_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:memory/set -> output_name] key=$inputs.key value=$inputs.value
+```
+
+### Required arguments
+
+- `key` (str)
+- `value` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
+
+---
 ## message/validate_customer_status_reply
 
 | Field | Value |
@@ -1005,6 +1058,27 @@
 - `sku` (str)
 
 ---
+## q/extract_order_ref
+
+| Field | Value |
+|---|---|
+| Namespace | q |
+| Action | extract_order_ref |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `order_ref_result` |
+
+### Command form
+
+```text
+[t:q/extract_order_ref -> output_name] text=$inputs.text
+```
+
+### Required arguments
+
+- `text` (str)
+
+---
 ## recon/match_payments
 
 | Field | Value |
@@ -1048,6 +1122,31 @@
 ### Required arguments
 
 - `reconciliation_result` (str)
+
+---
+## report/generate
+
+| Field | Value |
+|---|---|
+| Namespace | report |
+| Action | generate |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `report_result` |
+
+### Command form
+
+```text
+[t:report/generate -> output_name] frame_id=$inputs.frame_id
+```
+
+### Required arguments
+
+- `frame_id` (str)
+
+### Optional arguments
+
+- `runtime_data_dir` (str)
 
 ---
 ## sheet/create
