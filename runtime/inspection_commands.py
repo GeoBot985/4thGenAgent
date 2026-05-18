@@ -67,6 +67,19 @@ class InspectionCommandRunner:
             return self.inspector.list_runs(limit=int(args.get("limit", 20)))
         if action == "cleanup_reports":
             return self.inspector.get_cleanup_reports()
+        # Spec 108 — event queue inspection actions (no frame_id required)
+        if action == "events":
+            return self.inspector.list_events(
+                limit=int(args.get("limit", 100)),
+                status=args.get("status") or None,
+                source=args.get("source") or None,
+                event_type=args.get("event_type") or None,
+            )
+        if action == "event_detail":
+            event_id_arg = str(args.get("event_id", "")).strip()
+            if not event_id_arg:
+                raise InspectionCommandError("event_detail requires event_id.")
+            return self.inspector.get_event_detail(event_id_arg)
         if not frame_id:
             raise InspectionCommandError("Inspection commands require frame_id.")
         if action == "summary":

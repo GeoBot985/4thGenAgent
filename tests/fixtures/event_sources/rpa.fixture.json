@@ -1,0 +1,20 @@
+{
+  "source_type": "rpa",
+  "display_name": "RPA Automation",
+  "description": "Events emitted by robotic process automation tasks (optional, high-risk surface).",
+  "delivery_mode": "push",
+  "side_effect_level": "medium",
+  "required_payload_fields": ["task_id", "task_type"],
+  "optional_payload_fields": ["url", "selector", "value", "screenshot_path", "result"],
+  "allowed_event_types": ["rpa.*", "automation.*", "browser.*"],
+  "sample_event": {
+    "source": "rpa",
+    "event_type": "rpa.task_completed",
+    "payload": {
+      "task_id": "rpa-001",
+      "task_type": "form_fill",
+      "url": "https://example.com/form",
+      "result": "success"
+    }
+  }
+}

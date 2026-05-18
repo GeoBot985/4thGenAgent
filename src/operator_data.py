@@ -72,6 +72,22 @@ def group_events_for_queue(events: list[dict], frames_by_id: dict[str, dict]) ->
     return groups
 
 
+def build_event_sources_panel() -> dict:
+    try:
+        from runtime.event_source_registry import list_event_source_contracts, validate_all_event_source_contracts
+
+        contracts = list_event_source_contracts()
+        validation = validate_all_event_source_contracts()
+    except Exception as exc:
+        return {"ok": False, "contracts": [], "validation": {}, "error": str(exc)}
+    return {
+        "ok": True,
+        "contracts": contracts,
+        "validation": validation,
+        "count": len(contracts),
+    }
+
+
 def load_taskframe(frame_id: str, runtime_root: str = "runtime_data") -> dict | None:
     if not isinstance(frame_id, str) or not frame_id.strip():
         return None

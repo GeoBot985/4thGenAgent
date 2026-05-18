@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "contracts": [
+    {
+      "source_type": "operator_ui",
+      "display_name": "Operator UI",
+      "description": "Events manually triggered by an operator through the desktop or web UI.",
+      "delivery_mode": "push",
+      "side_effect_level": "none",
+      "required_payload_fields": [],
+      "optional_payload_fields": ["customer_id", "message", "channel", "spreadsheet_id"],
+      "allowed_event_types": ["manual.*"],
+      "metadata": {"builtin": true}
+    },
+    {
+      "source_type": "schedule",
+      "display_name": "Scheduled Trigger",
+      "description": "Events emitted by the internal scheduler on a cron or interval basis.",
+      "delivery_mode": "pull",
+      "side_effect_level": "none",
+      "required_payload_fields": [],
+      "optional_payload_fields": ["schedule_id", "cron_expression", "triggered_at"],
+      "allowed_event_types": ["daily.*", "weekly.*", "hourly.*", "cron.*"],
+      "metadata": {"builtin": true}
+    },
+    {
+      "source_type": "customer_inbox",
+      "display_name": "Customer Inbox",
+      "description": "Inbound messages from customers via the customer-facing inbox channel.",
+      "delivery_mode": "push",
+      "side_effect_level": "none",
+      "required_payload_fields": ["message_id", "message", "channel"],
+      "optional_payload_fields": ["customer_id", "subject", "attachments"],
+      "allowed_event_types": ["manual.*", "inbound.*", "customer.*"],
+      "metadata": {"builtin": true}
+    },
+    {
+      "source_type": "gmail",
+      "display_name": "Gmail",
+      "description": "Events emitted when a new Gmail message matching a filter is received.",
+      "delivery_mode": "push",
+      "side_effect_level": "none",
+      "required_payload_fields": ["message_id", "from", "subject"],
+      "optional_payload_fields": ["body", "to", "cc", "labels", "thread_id"],
+      "allowed_event_types": ["email.*", "gmail.*", "message.*"],
+      "metadata": {"builtin": true}
+    },
+    {
+      "source_type": "calendar",
+      "display_name": "Google Calendar",
+      "description": "Events triggered by calendar entries such as meeting start or reminders.",
+      "delivery_mode": "push",
+      "side_effect_level": "none",
+      "required_payload_fields": ["event_id", "title", "start"],
+      "optional_payload_fields": ["end", "attendees", "location", "calendar_id", "organizer"],
+      "allowed_event_types": ["calendar.*", "meeting.*", "event.*"],
+      "metadata": {"builtin": true}
+    },
+    {
+      "source_type": "sheet",
+      "display_name": "Google Sheets",
+      "description": "Events triggered by changes or triggers on a Google Sheets spreadsheet.",
+      "delivery_mode": "push",
+      "side_effect_level": "none",
+      "required_payload_fields": ["spreadsheet_id", "range"],
+      "optional_payload_fields": ["values", "sheet_name", "changed_by", "timestamp"],
+      "allowed_event_types": ["sheet.*", "spreadsheet.*", "range.*"],
+      "metadata": {"builtin": true}
+    },
+    {
+      "source_type": "rpa",
+      "display_name": "RPA Automation",
+      "description": "Events emitted by robotic process automation tasks (optional, high-risk surface).",
+      "delivery_mode": "push",
+      "side_effect_level": "medium",
+      "required_payload_fields": ["task_id", "task_type"],
+      "optional_payload_fields": ["url", "selector", "value", "screenshot_path", "result"],
+      "allowed_event_types": ["rpa.*", "automation.*", "browser.*"],
+      "metadata": {"builtin": true, "optional": true}
+    },
+    {
+      "source_type": "system",
+      "display_name": "System",
+      "description": "Internal system events emitted by the runtime itself (health, errors, lifecycle).",
+      "delivery_mode": "push",
+      "side_effect_level": "none",
+      "required_payload_fields": ["component", "event_name"],
+      "optional_payload_fields": ["severity", "details", "frame_id", "manifest_id"],
+      "allowed_event_types": ["system.*", "health.*", "lifecycle.*", "error.*"],
+      "metadata": {"builtin": true}
+    }
+  ]
+}

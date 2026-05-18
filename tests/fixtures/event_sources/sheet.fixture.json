@@ -1,0 +1,19 @@
+{
+  "source_type": "sheet",
+  "display_name": "Google Sheets",
+  "description": "Events triggered by changes or triggers on a Google Sheets spreadsheet.",
+  "delivery_mode": "push",
+  "side_effect_level": "none",
+  "required_payload_fields": ["spreadsheet_id", "range"],
+  "optional_payload_fields": ["values", "sheet_name", "changed_by", "timestamp"],
+  "allowed_event_types": ["sheet.*", "spreadsheet.*", "range.*"],
+  "sample_event": {
+    "source": "sheet",
+    "event_type": "sheet.range_updated",
+    "payload": {
+      "spreadsheet_id": "1ABC123",
+      "range": "Payments!A1:Z100",
+      "sheet_name": "Payments"
+    }
+  }
+}

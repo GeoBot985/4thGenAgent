@@ -274,6 +274,53 @@ def build_parser() -> argparse.ArgumentParser:
 
     rpa_sub.add_parser("docs", help="Print path to optional RPA documentation.")
 
+    # Spec 109 — Event source contracts
+    esrc = sub.add_parser("event-sources", help="Inspect and validate event source contracts.")
+    esrc_sub = esrc.add_subparsers(dest="esrc_command", required=True)
+
+    esrc_list = esrc_sub.add_parser("list", help="List all registered event source contracts.")
+    esrc_list.add_argument("--json", action="store_true")
+
+    esrc_show = esrc_sub.add_parser("show", help="Show contract details for a specific source type.")
+    esrc_show.add_argument("source_type", help="Source type (e.g. operator_ui, schedule, gmail).")
+    esrc_show.add_argument("--json", action="store_true")
+
+    esrc_validate = esrc_sub.add_parser("validate", help="Validate all registered source contracts.")
+    esrc_validate.add_argument("--json", action="store_true")
+
+    esrc_validate_event = esrc_sub.add_parser("validate-event", help="Validate a raw event against its source contract.")
+    esrc_validate_event.add_argument("event_json", help="JSON string of event to validate.")
+    esrc_validate_event.add_argument("--json", action="store_true")
+
+    esrc_route_alignment = esrc_sub.add_parser("route-alignment", help="Check that all event routes align with source contracts.")
+    esrc_route_alignment.add_argument("--routes-path", default="config/event_routes.json")
+    esrc_route_alignment.add_argument("--json", action="store_true")
+
+    # Spec 108 — Event queue inspection and replay
+    events = sub.add_parser("events", help="Inspect and replay events from the event queue.")
+    events_sub = events.add_subparsers(dest="events_command", required=True)
+
+    events_list = events_sub.add_parser("list", help="List events from the event queue.")
+    events_list.add_argument("--status", default="", help="Filter by status.")
+    events_list.add_argument("--source", default="", help="Filter by source.")
+    events_list.add_argument("--event-type", default="", help="Filter by event type.")
+    events_list.add_argument("--limit", type=int, default=100, help="Maximum number of events to return.")
+    events_list.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    events_list.add_argument("--json", action="store_true")
+
+    events_show = events_sub.add_parser("show", help="Show detail for a specific event.")
+    events_show.add_argument("event_id", help="Event ID to inspect.")
+    events_show.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    events_show.add_argument("--json", action="store_true")
+
+    events_replay = events_sub.add_parser("replay-dry-run", help="Replay an event in dry-run mode (safe, creates new frame).")
+    events_replay.add_argument("event_id", help="Event ID to replay.")
+    events_replay.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    events_replay.add_argument("--manifest-dir", default="manifests")
+    events_replay.add_argument("--replayed-by", default="operator", help="Identity of the operator running the replay.")
+    events_replay.add_argument("--reason", default="", help="Reason for replay.")
+    events_replay.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -314,6 +361,10 @@ def main(argv: list[str] | None = None) -> int:
         return _run_tools(args)
     if args.command == "rpa":
         return _run_rpa(args)
+    if args.command == "event-sources":
+        return _run_event_sources(args)
+    if args.command == "events":
+        return _run_events(args)
     parser.print_help()
     return 2
 
@@ -1907,6 +1958,260 @@ def _run_rpa_docs() -> int:
     else:
         print("Documentation file not found at docs/optional_rpa.md")
     return 0
+
+
+def _run_event_sources(args: argparse.Namespace) -> int:
+    cmd = str(getattr(args, "esrc_command", "") or "")
+    if cmd == "list":
+        return _run_esrc_list(args)
+    if cmd == "show":
+        return _run_esrc_show(args)
+    if cmd == "validate":
+        return _run_esrc_validate(args)
+    if cmd == "validate-event":
+        return _run_esrc_validate_event(args)
+    if cmd == "route-alignment":
+        return _run_esrc_route_alignment(args)
+    print(f"Unknown event-sources command: {cmd}", file=sys.stderr)
+    return 2
+
+
+def _run_esrc_list(args: argparse.Namespace) -> int:
+    from runtime.event_source_registry import list_event_source_contracts
+
+    contracts = list_event_source_contracts()
+    payload = {"ok": True, "count": len(contracts), "contracts": contracts}
+    if args.json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print(f"Event Source Contracts — {len(contracts)} source(s)")
+    print("")
+    for c in contracts:
+        print(
+            f"  {c.get('source_type', ''):<20} {c.get('delivery_mode', ''):<8} "
+            f"side_effect={c.get('side_effect_level', ''):<8} {c.get('display_name', '')}"
+        )
+    return 0
+
+
+def _run_esrc_show(args: argparse.Namespace) -> int:
+    from runtime.event_source_registry import get_event_source_contract
+
+    source_type = str(args.source_type or "").strip()
+    contract = get_event_source_contract(source_type)
+    if contract is None:
+        payload = {"ok": False, "source_type": source_type, "error": f"No contract found for source '{source_type}'."}
+        if args.json:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print(f"Contract not found: {source_type}", file=sys.stderr)
+        return 1
+    payload = {"ok": True, **contract}
+    if args.json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print(f"Source Contract: {source_type}")
+    print(f"  Display Name:       {contract.get('display_name', '')}")
+    print(f"  Description:        {contract.get('description', '')}")
+    print(f"  Delivery Mode:      {contract.get('delivery_mode', '')}")
+    print(f"  Side Effect Level:  {contract.get('side_effect_level', '')}")
+    print(f"  Required Payload:   {', '.join(contract.get('required_payload_fields', [])) or '(none)'}")
+    print(f"  Optional Payload:   {', '.join(contract.get('optional_payload_fields', [])) or '(none)'}")
+    print(f"  Allowed Event Types: {', '.join(contract.get('allowed_event_types', [])) or '(any)'}")
+    return 0
+
+
+def _run_esrc_validate(args: argparse.Namespace) -> int:
+    from runtime.event_source_registry import validate_all_event_source_contracts
+
+    result = validate_all_event_source_contracts()
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    print(f"Event Source Contracts Validation: {'PASS' if result.get('ok') else 'FAIL'}")
+    print(f"  Contracts checked: {result.get('count', 0)}")
+    if result.get("missing_builtin_sources"):
+        print(f"  Missing built-in sources: {', '.join(result['missing_builtin_sources'])}")
+    for r in result.get("results", []):
+        status = "PASS" if r.get("ok") else "FAIL"
+        print(f"  {r.get('source_type', '')}: {status}")
+        for err in r.get("errors", []):
+            print(f"    Error: {err}")
+    return 0 if result.get("ok") else 1
+
+
+def _run_esrc_validate_event(args: argparse.Namespace) -> int:
+    from runtime.event_source_registry import validate_event_against_source_contract
+
+    try:
+        event = json.loads(str(args.event_json or "{}"))
+    except json.JSONDecodeError as exc:
+        payload = {"ok": False, "errors": [f"Invalid JSON: {exc}"]}
+        if args.json:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print(f"Invalid event JSON: {exc}", file=sys.stderr)
+        return 1
+
+    result = validate_event_against_source_contract(event)
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    status = "PASS" if result.get("ok") else "FAIL"
+    print(f"Event Source Contract Validation: {status}")
+    print(f"  Source: {result.get('source_type', '')}")
+    print(f"  Contract found: {str(result.get('contract_found', False)).lower()}")
+    for err in result.get("errors", []):
+        print(f"  Error: {err}")
+    for w in result.get("warnings", []):
+        print(f"  Warning: {w}")
+    return 0 if result.get("ok") else 1
+
+
+def _run_esrc_route_alignment(args: argparse.Namespace) -> int:
+    from runtime.event_source_route_alignment import validate_event_source_route_alignment
+
+    routes_path = str(getattr(args, "routes_path", "config/event_routes.json") or "config/event_routes.json")
+    result = validate_event_source_route_alignment(routes_path=Path(routes_path) if routes_path else None)
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    ok_str = "PASS" if result.get("ok") else "FAIL"
+    print(f"Route-Contract Alignment: {ok_str}")
+    print(f"  Routes checked:    {result.get('route_count', 0)}")
+    print(f"  Contracts loaded:  {result.get('contract_count', 0)}")
+    if result.get("mismatches"):
+        print(f"  Mismatches:")
+        for m in result["mismatches"]:
+            print(f"    [{m.get('status', '')}] {m.get('route_id', '')}: {m.get('message', '')}")
+    if result.get("unused_contracts"):
+        print(f"  Unused contracts: {', '.join(result['unused_contracts'])}")
+    if result.get("warnings"):
+        for w in result["warnings"]:
+            print(f"  Warning: {w}")
+    return 0 if result.get("ok") else 1
+
+
+def _run_events(args: argparse.Namespace) -> int:
+    cmd = str(args.events_command or "")
+    if cmd == "list":
+        return _run_events_list(args)
+    if cmd == "show":
+        return _run_events_show(args)
+    if cmd == "replay-dry-run":
+        return _run_events_replay_dry_run(args)
+    print(f"Unknown events command: {cmd}", file=sys.stderr)
+    return 2
+
+
+def _run_events_list(args: argparse.Namespace) -> int:
+    from runtime.event_queue_inspector import list_event_queue
+
+    result = list_event_queue(
+        runtime_data_dir=args.runtime_data_dir,
+        status=str(args.status or "") or None,
+        source=str(args.source or "") or None,
+        event_type=str(args.event_type or "") or None,
+        limit=int(args.limit or 100),
+    )
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return 0
+
+    events = result.get("events") or []
+    print(f"Event Queue — {result.get('count', 0)} event(s)")
+    print("")
+    if not events:
+        print("No events found.")
+        return 0
+
+    print(f"{'Received At':<26}  {'Event ID':<38}  {'Source':<20}  {'Event Type':<30}  {'Status':<24}  {'Route':<20}  {'Frame'}")
+    print("-" * 180)
+    for ev in events:
+        print(
+            f"{str(ev.get('received_at', ''))[:26]:<26}  "
+            f"{str(ev.get('event_id', '')):<38}  "
+            f"{str(ev.get('source', '')):<20}  "
+            f"{str(ev.get('event_type', '')):<30}  "
+            f"{str(ev.get('status', '')):<24}  "
+            f"{str(ev.get('route_id') or ''):<20}  "
+            f"{str(ev.get('linked_frame_id') or '')}"
+        )
+    return 0
+
+
+def _run_events_show(args: argparse.Namespace) -> int:
+    from runtime.event_queue_inspector import get_event_detail
+
+    result = get_event_detail(args.event_id, runtime_data_dir=args.runtime_data_dir)
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return 0 if result.get("ok") else 1
+
+    if not result.get("ok"):
+        print(f"Event not found: {args.event_id}", file=sys.stderr)
+        return 1
+
+    qr = result.get("queue_record") or result.get("event_record") or {}
+    fr = result.get("failure_reason") or {}
+    print(f"Event Detail: {args.event_id}")
+    print("")
+    print(f"  Source:         {qr.get('source', '')}")
+    print(f"  Event Type:     {qr.get('event_type', '')}")
+    print(f"  Status:         {qr.get('status', '')}")
+    print(f"  Route:          {result.get('route_id') or '—'}")
+    print(f"  Manifest:       {result.get('manifest_id') or '—'}")
+    print(f"  Linked Frame:   {result.get('linked_frame_id') or '—'}")
+    print(f"  Frame State:    {result.get('frame_state') or '—'}")
+    print(f"  Received At:    {qr.get('received_at', '')}")
+    print(f"  Attempt Count:  {qr.get('attempt_count', 0)}")
+    if fr.get("failure_code"):
+        print(f"  Failure Code:   {fr['failure_code']}")
+        print(f"  Failure Reason: {fr['failure_reason']}")
+    errors = result.get("errors") or []
+    if errors:
+        print(f"  Errors:")
+        for e in errors:
+            print(f"    - {e}")
+    replay_history = result.get("replay_history") or []
+    if replay_history:
+        print(f"  Replay History:")
+        for h in replay_history:
+            print(f"    Attempt {h.get('attempt')}: {h.get('status')} — frame={h.get('replay_frame_id')} at {h.get('replayed_at')}")
+    payload = qr.get("payload") or {}
+    if payload:
+        print(f"  Payload:")
+        print(f"    {json.dumps(payload, indent=4, ensure_ascii=False)[:500]}")
+    return 0
+
+
+def _run_events_replay_dry_run(args: argparse.Namespace) -> int:
+    from runtime.event_queue import replay_event_dry_run
+
+    result = replay_event_dry_run(
+        args.event_id,
+        runtime_data_dir=args.runtime_data_dir,
+        manifest_dir=args.manifest_dir,
+        replayed_by=str(args.replayed_by or "operator"),
+        reason=str(args.reason or ""),
+    )
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return 0 if result.get("ok") else 1
+
+    ok = result.get("ok", False)
+    print(f"Replay Dry-Run: {'OK' if ok else 'FAILED'}")
+    print(f"  Event ID:       {result.get('event_id', '')}")
+    print(f"  Status:         {result.get('status', '')}")
+    print(f"  Original Frame: {result.get('original_frame_id') or '—'}")
+    print(f"  Replay Frame:   {result.get('replay_frame_id') or '—'}")
+    print(f"  Manifest:       {result.get('manifest_id') or '—'}")
+    errors = result.get("errors") or []
+    if errors:
+        print(f"  Errors:")
+        for e in errors:
+            print(f"    - {e}")
+    return 0 if ok else 1
 
 
 def _invoke_script_main(script_path: Path) -> dict[str, Any]:

@@ -1,0 +1,19 @@
+{
+  "source_type": "system",
+  "display_name": "System",
+  "description": "Internal system events emitted by the runtime itself (health, errors, lifecycle).",
+  "delivery_mode": "push",
+  "side_effect_level": "none",
+  "required_payload_fields": ["component", "event_name"],
+  "optional_payload_fields": ["severity", "details", "frame_id", "manifest_id"],
+  "allowed_event_types": ["system.*", "health.*", "lifecycle.*", "error.*"],
+  "sample_event": {
+    "source": "system",
+    "event_type": "health.check",
+    "payload": {
+      "component": "orchestrator",
+      "event_name": "health_check_passed",
+      "severity": "info"
+    }
+  }
+}

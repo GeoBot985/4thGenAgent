@@ -1,0 +1,15 @@
+{
+  "source_type": "schedule",
+  "display_name": "Scheduled Trigger",
+  "description": "Events emitted by the internal scheduler on a cron or interval basis.",
+  "delivery_mode": "pull",
+  "side_effect_level": "none",
+  "required_payload_fields": [],
+  "optional_payload_fields": ["schedule_id", "cron_expression", "triggered_at"],
+  "allowed_event_types": ["daily.*", "weekly.*", "hourly.*", "cron.*"],
+  "sample_event": {
+    "source": "schedule",
+    "event_type": "daily.low_stock_check",
+    "payload": {"schedule_id": "sched-001", "cron_expression": "0 6 * * *"}
+  }
+}

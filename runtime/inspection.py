@@ -142,6 +142,26 @@ class RunInspector:
             )
         return inspection_ok("cleanup_reports", {"count": len(cleanup_reports), "cleanup_reports": cleanup_reports})
 
+    def list_events(self, limit: int = 100, status: str | None = None, source: str | None = None, event_type: str | None = None) -> InspectionResult:
+        from .event_queue_inspector import list_event_queue
+
+        result = list_event_queue(
+            runtime_data_dir=self.runtime_data_dir,
+            status=status,
+            source=source,
+            event_type=event_type,
+            limit=limit,
+        )
+        return inspection_ok("events", result)
+
+    def get_event_detail(self, event_id: str) -> InspectionResult:
+        from .event_queue_inspector import get_event_detail
+
+        result = get_event_detail(event_id, runtime_data_dir=self.runtime_data_dir)
+        if not result.get("ok"):
+            return inspection_error("event_detail", result.get("errors", ["Not found"])[0] if result.get("errors") else "Not found")
+        return inspection_ok("event_detail", result)
+
     def _artifact_file(self, frame_id: str, filename: str) -> Path:
         return Path(self.runtime_data_dir) / "runs" / frame_id / filename
 

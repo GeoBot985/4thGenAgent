@@ -12,6 +12,24 @@ from .persistence import PersistenceManager, ensure_dir
 from .taskframe_reload import load_manifest_for_frame, load_taskframe
 from .taskframe import utc_now
 from .taskframe import json_safe
+from .event_queue import (
+    STATUS_RECEIVED,
+    STATUS_ROUTE_RESOLVED,
+    STATUS_ROUTE_NOT_FOUND,
+    STATUS_FRAME_CREATED,
+    STATUS_RUNNING,
+    STATUS_DUPLICATE_EVENT,
+    STATUS_FAILED_EXECUTION,
+    STATUS_REPLAYED_DRY_RUN,
+    build_queue_record,
+    build_event_fingerprint,
+    frame_state_to_event_status,
+    update_queue_record,
+    write_queue_record,
+    load_queue_record,
+)
+from .event_failure_reason import derive_event_failure_reason
+from .event_source_registry import validate_event_against_source_contract
 
 
 EVENTS_DIR_NAME = "events"
@@ -141,9 +159,15 @@ def intake_event(
     runtime_data_dir: str | Path = "runtime_data",
     manifest_dir: str | Path = "manifests",
     routes_path: str = "config/event_routes.json",
+    strict_source_contracts: bool = False,
 ) -> dict[str, Any]:
     timestamp = utc_now()
     event_record = _normalize_event_record(event_data, timestamp)
+
+    # Write initial RECEIVED queue record
+    _q = build_queue_record(event_record, status=STATUS_RECEIVED)
+    write_queue_record(_q, runtime_data_dir)
+
     ok, errors = validate_event(event_record)
     if not ok:
         event_record["status"] = "INVALID_EVENT"
@@ -151,7 +175,21 @@ def intake_event(
         event_record["ledger_recorded_at"] = utc_now()
         event_record["errors"] = list(errors)
         append_event(event_record, runtime_data_dir)
+        _failure = derive_event_failure_reason(event_record)
+        write_queue_record(update_queue_record(_q, status=STATUS_FAILED_EXECUTION, errors=list(errors), failure_code=_failure["failure_code"], failure_reason=_failure["failure_reason"]), runtime_data_dir)
         return _result(False, "INVALID_EVENT", event_record.get("event_id"), None, None, None, {}, list(errors))
+
+    # Source contract validation (non-blocking by default; blocking when strict_source_contracts=True)
+    _contract_result = validate_event_against_source_contract(event_record)
+    if not _contract_result.get("ok") and strict_source_contracts:
+        _contract_errors = _contract_result.get("errors", [])
+        event_record["status"] = "SOURCE_CONTRACT_VIOLATION"
+        event_record["duplicate"] = False
+        event_record["ledger_recorded_at"] = utc_now()
+        event_record["errors"] = _contract_errors
+        append_event(event_record, runtime_data_dir)
+        write_queue_record(update_queue_record(_q, status=STATUS_FAILED_EXECUTION, errors=_contract_errors, failure_code="EVENT_VALIDATION_FAILED", failure_reason="Event payload does not satisfy source contract requirements."), runtime_data_dir)
+        return _result(False, "SOURCE_CONTRACT_VIOLATION", event_record.get("event_id"), None, None, None, {}, _contract_errors)
 
     event_id = str(event_record.get("event_id", "")).strip()
     duplicate = is_duplicate_event(event_id, runtime_data_dir)
@@ -172,6 +210,12 @@ def intake_event(
             },
             runtime_data_dir,
         )
+        existing_q = load_queue_record(event_id, runtime_data_dir)
+        if existing_q is None:
+            existing_q = build_queue_record(event_record, status=STATUS_DUPLICATE_EVENT, duplicate=True, duplicate_of_event_id=event_id, route_id=indexed.get("route_id"), manifest_id=indexed.get("manifest_id"), linked_frame_id=indexed.get("linked_frame_id"))
+        else:
+            existing_q = update_queue_record(existing_q, status=STATUS_DUPLICATE_EVENT, duplicate=True, duplicate_of_event_id=event_id)
+        write_queue_record(existing_q, runtime_data_dir)
         return _result(
             True,
             "DUPLICATE_EVENT",
@@ -200,7 +244,10 @@ def intake_event(
             },
             runtime_data_dir,
         )
+        write_queue_record(update_queue_record(_q, status=STATUS_ROUTE_NOT_FOUND, failure_code="ROUTE_NOT_FOUND", failure_reason="No event route matched this source and event type."), runtime_data_dir)
         return _result(False, "NO_ROUTE", event_record.get("event_id"), None, None, None, {}, [])
+
+    write_queue_record(update_queue_record(_q, status=STATUS_ROUTE_RESOLVED, route_id=route.get("route_id"), manifest_id=route.get("manifest_id")), runtime_data_dir)
 
     mapped_inputs, mapping_errors = map_event_inputs(event_record, route)
     if mapping_errors:
@@ -219,6 +266,8 @@ def intake_event(
             },
             runtime_data_dir,
         )
+        _failure = derive_event_failure_reason(event_record)
+        write_queue_record(update_queue_record(_q, status=STATUS_FAILED_EXECUTION, errors=list(mapping_errors), failure_code=_failure["failure_code"], failure_reason=_failure["failure_reason"], route_id=route.get("route_id"), manifest_id=route.get("manifest_id")), runtime_data_dir)
         return _result(
             False,
             "ROUTE_MAPPING_FAILED",
@@ -247,6 +296,7 @@ def intake_event(
             },
             runtime_data_dir,
         )
+        write_queue_record(update_queue_record(_q, status=STATUS_FAILED_EXECUTION, errors=[f"Manifest not found: {manifest_id}"], failure_code="MANIFEST_NOT_FOUND", failure_reason=f"Manifest '{manifest_id}' could not be found.", route_id=route.get("route_id"), manifest_id=manifest_id), runtime_data_dir)
         return _result(
             False,
             "MANIFEST_NOT_FOUND",
@@ -290,6 +340,7 @@ def intake_event(
             },
             runtime_data_dir,
         )
+        write_queue_record(update_queue_record(_q, status=STATUS_FRAME_CREATED, route_id=route.get("route_id"), manifest_id=manifest_id, linked_frame_id=frame.frame_id), runtime_data_dir)
         return _result(True, "FRAME_CREATED", event_record["event_id"], route.get("route_id"), manifest_id, frame.frame_id, mapped_inputs, [])
     except Exception as exc:
         event_record["status"] = "FAILED"
@@ -307,6 +358,7 @@ def intake_event(
             },
             runtime_data_dir,
         )
+        write_queue_record(update_queue_record(_q, status=STATUS_FAILED_EXECUTION, errors=[str(exc)], failure_code="TASKFRAME_CREATION_FAILED", failure_reason=str(exc), route_id=route.get("route_id"), manifest_id=manifest_id), runtime_data_dir)
         return _result(False, "FAILED", event_record.get("event_id"), route.get("route_id"), manifest_id, None, mapped_inputs, [str(exc)])
 
 
@@ -363,15 +415,27 @@ def intake_and_run_event(
         }
 
     PersistenceManager(runtime_data_dir).save_snapshot(frame)
+    frame_errors = [error.get("message", "") for error in frame.errors if isinstance(error, dict) and error.get("message")]
+    combined_errors = list(intake_result.get("errors", [])) + frame_errors
+
+    # Update queue record with final frame state
+    _event_id = intake_result.get("event_id")
+    if _event_id:
+        _qr = load_queue_record(_event_id, runtime_data_dir)
+        if _qr is not None:
+            final_queue_status = frame_state_to_event_status(frame.state)
+            _failure = derive_event_failure_reason({}, {"state": frame.state, "errors": list(frame.errors), "completion_gate_result": frame.completion_gate_result})
+            write_queue_record(update_queue_record(_qr, status=final_queue_status, linked_frame_id=frame.frame_id, errors=combined_errors if not frame.state.startswith("COMPLETED") else [], failure_code=_failure.get("failure_code", "") if not frame.state.startswith("COMPLETED") else "", failure_reason=_failure.get("failure_reason", "") if not frame.state.startswith("COMPLETED") else ""), runtime_data_dir)
+
     return {
-        "ok": frame.state in {"COMPLETED", "WAITING_FOR_EXECUTE"},
+        "ok": frame.state in {"COMPLETED", "WAITING_FOR_EXECUTE", "COMPLETED_NO_DATA"},
         "status": frame.state,
         "event_id": intake_result.get("event_id"),
         "route_id": intake_result.get("route_id"),
         "manifest_id": intake_result.get("manifest_id"),
         "frame_id": frame.frame_id,
         "outputs": dict(frame.outputs),
-        "errors": list(intake_result.get("errors", [])) + [error.get("message", "") for error in frame.errors if isinstance(error, dict) and error.get("message")],
+        "errors": combined_errors,
     }
 
 

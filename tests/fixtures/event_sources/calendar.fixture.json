@@ -1,0 +1,21 @@
+{
+  "source_type": "calendar",
+  "display_name": "Google Calendar",
+  "description": "Events triggered by calendar entries such as meeting start or reminders.",
+  "delivery_mode": "push",
+  "side_effect_level": "none",
+  "required_payload_fields": ["event_id", "title", "start"],
+  "optional_payload_fields": ["end", "attendees", "location", "calendar_id", "organizer"],
+  "allowed_event_types": ["calendar.*", "meeting.*", "event.*"],
+  "sample_event": {
+    "source": "calendar",
+    "event_type": "calendar.event_start",
+    "payload": {
+      "event_id": "cal-001",
+      "title": "Weekly Ops Review",
+      "start": "2026-05-17T09:00:00Z",
+      "end": "2026-05-17T10:00:00Z",
+      "attendees": ["alice@example.com", "bob@example.com"]
+    }
+  }
+}

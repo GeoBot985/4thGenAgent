@@ -1,0 +1,20 @@
+{
+  "source_type": "gmail",
+  "display_name": "Gmail",
+  "description": "Events emitted when a new Gmail message matching a filter is received.",
+  "delivery_mode": "push",
+  "side_effect_level": "none",
+  "required_payload_fields": ["message_id", "from", "subject"],
+  "optional_payload_fields": ["body", "to", "cc", "labels", "thread_id"],
+  "allowed_event_types": ["email.*", "gmail.*", "message.*"],
+  "sample_event": {
+    "source": "gmail",
+    "event_type": "email.received",
+    "payload": {
+      "message_id": "gmail-001",
+      "from": "customer@example.com",
+      "subject": "Order enquiry",
+      "body": "Hi, I need help with my order."
+    }
+  }
+}

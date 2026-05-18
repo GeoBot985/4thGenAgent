@@ -1,0 +1,15 @@
+{
+  "source_type": "operator_ui",
+  "display_name": "Operator UI",
+  "description": "Events manually triggered by an operator through the desktop or web UI.",
+  "delivery_mode": "push",
+  "side_effect_level": "none",
+  "required_payload_fields": [],
+  "optional_payload_fields": ["customer_id", "message", "channel", "spreadsheet_id"],
+  "allowed_event_types": ["manual.*"],
+  "sample_event": {
+    "source": "operator_ui",
+    "event_type": "manual.mock_ping",
+    "payload": {"message": "hello from operator"}
+  }
+}

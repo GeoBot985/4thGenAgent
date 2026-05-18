@@ -306,6 +306,11 @@ def build_verification_result() -> dict[str, Any]:
         _check_safety_verification_pack(),
         _check_toolpack_governance(),
         _check_toolpack_lifecycle(),
+        _check_event_source_contracts_file(),
+        _check_event_source_contracts_valid(),
+        _check_event_source_builders_importable(),
+        _check_event_source_cli_available(),
+        _check_event_source_route_alignment(),
     ])
     manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     for key in ("json_path", "markdown_path"):
@@ -2717,6 +2722,62 @@ def _check_toolpack_lifecycle() -> dict[str, Any]:
         }
     except Exception as exc:
         return {"name": "toolpack_lifecycle", "status": "FAIL", "error": str(exc), "missing": missing}
+
+
+def _check_event_source_contracts_file() -> dict[str, Any]:
+    path = ROOT / "config" / "event_source_contracts.json"
+    if not path.is_file():
+        return {"name": "event_source_contracts_file", "status": "FAIL", "error": "config/event_source_contracts.json not found."}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        contracts = data.get("contracts", []) if isinstance(data, dict) else []
+        return {"name": "event_source_contracts_file", "status": "PASS" if len(contracts) >= 8 else "FAIL", "count": len(contracts)}
+    except Exception as exc:
+        return {"name": "event_source_contracts_file", "status": "FAIL", "error": str(exc)}
+
+
+def _check_event_source_contracts_valid() -> dict[str, Any]:
+    try:
+        from runtime.event_source_registry import validate_all_event_source_contracts
+
+        result = validate_all_event_source_contracts()
+        return {"name": "event_source_contracts_valid", "status": "PASS" if result.get("ok") else "FAIL", "count": result.get("count", 0), "missing": result.get("missing_builtin_sources", [])}
+    except Exception as exc:
+        return {"name": "event_source_contracts_valid", "status": "FAIL", "error": str(exc)}
+
+
+def _check_event_source_builders_importable() -> dict[str, Any]:
+    try:
+        from runtime.event_source_builders import (
+            build_operator_event, build_schedule_event, build_customer_inbox_event,
+            build_gmail_event, build_calendar_event, build_sheet_event,
+            build_rpa_event, build_system_event,
+        )
+        return {"name": "event_source_builders_importable", "status": "PASS"}
+    except Exception as exc:
+        return {"name": "event_source_builders_importable", "status": "FAIL", "error": str(exc)}
+
+
+def _check_event_source_cli_available() -> dict[str, Any]:
+    try:
+        from src.taskframe_cli import build_parser
+
+        parser = build_parser()
+        argv = ["event-sources", "list", "--json"]
+        args = parser.parse_args(argv)
+        return {"name": "event_source_cli_available", "status": "PASS" if args.command == "event-sources" else "FAIL"}
+    except Exception as exc:
+        return {"name": "event_source_cli_available", "status": "FAIL", "error": str(exc)}
+
+
+def _check_event_source_route_alignment() -> dict[str, Any]:
+    try:
+        from runtime.event_source_route_alignment import validate_event_source_route_alignment
+
+        result = validate_event_source_route_alignment()
+        return {"name": "event_source_route_alignment", "status": "PASS" if result.get("ok") else "FAIL", "route_count": result.get("route_count", 0), "mismatches": len(result.get("mismatches", []))}
+    except Exception as exc:
+        return {"name": "event_source_route_alignment", "status": "FAIL", "error": str(exc)}
 
 
 def _check_known_limitations_doc() -> dict[str, Any]:

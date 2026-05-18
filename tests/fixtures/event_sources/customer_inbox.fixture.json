@@ -1,0 +1,20 @@
+{
+  "source_type": "customer_inbox",
+  "display_name": "Customer Inbox",
+  "description": "Inbound messages from customers via the customer-facing inbox channel.",
+  "delivery_mode": "push",
+  "side_effect_level": "none",
+  "required_payload_fields": ["message_id", "message", "channel"],
+  "optional_payload_fields": ["customer_id", "subject", "attachments"],
+  "allowed_event_types": ["manual.*", "inbound.*", "customer.*"],
+  "sample_event": {
+    "source": "customer_inbox",
+    "event_type": "manual.customer_status_llm_e2e",
+    "payload": {
+      "message_id": "msg-001",
+      "message": "Where is my order?",
+      "channel": "email",
+      "customer_id": "cust-42"
+    }
+  }
+}
