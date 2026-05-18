@@ -1,0 +1,17 @@
+{
+  "manifest_id": "cg.executed_dry_run_expected",
+  "name": "Executed Dry Run Expected",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "stage_action", "command": "[t:test/echo -> staged_action] message=staged"}
+  ],
+  "validations": [],
+  "completion": {
+    "success_outputs": ["staged_action"],
+    "success_pending_actions": ["staged_action"],
+    "success_executed_actions": ["staged_action"],
+    "allow_pending_approval": true
+  }
+}

@@ -384,6 +384,10 @@ def _smoke_run_impl(
     else:
         checks.append(_check("completion_result_consistent", True, "Completion outputs consistent with frame."))
 
+    # 11–16. Canonical completion gate result checks (Spec 107)
+    cgr = frame_dict.get("completion_gate_result") or {}
+    _add_completion_gate_checks(checks, cgr, final_state, frame_dict)
+
     # Classify
     if failed_count > 0 and final_state not in {"COMPLETED", "WAITING_FOR_EXECUTE"}:
         classification = "VALIDATION_FAILED"
@@ -490,6 +494,110 @@ def _build_repair_guidance_summary(smoke_result: dict) -> dict:
 
 def _check(check_id: str, ok: bool, message: str) -> dict:
     return {"id": check_id, "ok": ok, "message": message}
+
+
+# ---------------------------------------------------------------------------
+# Spec 107 — Canonical completion gate result checks
+# ---------------------------------------------------------------------------
+
+_VALID_OUTCOMES = {
+    "SUCCESS_WITH_DATA",
+    "SUCCESS_NO_DATA",
+    "VALIDATION_FAILED",
+    "COMPLETION_REQUIREMENT_FAILED",
+    "PENDING_APPROVAL",
+    "PENDING_ACTION_REJECTED",
+    "DRY_RUN_EXECUTED",
+    "LIVE_EXECUTION_BLOCKED",
+    "EXECUTION_FAILED",
+}
+
+_CANONICAL_CGR_KEYS = {
+    "ok", "status", "outcome", "final_state", "message",
+    "reason_code", "required_outputs", "missing_outputs",
+    "required_pending_actions", "missing_pending_actions",
+    "required_executed_actions", "missing_executed_actions",
+    "validation_summary", "pending_action_summary",
+    "evidence_refs", "error_refs", "metadata",
+}
+
+_OK_OUTCOMES_BY_STATE = {
+    "COMPLETED": {"SUCCESS_WITH_DATA", "DRY_RUN_EXECUTED"},
+    "COMPLETED_NO_DATA": {"SUCCESS_NO_DATA"},
+    "WAITING_FOR_EXECUTE": {"PENDING_APPROVAL"},
+}
+
+
+def _add_completion_gate_checks(
+    checks: list[dict],
+    cgr: dict,
+    final_state: str,
+    frame_dict: dict,
+) -> None:
+    # 11. completion_gate_result_present
+    cgr_present = bool(cgr)
+    checks.append(_check(
+        "completion_gate_result_present",
+        cgr_present,
+        "completion_gate_result is present on frame." if cgr_present else "completion_gate_result is missing from frame.",
+    ))
+    if not cgr_present:
+        return
+
+    # 12. completion_gate_result_shape_valid
+    missing_keys = _CANONICAL_CGR_KEYS - set(cgr.keys())
+    shape_ok = len(missing_keys) == 0
+    checks.append(_check(
+        "completion_gate_result_shape_valid",
+        shape_ok,
+        "All canonical keys present." if shape_ok else f"Missing keys: {sorted(missing_keys)}",
+    ))
+
+    # 13. completion_outcome_matches_state
+    outcome = str(cgr.get("outcome", ""))
+    outcome_ok = outcome in _VALID_OUTCOMES
+    if outcome_ok and final_state in _OK_OUTCOMES_BY_STATE:
+        outcome_ok = outcome in _OK_OUTCOMES_BY_STATE.get(final_state, set())
+    checks.append(_check(
+        "completion_outcome_matches_state",
+        outcome_ok,
+        f"Outcome '{outcome}' consistent with state '{final_state}'." if outcome_ok
+        else f"Outcome '{outcome}' is inconsistent with state '{final_state}'.",
+    ))
+
+    # 14. completion_pending_action_consistent
+    pending_actions = frame_dict.get("pending_actions") or []
+    pa_summary = cgr.get("pending_action_summary") or {}
+    pa_ok = isinstance(pa_summary, dict) and all(
+        k in pa_summary for k in ("pending_approval", "approved", "executing", "executed", "rejected", "failed")
+    )
+    if pa_ok and final_state == "WAITING_FOR_EXECUTE":
+        pa_ok = outcome == "PENDING_APPROVAL"
+    checks.append(_check(
+        "completion_pending_action_consistent",
+        pa_ok,
+        "Pending action summary is consistent." if pa_ok else "Pending action summary is missing or inconsistent.",
+    ))
+
+    # 15. completion_no_data_consistent
+    if final_state == "COMPLETED_NO_DATA":
+        no_data_ok = outcome == "SUCCESS_NO_DATA" and cgr.get("ok") is True
+        checks.append(_check(
+            "completion_no_data_consistent",
+            no_data_ok,
+            "COMPLETED_NO_DATA has SUCCESS_NO_DATA outcome." if no_data_ok
+            else f"COMPLETED_NO_DATA has unexpected outcome '{outcome}'.",
+        ))
+
+    # 16. completion_failure_consistent
+    if final_state and final_state.startswith("FAILED"):
+        failure_ok = cgr.get("ok") is False
+        checks.append(_check(
+            "completion_failure_consistent",
+            failure_ok,
+            "Failed state has ok=False in completion result." if failure_ok
+            else "Failed state has ok=True — inconsistency detected.",
+        ))
 
 
 def _manifest_id(manifest: Any) -> str:

@@ -137,6 +137,15 @@ def run_scenario(
             result["timeline"] = result.get("timeline") or []
             result["approval_pack"] = build_approval_pack_view(frame_dict or result.get("snapshot", {}).get("active_frame", {}))
             result["failure_summary"] = build_failure_summary(frame_dict or result.get("snapshot", {}).get("active_frame", {}))
+        if not result.get("state"):
+            if result.get("ok", False):
+                result["state"] = "COMPLETED"
+            else:
+                failure_summary = result.get("failure_summary", {})
+                if isinstance(failure_summary, dict) and str(failure_summary.get("state") or "").strip():
+                    result["state"] = str(failure_summary.get("state"))
+                else:
+                    result["state"] = "FAILED_EXECUTION"
         if generate_report or scenario.get("generate_report"):
             result["report_result"] = generate_report_for_frame(result["frame_id"], runtime_data_dir) if result.get("frame_id") else {}
         else:

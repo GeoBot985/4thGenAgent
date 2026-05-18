@@ -122,9 +122,7 @@ def render_run_report_markdown(bundle: dict[str, Any], approval_pack: dict, fail
         f"- Current Step ID: {frame.get('current_step_id', '')}",
         f"- Errors Count: {len(frame.get('errors', []))}",
         "",
-        "```json",
-        render_json_block(frame.get("completion_gate_result", {})),
-        "```",
+        _markdown_completion_gate_result(frame.get("completion_gate_result") or {}),
         "",
         "## 5. Step Timeline",
         "",
@@ -169,7 +167,7 @@ def render_run_report_html(bundle: dict[str, Any], approval_pack: dict, failure_
         ("1. Executive Summary", _table([("Frame ID", bundle.get("frame_id", "")), ("Manifest", bundle.get("manifest_id", "")), ("State", bundle.get("state", "")), ("Outcome", _outcome_text(bundle)), ("Pending Actions", len(bundle.get("pending_actions", []))), ("Executed Actions", len(bundle.get("executed_actions", []))), ("Errors", len(bundle.get("errors", [])))])),
         ("2. Trigger / Event", _pre(render_json_block(bundle.get("trigger", {})))),
         ("3. Route and Manifest", _table([("Manifest ID", bundle.get("manifest_id", "")), ("Step Count", len(bundle.get("steps", []))), ("Validation Count", len(bundle.get("validations", [])))])),
-        ("4. Runtime Final State", _pre(render_json_block(bundle.get("completion_gate_result", {})))),
+        ("4. Runtime Final State", _pre(_markdown_completion_gate_result(bundle.get("completion_gate_result") or {}))),
         ("5. Step Timeline", _pre(render_run_report_markdown(bundle, approval_pack, failure_summary, runtime_root).split("## 6. LLM Calls")[0].split("## 5. Step Timeline")[1])),
         ("6. LLM Calls", _pre(_markdown_llm_calls(bundle.get("llm_calls", [])))),
         ("7. Tool Calls", _pre(_markdown_tool_calls(bundle.get("tool_calls", [])))),
@@ -433,6 +431,60 @@ def _markdown_artifact_index(bundle: dict[str, Any]) -> str:
         if key in artifacts:
             lines.append(f"| {label} | {artifacts[key]} |")
     return "\n".join(lines)
+
+
+def _markdown_completion_gate_result(cgr: dict[str, Any]) -> str:
+    """Render the canonical completion gate result as structured markdown."""
+    if not cgr:
+        return "_No completion gate result recorded._"
+
+    outcome = str(cgr.get("outcome", ""))
+    status = str(cgr.get("status", ""))
+    final_state = str(cgr.get("final_state", ""))
+    ok = cgr.get("ok", False)
+    message = str(cgr.get("message", ""))
+    reason_code = str(cgr.get("reason_code", ""))
+
+    vs = cgr.get("validation_summary") or {}
+    missing_outputs = cgr.get("missing_outputs") or []
+    required_outputs = cgr.get("required_outputs") or []
+    missing_pending = cgr.get("missing_pending_actions") or []
+    missing_executed = cgr.get("missing_executed_actions") or []
+
+    pa_summary = cgr.get("pending_action_summary") or {}
+
+    lines = [
+        f"| Field | Value |",
+        f"|---|---|",
+        f"| Completion outcome | `{outcome}` |",
+        f"| Final state | `{final_state}` |",
+        f"| Status | `{status}` |",
+        f"| OK | `{ok}` |",
+        f"| Reason code | `{reason_code}` |",
+        f"| Message | {message} |",
+        f"| Required outputs | {', '.join(f'`{o}`' for o in required_outputs) or 'none'} |",
+        f"| Missing outputs | {', '.join(f'`{o}`' for o in missing_outputs) or 'none'} |",
+        f"| Validations passed | {vs.get('passed', 0)} |",
+        f"| Validations failed | {vs.get('failed', 0)} |",
+        f"| Pending approval | {pa_summary.get('pending_approval', 0)} |",
+        f"| Approved | {pa_summary.get('approved', 0)} |",
+        f"| Executed | {pa_summary.get('executed', 0)} |",
+        f"| Rejected | {pa_summary.get('rejected', 0)} |",
+    ]
+
+    if missing_pending:
+        lines.append(f"| Missing pending actions | {', '.join(f'`{a}`' for a in missing_pending)} |")
+    if missing_executed:
+        lines.append(f"| Missing executed actions | {', '.join(f'`{a}`' for a in missing_executed)} |")
+
+    result = "\n".join(lines)
+
+    if status in {"AWAITING_APPROVAL", "APPROVED_WAITING_EXECUTION"}:
+        result += "\n\n> **Operator action required:** Review and approve or reject the staged action below."
+    elif final_state == "COMPLETED_NO_DATA":
+        result += "\n\n> **Outcome:** SUCCESS_NO_DATA — No matching records found, and this is acceptable per the manifest."
+
+    return result
 
 
 def _outcome_text(bundle: dict[str, Any]) -> str:

@@ -1,0 +1,14 @@
+{
+  "manifest_id": "cg.read_only_no_data_unacceptable",
+  "name": "Read Only No Data Unacceptable",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "fetch_result", "command": "[t:test/echo -> result] message=hello"}
+  ],
+  "validations": [],
+  "completion": {
+    "success_outputs": ["result"]
+  }
+}

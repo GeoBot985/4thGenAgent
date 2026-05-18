@@ -1,0 +1,14 @@
+{
+  "manifest_id": "cg.missing_required_output",
+  "name": "Missing Required Output",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "fetch_result", "command": "[t:test/echo -> result] message=hello"}
+  ],
+  "validations": [],
+  "completion": {
+    "success_outputs": ["result", "extra_required"]
+  }
+}

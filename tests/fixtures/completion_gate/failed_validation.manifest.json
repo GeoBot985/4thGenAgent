@@ -1,0 +1,16 @@
+{
+  "manifest_id": "cg.failed_validation",
+  "name": "Failed Validation",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "fetch_result", "command": "[t:test/echo -> result] message=hello"}
+  ],
+  "validations": [
+    {"id": "result_exists", "type": "output_exists", "output": "result"}
+  ],
+  "completion": {
+    "success_outputs": ["result"]
+  }
+}

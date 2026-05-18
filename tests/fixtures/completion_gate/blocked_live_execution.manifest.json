@@ -1,0 +1,18 @@
+{
+  "manifest_id": "cg.blocked_live_execution",
+  "name": "Blocked Live Execution",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "fetch_result", "command": "[t:test/echo -> result] message=hello"}
+  ],
+  "validations": [],
+  "completion": {
+    "success_outputs": ["result"]
+  },
+  "live_execution": {
+    "enabled": false,
+    "allow_side_effects": false
+  }
+}

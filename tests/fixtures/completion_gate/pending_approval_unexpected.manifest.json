@@ -1,0 +1,15 @@
+{
+  "manifest_id": "cg.pending_approval_unexpected",
+  "name": "Pending Approval Unexpected",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "fetch_result", "command": "[t:test/echo -> result] message=hello"}
+  ],
+  "validations": [],
+  "completion": {
+    "success_outputs": ["result"],
+    "allow_pending_approval": false
+  }
+}
