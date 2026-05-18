@@ -94,5 +94,53 @@
     "quantity": 1,
     "sku": "SKU-PAD-01",
     "unit_price": 0.0
+  },
+  {
+    "description": "Compact office desk",
+    "line_total": 1299.99,
+    "order_ref": "ORD-10050",
+    "quantity": 1,
+    "sku": "SKU-DESK-01",
+    "unit_price": 1299.99
+  },
+  {
+    "description": "Ergonomic office chair",
+    "line_total": 899.0,
+    "order_ref": "ORD-10051",
+    "quantity": 2,
+    "sku": "SKU-CHAIR-01",
+    "unit_price": 449.5
+  },
+  {
+    "description": "Monitor stand",
+    "line_total": 699.99,
+    "order_ref": "ORD-10052",
+    "quantity": 1,
+    "sku": "SKU-STAND-01",
+    "unit_price": 699.99
+  },
+  {
+    "description": "Wireless mouse",
+    "line_total": 249.0,
+    "order_ref": "ORD-10053",
+    "quantity": 1,
+    "sku": "SKU-MOUSE-01",
+    "unit_price": 249.0
+  },
+  {
+    "description": "Compact office desk",
+    "line_total": 899.0,
+    "order_ref": "ORD-10054",
+    "quantity": 1,
+    "sku": "SKU-DESK-01",
+    "unit_price": 899.0
+  },
+  {
+    "description": "LED desk lamp",
+    "line_total": 499.0,
+    "order_ref": "ORD-10055",
+    "quantity": 1,
+    "sku": "SKU-LAMP-01",
+    "unit_price": 499.0
   }
 ]

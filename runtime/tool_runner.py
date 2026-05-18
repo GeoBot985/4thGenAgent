@@ -246,7 +246,7 @@ class ToolRunner:
             frame.pending_actions.append(pending_action)
             step.result_ref = pending_action["action_id"]
             step.status = "STAGED"
-            if step.output_alias and key in {"supplier/prepare_message_action", "customer/prepare_message_action", "sheet/prepare_write_rows"}:
+            if step.output_alias and key in {"supplier/prepare_message_action", "customer/prepare_message_action", "sheet/prepare_write_rows", "order/prepare_stock_reservation", "order/prepare_release_paid_order", "order/prepare_shipment_status_update"}:
                 set_output(frame, step.output_alias, pending_action)
             if frame.state == "RUNNING":
                 transition_state(frame, "WAITING_FOR_EXECUTE")
@@ -1567,8 +1567,18 @@ def create_pending_action(
             "mode": str(args.get("mode", "append")),
             "dry_run": True,
         }
-    action_type = "send_customer_message" if tool == "customer/prepare_message_action" else "send_supplier_message" if tool == "supplier/prepare_message_action" else "sheet_write_rows" if tool == "sheet/prepare_write_rows" else tool_spec["action"]
-    staged_tool = "wa/send" if tool == "customer/prepare_message_action" else "supplier/send_message" if tool == "supplier/prepare_message_action" else "sheet/write_rows" if tool == "sheet/prepare_write_rows" else tool
+    _ORDER_MGMT_TOOL_MAP = {
+        "order/prepare_stock_reservation": ("reserve_stock", "order/execute_stock_reservation"),
+        "order/prepare_release_paid_order": ("release_paid_order", "order/execute_release_paid_order"),
+        "order/prepare_shipment_status_update": ("update_shipment_status", "order/execute_shipment_status_update"),
+    }
+    if tool in _ORDER_MGMT_TOOL_MAP:
+        _omgmt_action_type, _omgmt_staged_tool = _ORDER_MGMT_TOOL_MAP[tool]
+        action_type = _omgmt_action_type
+        staged_tool = _omgmt_staged_tool
+    else:
+        action_type = "send_customer_message" if tool == "customer/prepare_message_action" else "send_supplier_message" if tool == "supplier/prepare_message_action" else "sheet_write_rows" if tool == "sheet/prepare_write_rows" else tool_spec["action"]
+        staged_tool = "wa/send" if tool == "customer/prepare_message_action" else "supplier/send_message" if tool == "supplier/prepare_message_action" else "sheet/write_rows" if tool == "sheet/prepare_write_rows" else tool
     body_value = ""
     if tool in {"customer/prepare_message_action", "supplier/prepare_message_action"}:
         message = staged_args.get("message", staged_args.get("reply"))

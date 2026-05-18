@@ -78,5 +78,15 @@
     "payment_id": "PAY-7008",
     "provider_ref": "BANK-008",
     "status": "matched"
+  },
+  {
+    "amount": 699.99,
+    "currency": "ZAR",
+    "customer_id": "CUST-1002",
+    "order_ref": "ORD-10052",
+    "paid_at": "2026-05-03T10:00:00Z",
+    "payment_id": "PAY-10052",
+    "provider_ref": "BANK-052",
+    "status": "matched"
   }
 ]

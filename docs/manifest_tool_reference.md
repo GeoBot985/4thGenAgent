@@ -839,6 +839,140 @@
 - `browser_cdp_url` (str)
 
 ---
+## order/check_payment_status
+
+| Field | Value |
+|---|---|
+| Namespace | order |
+| Action | check_payment_status |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `order_payment_status_result` |
+
+### Command form
+
+```text
+[t:order/check_payment_status -> output_name] order_ref=$inputs.order_ref
+```
+
+### Required arguments
+
+- `order_ref` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
+
+---
+## order/detect_delayed_orders
+
+| Field | Value |
+|---|---|
+| Namespace | order |
+| Action | detect_delayed_orders |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `delayed_orders_result` |
+
+### Command form
+
+```text
+[t:order/detect_delayed_orders -> output_name]
+```
+
+### Optional arguments
+
+- `days_overdue` (int)
+- `runtime_root` (str)
+
+---
+## order/execute_release_paid_order
+
+| Field | Value |
+|---|---|
+| Namespace | order |
+| Action | execute_release_paid_order |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `order_release_execution_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:order/execute_release_paid_order -> output_name] order_ref=$inputs.order_ref
+```
+
+### Required arguments
+
+- `order_ref` (str)
+
+### Optional arguments
+
+- `dry_run` (bool)
+- `runtime_root` (str)
+
+---
+## order/execute_shipment_status_update
+
+| Field | Value |
+|---|---|
+| Namespace | order |
+| Action | execute_shipment_status_update |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `shipment_update_execution_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:order/execute_shipment_status_update -> output_name] order_ref=$inputs.order_ref shipment_status=$inputs.shipment_status
+```
+
+### Required arguments
+
+- `order_ref` (str)
+- `shipment_status` (str)
+
+### Optional arguments
+
+- `tracking_ref` (str)
+- `dry_run` (bool)
+- `runtime_root` (str)
+
+---
+## order/execute_stock_reservation
+
+| Field | Value |
+|---|---|
+| Namespace | order |
+| Action | execute_stock_reservation |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `stock_reservation_execution_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:order/execute_stock_reservation -> output_name] order_ref=$inputs.order_ref
+```
+
+### Required arguments
+
+- `order_ref` (str)
+
+### Optional arguments
+
+- `reservation_lines` (str)
+- `dry_run` (bool)
+- `runtime_root` (str)
+
+---
 ## order/extract_ref_from_text
 
 | Field | Value |
@@ -879,6 +1013,90 @@
 ### Required arguments
 
 - `order_ref` (str)
+
+---
+## order/prepare_release_paid_order
+
+| Field | Value |
+|---|---|
+| Namespace | order |
+| Action | prepare_release_paid_order |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `order_release_prepare_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:order/prepare_release_paid_order -> output_name] order_ref=$inputs.order_ref
+```
+
+### Required arguments
+
+- `order_ref` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
+
+---
+## order/prepare_shipment_status_update
+
+| Field | Value |
+|---|---|
+| Namespace | order |
+| Action | prepare_shipment_status_update |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `shipment_update_prepare_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:order/prepare_shipment_status_update -> output_name] order_ref=$inputs.order_ref shipment_status=$inputs.shipment_status
+```
+
+### Required arguments
+
+- `order_ref` (str)
+- `shipment_status` (str)
+
+### Optional arguments
+
+- `tracking_ref` (str)
+- `runtime_root` (str)
+
+---
+## order/prepare_stock_reservation
+
+| Field | Value |
+|---|---|
+| Namespace | order |
+| Action | prepare_stock_reservation |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `stock_reservation_prepare_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:order/prepare_stock_reservation -> output_name] order_ref=$inputs.order_ref items=$inputs.items
+```
+
+### Required arguments
+
+- `order_ref` (str)
+- `items` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
 
 ---
 ## order/read
@@ -923,6 +1141,32 @@
 - `customer_id` (str)
 - `order_ref` (str)
 - `status` (str)
+
+---
+## order/validate_new
+
+| Field | Value |
+|---|---|
+| Namespace | order |
+| Action | validate_new |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `order_validation_result` |
+
+### Command form
+
+```text
+[t:order/validate_new -> output_name] customer_id=$inputs.customer_id items=$inputs.items
+```
+
+### Required arguments
+
+- `customer_id` (str)
+- `items` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
 
 ---
 ## order_context/build

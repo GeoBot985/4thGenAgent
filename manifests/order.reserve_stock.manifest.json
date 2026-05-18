@@ -1,0 +1,24 @@
+{
+  "id": "order.reserve_stock",
+  "name": "Order - Reserve Stock",
+  "trigger_type": "event",
+  "side_effect": true,
+  "inputs": {"required": ["event_id", "order_ref", "customer_id", "items"]},
+  "steps": [
+    {"step_id": "validate_order", "kind": "tool", "command": "[t:order/validate_new -> order_validation] customer_id=$inputs.customer_id; items=$inputs.items"},
+    {"step_id": "prepare_reservation",
+     "when": {"all": [{"output": "order_validation", "field": "valid", "equals": true}]},
+     "kind": "tool",
+     "command": "[t:order/prepare_stock_reservation -> stock_reservation_action] order_ref=$inputs.order_ref; items=$inputs.items"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"},
+    {"id": "order_validation_exists", "type": "output_exists", "output": "order_validation"},
+    {"id": "stock_reservation_pending", "type": "pending_action_exists", "tool": "order/execute_stock_reservation", "output": "stock_reservation_action"}
+  ],
+  "completion": {
+    "success_outputs": ["order_validation"],
+    "success_pending_actions": ["stock_reservation_action"],
+    "allow_pending_approval": true
+  }
+}

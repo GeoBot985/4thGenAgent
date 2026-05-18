@@ -62,5 +62,54 @@
     "order_ref": "ORD-10049",
     "status": "delivered",
     "total_amount": 199.0
+  },
+  {
+    "created_date": "2026-05-01",
+    "currency": "ZAR",
+    "customer_id": "CUST-1001",
+    "order_ref": "ORD-10050",
+    "status": "pending_validation",
+    "total_amount": 1299.99
+  },
+  {
+    "created_date": "2026-05-02",
+    "currency": "ZAR",
+    "customer_id": "CUST-1001",
+    "order_ref": "ORD-10051",
+    "status": "pending_validation",
+    "total_amount": 899.0
+  },
+  {
+    "created_date": "2026-05-03",
+    "currency": "ZAR",
+    "customer_id": "CUST-1002",
+    "order_ref": "ORD-10052",
+    "status": "awaiting_release",
+    "total_amount": 699.99
+  },
+  {
+    "created_date": "2026-05-04",
+    "currency": "ZAR",
+    "customer_id": "CUST-1003",
+    "order_ref": "ORD-10053",
+    "status": "awaiting_release",
+    "total_amount": 249.0
+  },
+  {
+    "created_date": "2026-04-01",
+    "currency": "ZAR",
+    "customer_id": "CUST-1004",
+    "expected_ship_date": "2026-04-05",
+    "order_ref": "ORD-10054",
+    "status": "released",
+    "total_amount": 899.0
+  },
+  {
+    "created_date": "2026-05-05",
+    "currency": "ZAR",
+    "customer_id": "CUST-1001",
+    "order_ref": "ORD-10055",
+    "status": "released",
+    "total_amount": 499.0
   }
 ]

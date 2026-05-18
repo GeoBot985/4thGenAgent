@@ -1,0 +1,16 @@
+{
+  "id": "order.validate_new",
+  "name": "Order Validation - New Order",
+  "trigger_type": "event",
+  "side_effect": false,
+  "inputs": {"required": ["event_id", "customer_id", "items"]},
+  "steps": [
+    {"step_id": "validate_order", "kind": "tool", "command": "[t:order/validate_new -> order_validation] customer_id=$inputs.customer_id; items=$inputs.items"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"},
+    {"id": "order_validation_exists", "type": "output_exists", "output": "order_validation"},
+    {"id": "order_validation_valid", "type": "output_field_equals", "output": "order_validation", "field": "valid", "value": true}
+  ],
+  "completion": {"success_outputs": ["order_validation"]}
+}

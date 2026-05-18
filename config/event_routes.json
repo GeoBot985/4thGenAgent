@@ -172,6 +172,61 @@
         "recon_runs_range": "payload.recon_runs_range",
         "recon_exceptions_range": "payload.recon_exceptions_range"
       }
+    },
+    {
+      "route_id": "operator.order_validate_new",
+      "source": "operator_scenario_pack",
+      "event_type": "manual.order_validate_new",
+      "manifest_id": "order.validate_new",
+      "input_map": {
+        "event_id": "event_id",
+        "customer_id": "payload.customer_id",
+        "items": "payload.items"
+      }
+    },
+    {
+      "route_id": "operator.order_reserve_stock",
+      "source": "operator_scenario_pack",
+      "event_type": "manual.order_reserve_stock",
+      "manifest_id": "order.reserve_stock",
+      "input_map": {
+        "event_id": "event_id",
+        "order_ref": "payload.order_ref",
+        "customer_id": "payload.customer_id",
+        "items": "payload.items"
+      }
+    },
+    {
+      "route_id": "operator.order_release_paid",
+      "source": "operator_scenario_pack",
+      "event_type": "manual.order_release_paid",
+      "manifest_id": "order.release_paid",
+      "input_map": {
+        "event_id": "event_id",
+        "order_ref": "payload.order_ref"
+      }
+    },
+    {
+      "route_id": "operator.order_detect_delayed",
+      "source": "operator_scenario_pack",
+      "event_type": "manual.order_detect_delayed",
+      "manifest_id": "order.detect_delayed",
+      "input_map": {
+        "event_id": "event_id",
+        "days_overdue": "payload.days_overdue"
+      }
+    },
+    {
+      "route_id": "operator.order_update_shipment_status",
+      "source": "operator_scenario_pack",
+      "event_type": "manual.order_update_shipment_status",
+      "manifest_id": "order.update_shipment_status",
+      "input_map": {
+        "event_id": "event_id",
+        "order_ref": "payload.order_ref",
+        "shipment_status": "payload.shipment_status",
+        "tracking_ref": "payload.tracking_ref"
+      }
     }
   ]
 }

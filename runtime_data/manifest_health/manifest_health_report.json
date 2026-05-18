@@ -1,23 +1,23 @@
 {
   "ok": true,
   "status": "HEALTHY",
-  "generated_at": "2026-05-18T18:29:15.118255Z",
+  "generated_at": "2026-05-18T19:09:17.572823Z",
   "manifest_dir": "manifests",
   "summary": {
-    "total": 12,
+    "total": 17,
     "healthy": 0,
     "warnings": 0,
     "failed": 0,
-    "validation_passed": 12,
+    "validation_passed": 17,
     "validation_failed": 0,
     "smoke_passed": 0,
     "smoke_failed": 0,
-    "smoke_skipped": 12,
-    "repairable": 3,
+    "smoke_skipped": 17,
+    "repairable": 8,
     "manual_fix_required": 0,
     "critical": 0,
     "strict_failed": 0,
-    "strict_warnings": 12
+    "strict_warnings": 17
   },
   "manifests": [
     {
@@ -43,8 +43,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'event_id' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -52,8 +52,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -805,6 +805,791 @@
       "next_action": "Run smoke test manually with sample inputs."
     },
     {
+      "manifest_id": "order.detect_delayed",
+      "name": "Order - Detect Delayed",
+      "path": "manifests\\order.detect_delayed.manifest.json",
+      "health": "SMOKE_SKIPPED",
+      "validation": {
+        "ok": true,
+        "errors": []
+      },
+      "repair_guidance": {
+        "status": "HAS_FINDINGS",
+        "severity": "warning",
+        "finding_count": 2,
+        "top_findings": [
+          "input_declared_but_not_used",
+          "event_trigger_without_route_note"
+        ],
+        "findings": [
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "event_trigger_without_route_note",
+            "severity": "info",
+            "location": "trigger",
+            "message": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "suggested_fix": "Register an event route manually in config/event_routes.json. See manifest_building_manual.md Section 13 for the route snippet format.",
+            "example": "",
+            "source": "static_manifest_check"
+          }
+        ]
+      },
+      "smoke": {
+        "status": "SKIPPED",
+        "classification": "NOT_RUN",
+        "reason": "smoke disabled or smoke_limit reached",
+        "state": ""
+      },
+      "strict_contract": {
+        "ok": true,
+        "status": "WARN",
+        "manifest_id": "order.detect_delayed",
+        "errors": [],
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
+      },
+      "autofix": {
+        "proposal_count": 2,
+        "supported_count": 1,
+        "unsupported_count": 1,
+        "low_risk_applyable": 1,
+        "top_supported": [
+          "input_declared_but_not_used"
+        ],
+        "top_unsupported": [
+          "event_trigger_without_route_note"
+        ],
+        "proposals": [
+          {
+            "fix_id": "fix_input_declared_but_not_used_a14b02",
+            "finding_id": "input_declared_but_not_used",
+            "title": "Remove unused declared input",
+            "severity": "warning",
+            "risk": "low",
+            "confidence": "high",
+            "status": "PROPOSED",
+            "location": "inputs",
+            "summary": "Input 'event_id' is declared but not referenced in any step command.",
+            "patches": [
+              {
+                "op": "remove",
+                "path": "/inputs/0",
+                "old_value": "event_id"
+              }
+            ],
+            "before_preview": "{\n  \"manifest_id\": \"order.detect_delayed\",\n  \"name\": \"Order - Detect Delayed\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"event_id\",\n    \"days_overdue\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"detect_delayed\",\n      \"command\": \"[t:order/detect_delayed_orders -> delayed_orders] days_overdue=$inputs.days_overdue\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"delayed_orders_exists\",\n      \"type\": \"output_exists\",\n      \"output\": \"delayed_orders\"\n    }\n  ],\n  \"completion\": {\n    \"success_outputs\": [\n      \"delayed_orders\"\n    ],\n    \"acceptable_empty_outputs\": [\n      \"delayed_orders\"\n    ]\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "after_preview": "{\n  \"manifest_id\": \"order.detect_delayed\",\n  \"name\": \"Order - Detect Delayed\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"days_overdue\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"detect_delayed\",\n      \"command\": \"[t:order/detect_delayed_orders -> delayed_orders] days_overdue=$inputs.days_overdue\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"delayed_orders_exists\",\n      \"type\": \"output_exists\",\n      \"output\": \"delayed_orders\"\n    }\n  ],\n  \"completion\": {\n    \"success_outputs\": [\n      \"delayed_orders\"\n    ],\n    \"acceptable_empty_outputs\": [\n      \"delayed_orders\"\n    ]\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "diff": [
+              "--- before",
+              "+++ after",
+              "@@ -6,7 +6,6 @@",
+              "     \"type\": \"event\"",
+              "   },",
+              "   \"inputs\": [",
+              "-    \"event_id\",",
+              "     \"days_overdue\"",
+              "   ],",
+              "   \"steps\": ["
+            ],
+            "warnings": [],
+            "requires_operator_approval": true
+          },
+          {
+            "fix_id": "unsupported_event_trigger_without_route_note",
+            "finding_id": "event_trigger_without_route_note",
+            "title": "Unsupported automatic fix: event trigger without route note",
+            "severity": "info",
+            "risk": "blocked",
+            "confidence": "n/a",
+            "status": "NOT_SUPPORTED",
+            "location": "trigger",
+            "summary": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "patches": [],
+            "before_preview": "",
+            "after_preview": "",
+            "diff": [],
+            "warnings": [
+              "The system cannot safely patch 'event_trigger_without_route_note' automatically."
+            ],
+            "requires_operator_approval": true
+          }
+        ]
+      },
+      "repairable": true,
+      "manual_fix_required": false,
+      "next_action": "Open Auto-Fix Preview."
+    },
+    {
+      "manifest_id": "order.release_paid",
+      "name": "Order - Release Paid",
+      "path": "manifests\\order.release_paid.manifest.json",
+      "health": "SMOKE_SKIPPED",
+      "validation": {
+        "ok": true,
+        "errors": []
+      },
+      "repair_guidance": {
+        "status": "HAS_FINDINGS",
+        "severity": "warning",
+        "finding_count": 2,
+        "top_findings": [
+          "input_declared_but_not_used",
+          "event_trigger_without_route_note"
+        ],
+        "findings": [
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "event_trigger_without_route_note",
+            "severity": "info",
+            "location": "trigger",
+            "message": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "suggested_fix": "Register an event route manually in config/event_routes.json. See manifest_building_manual.md Section 13 for the route snippet format.",
+            "example": "",
+            "source": "static_manifest_check"
+          }
+        ]
+      },
+      "smoke": {
+        "status": "SKIPPED",
+        "classification": "NOT_RUN",
+        "reason": "smoke disabled or smoke_limit reached",
+        "state": ""
+      },
+      "strict_contract": {
+        "ok": true,
+        "status": "WARN",
+        "manifest_id": "order.release_paid",
+        "errors": [],
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
+      },
+      "autofix": {
+        "proposal_count": 2,
+        "supported_count": 1,
+        "unsupported_count": 1,
+        "low_risk_applyable": 1,
+        "top_supported": [
+          "input_declared_but_not_used"
+        ],
+        "top_unsupported": [
+          "event_trigger_without_route_note"
+        ],
+        "proposals": [
+          {
+            "fix_id": "fix_input_declared_but_not_used_a14b02",
+            "finding_id": "input_declared_but_not_used",
+            "title": "Remove unused declared input",
+            "severity": "warning",
+            "risk": "low",
+            "confidence": "high",
+            "status": "PROPOSED",
+            "location": "inputs",
+            "summary": "Input 'event_id' is declared but not referenced in any step command.",
+            "patches": [
+              {
+                "op": "remove",
+                "path": "/inputs/0",
+                "old_value": "event_id"
+              }
+            ],
+            "before_preview": "{\n  \"manifest_id\": \"order.release_paid\",\n  \"name\": \"Order - Release Paid\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"event_id\",\n    \"order_ref\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"check_payment\",\n      \"command\": \"[t:order/check_payment_status -> payment_status] order_ref=$inputs.order_ref\"\n    },\n    {\n      \"id\": \"prepare_release\",\n      \"command\": \"[t:order/prepare_release_paid_order -> release_action] order_ref=$inputs.order_ref\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"payment_status_exists\",\n      \"type\": \"output_exists\",\n      \"output\": \"payment_status\"\n    },\n    {\n      \"id\": \"payment_can_release\",\n      \"type\": \"output_field_equals\",\n      \"output\": \"payment_status\",\n      \"field\": \"can_release\",\n      \"value\": true\n    },\n    {\n      \"id\": \"release_pending\",\n      \"type\": \"pending_action_exists\",\n      \"tool\": \"order/execute_release_paid_order\",\n      \"output\": \"release_action\"\n    }\n  ],\n  \"completion\": {\n    \"success_outputs\": [\n      \"payment_status\"\n    ],\n    \"success_pending_actions\": [\n      \"release_action\"\n    ],\n    \"allow_pending_approval\": true\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "after_preview": "{\n  \"manifest_id\": \"order.release_paid\",\n  \"name\": \"Order - Release Paid\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"order_ref\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"check_payment\",\n      \"command\": \"[t:order/check_payment_status -> payment_status] order_ref=$inputs.order_ref\"\n    },\n    {\n      \"id\": \"prepare_release\",\n      \"command\": \"[t:order/prepare_release_paid_order -> release_action] order_ref=$inputs.order_ref\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"payment_status_exists\",\n      \"type\": \"output_exists\",\n      \"output\": \"payment_status\"\n    },\n    {\n      \"id\": \"payment_can_release\",\n      \"type\": \"output_field_equals\",\n      \"output\": \"payment_status\",\n      \"field\": \"can_release\",\n      \"value\": true\n    },\n    {\n      \"id\": \"release_pending\",\n      \"type\": \"pending_action_exists\",\n      \"tool\": \"order/execute_release_paid_order\",\n      \"output\": \"release_action\"\n    }\n  ],\n  \"completion\": {\n    \"success_outputs\": [\n      \"payment_status\"\n    ],\n    \"success_pending_actions\": [\n      \"release_action\"\n    ],\n    \"allow_pending_approval\": true\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "diff": [
+              "--- before",
+              "+++ after",
+              "@@ -6,7 +6,6 @@",
+              "     \"type\": \"event\"",
+              "   },",
+              "   \"inputs\": [",
+              "-    \"event_id\",",
+              "     \"order_ref\"",
+              "   ],",
+              "   \"steps\": ["
+            ],
+            "warnings": [],
+            "requires_operator_approval": true
+          },
+          {
+            "fix_id": "unsupported_event_trigger_without_route_note",
+            "finding_id": "event_trigger_without_route_note",
+            "title": "Unsupported automatic fix: event trigger without route note",
+            "severity": "info",
+            "risk": "blocked",
+            "confidence": "n/a",
+            "status": "NOT_SUPPORTED",
+            "location": "trigger",
+            "summary": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "patches": [],
+            "before_preview": "",
+            "after_preview": "",
+            "diff": [],
+            "warnings": [
+              "The system cannot safely patch 'event_trigger_without_route_note' automatically."
+            ],
+            "requires_operator_approval": true
+          }
+        ]
+      },
+      "repairable": true,
+      "manual_fix_required": false,
+      "next_action": "Open Auto-Fix Preview."
+    },
+    {
+      "manifest_id": "order.reserve_stock",
+      "name": "Order - Reserve Stock",
+      "path": "manifests\\order.reserve_stock.manifest.json",
+      "health": "SMOKE_SKIPPED",
+      "validation": {
+        "ok": true,
+        "errors": []
+      },
+      "repair_guidance": {
+        "status": "HAS_FINDINGS",
+        "severity": "warning",
+        "finding_count": 2,
+        "top_findings": [
+          "input_declared_but_not_used",
+          "event_trigger_without_route_note"
+        ],
+        "findings": [
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "event_trigger_without_route_note",
+            "severity": "info",
+            "location": "trigger",
+            "message": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "suggested_fix": "Register an event route manually in config/event_routes.json. See manifest_building_manual.md Section 13 for the route snippet format.",
+            "example": "",
+            "source": "static_manifest_check"
+          }
+        ]
+      },
+      "smoke": {
+        "status": "SKIPPED",
+        "classification": "NOT_RUN",
+        "reason": "smoke disabled or smoke_limit reached",
+        "state": ""
+      },
+      "strict_contract": {
+        "ok": true,
+        "status": "WARN",
+        "manifest_id": "order.reserve_stock",
+        "errors": [],
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
+      },
+      "autofix": {
+        "proposal_count": 2,
+        "supported_count": 1,
+        "unsupported_count": 1,
+        "low_risk_applyable": 1,
+        "top_supported": [
+          "input_declared_but_not_used"
+        ],
+        "top_unsupported": [
+          "event_trigger_without_route_note"
+        ],
+        "proposals": [
+          {
+            "fix_id": "fix_input_declared_but_not_used_a14b02",
+            "finding_id": "input_declared_but_not_used",
+            "title": "Remove unused declared input",
+            "severity": "warning",
+            "risk": "low",
+            "confidence": "high",
+            "status": "PROPOSED",
+            "location": "inputs",
+            "summary": "Input 'event_id' is declared but not referenced in any step command.",
+            "patches": [
+              {
+                "op": "remove",
+                "path": "/inputs/0",
+                "old_value": "event_id"
+              }
+            ],
+            "before_preview": "{\n  \"manifest_id\": \"order.reserve_stock\",\n  \"name\": \"Order - Reserve Stock\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"event_id\",\n    \"order_ref\",\n    \"customer_id\",\n    \"items\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"validate_order\",\n      \"command\": \"[t:order/validate_new -> order_validation] customer_id=$inputs.customer_id; items=$inputs.items\"\n    },\n    {\n      \"id\": \"prepare_reservation\",\n      \"command\": \"[t:order/prepare_stock_reservation -> stock_reservation_action] order_ref=$inputs.order_ref; items=$inputs.items\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"order_validation_exists\",\n      \"type\": \"output_exists\",\n      \"output\": \"order_validation\"\n    },\n    {\n      \"id\": \"stock_reservation_pending\",\n      \"type\": \"pending_action_exists\",\n      \"tool\": \"order/execute_stock_reservation\",\n      \"output\": \"stock_reservation_action\"\n    }\n  ],\n  \"completion\": {\n    \"success_outputs\": [\n      \"order_validation\"\n    ],\n    \"success_pending_actions\": [\n      \"stock_reservation_action\"\n    ],\n    \"allow_pending_approval\": true\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "after_preview": "{\n  \"manifest_id\": \"order.reserve_stock\",\n  \"name\": \"Order - Reserve Stock\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"order_ref\",\n    \"customer_id\",\n    \"items\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"validate_order\",\n      \"command\": \"[t:order/validate_new -> order_validation] customer_id=$inputs.customer_id; items=$inputs.items\"\n    },\n    {\n      \"id\": \"prepare_reservation\",\n      \"command\": \"[t:order/prepare_stock_reservation -> stock_reservation_action] order_ref=$inputs.order_ref; items=$inputs.items\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"order_validation_exists\",\n      \"type\": \"output_exists\",\n      \"output\": \"order_validation\"\n    },\n    {\n      \"id\": \"stock_reservation_pending\",\n      \"type\": \"pending_action_exists\",\n      \"tool\": \"order/execute_stock_reservation\",\n      \"output\": \"stock_reservation_action\"\n    }\n  ],\n  \"completion\": {\n    \"success_outputs\": [\n      \"order_validation\"\n    ],\n    \"success_pending_actions\": [\n      \"stock_reservation_action\"\n    ],\n    \"allow_pending_approval\": true\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "diff": [
+              "--- before",
+              "+++ after",
+              "@@ -6,7 +6,6 @@",
+              "     \"type\": \"event\"",
+              "   },",
+              "   \"inputs\": [",
+              "-    \"event_id\",",
+              "     \"order_ref\",",
+              "     \"customer_id\",",
+              "     \"items\""
+            ],
+            "warnings": [],
+            "requires_operator_approval": true
+          },
+          {
+            "fix_id": "unsupported_event_trigger_without_route_note",
+            "finding_id": "event_trigger_without_route_note",
+            "title": "Unsupported automatic fix: event trigger without route note",
+            "severity": "info",
+            "risk": "blocked",
+            "confidence": "n/a",
+            "status": "NOT_SUPPORTED",
+            "location": "trigger",
+            "summary": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "patches": [],
+            "before_preview": "",
+            "after_preview": "",
+            "diff": [],
+            "warnings": [
+              "The system cannot safely patch 'event_trigger_without_route_note' automatically."
+            ],
+            "requires_operator_approval": true
+          }
+        ]
+      },
+      "repairable": true,
+      "manual_fix_required": false,
+      "next_action": "Open Auto-Fix Preview."
+    },
+    {
+      "manifest_id": "order.update_shipment_status",
+      "name": "Order - Update Shipment Status",
+      "path": "manifests\\order.update_shipment_status.manifest.json",
+      "health": "SMOKE_SKIPPED",
+      "validation": {
+        "ok": true,
+        "errors": []
+      },
+      "repair_guidance": {
+        "status": "HAS_FINDINGS",
+        "severity": "warning",
+        "finding_count": 2,
+        "top_findings": [
+          "input_declared_but_not_used",
+          "event_trigger_without_route_note"
+        ],
+        "findings": [
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "event_trigger_without_route_note",
+            "severity": "info",
+            "location": "trigger",
+            "message": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "suggested_fix": "Register an event route manually in config/event_routes.json. See manifest_building_manual.md Section 13 for the route snippet format.",
+            "example": "",
+            "source": "static_manifest_check"
+          }
+        ]
+      },
+      "smoke": {
+        "status": "SKIPPED",
+        "classification": "NOT_RUN",
+        "reason": "smoke disabled or smoke_limit reached",
+        "state": ""
+      },
+      "strict_contract": {
+        "ok": true,
+        "status": "WARN",
+        "manifest_id": "order.update_shipment_status",
+        "errors": [],
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
+      },
+      "autofix": {
+        "proposal_count": 2,
+        "supported_count": 1,
+        "unsupported_count": 1,
+        "low_risk_applyable": 1,
+        "top_supported": [
+          "input_declared_but_not_used"
+        ],
+        "top_unsupported": [
+          "event_trigger_without_route_note"
+        ],
+        "proposals": [
+          {
+            "fix_id": "fix_input_declared_but_not_used_a14b02",
+            "finding_id": "input_declared_but_not_used",
+            "title": "Remove unused declared input",
+            "severity": "warning",
+            "risk": "low",
+            "confidence": "high",
+            "status": "PROPOSED",
+            "location": "inputs",
+            "summary": "Input 'event_id' is declared but not referenced in any step command.",
+            "patches": [
+              {
+                "op": "remove",
+                "path": "/inputs/0",
+                "old_value": "event_id"
+              }
+            ],
+            "before_preview": "{\n  \"manifest_id\": \"order.update_shipment_status\",\n  \"name\": \"Order - Update Shipment Status\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"event_id\",\n    \"order_ref\",\n    \"shipment_status\",\n    \"tracking_ref\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"prepare_shipment_update\",\n      \"command\": \"[t:order/prepare_shipment_status_update -> shipment_update_action] order_ref=$inputs.order_ref; shipment_status=$inputs.shipment_status; tracking_ref=$inputs.tracking_ref\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"shipment_update_pending\",\n      \"type\": \"pending_action_exists\",\n      \"tool\": \"order/execute_shipment_status_update\",\n      \"output\": \"shipment_update_action\"\n    }\n  ],\n  \"completion\": {\n    \"success_pending_actions\": [\n      \"shipment_update_action\"\n    ],\n    \"allow_pending_approval\": true\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "after_preview": "{\n  \"manifest_id\": \"order.update_shipment_status\",\n  \"name\": \"Order - Update Shipment Status\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"order_ref\",\n    \"shipment_status\",\n    \"tracking_ref\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"prepare_shipment_update\",\n      \"command\": \"[t:order/prepare_shipment_status_update -> shipment_update_action] order_ref=$inputs.order_ref; shipment_status=$inputs.shipment_status; tracking_ref=$inputs.tracking_ref\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"shipment_update_pending\",\n      \"type\": \"pending_action_exists\",\n      \"tool\": \"order/execute_shipment_status_update\",\n      \"output\": \"shipment_update_action\"\n    }\n  ],\n  \"completion\": {\n    \"success_pending_actions\": [\n      \"shipment_update_action\"\n    ],\n    \"allow_pending_approval\": true\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "diff": [
+              "--- before",
+              "+++ after",
+              "@@ -6,7 +6,6 @@",
+              "     \"type\": \"event\"",
+              "   },",
+              "   \"inputs\": [",
+              "-    \"event_id\",",
+              "     \"order_ref\",",
+              "     \"shipment_status\",",
+              "     \"tracking_ref\""
+            ],
+            "warnings": [],
+            "requires_operator_approval": true
+          },
+          {
+            "fix_id": "unsupported_event_trigger_without_route_note",
+            "finding_id": "event_trigger_without_route_note",
+            "title": "Unsupported automatic fix: event trigger without route note",
+            "severity": "info",
+            "risk": "blocked",
+            "confidence": "n/a",
+            "status": "NOT_SUPPORTED",
+            "location": "trigger",
+            "summary": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "patches": [],
+            "before_preview": "",
+            "after_preview": "",
+            "diff": [],
+            "warnings": [
+              "The system cannot safely patch 'event_trigger_without_route_note' automatically."
+            ],
+            "requires_operator_approval": true
+          }
+        ]
+      },
+      "repairable": true,
+      "manual_fix_required": false,
+      "next_action": "Open Auto-Fix Preview."
+    },
+    {
+      "manifest_id": "order.validate_new",
+      "name": "Order Validation - New Order",
+      "path": "manifests\\order.validate_new.manifest.json",
+      "health": "SMOKE_SKIPPED",
+      "validation": {
+        "ok": true,
+        "errors": []
+      },
+      "repair_guidance": {
+        "status": "HAS_FINDINGS",
+        "severity": "warning",
+        "finding_count": 2,
+        "top_findings": [
+          "input_declared_but_not_used",
+          "event_trigger_without_route_note"
+        ],
+        "findings": [
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "event_trigger_without_route_note",
+            "severity": "info",
+            "location": "trigger",
+            "message": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "suggested_fix": "Register an event route manually in config/event_routes.json. See manifest_building_manual.md Section 13 for the route snippet format.",
+            "example": "",
+            "source": "static_manifest_check"
+          }
+        ]
+      },
+      "smoke": {
+        "status": "SKIPPED",
+        "classification": "NOT_RUN",
+        "reason": "smoke disabled or smoke_limit reached",
+        "state": ""
+      },
+      "strict_contract": {
+        "ok": true,
+        "status": "WARN",
+        "manifest_id": "order.validate_new",
+        "errors": [],
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
+      },
+      "autofix": {
+        "proposal_count": 2,
+        "supported_count": 1,
+        "unsupported_count": 1,
+        "low_risk_applyable": 1,
+        "top_supported": [
+          "input_declared_but_not_used"
+        ],
+        "top_unsupported": [
+          "event_trigger_without_route_note"
+        ],
+        "proposals": [
+          {
+            "fix_id": "fix_input_declared_but_not_used_a14b02",
+            "finding_id": "input_declared_but_not_used",
+            "title": "Remove unused declared input",
+            "severity": "warning",
+            "risk": "low",
+            "confidence": "high",
+            "status": "PROPOSED",
+            "location": "inputs",
+            "summary": "Input 'event_id' is declared but not referenced in any step command.",
+            "patches": [
+              {
+                "op": "remove",
+                "path": "/inputs/0",
+                "old_value": "event_id"
+              }
+            ],
+            "before_preview": "{\n  \"manifest_id\": \"order.validate_new\",\n  \"name\": \"Order Validation - New Order\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"event_id\",\n    \"customer_id\",\n    \"items\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"validate_order\",\n      \"command\": \"[t:order/validate_new -> order_validation] customer_id=$inputs.customer_id; items=$inputs.items\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"order_validation_exists\",\n      \"type\": \"output_exists\",\n      \"output\": \"order_validation\"\n    },\n    {\n      \"id\": \"order_validation_valid\",\n      \"type\": \"output_field_equals\",\n      \"output\": \"order_validation\",\n      \"field\": \"valid\",\n      \"value\": true\n    }\n  ],\n  \"completion\": {\n    \"success_outputs\": [\n      \"order_validation\"\n    ]\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "after_preview": "{\n  \"manifest_id\": \"order.validate_new\",\n  \"name\": \"Order Validation - New Order\",\n  \"version\": 1,\n  \"trigger\": {\n    \"type\": \"event\"\n  },\n  \"inputs\": [\n    \"customer_id\",\n    \"items\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"validate_order\",\n      \"command\": \"[t:order/validate_new -> order_validation] customer_id=$inputs.customer_id; items=$inputs.items\"\n    }\n  ],\n  \"validations\": [\n    {\n      \"id\": \"no_errors\",\n      \"type\": \"no_errors\"\n    },\n    {\n      \"id\": \"order_validation_exists\",\n      \"type\": \"output_exists\",\n      \"output\": \"order_validation\"\n    },\n    {\n      \"id\": \"order_validation_valid\",\n      \"type\": \"output_field_equals\",\n      \"output\": \"order_validation\",\n      \"field\": \"valid\",\n      \"value\": true\n    }\n  ],\n  \"completion\": {\n    \"success_outputs\": [\n      \"order_validation\"\n    ]\n  },\n  \"live_execution\": {\n    \"enabled\": false,\n    \"allowed_tools\": [],\n    \"requires_approval\": true\n  }\n}",
+            "diff": [
+              "--- before",
+              "+++ after",
+              "@@ -6,7 +6,6 @@",
+              "     \"type\": \"event\"",
+              "   },",
+              "   \"inputs\": [",
+              "-    \"event_id\",",
+              "     \"customer_id\",",
+              "     \"items\"",
+              "   ],"
+            ],
+            "warnings": [],
+            "requires_operator_approval": true
+          },
+          {
+            "fix_id": "unsupported_event_trigger_without_route_note",
+            "finding_id": "event_trigger_without_route_note",
+            "title": "Unsupported automatic fix: event trigger without route note",
+            "severity": "info",
+            "risk": "blocked",
+            "confidence": "n/a",
+            "status": "NOT_SUPPORTED",
+            "location": "trigger",
+            "summary": "This manifest uses an event trigger. Event routes are not registered automatically.",
+            "patches": [],
+            "before_preview": "",
+            "after_preview": "",
+            "diff": [],
+            "warnings": [
+              "The system cannot safely patch 'event_trigger_without_route_note' automatically."
+            ],
+            "requires_operator_approval": true
+          }
+        ]
+      },
+      "repairable": true,
+      "manual_fix_required": false,
+      "next_action": "Open Auto-Fix Preview."
+    },
+    {
       "manifest_id": "accounting.payment_reconciliation",
       "name": "Accounting Payment Reconciliation",
       "path": "config\\manifests\\accounting_payment_reconciliation.json",
@@ -938,8 +1723,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'event_id' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -947,8 +1732,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
             "source": "static_manifest_check"
           },

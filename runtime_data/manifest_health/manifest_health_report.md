@@ -1,6 +1,6 @@
 # Manifest Health Report
 
-Generated: 2026-05-18T18:29:15.118255Z
+Generated: 2026-05-18T19:09:17.572823Z
 
 Verdict: HEALTHY
 
@@ -8,11 +8,11 @@ Verdict: HEALTHY
 
 | Metric | Count |
 |---|---:|
-| Total manifests | 12 |
+| Total manifests | 17 |
 | Healthy | 0 |
 | Warnings | 0 |
 | Failed | 0 |
-| Repairable | 3 |
+| Repairable | 8 |
 | Manual fix required | 0 |
 | Critical | 0 |
 
@@ -29,6 +29,11 @@ Verdict: HEALTHY
 | SMOKE_SKIPPED | maintenance.report_failed_runs | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | maintenance.report_live_packs | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | maintenance.report_pending_runs | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
+| SMOKE_SKIPPED | order.detect_delayed | PASS | SKIPPED | 1 | input_declared_but_not_used, event_trigger_without_route_note | Open Auto-Fix Preview. |
+| SMOKE_SKIPPED | order.release_paid | PASS | SKIPPED | 1 | input_declared_but_not_used, event_trigger_without_route_note | Open Auto-Fix Preview. |
+| SMOKE_SKIPPED | order.reserve_stock | PASS | SKIPPED | 1 | input_declared_but_not_used, event_trigger_without_route_note | Open Auto-Fix Preview. |
+| SMOKE_SKIPPED | order.update_shipment_status | PASS | SKIPPED | 1 | input_declared_but_not_used, event_trigger_without_route_note | Open Auto-Fix Preview. |
+| SMOKE_SKIPPED | order.validate_new | PASS | SKIPPED | 1 | input_declared_but_not_used, event_trigger_without_route_note | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | accounting.payment_reconciliation | PASS | SKIPPED | 0 | event_trigger_without_route_note | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | customer.message_status_check | PASS | SKIPPED | 3 | input_declared_but_not_used, input_declared_but_not_used, input_declared_but_not_used | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | procurement.low_stock_reorder | PASS | SKIPPED | 0 | event_trigger_without_route_note | Run smoke test manually with sample inputs. |

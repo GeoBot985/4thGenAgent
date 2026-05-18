@@ -1,21 +1,21 @@
 # Tool Inventory Report
 
-Generated: 2026-05-18T18:29:22Z
+Generated: 2026-05-18T19:09:25Z
 
-Report JSON: D:/Temp/pytest-of-GeorgeC/pytest-1590/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.json
-Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1590/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.md
+Report JSON: D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.json
+Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.md
 
 ## Summary
 
 | Metric | Count |
 |---|---:|
-| Total tools | 66 |
+| Total tools | 75 |
 | Migrated tool-pack tools | 4 |
-| Legacy fallback tools | 62 |
+| Legacy fallback tools | 71 |
 | External enabled tools | 0 |
 | Total tool packs | 2 |
 | Optional disabled tools | 10 |
-| Side-effect tools | 15 |
+| Side-effect tools | 21 |
 | Live side-effect allowed | 0 |
 
 ## Tools
@@ -57,10 +57,19 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1590/test_inventory_includes_t
 | message/validate_customer_status_reply | legacy_fallback |  | no | no | no | reply_validation |
 | message/validate_supplier_reorder_message | legacy_fallback |  | no | no | no | supplier_message_validation |
 | messages/read_recent | legacy_fallback |  | no | no | no | messages_read_recent_result |
+| order/check_payment_status | legacy_fallback |  | no | no | no | order_payment_status_result |
+| order/detect_delayed_orders | legacy_fallback |  | no | no | no | delayed_orders_result |
+| order/execute_release_paid_order | legacy_fallback |  | yes | yes | no | order_release_execution_result |
+| order/execute_shipment_status_update | legacy_fallback |  | yes | yes | no | shipment_update_execution_result |
+| order/execute_stock_reservation | legacy_fallback |  | yes | yes | no | stock_reservation_execution_result |
 | order/extract_ref_from_text | legacy_fallback |  | no | no | no | order_ref_lookup |
 | order/items_list | legacy_fallback |  | no | no | no | order_item_list |
+| order/prepare_release_paid_order | legacy_fallback |  | yes | yes | no | order_release_prepare_result |
+| order/prepare_shipment_status_update | legacy_fallback |  | yes | yes | no | shipment_update_prepare_result |
+| order/prepare_stock_reservation | legacy_fallback |  | yes | yes | no | stock_reservation_prepare_result |
 | order/read | legacy_fallback |  | no | no | no | order_read_result |
 | order/search | legacy_fallback |  | no | no | no | order_list |
+| order/validate_new | legacy_fallback |  | no | no | no | order_validation_result |
 | order_context/build | legacy_fallback |  | no | no | no | order_context_build_result |
 | payment/read_by_order | legacy_fallback |  | no | no | no | payment_record |
 | po/build_draft | legacy_fallback |  | no | no | no | draft_po |
@@ -93,5 +102,5 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1590/test_inventory_includes_t
 
 | Tool Pack | Status | Environments | Classification | Tool Count | Last Check | Lifecycle Report |
 |---|---|---|---|---:|---|---|
-| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-18T18:29:22Z | D:/Temp/pytest-of-GeorgeC/pytest-1590/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
-| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-18T18:29:22Z | D:/Temp/pytest-of-GeorgeC/pytest-1590/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |
+| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-18T19:09:25Z | D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
+| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-18T19:09:25Z | D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |

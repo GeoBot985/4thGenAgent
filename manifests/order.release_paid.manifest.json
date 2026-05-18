@@ -1,0 +1,25 @@
+{
+  "id": "order.release_paid",
+  "name": "Order - Release Paid",
+  "trigger_type": "event",
+  "side_effect": true,
+  "inputs": {"required": ["event_id", "order_ref"]},
+  "steps": [
+    {"step_id": "check_payment", "kind": "tool", "command": "[t:order/check_payment_status -> payment_status] order_ref=$inputs.order_ref"},
+    {"step_id": "prepare_release",
+     "when": {"all": [{"output": "payment_status", "field": "can_release", "equals": true}]},
+     "kind": "tool",
+     "command": "[t:order/prepare_release_paid_order -> release_action] order_ref=$inputs.order_ref"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"},
+    {"id": "payment_status_exists", "type": "output_exists", "output": "payment_status"},
+    {"id": "payment_can_release", "type": "output_field_equals", "output": "payment_status", "field": "can_release", "value": true},
+    {"id": "release_pending", "type": "pending_action_exists", "tool": "order/execute_release_paid_order", "output": "release_action"}
+  ],
+  "completion": {
+    "success_outputs": ["payment_status"],
+    "success_pending_actions": ["release_action"],
+    "allow_pending_approval": true
+  }
+}

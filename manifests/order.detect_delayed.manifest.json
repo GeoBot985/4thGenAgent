@@ -1,0 +1,18 @@
+{
+  "id": "order.detect_delayed",
+  "name": "Order - Detect Delayed",
+  "trigger_type": "event",
+  "side_effect": false,
+  "inputs": {"required": ["event_id", "days_overdue"]},
+  "steps": [
+    {"step_id": "detect_delayed", "kind": "tool", "command": "[t:order/detect_delayed_orders -> delayed_orders] days_overdue=$inputs.days_overdue"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"},
+    {"id": "delayed_orders_exists", "type": "output_exists", "output": "delayed_orders"}
+  ],
+  "completion": {
+    "success_outputs": ["delayed_orders"],
+    "acceptable_empty_outputs": ["delayed_orders"]
+  }
+}

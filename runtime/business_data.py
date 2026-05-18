@@ -200,6 +200,13 @@ def _seed_payloads() -> dict[str, list[dict[str, Any]]]:
             {"order_ref": "ORD-10047", "customer_id": "CUST-1002", "status": "shipped", "created_date": "2026-04-27", "total_amount": 250.00, "currency": "ZAR"},
             {"order_ref": "ORD-10048", "customer_id": "CUST-1004", "status": "processing", "created_date": "2026-04-30", "total_amount": 1200.00, "currency": "ZAR"},
             {"order_ref": "ORD-10049", "customer_id": "CUST-1001", "status": "delivered", "created_date": "2026-04-11", "total_amount": 199.00, "currency": "ZAR"},
+            # Spec 110 — Order Management Workflow Pack v1
+            {"order_ref": "ORD-10050", "customer_id": "CUST-1001", "status": "pending_validation", "created_date": "2026-05-01", "total_amount": 1299.99, "currency": "ZAR"},
+            {"order_ref": "ORD-10051", "customer_id": "CUST-1001", "status": "pending_validation", "created_date": "2026-05-02", "total_amount": 899.0, "currency": "ZAR"},
+            {"order_ref": "ORD-10052", "customer_id": "CUST-1002", "status": "awaiting_release", "created_date": "2026-05-03", "total_amount": 699.99, "currency": "ZAR"},
+            {"order_ref": "ORD-10053", "customer_id": "CUST-1003", "status": "awaiting_release", "created_date": "2026-05-04", "total_amount": 249.0, "currency": "ZAR"},
+            {"order_ref": "ORD-10054", "customer_id": "CUST-1004", "status": "released", "created_date": "2026-04-01", "total_amount": 899.0, "currency": "ZAR", "expected_ship_date": "2026-04-05"},
+            {"order_ref": "ORD-10055", "customer_id": "CUST-1001", "status": "released", "created_date": "2026-05-05", "total_amount": 499.0, "currency": "ZAR"},
         ],
         "order_items": [
             {"order_ref": "ORD-10042", "sku": "SKU-DESK-01", "description": "Compact office desk", "quantity": 1, "unit_price": 1299.99, "line_total": 1299.99},
@@ -214,6 +221,13 @@ def _seed_payloads() -> dict[str, list[dict[str, Any]]]:
             {"order_ref": "ORD-10048", "sku": "SKU-STAND-01", "description": "Monitor stand", "quantity": 1, "unit_price": 0.00, "line_total": 0.00},
             {"order_ref": "ORD-10049", "sku": "SKU-MOUSE-01", "description": "Wireless mouse", "quantity": 1, "unit_price": 199.00, "line_total": 199.00},
             {"order_ref": "ORD-10049", "sku": "SKU-PAD-01", "description": "Desk pad", "quantity": 1, "unit_price": 0.00, "line_total": 0.00},
+            # Spec 110 — Order Management Workflow Pack v1
+            {"order_ref": "ORD-10050", "sku": "SKU-DESK-01", "description": "Compact office desk", "quantity": 1, "unit_price": 1299.99, "line_total": 1299.99},
+            {"order_ref": "ORD-10051", "sku": "SKU-CHAIR-01", "description": "Ergonomic office chair", "quantity": 2, "unit_price": 449.5, "line_total": 899.0},
+            {"order_ref": "ORD-10052", "sku": "SKU-STAND-01", "description": "Monitor stand", "quantity": 1, "unit_price": 699.99, "line_total": 699.99},
+            {"order_ref": "ORD-10053", "sku": "SKU-MOUSE-01", "description": "Wireless mouse", "quantity": 1, "unit_price": 249.0, "line_total": 249.0},
+            {"order_ref": "ORD-10054", "sku": "SKU-DESK-01", "description": "Compact office desk", "quantity": 1, "unit_price": 899.0, "line_total": 899.0},
+            {"order_ref": "ORD-10055", "sku": "SKU-LAMP-01", "description": "LED desk lamp", "quantity": 1, "unit_price": 499.0, "line_total": 499.0},
         ],
         "shipments": [
             {"order_ref": "ORD-10042", "shipment_id": "SHIP-9001", "status": "in_transit", "carrier": "DemoCourier", "tracking_ref": "TRK-778899", "estimated_delivery": "2026-05-03"},
@@ -221,6 +235,9 @@ def _seed_payloads() -> dict[str, list[dict[str, Any]]]:
             {"order_ref": "ORD-10044", "shipment_id": "", "status": "not_shipped", "carrier": "", "tracking_ref": "", "estimated_delivery": ""},
             {"order_ref": "ORD-10045", "shipment_id": "SHIP-9003", "status": "cancelled", "carrier": "", "tracking_ref": "", "estimated_delivery": ""},
             {"order_ref": "ORD-10046", "shipment_id": "SHIP-9004", "status": "delivered", "carrier": "DemoCourier", "tracking_ref": "TRK-778901", "estimated_delivery": "2026-04-16", "delivered_at": "2026-04-16T12:00:00Z"},
+            # Spec 110 — Order Management Workflow Pack v1
+            {"order_ref": "ORD-10054", "shipment_id": "SHIP-9010", "status": "in_transit", "carrier": "DemoCourier", "tracking_ref": "TRK-999001", "estimated_delivery": "2026-04-08"},
+            {"order_ref": "ORD-10055", "shipment_id": "SHIP-9011", "status": "packed", "carrier": "DemoCourier", "tracking_ref": "", "estimated_delivery": "2026-05-10"},
         ],
         "payments": [
             {"payment_id": "PAY-7001", "order_ref": "ORD-10042", "customer_id": "CUST-1001", "amount": 1299.99, "currency": "ZAR", "status": "matched", "paid_at": "2026-04-25T10:00:00Z", "provider_ref": "BANK-001"},
@@ -231,6 +248,8 @@ def _seed_payloads() -> dict[str, list[dict[str, Any]]]:
             {"payment_id": "PAY-7006", "order_ref": "ORD-10047", "customer_id": "CUST-1002", "amount": 250.00, "currency": "ZAR", "status": "matched", "paid_at": "2026-04-27T09:10:00Z", "provider_ref": "BANK-006"},
             {"payment_id": "PAY-7007", "order_ref": "ORD-10048", "customer_id": "CUST-1004", "amount": 1200.00, "currency": "ZAR", "status": "matched", "paid_at": "2026-04-30T10:10:00Z", "provider_ref": "BANK-007"},
             {"payment_id": "PAY-7008", "order_ref": "ORD-10049", "customer_id": "CUST-1001", "amount": 199.00, "currency": "ZAR", "status": "matched", "paid_at": "2026-04-11T09:10:00Z", "provider_ref": "BANK-008"},
+            # Spec 110 — Order Management Workflow Pack v1
+            {"payment_id": "PAY-10052", "order_ref": "ORD-10052", "customer_id": "CUST-1002", "amount": 699.99, "currency": "ZAR", "status": "matched", "paid_at": "2026-05-03T10:00:00Z", "provider_ref": "BANK-052"},
         ],
         "inventory": [
             {"sku": "SKU-DESK-01", "name": "Compact office desk", "stock_on_hand": 12, "reserved_stock": 2, "available_stock": 10, "reorder_threshold": 5, "reorder_quantity": 10, "supplier_id": "SUP-001", "status": "active"},

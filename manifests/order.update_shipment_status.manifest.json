@@ -1,0 +1,18 @@
+{
+  "id": "order.update_shipment_status",
+  "name": "Order - Update Shipment Status",
+  "trigger_type": "event",
+  "side_effect": true,
+  "inputs": {"required": ["event_id", "order_ref", "shipment_status", "tracking_ref"]},
+  "steps": [
+    {"step_id": "prepare_shipment_update", "kind": "tool", "command": "[t:order/prepare_shipment_status_update -> shipment_update_action] order_ref=$inputs.order_ref; shipment_status=$inputs.shipment_status; tracking_ref=$inputs.tracking_ref"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"},
+    {"id": "shipment_update_pending", "type": "pending_action_exists", "tool": "order/execute_shipment_status_update", "output": "shipment_update_action"}
+  ],
+  "completion": {
+    "success_pending_actions": ["shipment_update_action"],
+    "allow_pending_approval": true
+  }
+}
