@@ -1,0 +1,41 @@
+{
+  "manifest_id": "gallery.side_effect_tool_not_in_allowed_list",
+  "name": "Side Effect Tool Not In Allowed List",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "prepare_send",
+      "kind": "tool",
+      "command": "[t:wa/send -> customer_reply_send] message=$inputs.message",
+      "side_effect": true
+    }
+  ],
+  "validations": [
+    {
+      "id": "pending_action_exists",
+      "type": "pending_action_exists",
+      "output": "customer_reply_send"
+    }
+  ],
+  "completion": {
+    "success_pending_actions": [
+      "customer_reply_send"
+    ],
+    "allow_pending_approval": true,
+    "required_state": "WAITING_FOR_EXECUTE"
+  },
+  "side_effect_policy": {
+    "has_side_effects": true,
+    "requires_approval": true,
+    "live_execution_allowed": false,
+    "allowed_side_effect_tools": [
+      "customer/not_allowed"
+    ]
+  }
+}

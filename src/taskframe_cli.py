@@ -83,6 +83,20 @@ def build_parser() -> argparse.ArgumentParser:
     config_init.add_argument("--config-dir", default="")
     config_init.add_argument("--force", action="store_true")
 
+    runtime = sub.add_parser("runtime", help="Inspect runtime environment and governance decisions.")
+    runtime_sub = runtime.add_subparsers(dest="runtime_command", required=True)
+
+    runtime_profile = runtime_sub.add_parser("profile", help="Show the resolved runtime profile.")
+    runtime_profile.add_argument("--json", action="store_true")
+
+    runtime_governance = runtime_sub.add_parser("governance-check", help="Evaluate runtime governance for a tool.")
+    runtime_governance.add_argument("tool_key")
+    runtime_governance.add_argument("--env", default="", choices=["", "demo", "dev", "test", "release", "live"])
+    runtime_governance.add_argument("--dry-run", action="store_true")
+    runtime_governance.add_argument("--live-requested", action="store_true")
+    runtime_governance.add_argument("--operation", default="execute")
+    runtime_governance.add_argument("--json", action="store_true")
+
     mh = sub.add_parser("manifest-health", help="Run the active manifest catalog health check.")
     mh.add_argument("--manifest-dir", default="manifests")
     mh.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
@@ -90,6 +104,45 @@ def build_parser() -> argparse.ArgumentParser:
     mh.add_argument("--smoke-limit", type=int, default=None)
     mh.add_argument("--strict", action="store_true")
     mh.add_argument("--json", action="store_true")
+
+    manifests = sub.add_parser("manifests", help="Validate manifest contracts.")
+    manifests_sub = manifests.add_subparsers(dest="manifests_command", required=True)
+    manifests_validate_strict = manifests_sub.add_parser("validate-strict", help="Validate a manifest using the strict contract.")
+    manifests_validate_strict.add_argument("manifest_path")
+    manifests_validate_strict.add_argument("--manifest-dir", default="manifests")
+    manifests_validate_strict.add_argument("--json", action="store_true")
+
+    manifests_gallery = manifests_sub.add_parser("gallery", help="Run the manifest regression gallery.")
+    manifests_gallery_sub = manifests_gallery.add_subparsers(dest="gallery_command", required=True)
+
+    gallery_list = manifests_gallery_sub.add_parser("list", help="List gallery fixtures.")
+    gallery_list.add_argument("--gallery-dir", default="tests/fixtures/manifest_regression_gallery")
+    gallery_list.add_argument("--json", action="store_true")
+
+    gallery_validate = manifests_gallery_sub.add_parser("validate", help="Validate the gallery index and fixtures.")
+    gallery_validate.add_argument("--gallery-dir", default="tests/fixtures/manifest_regression_gallery")
+    gallery_validate.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    gallery_validate.add_argument("--no-smoke", action="store_true")
+    gallery_validate.add_argument("--no-autofix", action="store_true")
+    gallery_validate.add_argument("--no-repair-guidance", action="store_true")
+    gallery_validate.add_argument("--json", action="store_true")
+
+    gallery_run = manifests_gallery_sub.add_parser("run", help="Run one gallery fixture.")
+    gallery_run.add_argument("--fixture", required=True)
+    gallery_run.add_argument("--gallery-dir", default="tests/fixtures/manifest_regression_gallery")
+    gallery_run.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    gallery_run.add_argument("--no-smoke", action="store_true")
+    gallery_run.add_argument("--no-autofix", action="store_true")
+    gallery_run.add_argument("--no-repair-guidance", action="store_true")
+    gallery_run.add_argument("--json", action="store_true")
+
+    gallery_report = manifests_gallery_sub.add_parser("report", help="Run the gallery and write reports.")
+    gallery_report.add_argument("--gallery-dir", default="tests/fixtures/manifest_regression_gallery")
+    gallery_report.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    gallery_report.add_argument("--no-smoke", action="store_true")
+    gallery_report.add_argument("--no-autofix", action="store_true")
+    gallery_report.add_argument("--no-repair-guidance", action="store_true")
+    gallery_report.add_argument("--json", action="store_true")
 
     safety = sub.add_parser("safety-status", help="Show a live execution safety snapshot.")
     safety.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
@@ -142,6 +195,17 @@ def build_parser() -> argparse.ArgumentParser:
     tools_health.add_argument("toolpack_id")
     tools_health.add_argument("--config-path", default="config/enabled_toolpacks.json")
     tools_health.add_argument("--json", action="store_true")
+
+    tools_lifecycle = tools_sub.add_parser("lifecycle", help="Evaluate the lifecycle readiness of a tool pack.")
+    tools_lifecycle.add_argument("toolpack_path")
+    tools_lifecycle.add_argument("--env", default="dev", choices=["demo", "dev", "test", "release", "live"])
+    tools_lifecycle.add_argument("--config-path", default="config/enabled_toolpacks.json")
+    tools_lifecycle.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    tools_lifecycle.add_argument("--no-contract", action="store_true")
+    tools_lifecycle.add_argument("--no-health", action="store_true")
+    tools_lifecycle.add_argument("--no-manifest-smoke", action="store_true")
+    tools_lifecycle.add_argument("--write-report", action="store_true")
+    tools_lifecycle.add_argument("--json", action="store_true")
 
     tools_inventory = tools_sub.add_parser("inventory", help="Build the tool inventory report.")
     tools_inventory.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
@@ -230,8 +294,12 @@ def main(argv: list[str] | None = None) -> int:
         return _run_verify(args)
     if args.command == "config":
         return _run_config(args)
+    if args.command == "runtime":
+        return _run_runtime(args)
     if args.command == "manifest-health":
         return _run_manifest_health(args)
+    if args.command == "manifests":
+        return _run_manifest_commands(args)
     if args.command == "safety-status":
         return _run_safety_status(args)
     if args.command == "pending-actions":
@@ -422,6 +490,149 @@ def _run_config(args: argparse.Namespace) -> int:
     return 2
 
 
+def _run_runtime(args: argparse.Namespace) -> int:
+    command = str(getattr(args, "runtime_command", "") or "")
+    if command == "profile":
+        return _run_runtime_profile(args)
+    if command == "governance-check":
+        return _run_runtime_governance_check(args)
+    print("Unknown runtime command.")
+    return 2
+
+
+def _run_runtime_profile(args: argparse.Namespace) -> int:
+    from runtime.runtime_environment import load_runtime_profile, resolve_runtime_environment
+
+    profile = load_runtime_profile()
+    environment = resolve_runtime_environment()
+    payload = {
+        "ok": True,
+        "environment": environment,
+        "governance_enforced": bool(profile.get("governance_enforced", True)),
+        "allow_unknown_toolpack_in_dev": bool(profile.get("allow_unknown_toolpack_in_dev", False)),
+        "allow_high_risk_live_override": bool(profile.get("allow_high_risk_live_override", False)),
+        "profile_path": str((ROOT / "config" / "runtime_profile.json").resolve()),
+    }
+    if bool(args.json):
+        print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+        return 0
+    print(f"Runtime environment: {payload['environment']}")
+    print(f"Governance enforced: {str(payload['governance_enforced']).lower()}")
+    print(f"Allow unknown toolpack in dev: {str(payload['allow_unknown_toolpack_in_dev']).lower()}")
+    print(f"Allow high-risk live override: {str(payload['allow_high_risk_live_override']).lower()}")
+    return 0
+
+
+def _run_runtime_governance_check(args: argparse.Namespace) -> int:
+    from runtime.tool_governance import evaluate_tool_governance
+    from runtime.tool_registry import ToolNotRegisteredError, get_tool_spec
+    from src.toolpack_loader import load_toolpack_descriptor, validate_toolpack_descriptor
+
+    tool_key = str(args.tool_key).strip()
+    if "/" not in tool_key:
+        payload = {
+            "ok": False,
+            "decision": "BLOCK",
+            "tool": tool_key,
+            "environment": "demo",
+            "reason": "Tool key must be in namespace/action form.",
+        }
+        if bool(args.json):
+            print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+        else:
+            print(f"Tool: {tool_key}")
+            print("Decision: BLOCK")
+            print("Reason: Tool key must be in namespace/action form.")
+        return 1
+    namespace, action = tool_key.split("/", 1)
+    environment = str(args.env or "").strip() or "demo"
+    try:
+        tool_spec = get_tool_spec(namespace, action)
+    except ToolNotRegisteredError:
+        tool_spec = _resolve_tool_spec_for_runtime_governance(tool_key)
+    decision = evaluate_tool_governance(
+        tool_key,
+        tool_spec,
+        environment=environment,
+        dry_run=bool(args.dry_run),
+        live_requested=bool(args.live_requested),
+        operation=str(args.operation or "execute"),
+    )
+    if bool(args.json):
+        print(json.dumps(decision, separators=(",", ":"), ensure_ascii=False))
+        return 0 if decision.get("ok", False) else 1
+    print(f"Tool: {decision['tool']}")
+    print(f"Environment: {decision['environment']}")
+    print(f"Decision: {decision['decision']}")
+    print(f"Reason: {decision['reason']}")
+    return 0 if decision.get("ok", False) else 1
+
+
+def _resolve_tool_spec_for_runtime_governance(tool_key: str) -> dict[str, object]:
+    namespace, action = tool_key.split("/", 1)
+    toolpacks_root = ROOT / "tool_packs"
+    for descriptor_path in sorted(toolpacks_root.glob("*/toolpack.json")):
+        try:
+            descriptor = load_toolpack_descriptor(descriptor_path)
+            validation = validate_toolpack_descriptor(descriptor, base_path=descriptor_path.parent)
+            for tool in validation.get("descriptor", {}).get("tools", []):
+                if str(tool.get("tool", "")) == tool_key:
+                    return {
+                        "namespace": tool.get("namespace", namespace),
+                        "action": tool.get("action", action),
+                        "module": tool.get("module", ""),
+                        "function": tool.get("function", ""),
+                        "side_effect": bool(tool.get("side_effect", False)),
+                        "requires_approval": bool(tool.get("requires_approval", False)),
+                        "allow_live": bool(tool.get("allow_live", False)),
+                        "allow_live_side_effect": bool(tool.get("allow_live_side_effect", False)),
+                        "live_guardrail": str(tool.get("live_guardrail", "blocked")),
+                        "output_type": str(tool.get("output_type", "")),
+                        "required_args": list(tool.get("required_args", [])),
+                        "optional_args": list(tool.get("optional_args", [])),
+                        "arg_types": dict(tool.get("arg_types", {})),
+                        "dry_run_executes": bool(tool.get("dry_run_executes", False)),
+                        "source": "external_toolpack",
+                        "toolpack_id": str(validation.get("toolpack_id", descriptor.get("toolpack_id", namespace))),
+                        "toolpack_name": str(validation.get("descriptor", {}).get("name", descriptor.get("name", ""))),
+                        "toolpack_version": str(validation.get("descriptor", {}).get("version", descriptor.get("version", ""))),
+                        "toolpack_path": str(descriptor_path),
+                        "toolpack_core_or_optional": str(validation.get("descriptor", {}).get("core_or_optional", "optional")),
+                        "toolpack_classification": str(validation.get("descriptor", {}).get("risk_class", validation.get("descriptor", {}).get("core_or_optional", "optional"))),
+                        "enabled_environments": list((validation.get("descriptor", {}) or {}).get("governance", {}).get("enabled_environments", []))
+                        if isinstance((validation.get("descriptor", {}) or {}).get("governance", {}), dict)
+                        else [],
+                        "governance_required": True,
+                    }
+        except Exception:
+            continue
+    return {
+        "namespace": namespace,
+        "action": action,
+        "module": "",
+        "function": "",
+        "side_effect": False,
+        "requires_approval": False,
+        "allow_live": False,
+        "allow_live_side_effect": False,
+        "live_guardrail": "blocked",
+        "output_type": "tool_governance_blocked",
+        "required_args": [],
+        "optional_args": [],
+        "arg_types": {},
+        "dry_run_executes": False,
+        "source": "external_toolpack",
+        "toolpack_id": namespace,
+        "toolpack_name": namespace,
+        "toolpack_version": "",
+        "toolpack_path": "",
+        "toolpack_core_or_optional": "unknown",
+        "toolpack_classification": "unknown",
+        "enabled_environments": [],
+        "governance_required": True,
+    }
+
+
 def _run_manifest_health(args: argparse.Namespace) -> int:
     from src.manifest_health import run_manifest_health_check, write_manifest_health_report
 
@@ -430,6 +641,7 @@ def _run_manifest_health(args: argparse.Namespace) -> int:
         runtime_data_dir=args.runtime_data_dir,
         include_smoke=not bool(args.no_smoke),
         smoke_limit=args.smoke_limit,
+        strict_contract=bool(args.strict),
     )
     report = write_manifest_health_report(result, runtime_data_dir=args.runtime_data_dir)
     summary = result.get("summary", {}) if isinstance(result, dict) else {}
@@ -443,7 +655,10 @@ def _run_manifest_health(args: argparse.Namespace) -> int:
             "healthy": summary.get("healthy", 0),
             "warnings": summary.get("warnings", 0),
             "failed": summary.get("failed", 0),
+            "strict_failed": summary.get("strict_failed", 0),
+            "strict_warnings": summary.get("strict_warnings", 0),
         },
+        "strict_contract": bool(args.strict),
         "json_path": report.get("json_path", ""),
         "markdown_path": report.get("markdown_path", ""),
     }
@@ -464,6 +679,9 @@ def _run_manifest_health(args: argparse.Namespace) -> int:
         print(f"Healthy: {payload['summary']['healthy']}")
         print(f"Warnings: {payload['summary']['warnings']}")
         print(f"Failed: {payload['summary']['failed']}")
+        if bool(args.strict):
+            print(f"Strict failed: {payload['summary']['strict_failed']}")
+            print(f"Strict warnings: {payload['summary']['strict_warnings']}")
         if smoke_skipped:
             print(f"Smoke skipped: {smoke_skipped}")
         print(f"Report: {payload['markdown_path']}")
@@ -474,6 +692,160 @@ def _run_manifest_health(args: argparse.Namespace) -> int:
     if bool(args.strict) and int(summary.get("failed", 0) or 0) > 0:
         return 1
     return 0
+
+
+def _run_manifest_commands(args: argparse.Namespace) -> int:
+    if getattr(args, "manifests_command", "") == "validate-strict":
+        return _run_manifest_validate_strict(args)
+    if getattr(args, "manifests_command", "") == "gallery":
+        return _run_manifest_gallery(args)
+    return 2
+
+
+def _run_manifest_validate_strict(args: argparse.Namespace) -> int:
+    from src.manifest_contract_strict import validate_manifest_strict
+
+    manifest_path = Path(args.manifest_path)
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        payload = {"ok": False, "status": "FAIL", "manifest_id": "", "errors": [str(exc)], "warnings": [], "findings": []}
+    else:
+        event_routes = _load_json_file(ROOT / "config" / "event_routes.json")
+        tool_registry = None
+        try:
+            from runtime.tool_registry import build_tool_registry
+
+            tool_registry = build_tool_registry(include_external=True, config_path="config/enabled_toolpacks.json")
+        except Exception:
+            tool_registry = None
+        payload = validate_manifest_strict(
+            manifest if isinstance(manifest, dict) else {},
+            manifest_path=str(manifest_path),
+            active_catalog=True,
+            event_routes=event_routes,
+            tool_registry=tool_registry,
+        )
+
+    if bool(args.json):
+        print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
+    else:
+        print(f"Manifest strict validation: {payload.get('status', 'UNKNOWN')}")
+        print(f"Manifest: {manifest_path}")
+        if payload.get("warnings"):
+            print(f"Warnings: {len(payload.get('warnings', []))}")
+    if payload.get("errors"):
+        print(f"Errors: {len(payload.get('errors', []))}")
+    return 0 if payload.get("ok", False) else 1
+
+
+def _run_manifest_gallery(args: argparse.Namespace) -> int:
+    from src.manifest_regression_gallery import (
+        iter_gallery_fixtures,
+        run_gallery,
+        run_gallery_fixture,
+        validate_gallery_index,
+        write_gallery_report,
+    )
+
+    gallery_dir = str(getattr(args, "gallery_dir", "tests/fixtures/manifest_regression_gallery") or "tests/fixtures/manifest_regression_gallery")
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    no_smoke = bool(getattr(args, "no_smoke", False))
+    no_autofix = bool(getattr(args, "no_autofix", False))
+    no_repair = bool(getattr(args, "no_repair_guidance", False))
+    command = getattr(args, "gallery_command", "")
+
+    if command == "list":
+        fixtures = iter_gallery_fixtures(gallery_dir)
+        payload = {"ok": True, "gallery_dir": gallery_dir, "fixtures": fixtures}
+        if bool(getattr(args, "json", False)):
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print(f"Manifest regression gallery: {gallery_dir}")
+            for fixture in fixtures:
+                print(f"- {fixture.get('id', '')} ({fixture.get('category', '')})")
+        return 0
+
+    if command == "validate":
+        result = run_gallery(
+            gallery_dir=gallery_dir,
+            runtime_data_dir=runtime_data_dir,
+            strict=True,
+            smoke=not no_smoke,
+            repair_guidance=not no_repair,
+            autofix=not no_autofix,
+        )
+        if bool(getattr(args, "json", False)):
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        else:
+            print(f"Manifest regression gallery: {gallery_dir}")
+            print(f"Status: {result.get('status')}")
+            print(f"Passed: {result.get('passed', 0)}")
+            print(f"Failed: {result.get('failed', 0)}")
+        return 0 if result.get("ok") else 1
+
+    if command == "run":
+        try:
+            result = run_gallery_fixture(
+                str(getattr(args, "fixture", "") or ""),
+                gallery_dir=gallery_dir,
+                runtime_data_dir=runtime_data_dir,
+                strict=True,
+                smoke=not no_smoke,
+                repair_guidance=not no_repair,
+                autofix=not no_autofix,
+            )
+        except KeyError as exc:
+            print(str(exc))
+            return 2
+        if bool(getattr(args, "json", False)):
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        else:
+            print(f"Fixture: {result.get('fixture_id', '')}")
+            print(f"Status: {'PASS' if result.get('matched_expectations') else 'FAIL'}")
+            print(f"Strict: {result.get('actual', {}).get('strict_status', '')}")
+            print(f"Smoke: {result.get('actual', {}).get('smoke_classification', '') or 'SKIPPED'}")
+            print(f"Autofix: {result.get('actual', {}).get('autofix', '')}")
+            if result.get("errors"):
+                print("Errors:")
+                for err in result["errors"]:
+                    print(f"- {err}")
+        return 0 if result.get("matched_expectations") else 1
+
+    if command == "report":
+        result = run_gallery(
+            gallery_dir=gallery_dir,
+            runtime_data_dir=runtime_data_dir,
+            strict=True,
+            smoke=not no_smoke,
+            repair_guidance=not no_repair,
+            autofix=not no_autofix,
+        )
+        report = write_gallery_report(result, runtime_data_dir=runtime_data_dir)
+        if bool(getattr(args, "json", False)):
+            payload = dict(result)
+            payload["report"] = report
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print(f"Manifest regression gallery: {gallery_dir}")
+            print(f"Status: {result.get('status')}")
+            print(f"Report JSON: {report.get('json_path', '')}")
+            print(f"Report MD: {report.get('markdown_path', '')}")
+        return 0 if result.get("ok") and report.get("ok") else 1
+
+    index = validate_gallery_index(gallery_dir)
+    print(json.dumps(index, indent=2, ensure_ascii=False) if bool(getattr(args, "json", False)) else f"Unknown gallery command: {command}")
+    return 0 if index.get("ok") else 1
+
+
+def _load_json_file(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _load_frame_for_cli(frame_id: str, runtime_data_dir: str):
@@ -868,6 +1240,8 @@ def _run_tools(args: argparse.Namespace) -> int:
         return _run_tools_validate(args)
     if command == "health":
         return _run_tools_health(args)
+    if command == "lifecycle":
+        return _run_tools_lifecycle(args)
     if command == "inventory":
         return _run_tools_inventory(args)
     if command == "compat-check":
@@ -1016,6 +1390,55 @@ def _run_tools_health(args: argparse.Namespace) -> int:
     print(f"Severity: {payload.get('severity', '')}")
     print(f"Message: {payload.get('message', '')}")
     return 0
+
+
+def _run_tools_lifecycle(args: argparse.Namespace) -> int:
+    from src.toolpack_lifecycle import evaluate_toolpack_lifecycle, write_lifecycle_report
+
+    result = evaluate_toolpack_lifecycle(
+        args.toolpack_path,
+        environment=str(args.env),
+        config_path=args.config_path,
+        runtime_data_dir=args.runtime_data_dir,
+        include_contract_tests=not bool(args.no_contract),
+        include_health=not bool(args.no_health),
+        include_manifest_smoke=not bool(args.no_manifest_smoke),
+    )
+    report_paths = None
+    if bool(args.write_report):
+        report_paths = write_lifecycle_report(result, runtime_data_dir=args.runtime_data_dir)
+        result = dict(result)
+        result.update(report_paths)
+
+    if bool(args.json):
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok", False) else 1
+
+    print(f"Tool pack lifecycle: {result.get('toolpack_id', '')}")
+    print(f"Environment: {result.get('environment', '')}")
+    print(f"Status: {result.get('status', 'UNKNOWN')}")
+    print("")
+    print("Stages:")
+    for key in [
+        "discovered",
+        "descriptor_valid",
+        "contract_test",
+        "health_check",
+        "governance_policy",
+        "enabled_for_environment",
+        "registry_integration",
+        "example_manifest_smoke",
+    ]:
+        if key in result.get("stages", {}):
+            print(f"  {key}: {result['stages'][key]}")
+    print("")
+    print("Recommended next action:")
+    print(f"  {result.get('recommended_next_action', '')}")
+    if report_paths:
+        print("")
+        print(f"Report JSON: {report_paths.get('json_path', '')}")
+        print(f"Report Markdown: {report_paths.get('markdown_path', '')}")
+    return 0 if result.get("ok", False) else 1
 
 
 def _run_tools_inventory(args: argparse.Namespace) -> int:

@@ -1,0 +1,39 @@
+{
+  "manifest_id": "gallery.duplicate_output_alias",
+  "name": "Duplicate Output Alias",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "reply_a",
+      "kind": "llm",
+      "command": "[q:draft -> reply] text=$inputs.message"
+    },
+    {
+      "id": "reply_b",
+      "kind": "tool",
+      "command": "[t:test/echo -> reply] message=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "reply_exists",
+      "type": "output_exists",
+      "output": "reply"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["reply"]
+  },
+  "side_effect_policy": {
+    "has_side_effects": false,
+    "requires_approval": false,
+    "live_execution_allowed": false,
+    "allowed_side_effect_tools": []
+  }
+}

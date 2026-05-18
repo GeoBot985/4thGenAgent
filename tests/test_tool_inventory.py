@@ -50,3 +50,13 @@ def test_inventory_json_and_markdown_are_written(tmp_path: Path) -> None:
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["report_type"] == "tool_inventory"
 
+
+def test_inventory_includes_toolpack_lifecycle_summary(tmp_path: Path) -> None:
+    from src.tool_inventory import build_tool_inventory_report
+
+    report = build_tool_inventory_report(runtime_data_dir=tmp_path / "runtime_data")
+    assert report["toolpacks"]
+    demo = next(item for item in report["toolpacks"] if item["toolpack_id"] == "demo_echo")
+    assert demo["status"] in {"READY", "READY_WITH_WARNINGS", "GOVERNANCE_REQUIRED", "DISABLED", "BLOCKED", "UNTESTED"}
+    assert "last_lifecycle_check" in demo
+    assert "last_lifecycle_report" in demo

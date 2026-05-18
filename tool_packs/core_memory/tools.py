@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime.memory_store import MemoryStore
+from runtime.tool_result_contract import build_tool_evidence
 
 
 def memory_set(key: str, value: str, runtime_root: str = "runtime_data") -> dict[str, Any]:
@@ -19,6 +20,18 @@ def memory_set(key: str, value: str, runtime_root: str = "runtime_data") -> dict
         "ok": True,
         "type": "memory_set_result",
         "data": payload,
-        "evidence": [{"kind": "memory_set", "key": key}],
+        "evidence": build_tool_evidence(
+            tool="memory/set",
+            mode="dry_run",
+            source="migrated_toolpack",
+            operation="side_effect",
+            input_refs=[f"key:{key}"],
+            output_ref="memory_set_result",
+            extra={
+                "key": key,
+                "runtime_root": runtime_root,
+                "stored": True,
+            },
+        ),
         "error": "",
     }

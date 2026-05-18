@@ -149,6 +149,37 @@ Manifest health modes:
 - `taskframe manifest-health --strict --no-smoke` is the release-gate mode and exits non-zero on active catalog failures.
 - `taskframe manifest-health --json --no-smoke` prints a compact JSON summary while still writing the report files.
 
+### `taskframe manifests validate-strict <manifest_path>`
+
+Validates one manifest against the strict contract without running smoke execution.
+
+- `--json`
+
+Exit codes:
+- `0` when the manifest passes strict validation
+- non-zero when strict validation fails
+
+### `taskframe manifests gallery`
+
+Runs the manifest regression gallery for curated bad, edge-case, and unsafe fixtures.
+
+- `taskframe manifests gallery list`
+- `taskframe manifests gallery validate`
+- `taskframe manifests gallery run --fixture completion_output_missing`
+- `taskframe manifests gallery report`
+- `list`
+- `validate`
+- `run --fixture <fixture_id>`
+- `report`
+- `--gallery-dir tests/fixtures/manifest_regression_gallery`
+- `--runtime-data-dir runtime_data`
+- `--no-smoke`
+- `--no-autofix`
+- `--no-repair-guidance`
+- `--json`
+
+Gallery reports are written to `runtime_data/manifest_regression_gallery/`.
+
 ### `taskframe version`
 
 Prints the installed runtime version.
@@ -207,6 +238,23 @@ Runs the tool pack health check for one pack.
 Exit codes:
 - `0` when the tool pack is healthy or intentionally disabled
 - non-zero when health fails
+
+### `taskframe tools lifecycle <toolpack_path>`
+
+Evaluates the full operator lifecycle for one tool pack and produces a structured readiness report.
+
+- `--env demo|dev|test|release|live`
+- `--config-path config/enabled_toolpacks.json`
+- `--runtime-data-dir runtime_data`
+- `--no-contract` â€” skip contract tests
+- `--no-health` â€” skip health checks
+- `--no-manifest-smoke` â€” skip example manifest smoke validation
+- `--write-report` â€” write JSON and Markdown lifecycle reports
+- `--json`
+
+Exit codes:
+- `0` when the tool pack is ready or ready with warnings
+- non-zero when the pack is invalid, blocked, disabled, or otherwise not ready
 
 ### `taskframe tools inventory`
 
@@ -312,6 +360,22 @@ Exit codes:
 - `0` when no violations are found
 - non-zero when policy violations exist
 
+### `taskframe runtime profile`
+
+Shows the resolved runtime environment and governance profile used by the tool runner.
+
+- `--json`
+
+### `taskframe runtime governance-check <tool_key>`
+
+Evaluates runtime governance for a tool key such as `customer/read` or `gmail/search`.
+
+- `--env <demo|dev|test|release|live>`
+- `--dry-run`
+- `--live-requested`
+- `--operation <name>`
+- `--json`
+
 ### `taskframe safety-pack`
 
 Builds the safety verification pack and live-blocked evidence report.
@@ -390,5 +454,6 @@ Exit codes:
 - `taskframe tools inspect toolpack:google_workspace`
 - `taskframe tools validate tool_packs/google_workspace/toolpack.json`
 - `taskframe tools health google_workspace`
+- `taskframe tools lifecycle tool_packs/demo_echo/toolpack.json --env dev`
 
 The tool pack is optional and read-only. Default demo paths do not require Google credentials.

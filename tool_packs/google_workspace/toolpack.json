@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "runtime_contract_version": 1,
   "core_or_optional": "optional",
-  "risk_class": "external_auth_read_only",
+  "risk_class": "read_only_external_api",
   "description": "Read-only Gmail, Calendar, and Sheets tools using Google OAuth.",
   "module_prefix": "tool_packs.google_workspace",
+  "health_supported": true,
   "health": {
     "module": "tool_packs.google_workspace.health",
     "function": "check_health"

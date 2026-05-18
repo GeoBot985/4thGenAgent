@@ -1,0 +1,23 @@
+{
+  "manifest_id": "gallery.side_effect_without_pending_completion",
+  "name": "Gallery: Side Effect Without Pending Completion",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "send_message", "command": "[t:wa/send -> result] message=\"Hello\""}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"}
+  ],
+  "completion": {
+    "success_outputs": ["result"],
+    "acceptable_empty_outputs": ["result"]
+  },
+  "side_effect_policy": {
+    "has_side_effects": true,
+    "requires_approval": true,
+    "live_execution_allowed": false,
+    "allowed_side_effect_tools": ["wa/send"]
+  }
+}

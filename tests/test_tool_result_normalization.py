@@ -196,7 +196,7 @@ class ToolResultNormalizationTests(unittest.TestCase):
             ok=True,
             type="fake_read_result",
             data={"x": 1},
-            evidence=[{"e": 1}],
+            evidence={"tool": "fake/read", "mode": "live", "source": "builtin", "operation": "read", "input_refs": [], "output_ref": "fake_read_result"},
             error="",
             raw={"x": 1},
             metadata={"custom": "value"},
@@ -205,7 +205,8 @@ class ToolResultNormalizationTests(unittest.TestCase):
         result = normalize_tool_result(original, "fake/read", spec, {}, dry_run=False)
 
         self.assertEqual(result.data, {"x": 1})
-        self.assertEqual(result.evidence, [{"e": 1}])
+        self.assertIsInstance(result.evidence, dict)
+        self.assertTrue(result.evidence)
         self.assertEqual(result.metadata["custom"], "value")
         self.assertEqual(result.metadata["tool"], "fake/read")
         self.assertTrue(result.metadata["live"])
@@ -232,6 +233,8 @@ class ToolResultNormalizationTests(unittest.TestCase):
         self.assertEqual(result.data["action"], "fake_read")
         self.assertEqual(result.data["output"], "ok")
         self.assertEqual(result.data["payload"], {"json": [1]})
+        self.assertIsInstance(result.evidence, dict)
+        self.assertTrue(result.evidence)
         self.assertIs(result.raw, original)
 
     def test_normalize_failed_workspace_result_like_object(self):
@@ -255,6 +258,8 @@ class ToolResultNormalizationTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertEqual(result.error, "boom")
         self.assertEqual(result.data["action"], "fake_read")
+        self.assertIsInstance(result.evidence, dict)
+        self.assertTrue(result.evidence)
 
     def test_exception_result_path_returns_error_tool_result(self):
         spec = {

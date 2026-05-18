@@ -1,0 +1,35 @@
+{
+  "manifest_id": "gallery.waiting_for_execute_without_pending_action",
+  "name": "Waiting For Execute Without Pending Action",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "echo_message",
+      "kind": "tool",
+      "command": "[t:test/echo -> result] message=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "result_exists",
+      "type": "output_exists",
+      "output": "result"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["result"],
+    "required_state": "WAITING_FOR_EXECUTE"
+  },
+  "side_effect_policy": {
+    "has_side_effects": false,
+    "requires_approval": false,
+    "live_execution_allowed": false,
+    "allowed_side_effect_tools": []
+  }
+}

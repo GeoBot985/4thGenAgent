@@ -34,6 +34,7 @@ See [toolpack_scaffold_wizard.md](toolpack_scaffold_wizard.md) and [toolpack_con
 9. Add tests
 10. Confirm tool appears in operator status
 11. Confirm release verifier boundary
+12. Run a lifecycle evaluation and record the report
 
 ## Tool Classification
 
@@ -68,11 +69,21 @@ Preferred return shape:
 {
   "ok": true,
   "data": {},
-  "error": ""
+  "error": "",
+  "evidence": {
+    "tool": "namespace/action",
+    "mode": "dry_run",
+    "source": "builtin",
+    "operation": "read",
+    "input_refs": [],
+    "output_ref": "output_alias"
+  }
 }
 ```
 
 Tool functions perform capability work. The runtime records the tool call. The manifest decides why the tool is called.
+
+See [tool_result_contract.md](tool_result_contract.md) for the canonical runtime result shape and the redaction rules that apply to evidence.
 
 ## Tool Registry
 
@@ -196,6 +207,14 @@ ToolCapability(
 If a tool is not in the capability registry, the operator cannot properly assess its readiness.
 
 External tool packs must also provide `toolpack.json`, a README, and a safe health check.
+
+Before a new pack is considered operational, run:
+
+```bash
+taskframe tools lifecycle tool_packs/my_pack/toolpack.json --env dev --write-report
+```
+
+The lifecycle report captures discovery, descriptor validation, contract tests, health checks, governance policy, enablement, registry integration, and example manifest smoke checks in one auditable artifact.
 
 ## Tool Health
 

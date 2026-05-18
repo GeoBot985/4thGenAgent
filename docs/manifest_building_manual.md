@@ -724,6 +724,23 @@ Only manifests in the active catalog are treated as release/operator manifests. 
 
 `taskframe manifest-health --strict --no-smoke` is the release-gate mode. It exits non-zero when the active manifest catalog has failures.
 
+For one-off validation of a single file, use:
+
+```bash
+taskframe manifests validate-strict manifests/customer_status_llm_e2e.manifest.json --json
+```
+
+For curated regression coverage, use the manifest regression gallery:
+
+```bash
+taskframe manifests gallery list
+taskframe manifests gallery validate
+taskframe manifests gallery run --fixture completion_output_missing
+taskframe manifests gallery report
+```
+
+The gallery keeps bad, unsafe, and edge-case manifests in `tests/fixtures/manifest_regression_gallery/` so they stay out of the active catalog while still exercising strict validation, repair guidance, smoke classification, and autofix limits.
+
 The dashboard summarizes total manifests, healthy and warning-only manifests, failed and critical manifests, smoke results, repairable manifests with low-risk auto-fix proposals, and manifests that still require manual correction.
 
 Each row shows the manifest ID, validation result, smoke status, top findings, repairable count, and recommended next action. Selecting a row reveals detailed validation errors, smoke classification, repair findings, auto-fix proposal counts, and report paths.

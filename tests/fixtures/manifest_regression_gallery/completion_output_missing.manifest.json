@@ -1,0 +1,17 @@
+{
+  "manifest_id": "gallery.completion_output_missing",
+  "name": "Gallery: Completion Output Missing",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "read_data", "command": "[t:g/check -> result] max_results=5"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"}
+  ],
+  "completion": {
+    "success_outputs": ["reply"]
+  },
+  "live_execution": {"enabled": false, "requires_approval": true}
+}

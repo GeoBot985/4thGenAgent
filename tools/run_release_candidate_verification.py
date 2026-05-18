@@ -28,6 +28,7 @@ RUNTIME_CONTRACTS_MD = ROOT / "docs" / "runtime_contracts.md"
 DEFAULT_DEMO_BOUNDARY_MD = ROOT / "docs" / "default_demo_boundary.md"
 ADDING_NEW_TOOLS_MD = ROOT / "docs" / "adding_new_tools.md"
 TOOL_CONTRACT_CHECKLIST_MD = ROOT / "docs" / "tool_contract_checklist.md"
+TOOL_RESULT_CONTRACT_MD = ROOT / "docs" / "tool_result_contract.md"
 RELEASE_STATUS_JSON = ROOT / "runtime_data" / "audit" / "release_status_latest.json"
 RELEASE_EVIDENCE_JSON = ROOT / "runtime_data" / "audit" / "release_evidence_pack.json"
 
@@ -120,6 +121,7 @@ def build_verification_result() -> dict[str, Any]:
         "google_workspace_health_safe": "PENDING",
         "google_workspace_docs": "PENDING",
         "google_workspace_optional_boundary": "PENDING",
+        "google_workspace_readonly_pack": "PENDING",
         "toolpack_loader": "PENDING",
         "toolpack_registry_integration": "PENDING",
         "toolpack_cli": "PENDING",
@@ -129,6 +131,7 @@ def build_verification_result() -> dict[str, Any]:
         "tool_inventory": "PENDING",
         "migrated_toolpack_health": "PENDING",
         "default_tool_registry": "PENDING",
+        "tool_result_contract": "PENDING",
             "tool_capability_registry": "PENDING",
             "core_tool_health_safe_checks": "PENDING",
             "optional_rpa_excluded": "PENDING",
@@ -153,6 +156,7 @@ def build_verification_result() -> dict[str, Any]:
             "toolpack_contract_runner": "PENDING",
             "toolpack_generated_pack_execution": "PENDING",
             "toolpack_governance": "PENDING",
+            "toolpack_lifecycle": "PENDING",
         },
         "workflow_checks": {
             "customer": {"status": "PENDING", "count": 0},
@@ -262,6 +266,7 @@ def build_verification_result() -> dict[str, Any]:
         _check_google_workspace_health_safe(),
         _check_google_workspace_docs(),
         _check_google_workspace_optional_boundary(),
+        _check_google_workspace_readonly_pack(),
         _check_toolpack_loader(),
         _check_toolpack_registry_integration(),
         _check_toolpack_cli(),
@@ -271,10 +276,12 @@ def build_verification_result() -> dict[str, Any]:
         _check_tool_inventory(),
         _check_migrated_toolpack_health(),
         _check_default_tool_registry(),
+        _check_tool_result_contract(),
         _check_tool_capability_registry(),
         _check_core_tool_health_safe_checks(),
         _check_default_scenario_pack(),
         _check_runtime_contract_docs(),
+        _check_runtime_tool_governance(),
         _check_default_demo_boundary_doc(),
         _check_known_limitations_doc(),
         _check_adding_new_tools_doc(),
@@ -288,6 +295,8 @@ def build_verification_result() -> dict[str, Any]:
         _check_docs_command_alignment(),
         _check_generated_manifest_template_quality_gates(),
         _check_manifest_catalog_health(),
+        _check_manifest_contract_strict(),
+        _check_manifest_regression_gallery(),
         _check_public_quickstart_docs(),
         _check_live_safety_docs(),
         _check_live_cli_guardrails(),
@@ -296,6 +305,7 @@ def build_verification_result() -> dict[str, Any]:
         _check_config_secrets_hygiene(),
         _check_safety_verification_pack(),
         _check_toolpack_governance(),
+        _check_toolpack_lifecycle(),
     ])
     manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     for key in ("json_path", "markdown_path"):
@@ -322,6 +332,8 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("google workspace docs missing")
             elif check["name"] == "google_workspace_optional_boundary":
                 release_blockers.append("google workspace optional boundary failed")
+            elif check["name"] == "google_workspace_readonly_pack":
+                release_blockers.append("google workspace readonly pack failed")
             elif check["name"] == "toolpack_loader":
                 release_blockers.append("tool pack loader tests failed")
             elif check["name"] == "toolpack_registry_integration":
@@ -340,6 +352,8 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("migrated tool pack health failed")
             elif check["name"] == "default_tool_registry":
                 release_blockers.append("default tool registry failed")
+            elif check["name"] == "tool_result_contract":
+                release_blockers.append("tool result contract failed")
             elif check["name"] == "TOOL_CAPABILITY_REGISTRY":
                 release_blockers.append("tool capability registry failed")
             elif check["name"] == "CORE_TOOL_HEALTH_SAFE_CHECKS":
@@ -348,6 +362,8 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("default scenario pack failed")
             elif check["name"] == "runtime_contract_docs":
                 release_blockers.append("runtime contract docs failed")
+            elif check["name"] == "runtime_tool_governance":
+                release_blockers.append("runtime governance enforcement failed")
             elif check["name"] == "default_demo_boundary_doc":
                 release_blockers.append("default demo boundary doc failed")
             elif check["name"] == "known_limitations_doc":
@@ -374,6 +390,10 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("generated manifest template quality gates failed")
             elif check["name"] == "manifest_catalog_health":
                 release_blockers.append("manifest catalog health failed")
+            elif check["name"] == "manifest_contract_strict":
+                release_blockers.append("manifest strict contract failed")
+            elif check["name"] == "manifest_regression_gallery":
+                release_blockers.append("manifest regression gallery failed")
             elif check["name"] == "public_quickstart_docs":
                 release_blockers.append("public quickstart docs check failed")
             elif check["name"] == "live_safety_docs":
@@ -390,6 +410,8 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("safety verification pack failed")
             elif check["name"] == "toolpack_governance":
                 release_blockers.append("toolpack governance policy check failed")
+            elif check["name"] == "toolpack_lifecycle":
+                release_blockers.append("tool pack lifecycle check failed")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -397,6 +419,7 @@ def build_verification_result() -> dict[str, Any]:
         ("toolpack_scaffold_cli_tests", "toolpack scaffold CLI tests failed"),
         ("toolpack_generated_pack_execution_tests", "toolpack generated pack execution tests failed"),
         ("toolpack_governance_tests", "toolpack governance tests failed"),
+        ("toolpack_lifecycle", "tool pack lifecycle check failed"),
     ]:
         cmd = next((c for c in commands if c.get("name") == name), None)
         if cmd and cmd.get("status") != "PASS":
@@ -411,6 +434,10 @@ def build_verification_result() -> dict[str, Any]:
         "docs/toolpack_contract.md",
         "docs/toolpack_authoring_guide.md",
         "docs/toolpack_examples.md",
+        "docs/google_workspace_readonly_toolpack.md",
+        "docs/google_workspace_setup.md",
+        "docs/google_workspace_integration_tests.md",
+        "docs/manifest_regression_gallery.md",
         "docs/builtin_toolpack_migration.md",
         "docs/tool_inventory.md",
         "docs/cli_reference.md",
@@ -506,6 +533,7 @@ def build_verification_result() -> dict[str, Any]:
         "google_workspace_health_safe": _status_from_static(static_checks, "google_workspace_health_safe"),
         "google_workspace_docs": _status_from_static(static_checks, "google_workspace_docs"),
         "google_workspace_optional_boundary": _status_from_static(static_checks, "google_workspace_optional_boundary"),
+        "google_workspace_readonly_pack": _status_from_static(static_checks, "google_workspace_readonly_pack"),
         "toolpack_loader": _status_from_static(static_checks, "toolpack_loader"),
         "toolpack_registry_integration": _status_from_static(static_checks, "toolpack_registry_integration"),
         "toolpack_cli": _status_from_static(static_checks, "toolpack_cli"),
@@ -517,6 +545,7 @@ def build_verification_result() -> dict[str, Any]:
         "default_tool_registry": _status_from_static(static_checks, "default_tool_registry"),
         "tool_capability_registry": _status_from_static(static_checks, "TOOL_CAPABILITY_REGISTRY"),
         "core_tool_health_safe_checks": _status_from_static(static_checks, "CORE_TOOL_HEALTH_SAFE_CHECKS"),
+        "runtime_tool_governance": _status_from_static(static_checks, "runtime_tool_governance"),
         "optional_rpa_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC"),
         "optional_rpa_live_probes_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC"),
         "default_scenario_pack": _status_from_static(static_checks, "default_scenario_pack"),
@@ -526,6 +555,7 @@ def build_verification_result() -> dict[str, Any]:
         "adding_new_tools_doc": _status_from_static(static_checks, "adding_new_tools_doc"),
         "tool_contract_checklist_doc": _status_from_static(static_checks, "tool_contract_checklist_doc"),
         "manifest_catalog_health": _status_from_static(static_checks, "manifest_catalog_health"),
+        "manifest_contract_strict": _status_from_static(static_checks, "manifest_contract_strict"),
         "public_quickstart_docs": _status_from_static(static_checks, "public_quickstart_docs"),
         "optional_rpa_isolation": _status_from_static(static_checks, "optional_rpa_isolation"),
         "config_secrets_hygiene": _status_from_static(static_checks, "config_secrets_hygiene"),
@@ -702,6 +732,7 @@ def build_verification_result() -> dict[str, Any]:
         "runtime_data/audit/release_evidence_pack.json",
         "runtime_data/tool_health/latest_tool_health.json",
     ])
+    checks["manifest_regression_gallery"] = _status_from_static(static_checks, "manifest_regression_gallery")
 
     if release_blockers:
         verdict = "NOT_READY"
@@ -1037,13 +1068,25 @@ def _check_optional_rpa_live_probes_excluded_from_rc() -> dict[str, Any]:
 
         capability = get_tool_capability("rpa_google_messages")
         snapshot = load_latest_tool_health_snapshot()
-        tool_ids = {str(item.get("tool_id", "")) for item in snapshot.get("results", []) if isinstance(item, dict)}
-        ok = capability.core_or_optional == "optional" and capability.rpa_live_probe_required and "rpa_google_messages" not in tool_ids
+        result = next(
+            (item for item in snapshot.get("results", []) if isinstance(item, dict) and str(item.get("tool_id", "")) == "rpa_google_messages"),
+            None,
+        )
+        live_rpa = bool(snapshot.get("live_rpa", False))
+        ok = capability.core_or_optional == "optional" and capability.rpa_live_probe_required and not live_rpa
+        if result is not None and str(result.get("status", "")) in {"live_verified", "failing"}:
+            ok = False
         return {
             "name": "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC",
             "status": "PASS" if ok else "FAIL",
             "tool_present": capability.tool_id,
-            "snapshot_tools": sorted(tool_ids),
+            "snapshot_tools": sorted(
+                str(item.get("tool_id", ""))
+                for item in snapshot.get("results", [])
+                if isinstance(item, dict)
+            ),
+            "live_rpa": live_rpa,
+            "tool_status": None if result is None else str(result.get("status", "")),
             "live_probe_required": capability.rpa_live_probe_required,
         }
     except Exception as exc:
@@ -1295,6 +1338,109 @@ def _check_toolpack_contract() -> dict[str, Any]:
     }
 
 
+def _check_tool_result_contract() -> dict[str, Any]:
+    try:
+        from runtime.manifest_loader import load_manifest
+        from runtime.taskframe import create_taskframe
+        from runtime.tool_registry import build_tool_registry
+        from runtime.tool_runner import ToolRunner
+        from src.toolpack_contract_runner import run_toolpack_contract_tests, validate_tool_result_shape
+        from src.toolpack_loader import discover_toolpacks
+
+        registry = build_tool_registry(include_external=True)
+        missing_output_type = [key for key, spec in registry.items() if not str(spec.get("output_type", "")).strip()]
+
+        empty_evidence_rejected = not validate_tool_result_shape(
+            {"ok": True, "type": "tool_result_contract_test", "data": {}, "evidence": {}, "error": ""},
+            "tool_result_contract_test",
+        )["ok"]
+        failed_result_requires_error = not validate_tool_result_shape(
+            {"ok": False, "type": "tool_result_contract_test", "data": {}, "evidence": {"tool": "tool", "mode": "dry_run", "source": "builtin", "operation": "validation", "input_refs": [], "output_ref": "tool_result_contract_test"}, "error": ""},
+            "tool_result_contract_test",
+        )["ok"]
+
+        demo_pack_result = run_toolpack_contract_tests(ROOT / "tool_packs" / "demo_echo" / "toolpack.json", include_manifest_smoke=False)
+        discovery = discover_toolpacks(include_disabled=False)
+        active_override_packs = [
+            str(item.get("toolpack_id", ""))
+            for item in discovery.get("toolpacks", [])
+            if bool(item.get("enabled", False)) and bool(item.get("allow_empty_evidence_for_contract_test", False))
+        ]
+
+        smoke_manifest = load_manifest("manifests/smoke_gmail_check.manifest.json")
+        smoke_frame = create_taskframe(smoke_manifest)
+        smoke_frame.state = "RUNNING"
+        smoke_step_result = ToolRunner(dry_run=True).run_step(smoke_frame, smoke_frame.steps[0])
+        smoke_tool_call = smoke_frame.tool_calls[-1] if smoke_frame.tool_calls else {}
+        smoke_ok = (
+            bool(smoke_step_result.ok)
+            and isinstance(smoke_step_result.evidence, dict)
+            and bool(smoke_step_result.evidence)
+            and bool(smoke_tool_call.get("evidence_ref", ""))
+            and bool(smoke_tool_call.get("mode", ""))
+            and bool(smoke_tool_call.get("source", ""))
+        )
+
+        pending_manifest = load_manifest("manifests/smoke_whatsapp_stage_send.manifest.json")
+        pending_frame = create_taskframe(pending_manifest)
+        pending_frame.state = "RUNNING"
+        staged = ToolRunner(dry_run=True).run_step(pending_frame, pending_frame.steps[0])
+        pending_result = {"ok": False, "evidence": {}, "tool_call": {}}
+        if bool(staged.ok) and pending_frame.pending_actions:
+            pending_action = pending_frame.pending_actions[0]
+            pending_action["status"] = "APPROVED"
+            pending_result_obj = ToolRunner(dry_run=True).execute_pending_action(pending_frame, pending_action)
+            pending_tool_call = pending_frame.tool_calls[-1] if pending_frame.tool_calls else {}
+            pending_result = {
+                "ok": bool(pending_result_obj.ok),
+                "evidence": pending_result_obj.evidence,
+                "tool_call": pending_tool_call,
+            }
+
+        pending_ok = bool(pending_result["ok"]) and isinstance(pending_result["evidence"], dict) and bool(pending_result["evidence"]) and bool(pending_result["tool_call"].get("evidence_ref", ""))
+        docs_text = TOOL_RESULT_CONTRACT_MD.read_text(encoding="utf-8").lower() if TOOL_RESULT_CONTRACT_MD.is_file() else ""
+        docs_ok = TOOL_RESULT_CONTRACT_MD.is_file() and all(
+            term in docs_text
+            for term in (
+                "canonical result shape",
+                "evidence shape",
+                "secrets",
+                "taskframe",
+                "pending_action_id",
+                "failure",
+            )
+        )
+
+        ok = (
+            not missing_output_type
+            and empty_evidence_rejected
+            and failed_result_requires_error
+            and bool(demo_pack_result.get("ok", False))
+            and not active_override_packs
+            and smoke_ok
+            and pending_ok
+            and docs_ok
+        )
+        return {
+            "name": "tool_result_contract",
+            "status": "PASS" if ok else "FAIL",
+            "missing_output_type": missing_output_type,
+            "empty_evidence_rejected": empty_evidence_rejected,
+            "failed_result_requires_error": failed_result_requires_error,
+            "demo_pack_result": demo_pack_result,
+            "active_override_packs": active_override_packs,
+            "smoke_result": {
+                "ok": bool(smoke_step_result.ok),
+                "evidence": smoke_step_result.evidence,
+                "tool_call": smoke_tool_call,
+            },
+            "pending_result": pending_result,
+            "docs_ok": docs_ok,
+        }
+    except Exception as exc:
+        return {"name": "tool_result_contract", "status": "FAIL", "error": str(exc)}
+
+
 def _check_google_workspace_toolpack_descriptor() -> dict[str, Any]:
     required_paths = [
         ROOT / "tool_packs" / "google_workspace" / "toolpack.json",
@@ -1393,6 +1539,137 @@ def _check_google_workspace_optional_boundary() -> dict[str, Any]:
         }
     except Exception as exc:
         return {"name": "google_workspace_optional_boundary", "status": "FAIL", "error": str(exc)}
+
+
+def _check_google_workspace_readonly_pack() -> dict[str, Any]:
+    missing: list[str] = []
+    toolpack_dir = ROOT / "tool_packs" / "google_workspace"
+    descriptor_path = toolpack_dir / "toolpack.json"
+    tool_paths = [
+        toolpack_dir / "toolpack.json",
+        toolpack_dir / "tools.py",
+        toolpack_dir / "health.py",
+        toolpack_dir / "auth.py",
+        toolpack_dir / "README.md",
+        toolpack_dir / "examples" / "smoke_gmail_list_unread.manifest.json",
+        toolpack_dir / "examples" / "smoke_calendar_search.manifest.json",
+        toolpack_dir / "examples" / "smoke_sheets_read_range.manifest.json",
+        ROOT / "docs" / "google_workspace_readonly_toolpack.md",
+        ROOT / "docs" / "google_workspace_setup.md",
+        ROOT / "docs" / "google_workspace_integration_tests.md",
+    ]
+    missing.extend(str(path.relative_to(ROOT)) for path in tool_paths if not path.is_file())
+    if missing:
+        return {"name": "google_workspace_readonly_pack", "status": "FAIL", "missing_paths": missing}
+
+    try:
+        descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))
+        tools = [item for item in descriptor.get("tools", []) if isinstance(item, dict)]
+        required_tools = {
+            "google/auth_status",
+            "gmail/list_unread",
+            "gmail/search",
+            "gmail/read_metadata",
+            "calendar/search",
+            "calendar/list_upcoming",
+            "sheets/read_range",
+        }
+        read_only_ok = all(
+            item.get("side_effect") is False
+            and item.get("requires_approval") is False
+            and item.get("allow_live") is True
+            and item.get("allow_live_side_effect") is False
+            and item.get("live_guardrail") == "read_only_google_workspace"
+            for item in tools
+        )
+        descriptor_ok = (
+            descriptor.get("toolpack_id") == "google_workspace"
+            and descriptor.get("risk_class") == "read_only_external_api"
+            and descriptor.get("health_supported") is True
+            and len(tools) == 7
+            and {str(item.get("tool", "")) for item in tools} == required_tools
+            and read_only_ok
+        )
+
+        from src.toolpack_loader import load_toolpack_descriptor, validate_toolpack_descriptor
+        from src.toolpack_lifecycle import evaluate_toolpack_lifecycle, write_lifecycle_report
+        from src.toolpack_loader import check_toolpack_health
+
+        validation = validate_toolpack_descriptor(load_toolpack_descriptor(descriptor_path), base_path=toolpack_dir)
+        health = check_toolpack_health("google_workspace", config_path=ROOT / "config" / "enabled_toolpacks.json", live=False)
+        lifecycle = evaluate_toolpack_lifecycle(
+            descriptor_path,
+            environment="dev",
+            config_path=ROOT / "config" / "enabled_toolpacks.json",
+            runtime_data_dir=ROOT / "runtime_data",
+        )
+
+        lifecycle_status = str(lifecycle.get("status", "")).strip()
+        lifecycle_ok = lifecycle_status in {"READY", "READY_WITH_WARNINGS", "GOVERNANCE_REQUIRED", "DISABLED", "UNTESTED"}
+        health_ok = bool(health.get("health_supported", False)) and str(health.get("status", "")).strip() in {"ready", "needs_auth", "missing_dependency", "live_verified", "failing"}
+
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_data_dir = Path(tmp) / "runtime_data"
+            runtime_data_dir.mkdir(parents=True, exist_ok=True)
+            written = write_lifecycle_report(lifecycle, runtime_data_dir=runtime_data_dir)
+            report_written = Path(written.get("json_path", "")).is_file() and Path(written.get("markdown_path", "")).is_file()
+
+        pyproject = ROOT / "pyproject.toml"
+        google_extra_optional = False
+        default_install_optional = False
+        if pyproject.is_file():
+            project = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+            optional_deps = dict(project.get("project", {}).get("optional-dependencies", {}))
+            google_extra = optional_deps.get("google", [])
+            google_extra_optional = isinstance(google_extra, list) and any("google-api-python-client" in str(item) for item in google_extra)
+            default_deps = project.get("project", {}).get("dependencies", [])
+            default_install_optional = all("google-api-python-client" not in str(item) for item in default_deps)
+
+        auth_result = None
+        try:
+            from tool_packs.google_workspace import auth
+
+            dependency_state = auth.google_dependency_state()
+            auth_files = auth.google_auth_files()
+            auth_result = {
+                "dependencies_ok": bool(dependency_state.get("ok")),
+                "credentials_file_present": bool(auth_files.get("credentials_file_present")),
+                "token_file_present": bool(auth_files.get("token_file_present")),
+            }
+        except Exception as exc:
+            auth_result = {"error": str(exc)}
+
+        if auth_result and auth_result.get("dependencies_ok") and (auth_result.get("credentials_file_present") or auth_result.get("token_file_present")):
+            expected_ready = lifecycle_status == "READY"
+        else:
+            expected_ready = lifecycle_status in {"GOVERNANCE_REQUIRED", "DISABLED", "READY_WITH_WARNINGS", "UNTESTED"}
+
+        ok = (
+            descriptor_ok
+            and validation.get("ok", False)
+            and health_ok
+            and lifecycle_ok
+            and report_written
+            and google_extra_optional
+            and default_install_optional
+            and expected_ready
+        )
+        return {
+            "name": "google_workspace_readonly_pack",
+            "status": "PASS" if ok else "FAIL",
+            "descriptor_ok": descriptor_ok,
+            "validation": validation,
+            "health": health,
+            "lifecycle": lifecycle,
+            "report_written": report_written,
+            "google_extra_optional": google_extra_optional,
+            "default_install_optional": default_install_optional,
+            "auth_result": auth_result,
+        }
+    except Exception as exc:
+        return {"name": "google_workspace_readonly_pack", "status": "FAIL", "error": str(exc)}
 
 
 def _check_toolpack_loader() -> dict[str, Any]:
@@ -1638,6 +1915,100 @@ def _check_manifest_catalog_health() -> dict[str, Any]:
         "health_status": result.get("status", "UNKNOWN"),
         "summary": summary,
         "report_ok": report_ok,
+        "json_path": str(report.get("json_path", "")),
+        "markdown_path": str(report.get("markdown_path", "")),
+        "error": str(report.get("error", "")),
+    }
+
+
+def _check_manifest_contract_strict() -> dict[str, Any]:
+    try:
+        from src.manifest_health import run_manifest_health_check, write_manifest_health_report
+    except Exception as exc:
+        return {"name": "manifest_contract_strict", "status": "FAIL", "error": str(exc)}
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        runtime_data_dir = Path(tmp) / "runtime_data"
+        runtime_data_dir.mkdir(parents=True, exist_ok=True)
+        result = run_manifest_health_check(
+            manifest_dir=ROOT / "manifests",
+            runtime_data_dir=runtime_data_dir,
+            include_smoke=False,
+            strict_contract=True,
+        )
+        report = write_manifest_health_report(result, runtime_data_dir=runtime_data_dir, report_name="manifest_health_strict_report")
+
+    summary = result.get("summary") if isinstance(result, dict) else {}
+    summary = summary if isinstance(summary, dict) else {}
+    strict_failed = int(summary.get("strict_failed", 0) or 0)
+    strict_warnings = int(summary.get("strict_warnings", 0) or 0)
+    report_ok = bool(report.get("ok"))
+    ok = bool(result.get("ok")) and report_ok and strict_failed == 0
+    return {
+        "name": "manifest_contract_strict",
+        "status": "PASS" if ok else "FAIL",
+        "health_status": result.get("status", "UNKNOWN"),
+        "summary": summary,
+        "report_ok": report_ok,
+        "strict_failed": strict_failed,
+        "strict_warnings": strict_warnings,
+        "json_path": str(report.get("json_path", "")),
+        "markdown_path": str(report.get("markdown_path", "")),
+        "error": str(report.get("error", "")),
+    }
+
+
+def _check_manifest_regression_gallery() -> dict[str, Any]:
+    try:
+        from src.manifest_regression_gallery import (
+            run_gallery,
+            validate_gallery_index,
+            write_gallery_report,
+        )
+    except Exception as exc:
+        return {"name": "manifest_regression_gallery", "status": "FAIL", "error": str(exc)}
+
+    gallery_dir = ROOT / "tests" / "fixtures" / "manifest_regression_gallery"
+    validation = validate_gallery_index(gallery_dir)
+    if not validation.get("ok", False):
+        return {
+            "name": "manifest_regression_gallery",
+            "status": "FAIL",
+            "gallery_dir": _display_path(gallery_dir),
+            "validation": validation,
+        }
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        runtime_data_dir = Path(tmp) / "runtime_data"
+        runtime_data_dir.mkdir(parents=True, exist_ok=True)
+        result = run_gallery(
+            gallery_dir=gallery_dir,
+            runtime_data_dir=runtime_data_dir,
+            strict=True,
+            smoke=True,
+            repair_guidance=True,
+            autofix=True,
+        )
+        report = write_gallery_report(result, runtime_data_dir=runtime_data_dir)
+
+    ok = bool(result.get("ok")) and bool(report.get("ok")) and result.get("failed", 0) == 0
+    return {
+        "name": "manifest_regression_gallery",
+        "status": "PASS" if ok else "FAIL",
+        "gallery_dir": _display_path(gallery_dir),
+        "validation": validation,
+        "result": {
+            "ok": result.get("ok", False),
+            "status": result.get("status", "UNKNOWN"),
+            "total_fixtures": result.get("total_fixtures", 0),
+            "passed": result.get("passed", 0),
+            "failed": result.get("failed", 0),
+        },
+        "report_ok": bool(report.get("ok")),
         "json_path": str(report.get("json_path", "")),
         "markdown_path": str(report.get("markdown_path", "")),
         "error": str(report.get("error", "")),
@@ -2035,6 +2406,317 @@ def _check_toolpack_governance() -> dict[str, Any]:
         "status": "PASS" if not missing else "FAIL",
         "missing": missing,
     }
+
+
+def _check_runtime_tool_governance() -> dict[str, Any]:
+    missing: list[str] = []
+    profile_path = ROOT / "config" / "runtime_profile.json"
+    doc_path = ROOT / "docs" / "runtime_tool_governance.md"
+    cli_ref = ROOT / "docs" / "cli_reference.md"
+    if not profile_path.is_file():
+        missing.append("config/runtime_profile.json")
+        profile = {"environment": "demo", "governance_enforced": True, "allow_unknown_toolpack_in_dev": False, "allow_high_risk_live_override": False}
+    else:
+        try:
+            profile = json.loads(profile_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            return {"name": "runtime_tool_governance", "status": "FAIL", "error": f"runtime profile parse failed: {exc}"}
+
+    if not doc_path.is_file():
+        missing.append("docs/runtime_tool_governance.md")
+    if not cli_ref.is_file():
+        missing.append("docs/cli_reference.md")
+    else:
+        cli_text = cli_ref.read_text(encoding="utf-8").lower()
+        for required in ("taskframe runtime profile", "taskframe runtime governance-check"):
+            if required not in cli_text:
+                missing.append(f"cli_reference_missing:{required}")
+
+    from runtime.runtime_environment import resolve_runtime_environment
+    from runtime.tool_governance import evaluate_tool_governance
+    from runtime.tool_health import check_all_tool_health
+
+    if str(profile.get("environment", "demo")).strip().lower() != "demo":
+        missing.append("default_environment_not_demo")
+    if not bool(profile.get("governance_enforced", False)):
+        missing.append("governance_enforcement_disabled")
+
+    core_result = evaluate_tool_governance(
+        "core/read",
+        {
+            "source": "builtin",
+            "side_effect": False,
+            "requires_approval": False,
+            "allow_live": True,
+            "allow_live_side_effect": False,
+            "toolpack_id": "",
+            "toolpack_classification": "core",
+        },
+        environment="demo",
+        dry_run=True,
+        live_requested=False,
+        operation="execute",
+    )
+    if not core_result.get("ok", False):
+        missing.append("core_tool_blocked_in_demo")
+
+    google_release_result = evaluate_tool_governance(
+        "gmail/search",
+        {
+            "source": "external_toolpack",
+            "side_effect": False,
+            "requires_approval": False,
+            "allow_live": True,
+            "allow_live_side_effect": False,
+            "toolpack_id": "google_workspace",
+            "toolpack_classification": "optional",
+        },
+        environment="release",
+        dry_run=False,
+        live_requested=True,
+        operation="execute",
+    )
+    if google_release_result.get("ok", False):
+        missing.append("google_workspace_live_allowed_in_release")
+
+    high_risk_result = evaluate_tool_governance(
+        "messages/extract_absa_transactions",
+        {
+            "source": "external_toolpack",
+            "side_effect": False,
+            "requires_approval": False,
+            "allow_live": True,
+            "allow_live_side_effect": False,
+            "toolpack_id": "messages",
+            "toolpack_classification": "high_risk",
+        },
+        environment="demo",
+        dry_run=False,
+        live_requested=True,
+        operation="execute",
+    )
+    if high_risk_result.get("ok", False):
+        missing.append("high_risk_demo_allowed")
+    high_risk_release_result = evaluate_tool_governance(
+        "messages/extract_absa_transactions",
+        {
+            "source": "external_toolpack",
+            "side_effect": False,
+            "requires_approval": False,
+            "allow_live": True,
+            "allow_live_side_effect": False,
+            "toolpack_id": "messages",
+            "toolpack_classification": "high_risk",
+        },
+        environment="release",
+        dry_run=False,
+        live_requested=True,
+        operation="execute",
+    )
+    if high_risk_release_result.get("ok", False):
+        missing.append("high_risk_release_allowed")
+
+    pending_allow = evaluate_tool_governance(
+        "sheet/prepare_write_rows",
+        {
+            "source": "builtin",
+            "side_effect": True,
+            "requires_approval": True,
+            "allow_live": False,
+            "allow_live_side_effect": False,
+            "toolpack_id": "",
+            "toolpack_classification": "core",
+        },
+        environment="dev",
+        dry_run=True,
+        live_requested=False,
+        operation="execute_pending_action",
+    )
+    pending_block = evaluate_tool_governance(
+        "sheet/prepare_write_rows",
+        {
+            "source": "builtin",
+            "side_effect": True,
+            "requires_approval": True,
+            "allow_live": False,
+            "allow_live_side_effect": False,
+            "toolpack_id": "",
+            "toolpack_classification": "core",
+        },
+        environment="dev",
+        dry_run=False,
+        live_requested=True,
+        operation="execute_pending_action",
+    )
+    if not pending_allow.get("ok", False):
+        missing.append("dry_run_pending_action_blocked")
+    if pending_block.get("ok", False):
+        missing.append("live_pending_action_allowed")
+
+    health_results = check_all_tool_health(include_optional=True, live_rpa=False)
+    rpa_health = next((item for item in health_results if item.tool_id == "rpa_google_messages"), None)
+    if not rpa_health or rpa_health.status != "disabled_optional":
+        missing.append("optional_rpa_live_probe_not_excluded")
+
+    try:
+        resolved_env = resolve_runtime_environment()
+    except Exception as exc:
+        missing.append(f"runtime_environment_resolution_failed:{exc}")
+        resolved_env = "demo"
+    if resolved_env != "demo":
+        missing.append(f"resolved_environment_not_demo:{resolved_env}")
+
+    return {
+        "name": "runtime_tool_governance",
+        "status": "PASS" if not missing else "FAIL",
+        "profile": profile,
+        "core_result": core_result,
+        "google_release_result": google_release_result,
+        "high_risk_result": high_risk_result,
+        "high_risk_release_result": high_risk_release_result,
+        "pending_allow": pending_allow,
+        "pending_block": pending_block,
+        "rpa_health": rpa_health.to_dict() if rpa_health else None,
+        "resolved_environment": resolved_env,
+        "missing": missing,
+    }
+
+
+def _check_toolpack_lifecycle() -> dict[str, Any]:
+    missing: list[str] = []
+
+    lifecycle_module = ROOT / "src" / "toolpack_lifecycle.py"
+    if not lifecycle_module.is_file():
+        missing.append("src/toolpack_lifecycle.py")
+
+    lifecycle_doc = ROOT / "docs" / "toolpack_lifecycle.md"
+    if not lifecycle_doc.is_file():
+        missing.append("docs/toolpack_lifecycle.md")
+    else:
+        doc_text = lifecycle_doc.read_text(encoding="utf-8").lower()
+        for required in (
+            "lifecycle stages",
+            "lifecycle statuses",
+            "governance",
+            "contract test",
+            "health check",
+            "enablement",
+            "evidence",
+        ):
+            if required not in doc_text:
+                missing.append(f"lifecycle_doc_missing:{required}")
+
+    cli_ref = ROOT / "docs" / "cli_reference.md"
+    if not cli_ref.is_file():
+        missing.append("docs/cli_reference.md")
+    else:
+        cli_text = cli_ref.read_text(encoding="utf-8").lower()
+        if "taskframe tools lifecycle" not in cli_text:
+            missing.append("cli_reference_missing:taskframe tools lifecycle")
+
+    try:
+        from src.toolpack_lifecycle import evaluate_toolpack_lifecycle, write_lifecycle_report
+        from src.toolpack_governance import get_all_policies
+
+        demo_result = evaluate_toolpack_lifecycle(
+            ROOT / "tool_packs" / "demo_echo" / "toolpack.json",
+            environment="dev",
+            config_path=ROOT / "config" / "enabled_toolpacks.json",
+            runtime_data_dir=ROOT / "runtime_data",
+        )
+        demo_ok = bool(demo_result.get("ok", False)) and demo_result.get("status") in {"READY", "READY_WITH_WARNINGS"}
+
+        core_ids = ["core_business", "core_memory", "core_llm_micro", "core_reports"]
+        core_demo_results = [
+            evaluate_toolpack_lifecycle(
+                ROOT / "tool_packs" / pack_id / "toolpack.json",
+                environment="demo",
+                config_path=ROOT / "config" / "enabled_toolpacks.json",
+                runtime_data_dir=ROOT / "runtime_data",
+            )
+            for pack_id in core_ids
+        ]
+        core_release_results = [
+            evaluate_toolpack_lifecycle(
+                ROOT / "tool_packs" / pack_id / "toolpack.json",
+                environment="release",
+                config_path=ROOT / "config" / "enabled_toolpacks.json",
+                runtime_data_dir=ROOT / "runtime_data",
+            )
+            for pack_id in core_ids
+        ]
+        core_ok = all(bool(item.get("ok", False)) and item.get("status") in {"READY", "READY_WITH_WARNINGS"} for item in core_demo_results + core_release_results)
+
+        policies = get_all_policies()
+        high_risk_ids = sorted(
+            {
+                str(entry.get("toolpack_id", "")).strip()
+                for entry in policies
+                if str(entry.get("classification", "")).strip() == "high_risk"
+            }
+        )
+        high_risk_failures: list[str] = []
+        for pack_id in high_risk_ids:
+            pack_path = ROOT / "tool_packs" / pack_id / "toolpack.json"
+            if not pack_path.is_file():
+                continue
+            for env in ("demo", "release"):
+                lifecycle = evaluate_toolpack_lifecycle(
+                    pack_path,
+                    environment=env,
+                    config_path=ROOT / "config" / "enabled_toolpacks.json",
+                    runtime_data_dir=ROOT / "runtime_data",
+                )
+                if lifecycle.get("status") in {"READY", "READY_WITH_WARNINGS"}:
+                    high_risk_failures.append(f"{pack_id}:{env}")
+
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_data_dir = Path(tmp) / "runtime_data"
+            runtime_data_dir.mkdir(parents=True, exist_ok=True)
+            write_result = write_lifecycle_report(demo_result, runtime_data_dir=runtime_data_dir)
+            report_written = Path(write_result.get("json_path", "")).is_file() and Path(write_result.get("markdown_path", "")).is_file()
+
+        cli_result = run_command(
+            "toolpack_lifecycle_cli",
+            [
+                "python",
+                "-m",
+                "src.taskframe_cli",
+                "tools",
+                "lifecycle",
+                "tool_packs/demo_echo/toolpack.json",
+                "--env",
+                "dev",
+                "--json",
+            ],
+            timeout_seconds=180,
+        )
+        cli_ok = cli_result["status"] == "PASS"
+        cli_payload_ok = False
+        if cli_ok:
+            try:
+                payload = json.loads(cli_result["stdout"])
+                cli_payload_ok = payload.get("ok", False) and payload.get("status") in {"READY", "READY_WITH_WARNINGS"}
+            except Exception:
+                cli_payload_ok = False
+
+        ok = demo_ok and core_ok and not high_risk_failures and report_written and cli_ok and cli_payload_ok and not missing
+        return {
+            "name": "toolpack_lifecycle",
+            "status": "PASS" if ok else "FAIL",
+            "demo_result": demo_result,
+            "core_demo_results": core_demo_results,
+            "core_release_results": core_release_results,
+            "high_risk_ids": high_risk_ids,
+            "high_risk_failures": high_risk_failures,
+            "cli": cli_result,
+            "report_written": report_written,
+            "missing": missing,
+        }
+    except Exception as exc:
+        return {"name": "toolpack_lifecycle", "status": "FAIL", "error": str(exc), "missing": missing}
 
 
 def _check_known_limitations_doc() -> dict[str, Any]:

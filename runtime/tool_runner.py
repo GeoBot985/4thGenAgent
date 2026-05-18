@@ -32,12 +32,50 @@ from .taskframe import (
     transition_state,
     utc_now,
 )
+from .runtime_environment import resolve_runtime_environment
+from .tool_governance import evaluate_tool_governance
+from .tool_result_contract import build_tool_evidence, normalize_evidence, validate_tool_result_contract
 from .tool_registry import coerce_tool_args, get_tool_spec, tool_key, validate_tool_args
 
 
 class ToolRunner:
-    def __init__(self, dry_run: bool = True):
+    def __init__(self, dry_run: bool = True, *, environment: str = ""):
         self.dry_run = dry_run
+        self.environment = resolve_runtime_environment(environment)
+
+    def _evaluate_governance(self, tool_key: str, tool_spec: dict, *, operation: str, live_requested: bool) -> dict[str, Any]:
+        environment = self._governance_environment(tool_spec, live_requested=live_requested)
+        decision = evaluate_tool_governance(
+            tool_key,
+            tool_spec,
+            environment=environment,
+            dry_run=self.dry_run,
+            live_requested=live_requested,
+            operation=operation,
+        )
+        decision["environment"] = environment
+        return decision
+
+    def _governance_environment(self, tool_spec: dict, *, live_requested: bool) -> str:
+        if self.environment != "demo" or not live_requested:
+            return self.environment
+        if bool(tool_spec.get("side_effect", False)):
+            return self.environment
+        if str(tool_spec.get("source", "")).strip() != "external_toolpack":
+            return self.environment
+        classification = str(
+            tool_spec.get("toolpack_core_or_optional", "")
+            or tool_spec.get("classification", "")
+            or ""
+        ).strip().lower()
+        enabled_environments = {
+            str(item).strip().lower()
+            for item in tool_spec.get("enabled_environments", [])
+            if str(item).strip()
+        }
+        if classification == "optional" and "dev" in enabled_environments:
+            return "dev"
+        return self.environment
 
     def run_step(self, frame: TaskFrame, step: StepRuntime) -> ToolResult:
         step.status = "RUNNING"
@@ -145,11 +183,66 @@ class ToolRunner:
                 "source": str(tool_spec.get("source", "legacy_fallback")),
                 "toolpack_id": str(tool_spec.get("toolpack_id", "")),
                 "toolpack_name": str(tool_spec.get("toolpack_name", "")),
+                "toolpack_version": str(tool_spec.get("toolpack_version", "")),
+                "operation": _infer_operation(tool_spec, dry_run=self.dry_run),
             }
         )
 
+        governance_operation = "stage_pending_action" if should_stage_command(step.kind, tool_spec) else "execute"
+        governance_live_requested = False if governance_operation == "stage_pending_action" else not self.dry_run
+        governance = self._evaluate_governance(
+            key,
+            tool_spec,
+            operation=governance_operation,
+            live_requested=governance_live_requested,
+        )
+        tool_call["governance"] = governance
+        if not governance.get("ok", False):
+            message = "Tool blocked by governance policy."
+            step.status = "FAILED"
+            step.error = message
+            step.last_error = message
+            frame.state = "FAILED_EXECUTION"
+            add_audit_event(
+                frame,
+                "TOOL_GOVERNANCE_BLOCKED",
+                governance.get("reason", message),
+                {
+                    "step_id": step.step_id,
+                    "tool": key,
+                    "decision": governance.get("decision", "BLOCK"),
+                    "environment": self.environment,
+                    "classification": governance.get("classification", ""),
+                },
+            )
+            record_error(
+                frame,
+                "tool_governance_blocked",
+                governance.get("reason", message),
+                {
+                    "step_id": step.step_id,
+                    "tool": key,
+                    "decision": governance.get("decision", "BLOCK"),
+                    "environment": self.environment,
+                },
+            )
+            result = _blocked_governance_tool_result(key, tool_spec, governance, output_alias=step.output_alias or "")
+            _finalize_tool_call(
+                tool_call,
+                ok=False,
+                result_type=result.type,
+                error=result.error,
+                dry_run=self.dry_run,
+                live=not self.dry_run,
+                source=str(tool_spec.get("source", "legacy_fallback")),
+                mode="dry_run" if self.dry_run else "live",
+                operation=governance_operation,
+            )
+            return result
+
         if should_stage_command(step.kind, tool_spec):
             pending_action = create_pending_action(frame, step, tool_spec, coerced_args)
+            pending_action["governance"] = _pending_governance_record(governance)
             frame.pending_actions.append(pending_action)
             step.result_ref = pending_action["action_id"]
             step.status = "STAGED"
@@ -189,7 +282,7 @@ class ToolRunner:
             try:
                 func = import_tool_function(tool_spec["module"], tool_spec["function"])
                 raw_result = call_tool_function(func, coerced_args)
-                result = normalize_tool_result(raw_result, key, tool_spec, coerced_args, dry_run=True)
+                result = normalize_tool_result(raw_result, key, tool_spec, coerced_args, dry_run=True, output_alias=step.output_alias or "")
             except (ToolImportError, ToolFunctionError, ToolResultNormalizationError) as exc:
                 result = tool_result_error(
                     tool_spec["output_type"],
@@ -402,6 +495,24 @@ class ToolRunner:
     ) -> ToolResult:
         if self.dry_run:
             raise LiveToolExecutionBlocked("Live tool execution is not available when ToolRunner.dry_run is True.")
+
+        governance = self._evaluate_governance(tool_key, tool_spec, operation="execute", live_requested=True)
+        if not governance.get("ok", False):
+            message = governance.get("reason", "Tool blocked by governance policy.")
+            add_audit_event(
+                frame,
+                "TOOL_GOVERNANCE_BLOCKED",
+                message,
+                {
+                    "step_id": step.step_id,
+                    "tool": tool_key,
+                    "decision": governance.get("decision", "BLOCK"),
+                    "environment": self.environment,
+                    "classification": governance.get("classification", ""),
+                },
+            )
+            return _blocked_governance_tool_result(tool_key, tool_spec, governance, output_alias=step.output_alias or "")
+
         if tool_spec.get("side_effect") or not tool_spec.get("allow_live", False):
             raise LiveToolExecutionBlocked(f"Live execution is blocked for tool: {tool_key}")
 
@@ -418,7 +529,7 @@ class ToolRunner:
         try:
             func = import_tool_function(tool_spec["module"], tool_spec["function"])
             raw_result = call_tool_function(func, args)
-            result = normalize_tool_result(raw_result, tool_key, tool_spec, args, dry_run=False)
+            result = normalize_tool_result(raw_result, tool_key, tool_spec, args, dry_run=False, output_alias=step.output_alias or "")
         except (ToolImportError, ToolFunctionError, ToolResultNormalizationError) as exc:
             failure = tool_result_error(
                 tool_spec["output_type"],
@@ -507,13 +618,8 @@ class ToolRunner:
             add_audit_event(frame, "PENDING_ACTION_FAILED", message, {"action_id": action_id, "tool": tool})
             return tool_result_error("pending_action_failed", message, metadata={"action_id": action_id, "tool": tool})
 
-        lookup_tool = tool if isinstance(tool, str) and "/" in tool else None
         try:
-            if lookup_tool:
-                lookup_namespace, lookup_action = lookup_tool.split("/", 1)
-                tool_spec = get_tool_spec(lookup_namespace, lookup_action)
-            else:
-                tool_spec = get_tool_spec(namespace, action_name)
+            tool_spec = get_tool_spec(namespace, action_name)
         except ToolNotRegisteredError as exc:
             message = str(exc)
             pending_action["status"] = "FAILED"
@@ -521,6 +627,39 @@ class ToolRunner:
             record_error(frame, "tool_not_registered", message, {"action_id": action_id, "tool": tool})
             add_audit_event(frame, "PENDING_ACTION_FAILED", message, {"action_id": action_id, "tool": tool})
             return tool_result_error("pending_action_failed", message, metadata={"action_id": action_id, "tool": tool})
+
+        governance = self._evaluate_governance(
+            tool,
+            tool_spec,
+            operation="execute_pending_action",
+            live_requested=not self.dry_run,
+        )
+        pending_action["governance"] = _pending_governance_record(governance)
+        if not governance.get("ok", False):
+            message = "Tool blocked by governance policy."
+            pending_action["status"] = "FAILED"
+            pending_action["last_error"] = message
+            frame.state = "FAILED_EXECUTION"
+            record_error(
+                frame,
+                "pending_action_governance_blocked",
+                governance.get("reason", message),
+                {"action_id": action_id, "tool": tool, "environment": self.environment},
+            )
+            add_audit_event(
+                frame,
+                "PENDING_ACTION_GOVERNANCE_BLOCKED",
+                governance.get("reason", message),
+                {
+                    "action_id": action_id,
+                    "tool": tool,
+                    "decision": governance.get("decision", "BLOCK"),
+                    "environment": self.environment,
+                },
+            )
+            return _blocked_governance_tool_result(tool, tool_spec, governance, output_alias=str(output_alias or ""))
+
+        lookup_tool = tool if isinstance(tool, str) and "/" in tool else None
 
         if output_alias is None or output_alias == "":
             message = "Pending action missing output alias."
@@ -551,8 +690,8 @@ class ToolRunner:
         add_audit_event(
             frame,
             "PENDING_ACTION_EXECUTING",
-            "Pending action executing in dry-run mode.",
-            {"action_id": action_id, "tool": tool, "output_alias": output_alias},
+            "Pending action executing.",
+            {"action_id": action_id, "tool": tool, "output_alias": output_alias, "environment": self.environment},
         )
 
         result = None
@@ -562,7 +701,7 @@ class ToolRunner:
                 call_args = dict(exec_args)
                 call_args["dry_run"] = True
                 raw_result = call_tool_function(func, call_args)
-                result = normalize_tool_result(raw_result, tool, tool_spec, call_args, dry_run=True)
+                result = normalize_tool_result(raw_result, tool, tool_spec, call_args, dry_run=True, output_alias=output_alias or "")
             except (ToolImportError, ToolFunctionError, ToolResultNormalizationError) as exc:
                 result = tool_result_error(
                     tool_spec["output_type"],
@@ -588,15 +727,23 @@ class ToolRunner:
                     "args": exec_args,
                 },
                 metadata={
+                    "tool": tool,
+                    "namespace": namespace,
+                    "action": action_name,
+                    "source": str(tool_spec.get("source", "builtin")),
+                    "mode": "dry_run",
+                    "operation": "prepare",
+                    "output_ref": output_alias,
                     "action_id": action_id,
                     "side_effect": True,
                     "requires_approval": True,
                     "executed_from_pending_action": True,
+                    "governance": pending_action.get("governance", {}),
                 },
             )
 
         if output_alias:
-            set_output(frame, output_alias, result.data)
+            set_output(frame, output_alias, _decorate_pending_action_output(result.data, pending_action, dry_run=True))
 
         executed_record = {
             "action_id": action_id,
@@ -610,6 +757,7 @@ class ToolRunner:
             "dry_run": True,
             "result_type": tool_spec["output_type"],
             "executed_at": utc_now(),
+            "governance": pending_action.get("governance", {}),
         }
         frame.executed_actions.append(executed_record)
         frame.tool_calls.append(
@@ -620,6 +768,10 @@ class ToolRunner:
                 "action": action_name,
                 "output_alias": output_alias,
                 "command": pending_action.get("tool"),
+                "input_summary": {
+                    "arg_count": len(exec_args),
+                    "arg_keys": sorted(exec_args.keys()),
+                },
                 "created_at": utc_now(),
                 "action_id": action_id,
                 "phase": "approved_execution",
@@ -629,8 +781,13 @@ class ToolRunner:
                 "result_type": tool_spec["output_type"],
                 "dry_run": True,
                 "live": False,
+                "mode": "dry_run",
+                "source": str(tool_spec.get("source", "legacy_fallback")),
+                "operation": _infer_operation(tool_spec, dry_run=True),
+                "evidence_ref": f"evidence_{uuid4().hex}",
                 "error": "",
                 "timestamp": utc_now(),
+                "governance": pending_action.get("governance", {}),
             }
         )
         transition_pending_action(pending_action, "EXECUTED")
@@ -652,8 +809,6 @@ class ToolRunner:
         pending_action: dict[str, Any],
         runtime_live_mode: bool = False,
     ) -> ToolResult:
-        if self.dry_run:
-            raise LiveExecutionBlocked("Live pending-action execution requires ToolRunner.dry_run=False.")
         action_id = pending_action.get("action_id", "")
         tool = pending_action.get("tool")
         output_alias = pending_action.get("output_alias")
@@ -708,6 +863,9 @@ class ToolRunner:
             )
             return tool_result_error("pending_action_failed", message, metadata={"action_id": action_id, "tool": tool})
 
+        if self.dry_run:
+            raise LiveExecutionBlocked("Live pending-action execution requires ToolRunner.dry_run=False.")
+
         lookup_tool = tool if isinstance(tool, str) and "/" in tool else None
         try:
             if lookup_tool:
@@ -736,6 +894,37 @@ class ToolRunner:
                 },
             )
             return tool_result_error("pending_action_failed", message, metadata={"action_id": action_id, "tool": tool})
+
+        governance = self._evaluate_governance(
+            tool,
+            tool_spec,
+            operation="execute_pending_action",
+            live_requested=True,
+        )
+        pending_action["governance"] = _pending_governance_record(governance)
+        if not governance.get("ok", False):
+            message = "Tool blocked by governance policy."
+            pending_action["status"] = "FAILED"
+            pending_action["last_error"] = message
+            frame.state = "FAILED_EXECUTION"
+            record_error(
+                frame,
+                "pending_action_governance_blocked",
+                governance.get("reason", message),
+                {"action_id": action_id, "tool": tool, "environment": self.environment},
+            )
+            add_audit_event(
+                frame,
+                "PENDING_ACTION_GOVERNANCE_BLOCKED",
+                governance.get("reason", message),
+                {
+                    "action_id": action_id,
+                    "tool": tool,
+                    "decision": governance.get("decision", "BLOCK"),
+                    "environment": self.environment,
+                },
+            )
+            return _blocked_governance_tool_result(tool, tool_spec, governance, output_alias=str(output_alias or ""))
 
         add_audit_event(
             frame,
@@ -934,7 +1123,7 @@ class ToolRunner:
             if "dry_run" in set(tool_spec.get("optional_args", [])):
                 live_args["dry_run"] = False
             raw_result = call_tool_function(func, live_args)
-            normalized = normalize_tool_result(raw_result, tool, tool_spec, live_args, dry_run=False)
+            normalized = normalize_tool_result(raw_result, tool, tool_spec, live_args, dry_run=False, output_alias=output_alias or "")
             if not normalized.ok:
                 raise ToolFunctionError(normalized.error or "Live tool returned failure.")
             live_data = {
@@ -1069,6 +1258,7 @@ class ToolRunner:
             "guardrail": guardrail_name,
             "result_type": tool_spec["output_type"],
             "executed_at": utc_now(),
+            "governance": pending_action.get("governance", {}),
         }
         frame.executed_actions.append(executed_record)
         frame.tool_calls.append(
@@ -1090,6 +1280,7 @@ class ToolRunner:
                 "live": True,
                 "error": "",
                 "timestamp": utc_now(),
+                "governance": pending_action.get("governance", {}),
             }
         )
         transition_pending_action(pending_action, "EXECUTED")
@@ -1146,22 +1337,71 @@ def normalize_tool_result(
     tool_spec: dict,
     args: dict[str, object],
     dry_run: bool,
+    output_alias: str = "",
 ) -> ToolResult:
+    source = str(tool_spec.get("source", "legacy_fallback"))
+    mode = "dry_run" if dry_run else "live"
+    operation = _infer_operation(tool_spec, dry_run=dry_run)
     metadata_base = {
         "tool": tool_key,
+        "namespace": str(tool_spec.get("namespace", "")),
+        "action": str(tool_spec.get("action", "")),
         "function": tool_spec["function"],
-        "live": not dry_run,
+        "source": source,
+        "toolpack_id": str(tool_spec.get("toolpack_id", "")),
+        "toolpack_name": str(tool_spec.get("toolpack_name", "")),
+        "toolpack_version": str(tool_spec.get("toolpack_version", "")),
+        "toolpack_path": str(tool_spec.get("toolpack_path", "")),
         "dry_run": dry_run,
+        "live": not dry_run,
+        "mode": mode,
+        "operation": operation,
+        "output_alias": output_alias,
+        "result_type": str(tool_spec.get("output_type", "")),
+        "warnings": [],
     }
+    fallback_evidence = build_tool_evidence(
+        tool=tool_key,
+        mode=mode,
+        source=source,
+        operation=operation,
+        input_refs=list(_input_refs_from_args(args)),
+        output_ref=output_alias or tool_spec.get("output_type", ""),
+        extra={
+            "function": tool_spec["function"],
+            "namespace": str(tool_spec.get("namespace", "")),
+            "action": str(tool_spec.get("action", "")),
+            "toolpack_id": str(tool_spec.get("toolpack_id", "")),
+        },
+    )
 
     if isinstance(result, ToolResult):
         metadata = dict(result.metadata)
+        existing_warnings = list(metadata.get("warnings", [])) if isinstance(metadata.get("warnings", []), list) else []
         metadata.update(metadata_base)
+        evidence = normalize_evidence(result.evidence, fallback=fallback_evidence)
+        metadata["warnings"] = existing_warnings + list(metadata.get("warnings", []))
+        validation = validate_tool_result_contract(
+            {
+                "ok": result.ok,
+                "type": result.type,
+                "data": result.data,
+                "evidence": evidence,
+                "error": result.error,
+                "metadata": metadata,
+                "raw": result.raw,
+            },
+            expected_type=str(tool_spec.get("output_type", "")),
+            require_evidence=True,
+        )
+        if not validation["ok"]:
+            metadata.setdefault("warnings", [])
+            metadata["warnings"].extend(validation["errors"])
         return ToolResult(
             ok=result.ok,
             type=result.type,
             data=result.data,
-            evidence=list(result.evidence),
+            evidence=evidence,
             error=result.error,
             raw=result.raw,
             metadata=metadata,
@@ -1180,14 +1420,31 @@ def normalize_tool_result(
             }
         error = getattr(result, "error", "") or ""
         ok = bool(getattr(result, "ok"))
+        metadata = dict(metadata_base)
+        metadata["warnings"] = [*metadata.get("warnings", []), "workspace_result_normalized"]
+        validation = validate_tool_result_contract(
+            {
+                "ok": ok,
+                "type": tool_spec["output_type"],
+                "data": data,
+                "evidence": fallback_evidence,
+                "error": error,
+                "metadata": metadata,
+                "raw": result,
+            },
+            expected_type=str(tool_spec.get("output_type", "")),
+            require_evidence=True,
+        )
+        if not validation["ok"]:
+            metadata["warnings"].extend(validation["errors"])
         return ToolResult(
             ok=ok,
             type=tool_spec["output_type"],
             data=data,
-            evidence=[],
+            evidence=fallback_evidence,
             error=error,
             raw=result,
-            metadata=metadata_base,
+            metadata=metadata,
         )
 
     if isinstance(result, dict):
@@ -1196,48 +1453,71 @@ def normalize_tool_result(
             error = str(result.get("error") or result.get("message") or "")
             metadata = dict(metadata_base)
             metadata["tool_result"] = dict(result)
+            metadata["warnings"] = [*metadata.get("warnings", []), "canonical_dict_normalized"]
             if not ok_value:
                 metadata["error_type"] = error or "ToolResultError"
                 metadata["tag"] = "validation" if error else "unknown"
+            evidence = normalize_evidence(result.get("evidence"), fallback=fallback_evidence)
+            validation = validate_tool_result_contract(
+                {
+                    "ok": ok_value,
+                    "type": str(result.get("type", tool_spec["output_type"])),
+                    "data": result,
+                    "evidence": evidence,
+                    "error": error,
+                    "metadata": metadata,
+                    "raw": result,
+                },
+                expected_type=str(tool_spec.get("output_type", "")),
+                require_evidence=True,
+            )
+            if not validation["ok"]:
+                metadata["warnings"].extend(validation["errors"])
             return ToolResult(
                 ok=ok_value,
-                type=tool_spec["output_type"],
+                type=str(result.get("type", tool_spec["output_type"])),
                 data=result,
-                evidence=[],
+                evidence=evidence,
                 error=error,
                 raw=result,
                 metadata=metadata,
             )
+        metadata = dict(metadata_base)
+        metadata["warnings"] = [*metadata.get("warnings", []), "plain_dict_normalized"]
         return ToolResult(
             ok=True,
             type=tool_spec["output_type"],
             data=result,
-            evidence=[],
+            evidence=fallback_evidence,
             error="",
             raw=result,
-            metadata=metadata_base,
+            metadata=metadata,
         )
 
     if result is None or isinstance(result, (list, str, bool, int, float)):
+        metadata = dict(metadata_base)
+        metadata["warnings"] = [*metadata.get("warnings", []), f"{type(result).__name__}_normalized"]
         return ToolResult(
             ok=True,
             type=tool_spec["output_type"],
             data=result,
-            evidence=[],
+            evidence=fallback_evidence,
             error="",
             raw=result,
-            metadata=metadata_base,
+            metadata=metadata,
         )
 
     if _is_simple_object(result):
+        metadata = dict(metadata_base)
+        metadata["warnings"] = [*metadata.get("warnings", []), f"{type(result).__name__}_normalized"]
         return ToolResult(
             ok=True,
             type=tool_spec["output_type"],
             data=result,
-            evidence=[],
+            evidence=fallback_evidence,
             error="",
             raw=result,
-            metadata=metadata_base,
+            metadata=metadata,
         )
 
     raise ToolResultNormalizationError(
@@ -1311,6 +1591,13 @@ def create_pending_action(
         "side_effect": True,
         "requires_approval": True,
         "created_at": utc_now(),
+        **(
+            {"sent": False}
+            if tool in {"customer/prepare_message_action", "supplier/prepare_message_action"}
+            else {"written": False}
+            if tool == "sheet/prepare_write_rows"
+            else {}
+        ),
     }
 
 
@@ -1328,6 +1615,13 @@ def dry_run_tool_result(
             "args": args,
         },
         metadata={
+            "tool": tool_key,
+            "namespace": str(tool_spec.get("namespace", "")),
+            "action": str(tool_spec.get("action", "")),
+            "source": str(tool_spec.get("source", "builtin")),
+            "mode": "dry_run",
+            "operation": "prepare" if tool_spec.get("side_effect") else "read",
+            "output_ref": str(tool_spec.get("output_type", "")),
             "side_effect": tool_spec["side_effect"],
             "requires_approval": tool_spec["requires_approval"],
         },
@@ -1346,6 +1640,7 @@ def _make_tool_call_record(
     dry_run: bool,
     live: bool,
 ) -> dict[str, Any]:
+    mode = "dry_run" if dry_run else "live"
     return {
         "step_id": step.step_id,
         "kind": step.kind,
@@ -1353,6 +1648,10 @@ def _make_tool_call_record(
         "action": step.action,
         "output_alias": step.output_alias,
         "command": step.command,
+        "input_summary": {
+            "arg_count": len(args),
+            "arg_keys": sorted(args.keys()),
+        },
         "created_at": utc_now(),
         "tool": tool,
         "function": function,
@@ -1361,6 +1660,10 @@ def _make_tool_call_record(
         "result_type": "",
         "dry_run": dry_run,
         "live": live,
+        "mode": mode,
+        "source": "unknown",
+        "operation": "validation",
+        "evidence_ref": f"evidence_{uuid4().hex}",
         "error": "",
         "timestamp": utc_now(),
     }
@@ -1374,6 +1677,10 @@ def _finalize_tool_call(
     error: str,
     dry_run: bool,
     live: bool,
+    evidence_ref: str = "",
+    source: str = "",
+    mode: str = "",
+    operation: str = "",
 ) -> None:
     tool_call.update(
         {
@@ -1381,6 +1688,10 @@ def _finalize_tool_call(
             "result_type": result_type,
             "dry_run": dry_run,
             "live": live,
+            "mode": mode or tool_call.get("mode", ""),
+            "source": source or tool_call.get("source", ""),
+            "operation": operation or tool_call.get("operation", ""),
+            "evidence_ref": evidence_ref or tool_call.get("evidence_ref", ""),
             "error": error,
             "timestamp": utc_now(),
         }
@@ -1393,3 +1704,100 @@ def _is_workspace_result_like(result: object) -> bool:
 
 def _is_simple_object(result: object) -> bool:
     return hasattr(result, "__dict__") and not isinstance(result, type)
+
+
+def _infer_operation(tool_spec: dict, *, dry_run: bool) -> str:
+    if tool_spec.get("side_effect"):
+        return "prepare"
+    if dry_run and tool_spec.get("dry_run_executes"):
+        return "local_static_check"
+    return "read" if not dry_run else "validation"
+
+
+def _input_refs_from_args(args: dict[str, object]) -> list[str]:
+    refs: list[str] = []
+    for key in sorted(args.keys()):
+        value = args.get(key)
+        if isinstance(value, str) and value.strip():
+            refs.append(f"{key}={value.strip()[:80]}")
+        elif isinstance(value, dict):
+            refs.append(f"{key}.dict")
+        elif isinstance(value, list):
+            refs.append(f"{key}.list:{len(value)}")
+        elif value is not None:
+            refs.append(f"{key}={value}")
+    return refs
+
+
+def _pending_governance_record(decision: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "toolpack_id": str(decision.get("toolpack_id", "")),
+        "classification": str(decision.get("classification", "unknown")),
+        "environment": str(decision.get("environment", "")),
+        "decision": str(decision.get("decision", "UNKNOWN")),
+    }
+
+
+def _decorate_pending_action_output(data: Any, pending_action: dict[str, Any], *, dry_run: bool) -> Any:
+    if not isinstance(data, dict):
+        return data
+    payload = dict(data)
+    if "sent" in pending_action:
+        payload["sent"] = bool(pending_action.get("sent", False))
+    if "written" in pending_action:
+        payload["written"] = bool(pending_action.get("written", False))
+    payload.setdefault("dry_run", dry_run)
+    payload.setdefault("approved_execution", True)
+    return payload
+
+
+def _blocked_governance_tool_result(
+    tool_key: str,
+    tool_spec: dict,
+    decision: dict[str, Any],
+    *,
+    output_alias: str = "",
+) -> ToolResult:
+    evidence = build_tool_evidence(
+        tool=tool_key,
+        mode="dry_run" if decision.get("dry_run", True) else "live",
+        source=str(tool_spec.get("source", "builtin")),
+        operation="governance_check",
+        input_refs=[],
+        output_ref=output_alias or str(tool_spec.get("output_type", "")),
+        extra={
+            "environment": str(decision.get("environment", "")),
+            "decision": str(decision.get("decision", "BLOCK")),
+            "classification": str(decision.get("classification", "unknown")),
+            "toolpack_id": str(decision.get("toolpack_id", "")),
+            "policy": dict(decision.get("policy", {})),
+        },
+    )
+    return ToolResult(
+        ok=False,
+        type="tool_governance_blocked",
+        data={
+            "tool": tool_key,
+            "decision": dict(decision),
+        },
+        evidence=evidence,
+        error="Tool blocked by governance policy.",
+        raw=None,
+        metadata={
+            "tool": tool_key,
+            "namespace": str(tool_spec.get("namespace", "")),
+            "action": str(tool_spec.get("action", "")),
+            "source": str(tool_spec.get("source", "builtin")),
+            "toolpack_id": str(tool_spec.get("toolpack_id", "")),
+            "toolpack_name": str(tool_spec.get("toolpack_name", "")),
+            "toolpack_version": str(tool_spec.get("toolpack_version", "")),
+            "dry_run": bool(decision.get("dry_run", True)),
+            "live": bool(decision.get("live_requested", False)),
+            "mode": "dry_run" if decision.get("dry_run", True) else "live",
+            "operation": "governance_check",
+            "output_alias": output_alias,
+            "warnings": list(decision.get("warnings", [])),
+            "errors": list(decision.get("errors", [])),
+            "governance": dict(decision),
+        },
+    )

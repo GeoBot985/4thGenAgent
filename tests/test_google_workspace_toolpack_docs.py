@@ -24,3 +24,20 @@ def test_cli_reference_documents_taskframe_tools_google_workspace_commands() -> 
 def test_tool_contract_checklist_mentions_toolpack_json() -> None:
     text = Path("docs/tool_contract_checklist.md").read_text(encoding="utf-8")
     assert "toolpack.json" in text
+
+
+def test_google_workspace_docs_warn_read_only_only() -> None:
+    text = Path("docs/google_workspace_readonly_toolpack.md").read_text(encoding="utf-8").lower()
+    assert "read-only" in text
+    assert "no send, create, update, delete, move, archive, or write operations" in text
+
+
+def test_google_workspace_docs_explain_credentials_are_optional() -> None:
+    text = Path("docs/google_workspace_setup.md").read_text(encoding="utf-8").lower()
+    assert "clean clone" in text or "clean-clone" in text
+    assert "optional" in text
+
+
+def test_google_workspace_docs_explain_live_probe_is_manual() -> None:
+    text = Path("docs/google_workspace_readonly_toolpack.md").read_text(encoding="utf-8").lower()
+    assert "live probe is manual" in text

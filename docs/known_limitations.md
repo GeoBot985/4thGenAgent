@@ -31,4 +31,4 @@ It is not presented as production-ready for unsupervised live operations.
 - Expanded business scenario packs.
 
 ## Verifier Notes
-- None recorded by the release verifier.
+- example

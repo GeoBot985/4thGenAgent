@@ -193,6 +193,8 @@ def list_tool_capabilities() -> list[ToolCapability]:
                 toolpack_id=str(item.get("toolpack_id", "")),
                 tool_count=int(item.get("tool_count", 0) or 0),
                 limitations=list(item.get("limitations", [])),
+                # Governance metadata is carried in the dict returned by build_external_tool_capabilities.
+                # ToolCapability does not model it directly, but it remains available via to_dict() callers.
             )
         )
     return capabilities

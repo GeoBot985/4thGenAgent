@@ -1,0 +1,37 @@
+{
+  "manifest_id": "gallery.completed_with_unresolved_pending_action",
+  "name": "Completed With Unresolved Pending Action",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "echo_message",
+      "kind": "tool",
+      "command": "[t:test/echo -> result] message=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "result_exists",
+      "type": "output_exists",
+      "output": "result"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["result"],
+    "success_pending_actions": ["customer_reply_send"],
+    "allow_pending_approval": true,
+    "required_state": "COMPLETED"
+  },
+  "side_effect_policy": {
+    "has_side_effects": true,
+    "requires_approval": true,
+    "live_execution_allowed": false,
+    "allowed_side_effect_tools": ["customer/prepare_message_action"]
+  }
+}

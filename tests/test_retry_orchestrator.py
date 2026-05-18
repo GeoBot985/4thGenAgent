@@ -401,7 +401,7 @@ class RetryOrchestratorTests(unittest.TestCase):
             def __call__(self):
                 self.calls += 1
                 if self.calls == 1:
-                    time.sleep(0.05)
+                    time.sleep(0.2)
                 return {"ok": True, "calls": self.calls}
 
         self._install_fake_module(module_name, slow_then_fast=SlowThenFast())
@@ -462,7 +462,7 @@ class RetryOrchestratorTests(unittest.TestCase):
             def __call__(self):
                 self.calls += 1
                 if self.calls == 1:
-                    time.sleep(0.05)
+                    time.sleep(0.2)
                 return {"ok": True, "calls": self.calls}
 
         self._install_fake_module(module_name, slow_then_fast=SlowThenFast())
@@ -632,7 +632,7 @@ class RetryOrchestratorTests(unittest.TestCase):
             def __call__(self):
                 self.calls += 1
                 if self.calls == 1:
-                    time.sleep(0.05)
+                    time.sleep(0.2)
                 return {"ok": True, "calls": self.calls}
 
         self._install_fake_module(module_name, slow_then_fast=SlowThenFast())

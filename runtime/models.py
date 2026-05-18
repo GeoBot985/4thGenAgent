@@ -75,7 +75,7 @@ class ToolResult:
     ok: bool
     type: str
     data: Any = None
-    evidence: list[dict[str, Any]] = field(default_factory=list)
+    evidence: dict[str, Any] = field(default_factory=dict)
     error: str = ""
     raw: Any = None
     metadata: dict[str, Any] = field(default_factory=dict)

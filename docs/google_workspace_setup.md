@@ -28,6 +28,8 @@ Use the default local health path first:
 python -m src.taskframe_cli tools health google_workspace
 ```
 
+The live probe is manual. It is only appropriate when Google credentials are configured and you explicitly want to verify live read access.
+
 ## Optional live-read integration tests
 
 Set the integration flag and provide credentials before running the live-read tests.
@@ -39,3 +41,5 @@ Set the integration flag and provide credentials before running the live-read te
 - write Sheets data;
 - access Drive write operations;
 - expose OAuth token contents.
+
+Clean-clone releases do not require Google credentials because the pack stays optional and read-only.

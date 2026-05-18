@@ -1,0 +1,34 @@
+{
+  "manifest_id": "customer.status_llm_e2e",
+  "name": "Valid Event Pending Action",
+  "version": 1,
+  "trigger": {
+    "type": "event"
+  },
+  "inputs": ["event_id", "customer_id", "message"],
+  "steps": [
+    {
+      "id": "prepare_reply",
+      "kind": "tool",
+      "command": "[t:customer/prepare_message_action -> customer_reply_send] customer=$inputs.customer_id; channel=\"sms\"; message=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "pending_action_exists",
+      "type": "pending_action_exists",
+      "output": "customer_reply_send"
+    }
+  ],
+  "completion": {
+    "success_pending_actions": ["customer_reply_send"],
+    "allow_pending_approval": true,
+    "required_state": "WAITING_FOR_EXECUTE"
+  },
+  "side_effect_policy": {
+    "has_side_effects": true,
+    "requires_approval": true,
+    "live_execution_allowed": false,
+    "allowed_side_effect_tools": ["customer/prepare_message_action"]
+  }
+}

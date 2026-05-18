@@ -1,0 +1,6 @@
+{
+  "environment": "demo",
+  "governance_enforced": true,
+  "allow_unknown_toolpack_in_dev": false,
+  "allow_high_risk_live_override": false
+}

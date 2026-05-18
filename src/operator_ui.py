@@ -2426,6 +2426,12 @@ class OperatorConsole:
 
     def _render_tool_details(self) -> None:
         tool_id = self._selected_tool_id()
+        try:
+            from runtime.runtime_environment import resolve_runtime_environment
+            from runtime.tool_governance import evaluate_tool_governance
+        except Exception:
+            resolve_runtime_environment = None  # type: ignore[assignment]
+            evaluate_tool_governance = None  # type: ignore[assignment]
         capability = None
         try:
             from runtime.tool_capability_registry import get_tool_capability
@@ -2435,6 +2441,13 @@ class OperatorConsole:
             capability = None
         result = self._tool_result_for(tool_id)
         setup = get_tool_setup_instructions(tool_id) if tool_id else {}
+        runtime_environment = resolve_runtime_environment() if resolve_runtime_environment else "demo"
+        discovery_entry = None
+        if isinstance(self.toolpack_discovery_snapshot, dict):
+            for pack in self.toolpack_discovery_snapshot.get("toolpacks", []):
+                if isinstance(pack, dict) and str(pack.get("toolpack_id", "")) == str(getattr(capability, "toolpack_id", "")):
+                    discovery_entry = pack
+                    break
         lines = []
         if capability is not None:
             lines.extend(
@@ -2447,9 +2460,32 @@ class OperatorConsole:
                     f"Auth Required: {capability.auth_required}",
                     f"Setup Available: {capability.setup_available}",
                     f"RPA Live Probe Required: {capability.rpa_live_probe_required}",
+                    f"Current Runtime Environment: {runtime_environment}",
                 ]
             )
             if getattr(capability, "source", "") == "external_toolpack":
+                enabled_envs = []
+                if discovery_entry and isinstance(discovery_entry.get("enabled_environments", []), list):
+                    enabled_envs = [str(item) for item in discovery_entry.get("enabled_environments", []) if str(item).strip()]
+                runtime_decision = {}
+                if evaluate_tool_governance:
+                    runtime_decision = evaluate_tool_governance(
+                        tool_id if "/" in tool_id else f"toolpack:{getattr(capability, 'toolpack_id', tool_id)}",
+                        {
+                            "source": "external_toolpack",
+                            "toolpack_id": str(getattr(capability, "toolpack_id", "")),
+                            "toolpack_classification": str((discovery_entry or {}).get("classification", getattr(capability, "core_or_optional", "unknown"))),
+                            "toolpack_core_or_optional": str(getattr(capability, "core_or_optional", "unknown")),
+                            "side_effect": False,
+                            "requires_approval": False,
+                            "allow_live": True,
+                            "allow_live_side_effect": False,
+                        },
+                        environment=runtime_environment,
+                        dry_run=True,
+                        live_requested=False,
+                        operation="execute",
+                    )
                 lines.extend(
                     [
                         f"Source: {capability.source}",
@@ -2459,6 +2495,10 @@ class OperatorConsole:
                         f"Valid: {capability.valid}",
                         f"Tool Count: {capability.tool_count}",
                         f"Tool Pack: {capability.toolpack_id}",
+                        f"Governance Classification: {str((discovery_entry or {}).get('classification', 'unknown'))}",
+                        f"Enabled Environments: {', '.join(enabled_envs) if enabled_envs else 'none'}",
+                        f"Runtime Decision: {runtime_decision.get('decision', 'UNKNOWN') if runtime_decision else 'UNKNOWN'}",
+                        f"Blocked Reason: {runtime_decision.get('reason', '') if runtime_decision and not runtime_decision.get('ok', False) else ''}",
                     ]
                 )
             if capability.category == "rpa" or capability.rpa_live_probe_required:

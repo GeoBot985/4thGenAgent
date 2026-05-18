@@ -10,12 +10,14 @@ It is designed to be discoverable and inspectable without requiring Google crede
 - no send, create, update, delete, move, archive, or write operations;
 - no raw OAuth tokens in logs, reports, TaskFrames, or health output;
 - live reads require explicit configuration and credentials;
+- the live probe is manual and never runs during default validation;
 - default demo paths remain unchanged.
 
 ## Health modes
 
 The pack supports local readiness checks without live API calls by default.
 Live verification is optional and only runs when explicitly requested.
+Credentials are optional for clean-clone validation, but required for live reads.
 
 ## Example tools
 

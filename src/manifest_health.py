@@ -11,6 +11,7 @@ from src.generated_manifest_smoke_runner import (
     PASSING_CLASSIFICATIONS,
     smoke_run_manifest_file,
 )
+from src.manifest_contract_strict import validate_manifest_strict
 from src.manifest_authoring_feedback import explain_manifest_failure
 from src.manifest_autofix import propose_manifest_fixes
 
@@ -24,6 +25,7 @@ def run_manifest_health_check(
     runtime_data_dir: str | Path = "runtime_data",
     include_smoke: bool = True,
     smoke_limit: int | None = None,
+    strict_contract: bool = False,
 ) -> dict:
     """Run a deterministic health check across the active manifest catalog."""
     manifest_dir_path = Path(manifest_dir)
@@ -31,11 +33,14 @@ def run_manifest_health_check(
     items: list[dict] = []
 
     for manifest_path in _iter_active_manifest_paths(manifest_dir_path):
+        if _is_excluded_catalog_fixture(manifest_path):
+            continue
         can_attempt_smoke = include_smoke and (smoke_limit is None or smoke_attempts < smoke_limit)
         item = check_manifest_health(
             manifest_path,
             runtime_data_dir=runtime_data_dir,
             include_smoke=can_attempt_smoke,
+            strict_contract=strict_contract,
         )
         if include_smoke and item.get("smoke", {}).get("status") in {"PASS", "FAIL"}:
             smoke_attempts += 1
@@ -59,6 +64,7 @@ def check_manifest_health(
     *,
     runtime_data_dir: str | Path = "runtime_data",
     include_smoke: bool = True,
+    strict_contract: bool = False,
 ) -> dict:
     """Check one manifest file without mutating it."""
     path = Path(manifest_path)
@@ -88,6 +94,7 @@ def check_manifest_health(
         "errors": validation_errors,
     }
     analysis_manifest = _analysis_manifest(raw, loaded_manifest)
+    strict_result = validate_manifest_strict(raw or {}, manifest_path=str(path), active_catalog=True) if strict_contract else None
 
     initial_guidance = explain_manifest_failure(
         manifest=analysis_manifest,
@@ -118,6 +125,10 @@ def check_manifest_health(
     manifest_id = _manifest_id(raw, path)
     name = str((raw or {}).get("name") or path.stem)
     health = _classify_health(validation, repair_guidance, smoke)
+    if strict_result and strict_result.get("status") == "FAIL":
+        health = "FAILED"
+    elif strict_result and strict_result.get("status") == "WARN" and health == "HEALTHY":
+        health = "WARNING"
     manual_fix_required = _manual_fix_required(repair_guidance, autofix)
     repairable = autofix["low_risk_applyable"] > 0
 
@@ -129,6 +140,7 @@ def check_manifest_health(
         "validation": validation,
         "repair_guidance": repair_guidance,
         "smoke": smoke,
+        "strict_contract": strict_result or {"ok": True, "status": "PASS", "errors": [], "warnings": [], "findings": []},
         "autofix": autofix,
         "repairable": repairable,
         "manual_fix_required": manual_fix_required,
@@ -191,6 +203,8 @@ def summarize_manifest_health(items: list[dict]) -> dict:
         "repairable": sum(1 for item in items if bool(item.get("repairable"))),
         "manual_fix_required": sum(1 for item in items if bool(item.get("manual_fix_required"))),
         "critical": sum(1 for item in items if item.get("health") == "CRITICAL"),
+        "strict_failed": sum(1 for item in items if item.get("strict_contract", {}).get("status") == "FAIL"),
+        "strict_warnings": sum(1 for item in items if item.get("strict_contract", {}).get("status") == "WARN"),
     }
 
 
@@ -201,6 +215,30 @@ def _iter_active_manifest_paths(manifest_dir: Path) -> list[Path]:
         if extra_dir.is_dir():
             paths.extend(sorted(extra_dir.glob("*.json")))
     return paths
+
+
+def _is_live_fixture_manifest(path: Path) -> bool:
+    name = path.name.lower()
+    return name.startswith("live_") or name.startswith("live.")
+
+
+def _is_excluded_catalog_fixture(path: Path) -> bool:
+    name = path.name.lower()
+    if name.startswith(("smoke_", "live_", "event_")) or ".stub." in name or "stub" in name:
+        return True
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    if not isinstance(raw, dict):
+        return False
+    manifest_id = str(raw.get("manifest_id") or raw.get("id") or "").strip().lower()
+    manifest_name = str(raw.get("name") or "").strip().lower()
+    if manifest_id.startswith(("smoke.", "live.", "event.")):
+        return True
+    if "stub" in manifest_name or "fixture" in manifest_name:
+        return True
+    return False
 
 
 def _build_smoke_result(

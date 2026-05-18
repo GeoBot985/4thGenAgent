@@ -64,6 +64,14 @@ Side-effect tools must require approval.
 
 Live side effects stay blocked by default and must be explicitly declared, validated, and tested.
 
+## Tool Result Contract
+
+Every tool should return a canonical result with `ok`, `type`, `data`, `evidence`, `error`, and runtime `metadata`.
+
+The runtime accepts legacy bridge results during migration, but normalized results must always carry non-empty evidence.
+
+See [tool_result_contract.md](tool_result_contract.md) for the canonical shape and evidence examples.
+
 ## Health checks
 
 Tool packs should expose `health.module` and `health.function`, or set `health_supported=false`.

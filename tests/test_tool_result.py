@@ -21,17 +21,19 @@ class ToolResultTests(unittest.TestCase):
         result = tool_result_ok(
             "email_list",
             data=[],
-            evidence=[{"source": "gmail"}],
+            evidence={"tool": "gmail/search", "mode": "dry_run", "source": "builtin", "operation": "read", "input_refs": [], "output_ref": "email_list"},
             metadata={"page": 1},
         )
-        self.assertEqual(result.evidence, [{"source": "gmail"}])
+        self.assertIsInstance(result.evidence, dict)
+        self.assertTrue(result.evidence)
+        self.assertEqual(result.evidence["tool"], "gmail/search")
         self.assertEqual(result.metadata, {"page": 1})
 
     def test_tool_result_serializes_with_asdict(self):
         result = tool_result_ok(
             "email_list",
             data=[],
-            evidence=[{"source": "gmail"}],
+            evidence={"tool": "gmail/search", "mode": "dry_run", "source": "builtin", "operation": "read", "input_refs": [], "output_ref": "email_list"},
             metadata={"page": 1},
         )
         self.assertEqual(asdict(result)["type"], "email_list")
@@ -39,4 +41,3 @@ class ToolResultTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

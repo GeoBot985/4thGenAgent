@@ -185,6 +185,7 @@ def explain_manifest_failure(
     *,
     manifest: dict | None = None,
     validation_result: dict | tuple | None = None,
+    strict_result: dict | None = None,
     smoke_result: dict | None = None,
     exception: Exception | None = None,
 ) -> dict:
@@ -209,6 +210,10 @@ def explain_manifest_failure(
     # 3. Validation result findings
     if validation_result is not None:
         findings.extend(_findings_from_validation_result(validation_result))
+
+    # 3b. Strict manifest contract findings
+    if isinstance(strict_result, dict):
+        findings.extend(_findings_from_strict_result(strict_result))
 
     # 4. Smoke result findings
     if isinstance(smoke_result, dict):
@@ -714,6 +719,27 @@ def _findings_from_validation_result(validation_result: Any) -> list[dict]:
             message=err_str,
             suggested_fix=_suggested_fix_for_validation_error(err_str),
             source="validation_result",
+        ))
+    return findings
+
+
+def _findings_from_strict_result(strict_result: dict) -> list[dict]:
+    findings: list[dict] = []
+    raw_findings = strict_result.get("findings") or []
+    if not isinstance(raw_findings, list):
+        return findings
+
+    for finding in raw_findings:
+        if not isinstance(finding, dict):
+            continue
+        findings.append(_make_finding(
+            id=str(finding.get("id") or "strict_contract_error"),
+            severity=str(finding.get("severity") or "error"),
+            location=str(finding.get("location") or "manifest"),
+            message=str(finding.get("message") or "Strict manifest contract failed."),
+            suggested_fix=str(finding.get("suggested_fix") or "Review the strict manifest contract findings."),
+            example=str(finding.get("example") or ""),
+            source="strict_manifest_check",
         ))
     return findings
 

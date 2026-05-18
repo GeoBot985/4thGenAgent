@@ -1,0 +1,19 @@
+{
+  "manifest_id": "gallery.unknown_tool",
+  "name": "Gallery: Unknown Tool",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [],
+  "steps": [
+    {"id": "read_data", "command": "[t:x/unknown_tool_namespace -> result] max_results=5"}
+  ],
+  "validations": [
+    {"id": "no_errors", "type": "no_errors"},
+    {"id": "result_exists", "type": "output_exists", "output": "result"}
+  ],
+  "completion": {
+    "success_outputs": ["result"],
+    "acceptable_empty_outputs": ["result"]
+  },
+  "live_execution": {"enabled": false, "requires_approval": true}
+}

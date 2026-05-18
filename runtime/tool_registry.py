@@ -1089,6 +1089,9 @@ def _decorate_tool_spec(spec: dict, *, source: str) -> dict:
     decorated.setdefault("toolpack_version", "")
     decorated.setdefault("toolpack_path", "")
     decorated.setdefault("toolpack_core_or_optional", "core")
+    decorated.setdefault("toolpack_classification", decorated.get("toolpack_core_or_optional", "core"))
+    decorated.setdefault("enabled_environments", [])
+    decorated.setdefault("governance_required", False)
     decorated.setdefault("toolpack_registered", source != "legacy_fallback")
     return decorated
 

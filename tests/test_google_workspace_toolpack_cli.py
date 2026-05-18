@@ -70,3 +70,22 @@ def test_taskframe_tools_health_google_workspace_exits_0() -> None:
     result = _run("tools", "health", "google_workspace")
     assert result.returncode == 0
     assert "google_workspace" in result.stdout.lower()
+
+
+def test_taskframe_tools_lifecycle_google_workspace_dev_json() -> None:
+    result = _run("tools", "lifecycle", str(TOOLPACK), "--env", "dev", "--json")
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["toolpack_id"] == "google_workspace"
+    assert payload["environment"] == "dev"
+    assert payload["status"] in {"READY", "READY_WITH_WARNINGS", "GOVERNANCE_REQUIRED", "UNTESTED", "DISABLED"}
+
+
+def test_taskframe_tools_lifecycle_google_workspace_release_not_live_ready_by_default() -> None:
+    result = _run("tools", "lifecycle", str(TOOLPACK), "--env", "release", "--json")
+    assert result.returncode != 0
+    payload = json.loads(result.stdout)
+    assert payload["toolpack_id"] == "google_workspace"
+    assert payload["environment"] == "release"
+    assert payload["status"] in {"BLOCKED", "GOVERNANCE_REQUIRED", "DISABLED", "READY_WITH_WARNINGS"}
+    assert payload["status"] != "READY"

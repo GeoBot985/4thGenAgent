@@ -37,6 +37,8 @@ def test_google_workspace_tool_ids_exist() -> None:
 
 def test_google_workspace_tools_are_read_only() -> None:
     descriptor = json.loads(TOOLPACK.read_text(encoding="utf-8"))
+    assert descriptor["risk_class"] == "read_only_external_api"
+    assert descriptor["health_supported"] is True
     for tool in descriptor["tools"]:
         assert tool["side_effect"] is False
         assert tool["requires_approval"] is False
@@ -44,3 +46,13 @@ def test_google_workspace_tools_are_read_only() -> None:
         assert tool["allow_live_side_effect"] is False
         assert tool["live_guardrail"] == "read_only_google_workspace"
         assert tool["output_type"]
+
+
+def test_google_workspace_tools_have_required_arg_types() -> None:
+    descriptor = json.loads(TOOLPACK.read_text(encoding="utf-8"))
+    lookup = {tool["tool"]: tool for tool in descriptor["tools"]}
+    assert lookup["gmail/list_unread"]["arg_types"] == {"max_results": "int"}
+    assert lookup["gmail/search"]["arg_types"] == {"max_results": "int"}
+    assert lookup["calendar/search"]["arg_types"] == {"days": "int", "max_results": "int"}
+    assert lookup["calendar/list_upcoming"]["arg_types"] == {"days": "int", "max_results": "int"}
+    assert lookup["sheets/read_range"]["arg_types"] == {"major_dimension": "str"}

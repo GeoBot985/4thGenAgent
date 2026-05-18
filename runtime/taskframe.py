@@ -13,6 +13,7 @@ from .models import (
     TaskFrame,
     ToolResult,
 )
+from .tool_result_contract import build_tool_evidence, normalize_evidence
 from .retry_policy import get_step_max_attempts, normalize_retry_policy
 from .timing import utc_now as timing_utc_now
 
@@ -297,18 +298,20 @@ def json_safe(value: Any) -> Any:
 def tool_result_ok(
     result_type: str,
     data: Any = None,
-    evidence: list[dict[str, Any]] | None = None,
+    evidence: object | None = None,
     raw: Any = None,
     metadata: dict[str, Any] | None = None,
 ) -> ToolResult:
+    metadata_dict = dict(metadata or {})
+    fallback = _default_tool_evidence(result_type, metadata_dict)
     return ToolResult(
         ok=True,
         type=result_type,
         data=data,
-        evidence=list(evidence or []),
+        evidence=normalize_evidence(evidence, fallback=fallback),
         error="",
         raw=raw,
-        metadata=dict(metadata or {}),
+        metadata=metadata_dict,
     )
 
 
@@ -318,12 +321,31 @@ def tool_result_error(
     raw: Any = None,
     metadata: dict[str, Any] | None = None,
 ) -> ToolResult:
+    metadata_dict = dict(metadata or {})
+    fallback = _default_tool_evidence(result_type, metadata_dict)
     return ToolResult(
         ok=False,
         type=result_type,
         data=None,
-        evidence=[],
+        evidence=normalize_evidence(None, fallback=fallback),
         error=error,
         raw=raw,
-        metadata=dict(metadata or {}),
+        metadata=metadata_dict,
+    )
+
+
+def _default_tool_evidence(result_type: str, metadata: dict[str, Any]) -> dict[str, Any]:
+    extra = {
+        key: value
+        for key, value in metadata.items()
+        if key not in {"tool", "mode", "source", "operation", "input_refs", "output_ref"}
+    }
+    return build_tool_evidence(
+        tool=str(metadata.get("tool", result_type) or result_type),
+        mode=str(metadata.get("mode", "local_static_check") or "local_static_check"),
+        source=str(metadata.get("source", "builtin") or "builtin"),
+        operation=str(metadata.get("operation", "validation") or "validation"),
+        input_refs=list(metadata.get("input_refs", [])) if isinstance(metadata.get("input_refs", []), list) else [],
+        output_ref=str(metadata.get("output_ref", result_type) or result_type),
+        extra=extra,
     )

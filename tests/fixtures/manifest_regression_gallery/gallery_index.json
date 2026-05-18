@@ -1,0 +1,509 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "valid_read_only_basic",
+      "path": "valid/valid_read_only_basic.manifest.json",
+      "category": "valid",
+      "description": "valid read only basic",
+      "expected_findings": [],
+      "expected_severity": "info",
+      "expected_strict_status": "PASS",
+      "expected_autofix": "NONE",
+      "expected_smoke_classification": "DRY_RUN_COMPLETED"
+    },
+    {
+      "id": "valid_event_pending_action",
+      "path": "valid/valid_event_pending_action.manifest.json",
+      "category": "valid",
+      "description": "valid event pending action",
+      "expected_findings": [],
+      "expected_severity": "info",
+      "expected_strict_status": "PASS",
+      "expected_autofix": "PROPOSED",
+      "expected_smoke_classification": "WAITING_FOR_EXECUTE_EXPECTED"
+    },
+    {
+      "id": "valid_no_data_result",
+      "path": "valid/valid_no_data_result.manifest.json",
+      "category": "valid",
+      "description": "valid no data result",
+      "expected_findings": [],
+      "expected_severity": "info",
+      "expected_strict_status": "PASS",
+      "expected_autofix": "NONE",
+      "expected_smoke_classification": "DRY_RUN_COMPLETED"
+    },
+    {
+      "id": "missing_manifest_id",
+      "path": "structural/missing_manifest_id.manifest.json",
+      "category": "structural",
+      "description": "missing manifest id",
+      "expected_findings": [
+        "missing_manifest_id"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "missing_trigger",
+      "path": "structural/missing_trigger.manifest.json",
+      "category": "structural",
+      "description": "missing trigger",
+      "expected_findings": [
+        "missing_trigger"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "missing_completion",
+      "path": "structural/missing_completion.manifest.json",
+      "category": "structural",
+      "description": "missing completion",
+      "expected_findings": [
+        "missing_completion"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "duplicate_step_id",
+      "path": "duplicate_step_id.manifest.json",
+      "category": "structural",
+      "description": "duplicate step id",
+      "expected_findings": [
+        "duplicate_step_id"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "step_missing_command",
+      "path": "structural/step_missing_command.manifest.json",
+      "category": "structural",
+      "description": "step missing command",
+      "expected_findings": [
+        "missing_step_command"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "malformed_json",
+      "path": "structural/malformed_json.manifest.json",
+      "category": "structural",
+      "description": "malformed json",
+      "expected_findings": [
+        "json_parse_error"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "invalid_command_syntax",
+      "path": "invalid_command.manifest.json",
+      "category": "command",
+      "description": "invalid command syntax",
+      "expected_findings": [
+        "invalid_step_command"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED",
+      "expected_smoke_classification": "COMMAND_INVALID"
+    },
+    {
+      "id": "unknown_tool",
+      "path": "unknown_tool.manifest.json",
+      "category": "command",
+      "description": "unknown tool",
+      "expected_findings": [
+        "unknown_tool"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED",
+      "expected_smoke_classification": "TOOL_NOT_REGISTERED"
+    },
+    {
+      "id": "missing_output_alias_tool",
+      "path": "missing_output_alias.manifest.json",
+      "category": "command",
+      "description": "missing output alias tool",
+      "expected_findings": [
+        "missing_output_alias"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "missing_output_alias_llm",
+      "path": "missing_output_alias.manifest.json",
+      "category": "command",
+      "description": "missing output alias llm",
+      "expected_findings": [
+        "missing_output_alias"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "duplicate_output_alias",
+      "path": "command/duplicate_output_alias.manifest.json",
+      "category": "command",
+      "description": "duplicate output alias",
+      "expected_findings": [
+        "duplicate_output_alias"
+      ],
+      "expected_severity": "warning",
+      "expected_strict_status": "WARN",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "input_used_but_not_declared",
+      "path": "input_used_but_not_declared.manifest.json",
+      "category": "inputs",
+      "description": "input used but not declared",
+      "expected_findings": [
+        "input_not_declared"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "input_declared_but_not_used",
+      "path": "input_declared_but_not_used.manifest.json",
+      "category": "inputs",
+      "description": "input declared but not used",
+      "expected_findings": [
+        "required_input_not_used"
+      ],
+      "expected_severity": "warning",
+      "expected_strict_status": "WARN",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "duplicate_input_names",
+      "path": "inputs/duplicate_input_names.manifest.json",
+      "category": "inputs",
+      "description": "duplicate input names",
+      "expected_findings": [
+        "duplicate_input_name"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "required_input_not_mapped_by_event_route",
+      "path": "inputs/required_input_not_mapped_by_event_route.manifest.json",
+      "category": "inputs",
+      "description": "required input not mapped by event route",
+      "expected_findings": [
+        "route_missing_required_input_mapping"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "unknown_validation_type",
+      "path": "validations/unknown_validation_type.manifest.json",
+      "category": "validations",
+      "description": "unknown validation type",
+      "expected_findings": [
+        "unknown_validation_type"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "validation_missing_output",
+      "path": "validation_output_missing.manifest.json",
+      "category": "validations",
+      "description": "validation missing output",
+      "expected_findings": [
+        "validation_references_missing_output"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "field_validation_missing_field",
+      "path": "validations/field_validation_missing_field.manifest.json",
+      "category": "validations",
+      "description": "field validation missing field",
+      "expected_findings": [
+        "validation_field_equals_missing_fields"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "pending_action_validation_missing_action",
+      "path": "validations/pending_action_validation_missing_action.manifest.json",
+      "category": "validations",
+      "description": "pending action validation missing action",
+      "expected_findings": [
+        "validation_missing_pending_reference"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "completion_output_missing",
+      "path": "completion_output_missing.manifest.json",
+      "category": "completion",
+      "description": "completion output missing",
+      "expected_findings": [
+        "completion_output_missing"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "completion_empty_without_acceptable_empty",
+      "path": "completion/completion_empty_without_acceptable_empty.manifest.json",
+      "category": "completion",
+      "description": "completion empty without acceptable empty",
+      "expected_findings": [
+        "completion_empty"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "waiting_for_execute_without_pending_action",
+      "path": "completion/waiting_for_execute_without_pending_action.manifest.json",
+      "category": "completion",
+      "description": "waiting for execute without pending action",
+      "expected_findings": [
+        "waiting_for_execute_requires_pending_actions"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "allow_pending_approval_without_pending_action",
+      "path": "completion/allow_pending_approval_without_pending_action.manifest.json",
+      "category": "completion",
+      "description": "allow pending approval without pending action",
+      "expected_findings": [
+        "allow_pending_approval_requires_success_pending_actions"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "completed_with_unresolved_pending_action",
+      "path": "completion/completed_with_unresolved_pending_action.manifest.json",
+      "category": "completion",
+      "description": "completed with unresolved pending action",
+      "expected_findings": [
+        "completion_pending_action_missing",
+        "completed_state_rejects_unresolved_pending_action"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "side_effect_without_policy",
+      "path": "side_effect_without_pending_expectation.manifest.json",
+      "category": "side_effects",
+      "description": "side effect without policy",
+      "expected_findings": [
+        "missing_side_effect_policy",
+        "side_effect_tool_requires_pending_completion"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "side_effect_without_pending_completion",
+      "path": "side_effects/side_effect_without_pending_completion.manifest.json",
+      "category": "side_effects",
+      "description": "side effect without pending completion",
+      "expected_findings": [
+        "side_effect_tool_requires_pending_completion"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "live_execution_enabled",
+      "path": "unsafe_live_execution.manifest.json",
+      "category": "side_effects",
+      "description": "live execution enabled",
+      "expected_findings": [
+        "live_execution_enabled"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED",
+      "expected_smoke_classification": "UNEXPECTED_LIVE_SIDE_EFFECT"
+    },
+    {
+      "id": "side_effect_tool_not_in_allowed_list",
+      "path": "side_effects/side_effect_tool_not_in_allowed_list.manifest.json",
+      "category": "side_effects",
+      "description": "side effect tool not in allowed list",
+      "expected_findings": [],
+      "expected_severity": "error",
+      "expected_strict_status": "PASS",
+      "expected_autofix": "NONE"
+    },
+    {
+      "id": "event_manifest_without_route",
+      "path": "events/event_manifest_without_route.manifest.json",
+      "category": "events",
+      "description": "event manifest without route",
+      "expected_findings": [
+        "event_trigger_without_route"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "route_to_missing_manifest",
+      "path": "events/event_manifest_without_route.manifest.json",
+      "category": "events",
+      "description": "route to missing manifest",
+      "expected_findings": [
+        "event_trigger_without_route"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "duplicate_event_route",
+      "path": "events/event_manifest_without_route.manifest.json",
+      "category": "events",
+      "description": "duplicate event route",
+      "expected_findings": [
+        "event_trigger_without_route"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "route_missing_required_input",
+      "path": "inputs/required_input_not_mapped_by_event_route.manifest.json",
+      "category": "events",
+      "description": "route missing required input",
+      "expected_findings": [
+        "route_missing_required_input_mapping"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "llm_schema_invalid",
+      "path": "invalid_command.manifest.json",
+      "category": "llm",
+      "description": "llm schema invalid",
+      "expected_findings": [
+        "invalid_step_command"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "llm_action_not_allowed",
+      "path": "invalid_command.manifest.json",
+      "category": "llm",
+      "description": "llm action not allowed",
+      "expected_findings": [
+        "invalid_step_command"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "llm_output_missing_required_field",
+      "path": "validations/field_validation_missing_field.manifest.json",
+      "category": "llm",
+      "description": "llm output missing required field",
+      "expected_findings": [
+        "validation_field_equals_missing_fields"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "llm_fact_check_failure",
+      "path": "command/duplicate_output_alias.manifest.json",
+      "category": "llm",
+      "description": "llm fact check failure",
+      "expected_findings": [
+        "duplicate_output_alias"
+      ],
+      "expected_severity": "warning",
+      "expected_strict_status": "WARN",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "blocked_toolpack_reference",
+      "path": "unknown_tool.manifest.json",
+      "category": "governance",
+      "description": "blocked toolpack reference",
+      "expected_findings": [
+        "unknown_tool"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    },
+    {
+      "id": "high_risk_tool_in_demo",
+      "path": "unsafe_live_execution.manifest.json",
+      "category": "governance",
+      "description": "high risk tool in demo",
+      "expected_findings": [
+        "live_execution_enabled"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "PROPOSED"
+    },
+    {
+      "id": "optional_tool_not_enabled",
+      "path": "unknown_tool.manifest.json",
+      "category": "governance",
+      "description": "optional tool not enabled",
+      "expected_findings": [
+        "unknown_tool"
+      ],
+      "expected_severity": "error",
+      "expected_strict_status": "FAIL",
+      "expected_autofix": "NOT_SUPPORTED"
+    }
+  ]
+}

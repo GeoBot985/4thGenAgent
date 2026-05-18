@@ -69,15 +69,18 @@ def run_toolpack_contract_tests(
 
     descriptor_data = validation.get("descriptor", {})
     tools = descriptor_data.get("tools", [])
+    allow_empty_evidence_override = _toolpack_allows_empty_evidence_override(descriptor_data)
+    if bool(descriptor.get("allow_empty_evidence_for_contract_test", False)) and not allow_empty_evidence_override:
+        errors.append("allow_empty_evidence_for_contract_test is only permitted for test or scaffold packs.")
 
     pack_dir = path.parent
     for tool_spec in tools:
-        tc = _run_tool_check(tool_spec, warnings, pack_dir=pack_dir)
+        tc = _run_tool_check(tool_spec, warnings, pack_dir=pack_dir, allow_empty_evidence=allow_empty_evidence_override)
         tool_checks.append(tc)
         if not tc.get("import_ok") or not tc.get("smoke_ok") or not tc.get("result_shape_ok") or not tc.get("safety_ok"):
             errors.append(f"Tool check failed: {tool_spec.get('tool', '')}")
 
-    health_ok = _run_health_check(descriptor_data, pack_dir, warnings)
+    health_ok = _run_health_check(descriptor_data, pack_dir, warnings, raw_descriptor=descriptor)
     checks.append(_check("health_check", health_ok, "Health check passed." if health_ok else "Health check failed."))
 
     manifest_smoke: dict[str, Any] = {}
@@ -114,15 +117,33 @@ def build_tool_invocation_smoke_args(tool_spec: dict[str, Any]) -> dict[str, Any
     return {"ok": not errors, "kwargs": kwargs, "errors": errors}
 
 
-def validate_tool_result_shape(result: object, expected_type: str) -> dict[str, Any]:
+def validate_tool_result_shape(
+    result: object,
+    expected_type: str,
+    *,
+    allow_empty_evidence: bool = False,
+) -> dict[str, Any]:
     if not isinstance(result, dict):
         return {"ok": False, "errors": ["Result must be a dict."]}
     missing = [k for k in _REQUIRED_RESULT_KEYS if k not in result]
     if missing:
         return {"ok": False, "errors": [f"Missing required keys: {missing}"]}
+    ok_value = result.get("ok")
+    if not isinstance(ok_value, bool):
+        return {"ok": False, "errors": ["ok must be a bool."]}
     actual_type = str(result.get("type", ""))
     if expected_type and actual_type != expected_type:
         return {"ok": False, "errors": [f"Expected type {expected_type!r}, got {actual_type!r}"]}
+    evidence = result.get("evidence")
+    if not isinstance(evidence, dict):
+        return {"ok": False, "errors": ["evidence must be a dict."]}
+    if not evidence and not allow_empty_evidence:
+        return {"ok": False, "errors": ["evidence must not be empty."]}
+    error = str(result.get("error", "") or "")
+    if ok_value and error:
+        return {"ok": False, "errors": ["error must be empty when ok is true."]}
+    if not ok_value and not error:
+        return {"ok": False, "errors": ["error must be populated when ok is false."]}
     return {"ok": True, "errors": []}
 
 
@@ -145,7 +166,13 @@ def _import_module(module_name: str, pack_path: Path | None = None):
     return mod
 
 
-def _run_tool_check(tool_spec: dict[str, Any], warnings: list[str], *, pack_dir: Path | None = None) -> dict[str, Any]:
+def _run_tool_check(
+    tool_spec: dict[str, Any],
+    warnings: list[str],
+    *,
+    pack_dir: Path | None = None,
+    allow_empty_evidence: bool = False,
+) -> dict[str, Any]:
     tool_key = str(tool_spec.get("tool", ""))
     module_name = str(tool_spec.get("module", ""))
     function_name = str(tool_spec.get("function", ""))
@@ -185,7 +212,7 @@ def _run_tool_check(tool_spec: dict[str, Any], warnings: list[str], *, pack_dir:
         tc["errors"].append(f"Smoke call failed: {exc}")
         return tc
 
-    shape = validate_tool_result_shape(raw_result, output_type)
+    shape = validate_tool_result_shape(raw_result, output_type, allow_empty_evidence=allow_empty_evidence)
     tc["result_shape_ok"] = shape["ok"]
     if not shape["ok"]:
         tc["errors"].extend(shape["errors"])
@@ -204,7 +231,21 @@ def _run_tool_check(tool_spec: dict[str, Any], warnings: list[str], *, pack_dir:
     return tc
 
 
-def _run_health_check(descriptor_data: dict[str, Any], base_path: Path, warnings: list[str]) -> bool:
+def _toolpack_allows_empty_evidence_override(descriptor_data: dict[str, Any]) -> bool:
+    if not bool(descriptor_data.get("allow_empty_evidence_for_contract_test", False)):
+        return False
+    toolpack_id = str(descriptor_data.get("toolpack_id", "")).lower()
+    name = str(descriptor_data.get("name", "")).lower()
+    return any(token in toolpack_id or token in name for token in ("test", "scaffold"))
+
+
+def _run_health_check(
+    descriptor_data: dict[str, Any],
+    base_path: Path,
+    warnings: list[str],
+    *,
+    raw_descriptor: dict[str, Any] | None = None,
+) -> bool:
     health_supported = bool(descriptor_data.get("health_supported", True))
     if not health_supported:
         return True
@@ -217,10 +258,27 @@ def _run_health_check(descriptor_data: dict[str, Any], base_path: Path, warnings
         module = _import_module(module_name, base_path)
         func = getattr(module, function_name)
         result = func(live=False)
-        return bool(result.get("ok", False)) if isinstance(result, dict) else bool(result)
+        if isinstance(result, dict):
+            status = str(result.get("status", "")).strip().lower()
+            ok = bool(result.get("ok", False))
+            if ok:
+                return True
+            if status in {"needs_auth", "missing_dependency"} and _toolpack_health_may_warn(descriptor_data, raw_descriptor=raw_descriptor):
+                warnings.append(f"Health check returned {status}; treating as a warning for optional read-only external pack.")
+                return True
+            return False
+        return bool(result)
     except Exception as exc:
         warnings.append(f"Health check raised: {exc}")
         return False
+
+
+def _toolpack_health_may_warn(descriptor_data: dict[str, Any], *, raw_descriptor: dict[str, Any] | None = None) -> bool:
+    source = raw_descriptor or descriptor_data
+    return (
+        str(source.get("core_or_optional", "")).strip() == "optional"
+        and str(source.get("risk_class", "")).strip() == "read_only_external_api"
+    )
 
 
 def _run_manifest_smoke(pack_dir: Path, toolpack_id: str, tools: list[dict[str, Any]], runtime_data_dir: str | Path) -> dict[str, Any]:

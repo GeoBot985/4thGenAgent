@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime.errors import ToolPackHealthError, ToolPackLoadError, ToolPackValidationError
+from src.toolpack_governance import get_pack_policy
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -197,6 +198,7 @@ def validate_toolpack_descriptor(
             "module_prefix": str(descriptor.get("module_prefix", "")).strip(),
             "health": dict(health),
             "health_supported": health_supported,
+            "allow_empty_evidence_for_contract_test": bool(descriptor.get("allow_empty_evidence_for_contract_test", False)),
             "tools": resolved_tools,
             "path": _display_path(path) if path else "",
         },
@@ -247,8 +249,12 @@ def discover_toolpacks(
                 "errors": list(validation.get("errors", [])),
                 "warnings": list(validation.get("warnings", [])),
                 "core_or_optional": str(descriptor_data.get("core_or_optional", "optional")),
+                "classification": str(descriptor_data.get("risk_class", descriptor_data.get("core_or_optional", "optional"))),
                 "allow_optional_toolpacks": allow_optional,
                 "health_supported": bool(descriptor_data.get("health_supported", True)),
+                "allow_empty_evidence_for_contract_test": bool(descriptor_data.get("allow_empty_evidence_for_contract_test", False)),
+                "governance_required": True,
+                "enabled_environments": _toolpack_enabled_environments(descriptor_data, toolpack_id),
                 "name": str(descriptor_data.get("name", toolpack_id)),
                 "version": str(descriptor_data.get("version", "")),
             }
@@ -308,6 +314,9 @@ def build_external_tool_registry(
                 "toolpack_version": descriptor_data.get("version"),
                 "toolpack_path": str(pack["path"]),
                 "toolpack_core_or_optional": descriptor_data.get("core_or_optional", "optional"),
+                "toolpack_classification": descriptor_data.get("risk_class", descriptor_data.get("core_or_optional", "optional")),
+                "enabled_environments": _toolpack_enabled_environments(descriptor_data, str(descriptor_data.get("toolpack_id", ""))),
+                "governance_required": True,
                 "toolpack_registered": True,
             }
             if tool_key in registry:
@@ -349,9 +358,26 @@ def build_external_tool_capabilities(
                 "registered": bool(pack.get("registered", False)),
                 "valid": bool(pack.get("valid", False)),
                 "tool_count": int(pack.get("tool_count", 0) or 0),
+                "governance_required": True,
+                "enabled_environments": list(pack.get("enabled_environments", [])),
+                "classification": str(pack.get("classification", pack.get("core_or_optional", "optional"))),
             }
         )
     return capabilities
+
+
+def _toolpack_enabled_environments(descriptor_data: dict[str, Any], toolpack_id: str) -> list[str]:
+    governance = descriptor_data.get("governance", {})
+    if isinstance(governance, dict):
+        envs = governance.get("enabled_environments", [])
+        if isinstance(envs, list) and envs:
+            return sorted({str(item).strip().lower() for item in envs if str(item).strip()})
+
+    policy = get_pack_policy(toolpack_id) if toolpack_id else {}
+    envs = policy.get("enabled_environments", []) if isinstance(policy, dict) else []
+    if isinstance(envs, list) and envs:
+        return sorted({str(item).strip().lower() for item in envs if str(item).strip()})
+    return []
 
 
 def check_toolpack_health(

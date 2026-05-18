@@ -12,6 +12,7 @@ Without explicit governance:
 - High-risk or experimental behavior leaks into default runtime
 
 The governance model ensures that only approved, classified packs can run in restricted environments (demo, release, live).
+Runtime enforcement now consumes this policy directly, so governance is not just a CLI/reporting concern.
 
 ## Tool Pack Classifications
 
@@ -36,6 +37,8 @@ When in doubt, classify higher risk. It is easy to promote; it is harder to cont
 | `live` | Production execution | Yes — core and explicitly approved optional only |
 
 `demo` and `release` are the most restricted environments. `high_risk` and `experimental` packs are never allowed in `demo` or `release` unless a governance violation is explicitly accepted and recorded.
+
+At runtime, discovery does not imply execution permission. The tool runner must evaluate governance before execution, staging, pending-action approval, and live health probes.
 
 ## Governance Config
 

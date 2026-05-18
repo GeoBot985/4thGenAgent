@@ -89,11 +89,115 @@ def test_valid_tool_result_shape_passes():
         "ok": True,
         "type": "test_result",
         "data": {},
-        "evidence": {},
+        "evidence": {"tool": "test/run", "mode": "dry_run", "source": "builtin", "operation": "read", "input_refs": [], "output_ref": "test_result"},
         "error": "",
     }
     shape = validate_tool_result_shape(result, "test_result")
     assert shape["ok"] is True
+
+
+def test_empty_evidence_fails_contract() -> None:
+    result = {
+        "ok": True,
+        "type": "test_result",
+        "data": {},
+        "evidence": {},
+        "error": "",
+    }
+    shape = validate_tool_result_shape(result, "test_result")
+    assert shape["ok"] is False
+    assert any("evidence must not be empty" in error for error in shape["errors"])
+
+
+def test_evidence_list_fails_contract() -> None:
+    result = {
+        "ok": True,
+        "type": "test_result",
+        "data": {},
+        "evidence": [],
+        "error": "",
+    }
+    shape = validate_tool_result_shape(result, "test_result")
+    assert shape["ok"] is False
+    assert any("evidence must be a dict" in error for error in shape["errors"])
+
+
+def test_failed_tool_result_without_error_fails_contract() -> None:
+    result = {
+        "ok": False,
+        "type": "test_result",
+        "data": {},
+        "evidence": {"tool": "test/run", "mode": "dry_run", "source": "builtin", "operation": "validation", "input_refs": [], "output_ref": "test_result"},
+        "error": "",
+    }
+    shape = validate_tool_result_shape(result, "test_result")
+    assert shape["ok"] is False
+    assert any("error must be populated" in error for error in shape["errors"])
+
+
+def _write_contract_pack(tmp_path: Path, toolpack_id: str, *, allow_empty_evidence: bool) -> Path:
+    pack_dir = tmp_path / toolpack_id
+    pack_dir.mkdir()
+    (pack_dir / "tools.py").write_text(
+        """
+from __future__ import annotations
+
+
+def run() -> dict:
+    return {
+        "ok": True,
+        "type": "contract_result",
+        "data": {"value": 1},
+        "evidence": {},
+        "error": "",
+    }
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    descriptor = {
+        "toolpack_id": toolpack_id,
+        "name": toolpack_id.replace("_", " ").title(),
+        "version": "1.0.0",
+        "runtime_contract_version": 1,
+        "core_or_optional": "optional",
+        "module_prefix": f"tmp.{toolpack_id}",
+        "health_supported": False,
+        "health": {},
+        "allow_empty_evidence_for_contract_test": allow_empty_evidence,
+        "tools": [
+            {
+                "tool": "contract/run",
+                "namespace": "contract",
+                "action": "run",
+                "module": f"{toolpack_id}.tools",
+                "function": "run",
+                "side_effect": False,
+                "requires_approval": False,
+                "allow_live": False,
+                "allow_live_side_effect": False,
+                "live_guardrail": "blocked",
+                "output_type": "contract_result",
+                "required_args": [],
+                "optional_args": [],
+                "arg_types": {},
+            }
+        ],
+    }
+    (pack_dir / "toolpack.json").write_text(json.dumps(descriptor), encoding="utf-8")
+    return pack_dir / "toolpack.json"
+
+
+def test_allow_empty_evidence_override_only_allowed_for_test_pack(tmp_path: Path) -> None:
+    test_pack = _write_contract_pack(tmp_path, "contract_test_pack", allow_empty_evidence=True)
+    release_pack = _write_contract_pack(tmp_path, "contract_release_pack", allow_empty_evidence=True)
+
+    test_result = run_toolpack_contract_tests(test_pack, include_manifest_smoke=False)
+    release_result = run_toolpack_contract_tests(release_pack, include_manifest_smoke=False)
+
+    assert test_result["ok"] is True, test_result["errors"]
+    assert release_result["ok"] is False
+    assert any("allow_empty_evidence_for_contract_test" in error for error in release_result["errors"])
 
 
 def test_side_effect_tool_without_approval_fails(tmp_path):

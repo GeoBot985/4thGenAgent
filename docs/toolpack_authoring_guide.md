@@ -16,6 +16,7 @@ After scaffolding, validate, run contract tests, and record a governance decisio
 taskframe tools validate tool_packs/my_pack/toolpack.json
 taskframe tools test tool_packs/my_pack/toolpack.json
 taskframe tools enable my_pack --classification optional --env dev,test --reason "Initial scaffold"
+taskframe tools lifecycle tool_packs/my_pack/toolpack.json --env dev --write-report
 ```
 
 See [toolpack_governance.md](toolpack_governance.md) for the classification and environment reference.
@@ -50,6 +51,8 @@ taskframe tools test tool_packs/demo_echo/toolpack.json
 
 `taskframe tools test` runs import checks, smoke invocations, result shape validation, and safety policy checks. See [toolpack_contract_testing.md](toolpack_contract_testing.md) for the full check list.
 
+The contract test also enforces non-empty evidence for canonical tool results. If you are authoring a test or scaffold pack, see [tool_result_contract.md](tool_result_contract.md) for the required evidence shape.
+
 ## 5. Inspect health
 
 Use:
@@ -58,15 +61,27 @@ Use:
 taskframe tools health demo_echo
 ```
 
-## 6. Enable packs through config
+## 6. Evaluate lifecycle readiness
+
+Use the lifecycle command to confirm discovery, governance, registry integration, and smoke checks before widening access:
+
+```bash
+taskframe tools lifecycle tool_packs/demo_echo/toolpack.json --env dev --write-report
+```
+
+The lifecycle report is the operator-facing summary of readiness. It complements validation, contract tests, and health checks instead of replacing them.
+
+## 7. Enable packs through config
 
 Add enabled pack paths to `config/enabled_toolpacks.json`.
 
 Optional packs remain excluded until explicit enablement is provided in configuration.
 
-## 7. Keep manifests registry-driven
+## 8. Keep manifests registry-driven
 
 Manifests should reference tool keys only. They should never import pack modules directly.
+
+If a tool stages a side effect, return a pending-action result with evidence that records the pending action id and approval requirement.
 
 
 ## Google Workspace and external auth packs

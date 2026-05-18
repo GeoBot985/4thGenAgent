@@ -1,0 +1,31 @@
+{
+  "manifest_id": "gallery.valid_no_data_result",
+  "name": "Valid No Data Result",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [],
+  "steps": [
+    {
+      "id": "check_only",
+      "kind": "validate",
+      "command": "[validate:no_errors]"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_errors",
+      "type": "no_errors"
+    }
+  ],
+  "completion": {
+    "acceptable_empty_outputs": ["noop"]
+  },
+  "side_effect_policy": {
+    "has_side_effects": false,
+    "requires_approval": false,
+    "live_execution_allowed": false,
+    "allowed_side_effect_tools": []
+  }
+}

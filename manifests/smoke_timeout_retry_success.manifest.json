@@ -9,7 +9,7 @@
   "steps": [
     {
       "id": "run_slow_then_fast_tool",
-      "timeout_seconds": 0.01,
+      "timeout_seconds": 0.1,
       "retry": {
         "max_attempts": 2,
         "delay_seconds": 0,

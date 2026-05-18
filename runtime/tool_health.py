@@ -10,6 +10,9 @@ from .business_store import load_business_dataset as load_business_store_dataset
 from .business_context import get_business_order_context
 from .memory_store import MemoryStore
 from src.config_profiles import resolve_google_credentials_path, resolve_google_token_path
+from src.toolpack_governance import get_pack_policy
+from .runtime_environment import resolve_runtime_environment
+from .tool_governance import evaluate_tool_governance
 from src.toolpack_loader import check_toolpack_health
 from .taskframe import utc_now
 from .tool_capabilities import ToolHealthResult
@@ -595,6 +598,37 @@ def _failed_result(capability, checked_at: str, status: str, message: str, error
 
 def _check_toolpack(capability, checked_at: str, *, live: bool = False) -> ToolHealthResult:
     pack_id = str(capability.toolpack_id or capability.tool_id.removeprefix("toolpack:"))
+    if live:
+        policy = get_pack_policy(pack_id)
+        tool_spec = {
+            "toolpack_id": pack_id,
+            "toolpack_core_or_optional": policy.get("classification", capability.core_or_optional),
+            "toolpack_classification": policy.get("classification", capability.core_or_optional),
+            "source": "external_toolpack",
+            "side_effect": False,
+            "requires_approval": False,
+            "allow_live_side_effect": False,
+        }
+        decision = evaluate_tool_governance(
+            f"toolpack:{pack_id}",
+            tool_spec,
+            environment=resolve_runtime_environment(),
+            dry_run=False,
+            live_requested=True,
+            operation="health",
+        )
+        if not decision.get("ok", False):
+            return ToolHealthResult(
+                tool_id=capability.tool_id,
+                ok=False,
+                status="blocked",
+                severity="warning",
+                message=str(decision.get("reason", "Tool pack live probe blocked by governance.")),
+                can_auto_resolve=False,
+                recommended_action=None,
+                checked_at=checked_at,
+                details={"capability": capability.to_dict(), "governance": decision},
+            )
     result = check_toolpack_health(pack_id, live=live)
     status = str(result.get("status", "unknown"))
     severity = str(result.get("severity", "warning"))

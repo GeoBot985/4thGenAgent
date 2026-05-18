@@ -1,0 +1,5 @@
+{ "manifest_id": "gallery.malformed_json",
+  "name": "Gallery: Malformed JSON",
+  "version": 1,
+  "trigger": {"type": "manual"},
+  "inputs": [

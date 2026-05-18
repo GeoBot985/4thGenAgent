@@ -1,0 +1,35 @@
+{
+  "manifest_id": "gallery.field_validation_missing_field",
+  "name": "Field Validation Missing Field",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "message"
+  ],
+  "steps": [
+    {
+      "id": "echo_message",
+      "kind": "tool",
+      "command": "[t:test/echo -> result] message=$inputs.message"
+    }
+  ],
+  "validations": [
+    {
+      "id": "field_check",
+      "type": "output_field_equals",
+      "output": "result",
+      "value": "expected"
+    }
+  ],
+  "completion": {
+    "success_outputs": ["result"]
+  },
+  "side_effect_policy": {
+    "has_side_effects": false,
+    "requires_approval": false,
+    "live_execution_allowed": false,
+    "allowed_side_effect_tools": []
+  }
+}

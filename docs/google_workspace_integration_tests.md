@@ -1,6 +1,7 @@
 # Google Workspace Integration Tests
 
 These tests are optional and only run when Google OAuth credentials are configured locally.
+They are read-only and do not require write-capable Google scopes.
 
 ## Environment
 
@@ -20,3 +21,4 @@ GOOGLE_WORKSPACE_TEST_RANGE=Sheet1!A1:B5
 ## Safety
 
 The integration tests are read-only. They do not send mail, write sheets, or mutate calendar state.
+Live verification is explicit; default validation remains local.
