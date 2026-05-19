@@ -98,6 +98,11 @@ def _check_tool_health(tool_id: str, *, live: bool = False) -> ToolHealthResult:
         return _check_report_generator(capability, checked_at)
     if tool_id == "rpa_google_messages":
         return _check_google_messages_rpa(capability, checked_at, live=live)
+    if tool_id == "invoiceops":
+        from .invoiceops_health import invoiceops_registry_health
+
+        payload = invoiceops_registry_health()
+        return _tool_health_result_from_payload(capability.tool_id, payload, checked_at)
     if str(tool_id).startswith("toolpack:"):
         return _check_toolpack(capability, checked_at, live=live)
 
@@ -594,6 +599,16 @@ def _failed_result(capability, checked_at: str, status: str, message: str, error
         checked_at=checked_at,
         details=payload,
     )
+
+
+def _tool_health_result_from_payload(tool_id: str, payload: dict[str, Any], checked_at: str) -> ToolHealthResult:
+    data = dict(payload or {})
+    data.setdefault("tool_id", tool_id)
+    data.setdefault("checked_at", checked_at)
+    data.setdefault("can_auto_resolve", False)
+    data.setdefault("recommended_action", None if bool(data.get("ok", False)) else "Review the InvoiceOps fixtures and registry metadata.")
+    data.setdefault("details", {})
+    return ToolHealthResult.from_dict(data)
 
 
 def _check_toolpack(capability, checked_at: str, *, live: bool = False) -> ToolHealthResult:

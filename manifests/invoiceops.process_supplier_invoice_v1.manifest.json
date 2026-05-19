@@ -1,0 +1,350 @@
+{
+  "manifest_id": "invoiceops.process_supplier_invoice_v1",
+  "name": "InvoiceOps Process Supplier Invoice v1",
+  "version": 1,
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "invoice_file_path"
+  ],
+  "sample_inputs": {
+    "invoice_file_path": "tests/fixtures/invoiceops/manifest/happy_path_invoice.txt"
+  },
+  "steps": [
+    {
+      "id": "read_invoice_file",
+      "kind": "tool",
+      "command": "[t:invoiceops/read_invoice_file -> raw_invoice_text] path=$inputs.invoice_file_path"
+    },
+    {
+      "id": "extract_invoice_fields",
+      "kind": "tool",
+      "command": "[t:invoiceops/extract_invoice_fields -> extracted_invoice] raw_text=$raw_invoice_text.data.text; source_ref=$inputs.invoice_file_path"
+    },
+    {
+      "id": "validate_invoice_fields",
+      "kind": "tool",
+      "command": "[t:invoiceops/validate_invoice_fields -> invoice_validation] invoice=$extracted_invoice.data.invoice"
+    },
+    {
+      "id": "read_supplier_master",
+      "kind": "tool",
+      "command": "[t:invoiceops/read_supplier_master -> supplier_master]"
+    },
+    {
+      "id": "read_po_register",
+      "kind": "tool",
+      "command": "[t:invoiceops/read_po_register -> po_register]"
+    },
+    {
+      "id": "read_receipt_register",
+      "kind": "tool",
+      "command": "[t:invoiceops/read_receipt_register -> receipt_register]"
+    },
+    {
+      "id": "read_invoice_register",
+      "kind": "tool",
+      "command": "[t:invoiceops/read_invoice_register -> invoice_register]"
+    },
+    {
+      "id": "read_ledger",
+      "kind": "tool",
+      "command": "[t:invoiceops/read_ledger -> ledger]"
+    },
+    {
+      "id": "read_exception_register",
+      "kind": "tool",
+      "command": "[t:invoiceops/read_exception_register -> exception_register]"
+    },
+    {
+      "id": "check_duplicate_invoice",
+      "kind": "tool",
+      "command": "[t:invoiceops/check_duplicate_invoice -> duplicate_check] invoice=$extracted_invoice.data.invoice; invoice_register=$invoice_register.data.records"
+    },
+    {
+      "id": "lookup_purchase_order",
+      "kind": "tool",
+      "command": "[t:invoiceops/lookup_purchase_order -> po_lookup] invoice=$extracted_invoice.data.invoice; po_register=$po_register.data.records"
+    },
+    {
+      "id": "lookup_goods_receipt",
+      "kind": "tool",
+      "command": "[t:invoiceops/lookup_goods_receipt -> receipt_lookup] invoice=$extracted_invoice.data.invoice; receipt_register=$receipt_register.data.records"
+    },
+    {
+      "id": "check_totals",
+      "kind": "tool",
+      "command": "[t:invoiceops/check_totals -> totals_check] invoice=$extracted_invoice.data.invoice; purchase_order=$po_lookup.data.details.purchase_order"
+    },
+    {
+      "id": "check_tax",
+      "kind": "tool",
+      "command": "[t:invoiceops/check_tax -> tax_check] invoice=$extracted_invoice.data.invoice"
+    },
+    {
+      "id": "match_three_way",
+      "kind": "tool",
+      "command": "[t:invoiceops/match_three_way -> match_result] invoice=$extracted_invoice.data.invoice; purchase_order=$po_lookup.data.details.purchase_order; goods_receipt=$receipt_lookup.data.details.goods_receipt; invoice_register=$invoice_register.data.records"
+    },
+    {
+      "id": "classify_exceptions",
+      "kind": "tool",
+      "command": "[t:invoiceops/classify_exceptions -> classified_exceptions] match_result=$match_result.data.match_result; invoice=$extracted_invoice.data.invoice"
+    },
+    {
+      "id": "search_po_fallback",
+      "kind": "tool",
+      "command": "[t:invoiceops/search_po_fallback -> po_fallback] invoice=$extracted_invoice.data.invoice; po_register=$po_register.data.records"
+    },
+    {
+      "id": "search_receipt_fallback",
+      "kind": "tool",
+      "command": "[t:invoiceops/search_receipt_fallback -> receipt_fallback] invoice=$extracted_invoice.data.invoice; receipt_register=$receipt_register.data.records"
+    },
+    {
+      "id": "search_supplier_fallback",
+      "kind": "tool",
+      "command": "[t:invoiceops/search_supplier_fallback -> supplier_fallback] invoice=$extracted_invoice.data.invoice; supplier_master=$supplier_master.data.records"
+    },
+    {
+      "id": "build_exception_action_plan",
+      "kind": "tool",
+      "command": "[t:invoiceops/build_exception_action_plan -> exception_action_plan] invoice=$extracted_invoice.data.invoice; exceptions=$classified_exceptions.data.exceptions"
+    },
+    {
+      "id": "prepare_invoice_register_write",
+      "kind": "tool",
+      "command": "[t:invoiceops/prepare_invoice_register_write -> prepared_invoice_write] invoice=$extracted_invoice.data.invoice"
+    },
+    {
+      "id": "prepare_match_register_write",
+      "kind": "tool",
+      "command": "[t:invoiceops/prepare_match_register_write -> prepared_match_write] match_result=$match_result.data.match_result"
+    },
+    {
+      "id": "prepare_exception_register_write",
+      "kind": "tool",
+      "when": {
+        "output": "classified_exceptions",
+        "field": "data.exception_count",
+        "greater_than": 0
+      },
+      "command": "[t:invoiceops/prepare_exception_register_write -> prepared_exception_write] exceptions=$classified_exceptions.data.exceptions"
+    },
+    {
+      "id": "prepare_ledger_write",
+      "kind": "tool",
+      "when": {
+        "output": "match_result",
+        "field": "data.match_result.ledger_posting_allowed",
+        "equals": true
+      },
+      "command": "[t:invoiceops/prepare_ledger_write -> prepared_ledger_write] ledger_rows=$match_result.data.match_result.ledger_rows"
+    },
+    {
+      "id": "build_match_report",
+      "kind": "tool",
+      "command": "[t:invoiceops/build_match_report -> match_report] invoice=$extracted_invoice.data.invoice; match_result=$match_result.data.match_result"
+    },
+    {
+      "id": "build_exception_report",
+      "kind": "tool",
+      "command": "[t:invoiceops/build_exception_report -> exception_report] invoice=$extracted_invoice.data.invoice; exceptions=$classified_exceptions.data.exceptions; action_plan=$exception_action_plan.data.exception_action_plan"
+    },
+    {
+      "id": "build_ledger_posting_summary",
+      "kind": "tool",
+      "command": "[t:invoiceops/build_ledger_posting_summary -> ledger_summary] invoice=$extracted_invoice.data.invoice; ledger_rows=$match_result.data.match_result.ledger_rows"
+    },
+    {
+      "id": "build_rollback_summary",
+      "kind": "tool",
+      "command": "[t:invoiceops/build_rollback_summary -> rollback_summary] prepared_writes=$prepared_invoice_write.data.prepared_write"
+    },
+    {
+      "id": "build_evidence_bundle",
+      "kind": "tool",
+      "command": "[t:invoiceops/build_evidence_bundle -> evidence_bundle] invoice=$extracted_invoice.data.invoice; match_result=$match_result.data.match_result; exceptions=$classified_exceptions.data.exceptions; prepared_writes=$prepared_invoice_write.data.prepared_write"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "raw_invoice_text_exists",
+      "type": "output_exists",
+      "output": "raw_invoice_text"
+    },
+    {
+      "id": "extracted_invoice_exists",
+      "type": "output_exists",
+      "output": "extracted_invoice"
+    },
+    {
+      "id": "invoice_validation_exists",
+      "type": "output_exists",
+      "output": "invoice_validation"
+    },
+    {
+      "id": "supplier_master_exists",
+      "type": "output_exists",
+      "output": "supplier_master"
+    },
+    {
+      "id": "po_register_exists",
+      "type": "output_exists",
+      "output": "po_register"
+    },
+    {
+      "id": "receipt_register_exists",
+      "type": "output_exists",
+      "output": "receipt_register"
+    },
+    {
+      "id": "invoice_register_exists",
+      "type": "output_exists",
+      "output": "invoice_register"
+    },
+    {
+      "id": "ledger_exists",
+      "type": "output_exists",
+      "output": "ledger"
+    },
+    {
+      "id": "exception_register_exists",
+      "type": "output_exists",
+      "output": "exception_register"
+    },
+    {
+      "id": "duplicate_check_exists",
+      "type": "output_exists",
+      "output": "duplicate_check"
+    },
+    {
+      "id": "po_lookup_exists",
+      "type": "output_exists",
+      "output": "po_lookup"
+    },
+    {
+      "id": "receipt_lookup_exists",
+      "type": "output_exists",
+      "output": "receipt_lookup"
+    },
+    {
+      "id": "totals_check_exists",
+      "type": "output_exists",
+      "output": "totals_check"
+    },
+    {
+      "id": "tax_check_exists",
+      "type": "output_exists",
+      "output": "tax_check"
+    },
+    {
+      "id": "match_result_exists",
+      "type": "output_exists",
+      "output": "match_result"
+    },
+    {
+      "id": "classified_exceptions_exists",
+      "type": "output_exists",
+      "output": "classified_exceptions"
+    },
+    {
+      "id": "po_fallback_exists",
+      "type": "output_exists",
+      "output": "po_fallback"
+    },
+    {
+      "id": "receipt_fallback_exists",
+      "type": "output_exists",
+      "output": "receipt_fallback"
+    },
+    {
+      "id": "supplier_fallback_exists",
+      "type": "output_exists",
+      "output": "supplier_fallback"
+    },
+    {
+      "id": "exception_action_plan_exists",
+      "type": "output_exists",
+      "output": "exception_action_plan"
+    },
+    {
+      "id": "match_report_exists",
+      "type": "output_exists",
+      "output": "match_report"
+    },
+    {
+      "id": "exception_report_exists",
+      "type": "output_exists",
+      "output": "exception_report"
+    },
+    {
+      "id": "ledger_summary_exists",
+      "type": "output_exists",
+      "output": "ledger_summary"
+    },
+    {
+      "id": "rollback_summary_exists",
+      "type": "output_exists",
+      "output": "rollback_summary"
+    },
+    {
+      "id": "evidence_bundle_exists",
+      "type": "output_exists",
+      "output": "evidence_bundle"
+    },
+    {
+      "id": "prepared_invoice_write_exists",
+      "type": "output_exists",
+      "output": "prepared_invoice_write"
+    },
+    {
+      "id": "prepared_match_write_exists",
+      "type": "output_exists",
+      "output": "prepared_match_write"
+    }
+  ],
+  "completion": {
+    "success_outputs": [
+      "raw_invoice_text",
+      "extracted_invoice",
+      "invoice_validation",
+      "supplier_master",
+      "po_register",
+      "receipt_register",
+      "invoice_register",
+      "ledger",
+      "exception_register",
+      "duplicate_check",
+      "po_lookup",
+      "receipt_lookup",
+      "totals_check",
+      "tax_check",
+      "match_result",
+      "classified_exceptions",
+      "po_fallback",
+      "receipt_fallback",
+      "supplier_fallback",
+      "exception_action_plan",
+      "match_report",
+      "exception_report",
+      "ledger_summary",
+      "rollback_summary",
+      "evidence_bundle",
+      "prepared_invoice_write",
+      "prepared_match_write"
+    ],
+    "required_state": "COMPLETED"
+  },
+  "side_effect_policy": {
+    "has_side_effects": false,
+    "requires_approval": false,
+    "live_execution_allowed": false,
+    "allowed_side_effect_tools": []
+  }
+}

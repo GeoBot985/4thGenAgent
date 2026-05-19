@@ -1,0 +1,12 @@
+[
+  {
+    "exception_id": "EXC-GALLERY-001",
+    "exception_type": "amount_mismatch",
+    "severity": "high",
+    "invoice_id": "INV-INV-2024-001",
+    "po_number": "PO-2024-042",
+    "message": "Amount mismatch.",
+    "recommended_action": "operator_review",
+    "blocking": true
+  }
+]

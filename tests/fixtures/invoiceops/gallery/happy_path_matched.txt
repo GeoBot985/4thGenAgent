@@ -1,0 +1,21 @@
+SUPPLIER INVOICE
+
+Supplier:       Acme Supplies (Pty) Ltd
+Supplier ID:    SUP-001
+VAT Number:     4000123456
+Address:        12 Industrial Road, Johannesburg, 2001
+
+Invoice Number: INV-2024-777
+Invoice Date:   2024-01-15
+Due Date:       2024-02-14
+PO Number:      PO-2024-042
+Currency:       ZAR
+
+LINE ITEMS:
+1     SKU-WIDGET-A Widget Type A     10    150.00    1500.00
+2     SKU-WIDGET-B Widget Type B     5     200.00    1000.00
+3     SKU-CABLE-01 Network Cable 1m  20    25.00     500.00
+
+Subtotal:      3000.00
+VAT (15%):     450.00
+Invoice Total: 3450.00

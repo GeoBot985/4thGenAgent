@@ -1,0 +1,15 @@
+SUPPLIER INVOICE
+
+Supplier:       Acme Supplies (Pty) Ltd
+Supplier ID:    SUP-001
+Invoice Number: INV-2024-099
+Invoice Date:   2024-03-10
+PO Number:      PO-2024-999
+Currency:       ZAR
+
+LINE ITEMS:
+1     SKU-WIDGET-A Widget Type A     2     150.00    300.00
+
+Subtotal:      300.00
+VAT (15%):     45.00
+Invoice Total: 345.00

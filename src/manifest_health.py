@@ -272,7 +272,7 @@ def _build_smoke_result(
     if _requires_external_setup(raw or {}, path):
         return _skipped_smoke("manifest requires external/live setup")
 
-    result = smoke_run_manifest_file(path, runtime_data_dir=runtime_data_dir)
+    result = smoke_run_manifest_file(path, runtime_data_dir=runtime_data_dir, sample_inputs=sample_inputs)
     classification = str(result.get("classification") or "")
     if result.get("ok") and classification in PASSING_CLASSIFICATIONS:
         return {

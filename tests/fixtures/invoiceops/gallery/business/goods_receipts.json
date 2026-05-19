@@ -1,0 +1,24 @@
+[
+  {
+    "receipt_id": "GRN-001",
+    "po_number": "PO-2024-042",
+    "supplier_id": "SUP-001",
+    "receipt_date": "2024-01-10",
+    "status": "received",
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-WIDGET-A", "description": "Widget Type A", "received_quantity": 10.0},
+      {"line_no": 2, "sku": "SKU-WIDGET-B", "description": "Widget Type B", "received_quantity": 5.0},
+      {"line_no": 3, "sku": "SKU-CABLE-01", "description": "Network Cable 1m", "received_quantity": 20.0}
+    ]
+  },
+  {
+    "receipt_id": "GRN-002",
+    "po_number": "PO-2024-043",
+    "supplier_id": "SUP-999",
+    "receipt_date": "2024-01-12",
+    "status": "partial",
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-X-001", "description": "Unknown Item", "received_quantity": 2.0}
+    ]
+  }
+]

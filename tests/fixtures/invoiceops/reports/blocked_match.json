@@ -1,0 +1,34 @@
+{
+  "invoice": {
+    "invoice_id": "INV-INV-2024-002",
+    "supplier_id": "SUP-001",
+    "supplier_name": "Acme Supplies (Pty) Ltd",
+    "invoice_number": "INV-2024-002",
+    "invoice_date": "2024-01-16",
+    "po_number": "PO-2024-043",
+    "currency": "ZAR",
+    "subtotal": 1000.0,
+    "tax_total": 150.0,
+    "invoice_total": 1150.0,
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-WIDGET-A", "description": "Widget Type A", "quantity": 5.0, "unit_price": 200.0, "tax_amount": 0.0, "line_total": 1000.0}
+    ]
+  },
+  "match_result": {
+    "match_id": "MATCH-INV-2024-002-PO-2024-043",
+    "invoice_id": "INV-INV-2024-002",
+    "invoice_number": "INV-2024-002",
+    "supplier_id": "SUP-001",
+    "po_number": "PO-2024-043",
+    "match_status": "blocked",
+    "checks": [
+      {"check_id": "PO_CHECK", "status": "fail", "expected": "open or part_received", "actual": "cancelled", "message": "PO is cancelled."},
+      {"check_id": "TOTALS_CHECK", "status": "fail", "expected": "1000.0", "actual": "1150.0", "message": "Totals mismatch."}
+    ],
+    "exceptions": [
+      {"exception_id": "EXC-001", "exception_type": "wrong_po", "severity": "blocker", "invoice_id": "INV-INV-2024-002", "po_number": "PO-2024-043", "message": "Wrong PO.", "recommended_action": "Correct PO.", "blocking": true}
+    ],
+    "ledger_posting_allowed": false,
+    "prepared_write_allowed": false
+  }
+}

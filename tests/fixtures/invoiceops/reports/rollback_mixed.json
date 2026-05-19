@@ -1,0 +1,55 @@
+{
+  "prepared_writes": [
+    {
+      "prepared_write_id": "PW-INV-001",
+      "target": "InvoiceRegister",
+      "operation": "append",
+      "rows": [{"invoice_id": "INV-1"}],
+      "dry_run": true,
+      "requires_approval": true,
+      "rollback_plan": {
+        "rollback_id": "RBK-PW-INV-001",
+        "rollback_type": "delete_appended_rows",
+        "target": "InvoiceRegister",
+        "source_prepared_write_id": "PW-INV-001",
+        "safe_to_auto_prepare": true,
+        "steps": [{"step_no": 1, "action": "delete_appended_rows", "target": "InvoiceRegister", "data": {"prepared_write_id": "PW-INV-001", "row_count": 1, "row_ids": ["INV-1"]}}],
+        "reason": "Undo appended rows for InvoiceRegister."
+      }
+    },
+    {
+      "prepared_write_id": "PW-LED-001",
+      "target": "Ledger",
+      "operation": "append",
+      "rows": [{"ledger_entry_id": "LED-1"}],
+      "dry_run": true,
+      "requires_approval": true,
+      "rollback_plan": {
+        "rollback_id": "RBK-PW-LED-001",
+        "rollback_type": "mark_reversed",
+        "target": "Ledger",
+        "source_prepared_write_id": "PW-LED-001",
+        "safe_to_auto_prepare": true,
+        "steps": [{"step_no": 1, "action": "mark_reversed", "target": "Ledger", "data": {"prepared_write_id": "PW-LED-001", "row_count": 1, "ledger_entry_ids": ["LED-1"], "reverse_status": "reversed"}}],
+        "reason": "Reverse ledger rows for Ledger."
+      }
+    },
+    {
+      "prepared_write_id": "PW-MAN-001",
+      "target": "ExceptionRegister",
+      "operation": "append",
+      "rows": [{"exception_id": "EXC-1"}],
+      "dry_run": true,
+      "requires_approval": true,
+      "rollback_plan": {
+        "rollback_id": "RBK-PW-MAN-001",
+        "rollback_type": "manual_review_required",
+        "target": "ExceptionRegister",
+        "source_prepared_write_id": "PW-MAN-001",
+        "safe_to_auto_prepare": false,
+        "steps": [{"step_no": 1, "action": "manual_review_required", "target": "ExceptionRegister", "data": {"prepared_write_id": "PW-MAN-001", "row_count": 1}}],
+        "reason": "Rollback requires manual review for ExceptionRegister."
+      }
+    }
+  ]
+}

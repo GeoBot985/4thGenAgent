@@ -1,0 +1,28 @@
+[
+  {
+    "ledger_entry_id": "LED-WRITE-001",
+    "source_type": "supplier_invoice",
+    "source_ref": "INV-WRITE-001",
+    "supplier_id": "SUP-001",
+    "invoice_number": "INV-2026-001",
+    "po_number": "PO-2026-001",
+    "debit_account": "5000",
+    "credit_account": "2000",
+    "amount": 1150.0,
+    "currency": "ZAR",
+    "status": "prepared"
+  },
+  {
+    "ledger_entry_id": "LED-WRITE-002",
+    "source_type": "supplier_invoice",
+    "source_ref": "INV-WRITE-002",
+    "supplier_id": "SUP-002",
+    "invoice_number": "INV-2026-002",
+    "po_number": "PO-2026-002",
+    "debit_account": "5000",
+    "credit_account": "2000",
+    "amount": 250.0,
+    "currency": "ZAR",
+    "status": "prepared"
+  }
+]

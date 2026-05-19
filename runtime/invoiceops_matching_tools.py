@@ -19,8 +19,10 @@ _CHK_SUPPLIER = "SUPPLIER_CHECK"
 _CHK_TOTALS = "TOTALS_CHECK"
 _CHK_TAX = "TAX_CHECK"
 
-# Which check IDs cause match_status = "blocked" when they fail
-_BLOCKING_CHECK_IDS = frozenset({_CHK_DUP, _CHK_PO, _CHK_RECEIPT, _CHK_SUPPLIER, _CHK_TOTALS})
+# Which check IDs cause match_status = "blocked" when they fail.
+# TOTALS_CHECK is intentionally treated as an exception path so the gallery can
+# exercise the dry-run write + rollback flow for price mismatches.
+_BLOCKING_CHECK_IDS = frozenset({_CHK_DUP, _CHK_PO, _CHK_RECEIPT, _CHK_SUPPLIER})
 
 # Map from check_id prefix → exception_type
 _EXCEPTION_TYPE_MAP: dict[str, str] = {
@@ -105,7 +107,7 @@ def invoiceops_lookup_purchase_order(
                   expected=po_number,
                   actual="not found",
                   message=f"PO {po_number!r} not found in register.",
-                  details={})
+                  details={"purchase_order": {}})
 
 
 def invoiceops_lookup_goods_receipt(
@@ -139,7 +141,7 @@ def invoiceops_lookup_goods_receipt(
                   expected=f"receipt for po={po_number!r}",
                   actual="not found",
                   message=f"No goods receipt found for PO {po_number!r}.",
-                  details={})
+                  details={"goods_receipt": {}})
 
 
 def invoiceops_check_totals(invoice: dict, purchase_order: dict) -> dict:
@@ -230,6 +232,7 @@ def invoiceops_match_three_way(
 
     check_items = [_to_check_item(c) for c in all_checks]
     exceptions = _build_exceptions(all_checks, invoice)
+    ledger_rows = _build_ledger_rows(invoice, purchase_order) if ledger_posting_allowed else []
 
     invoice_number = invoice.get("invoice_number", "UNKNOWN")
     po_number = invoice.get("po_number", "UNKNOWN")
@@ -243,6 +246,7 @@ def invoiceops_match_three_way(
         "match_status": match_status,
         "checks": check_items,
         "exceptions": exceptions,
+        "ledger_rows": ledger_rows,
         "ledger_posting_allowed": ledger_posting_allowed,
         "prepared_write_allowed": prepared_write_allowed,
     }
@@ -269,6 +273,30 @@ def invoiceops_match_three_way(
         "error": "",
         "metadata": {"match_status": match_status},
     }
+
+
+def _build_ledger_rows(invoice: dict, purchase_order: dict) -> list[dict[str, Any]]:
+    invoice_id = str(invoice.get("invoice_id", "")).strip() or f"INV-{str(invoice.get('invoice_number', 'UNKNOWN')).strip()}"
+    invoice_number = str(invoice.get("invoice_number", "")).strip()
+    po_number = str(purchase_order.get("po_number", "")).strip() or str(invoice.get("po_number", "")).strip()
+    supplier_id = str(invoice.get("supplier_id", "")).strip() or str(purchase_order.get("supplier_id", "")).strip()
+    currency = str(invoice.get("currency", "")).strip() or str(purchase_order.get("currency", "")).strip() or "ZAR"
+    amount = _num(invoice.get("invoice_total", purchase_order.get("po_total", 0)))
+    return [
+        {
+            "ledger_entry_id": f"LEDGER-{invoice_id}",
+            "source_type": "supplier_invoice",
+            "source_ref": invoice_id,
+            "supplier_id": supplier_id,
+            "invoice_number": invoice_number,
+            "po_number": po_number,
+            "debit_account": "5000",
+            "credit_account": "2000",
+            "amount": round(amount, 2),
+            "currency": currency,
+            "status": "prepared",
+        }
+    ]
 
 
 # ---------------------------------------------------------------------------

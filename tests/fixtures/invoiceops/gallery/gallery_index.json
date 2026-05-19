@@ -1,0 +1,56 @@
+{
+  "gallery_id": "invoiceops_regression_gallery_v1",
+  "manifest_id": "invoiceops.process_supplier_invoice_v1",
+  "scenarios": [
+    {
+      "scenario_id": "happy_path_matched",
+      "invoice_file": "happy_path_matched.txt",
+      "expected_status": "matched"
+    },
+    {
+      "scenario_id": "wrong_po",
+      "invoice_file": "wrong_po.txt",
+      "expected_status": "blocked"
+    },
+    {
+      "scenario_id": "missing_po",
+      "invoice_file": "missing_po.txt",
+      "expected_status": "blocked"
+    },
+    {
+      "scenario_id": "missing_receipt",
+      "invoice_file": "missing_receipt.txt",
+      "expected_status": "blocked"
+    },
+    {
+      "scenario_id": "duplicate_invoice",
+      "invoice_file": "duplicate_invoice.txt",
+      "expected_status": "blocked"
+    },
+    {
+      "scenario_id": "supplier_mismatch",
+      "invoice_file": "supplier_mismatch.txt",
+      "expected_status": "blocked"
+    },
+    {
+      "scenario_id": "price_mismatch",
+      "invoice_file": "price_mismatch.txt",
+      "expected_status": "exception"
+    },
+    {
+      "scenario_id": "quantity_mismatch",
+      "invoice_file": "quantity_mismatch.txt",
+      "expected_status": "blocked"
+    },
+    {
+      "scenario_id": "bad_invoice_text",
+      "invoice_file": "bad_invoice_text.txt",
+      "expected_status": "blocked"
+    },
+    {
+      "scenario_id": "rollback_required_case",
+      "invoice_file": "rollback_required_case.txt",
+      "expected_status": "matched"
+    }
+  ]
+}

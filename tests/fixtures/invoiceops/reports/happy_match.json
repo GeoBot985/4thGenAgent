@@ -1,0 +1,33 @@
+{
+  "invoice": {
+    "invoice_id": "INV-INV-2024-001",
+    "supplier_id": "SUP-001",
+    "supplier_name": "Acme Supplies (Pty) Ltd",
+    "invoice_number": "INV-2024-001",
+    "invoice_date": "2024-01-15",
+    "po_number": "PO-2024-042",
+    "currency": "ZAR",
+    "subtotal": 3000.0,
+    "tax_total": 450.0,
+    "invoice_total": 3450.0,
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-WIDGET-A", "description": "Widget Type A", "quantity": 10.0, "unit_price": 150.0, "tax_amount": 0.0, "line_total": 1500.0}
+    ]
+  },
+  "match_result": {
+    "match_id": "MATCH-INV-2024-001-PO-2024-042",
+    "invoice_id": "INV-INV-2024-001",
+    "invoice_number": "INV-2024-001",
+    "supplier_id": "SUP-001",
+    "po_number": "PO-2024-042",
+    "match_status": "matched",
+    "checks": [
+      {"check_id": "DUP_CHECK", "status": "pass", "expected": "no duplicate", "actual": "not found", "message": "Unique."},
+      {"check_id": "PO_CHECK", "status": "pass", "expected": "PO-2024-042", "actual": "PO-2024-042", "message": "PO number matches."},
+      {"check_id": "RECEIPT_CHECK", "status": "pass", "expected": "received", "actual": "GRN-001", "message": "Receipt found."}
+    ],
+    "exceptions": [],
+    "ledger_posting_allowed": true,
+    "prepared_write_allowed": true
+  }
+}

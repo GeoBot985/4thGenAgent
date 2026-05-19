@@ -1,0 +1,71 @@
+{
+  "invoice": {
+    "invoice_id": "INV-INV-2024-005",
+    "supplier_id": "SUP-003",
+    "supplier_name": "Gamma Industrial",
+    "invoice_number": "INV-2024-005",
+    "invoice_date": "2024-01-19",
+    "po_number": "PO-2024-046",
+    "currency": "ZAR",
+    "subtotal": 500.0,
+    "tax_total": 75.0,
+    "invoice_total": 575.0,
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-X", "description": "Part X", "quantity": 5.0, "unit_price": 100.0, "tax_amount": 0.0, "line_total": 500.0}
+    ]
+  },
+  "match_result": {
+    "match_id": "MATCH-INV-2024-005-PO-2024-046",
+    "invoice_id": "INV-INV-2024-005",
+    "invoice_number": "INV-2024-005",
+    "supplier_id": "SUP-003",
+    "po_number": "PO-2024-046",
+    "match_status": "exception",
+    "checks": [
+      {"check_id": "PO_CHECK", "status": "pass", "expected": "PO-2024-046", "actual": "PO-2024-046", "message": "PO matches."}
+    ],
+    "exceptions": [
+      {"exception_id": "EXC-EB-1", "exception_type": "tax_mismatch", "severity": "medium", "invoice_id": "INV-INV-2024-005", "po_number": "PO-2024-046", "message": "Tax mismatch.", "recommended_action": "Review tax.", "blocking": false}
+    ],
+    "ledger_posting_allowed": false,
+    "prepared_write_allowed": true,
+    "evidence": {
+      "evidence_id": "EVD-MATCH-1",
+      "source_type": "tool_output",
+      "source_ref": "MATCH-INV-2024-005-PO-2024-046",
+      "field_path": "match_result.match_status",
+      "raw_value": "exception",
+      "confidence": 1.0
+    }
+  },
+  "exceptions": [
+    {"exception_id": "EXC-EB-1", "exception_type": "tax_mismatch", "severity": "medium", "invoice_id": "INV-INV-2024-005", "po_number": "PO-2024-046", "message": "Tax mismatch.", "recommended_action": "Review tax.", "blocking": false}
+  ],
+  "prepared_writes": [
+    {
+      "prepared_write_id": "PW-EB-001",
+      "target": "InvoiceRegister",
+      "operation": "append",
+      "rows": [{"invoice_id": "INV-INV-2024-005"}],
+      "dry_run": true,
+      "requires_approval": true,
+      "rollback_plan": {
+        "rollback_id": "RBK-PW-EB-001",
+        "rollback_type": "delete_appended_rows",
+        "target": "InvoiceRegister",
+        "source_prepared_write_id": "PW-EB-001",
+        "safe_to_auto_prepare": true,
+        "steps": [{"step_no": 1, "action": "delete_appended_rows", "target": "InvoiceRegister", "data": {"prepared_write_id": "PW-EB-001", "row_count": 1, "row_ids": ["INV-INV-2024-005"]}}],
+        "reason": "Undo appended rows for InvoiceRegister."
+      },
+      "evidence": {
+        "tool": "invoiceops/prepare_invoice_register_write",
+        "mode": "dry_run",
+        "source": "builtin",
+        "operation": "prepare",
+        "input_refs": ["INV-INV-2024-005"],
+        "output_ref": "invoiceops_prepared_write"
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "match_id": "MATCH-WRITE-001",
+  "invoice_id": "INV-WRITE-001",
+  "invoice_number": "INV-2026-001",
+  "supplier_id": "SUP-001",
+  "po_number": "PO-2026-001",
+  "match_status": "exception",
+  "checks": [
+    {
+      "check_id": "PO_CHECK",
+      "status": "pass",
+      "expected": "PO-2026-001",
+      "actual": "PO-2026-001",
+      "message": "PO number matches."
+    }
+  ],
+  "exceptions": [
+    {
+      "exception_id": "EXC-WRITE-001",
+      "exception_type": "amount_mismatch",
+      "severity": "high",
+      "invoice_id": "INV-WRITE-001",
+      "po_number": "PO-2026-001",
+      "message": "Invoice amount does not match PO.",
+      "recommended_action": "Request corrected invoice.",
+      "blocking": true
+    }
+  ],
+  "ledger_posting_allowed": false,
+  "prepared_write_allowed": true
+}

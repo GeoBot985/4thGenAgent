@@ -1,0 +1,20 @@
+{
+  "invoice": {
+    "invoice_id": "INV-INV-2024-004",
+    "supplier_id": "SUP-001",
+    "supplier_name": "Acme Supplies (Pty) Ltd",
+    "invoice_number": "INV-2024-004",
+    "invoice_date": "2024-01-18",
+    "po_number": "PO-2024-045",
+    "currency": "ZAR",
+    "subtotal": 1000.0,
+    "tax_total": 150.0,
+    "invoice_total": 1150.0,
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-WIDGET-A", "description": "Widget Type A", "quantity": 5.0, "unit_price": 200.0, "tax_amount": 0.0, "line_total": 1000.0}
+    ]
+  },
+  "ledger_rows": [
+    {"ledger_entry_id": "LED-001", "source_type": "supplier_invoice", "source_ref": "INV-INV-2024-004", "supplier_id": "SUP-001", "invoice_number": "INV-2024-004", "po_number": "PO-2024-045", "debit_account": "5000", "credit_account": "2000", "amount": 1150.0, "currency": "ZAR", "status": "prepared"}
+  ]
+}

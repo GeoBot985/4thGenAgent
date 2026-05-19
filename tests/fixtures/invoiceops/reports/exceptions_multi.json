@@ -1,0 +1,26 @@
+{
+  "invoice": {
+    "invoice_id": "INV-INV-2024-003",
+    "supplier_id": "SUP-002",
+    "supplier_name": "Delta Components",
+    "invoice_number": "INV-2024-003",
+    "invoice_date": "2024-01-17",
+    "po_number": "PO-2024-044",
+    "currency": "ZAR",
+    "subtotal": 2000.0,
+    "tax_total": 300.0,
+    "invoice_total": 2300.0,
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-1", "description": "Item A", "quantity": 2.0, "unit_price": 1000.0, "tax_amount": 0.0, "line_total": 2000.0}
+    ]
+  },
+  "exceptions": [
+    {"exception_id": "EXC-A", "exception_type": "amount_mismatch", "severity": "high", "invoice_id": "INV-INV-2024-003", "po_number": "PO-2024-044", "message": "Amount mismatch.", "recommended_action": "Review amount.", "blocking": true},
+    {"exception_id": "EXC-B", "exception_type": "tax_mismatch", "severity": "medium", "invoice_id": "INV-INV-2024-003", "po_number": "PO-2024-044", "message": "Tax mismatch.", "recommended_action": "Review tax.", "blocking": false},
+    {"exception_id": "EXC-C", "exception_type": "missing_receipt", "severity": "blocker", "invoice_id": "INV-INV-2024-003", "po_number": "PO-2024-044", "message": "Receipt missing.", "recommended_action": "Obtain receipt.", "blocking": true}
+  ],
+  "action_plan": {
+    "exception_action_plan_id": "PLAN-INV-INV-2024-003",
+    "recommended_action": "operator_review"
+  }
+}

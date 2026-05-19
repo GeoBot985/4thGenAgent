@@ -20,6 +20,10 @@ EXCEPTION_SEVERITIES: frozenset[str] = frozenset({"low", "medium", "high", "bloc
 LEDGER_STATUSES: frozenset[str] = frozenset({"prepared", "posted", "reversed"})
 LEDGER_SOURCE_TYPES: frozenset[str] = frozenset({"supplier_invoice"})
 PREPARED_WRITE_TARGETS: frozenset[str] = frozenset({
+    "InvoiceRegister",
+    "MatchRegister",
+    "ExceptionRegister",
+    "Ledger",
     "invoice_register",
     "ledger",
     "exception_register",

@@ -1,0 +1,3 @@
+THIS IS NOT A VALID INVOICE DOCUMENT.
+It has no structured supplier labels, no PO reference, and no line-item table.
+The parser should fail validation safely and stop before any write preparation.

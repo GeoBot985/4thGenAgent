@@ -400,13 +400,13 @@ def test_three_way_supplier_mismatch_exception_type() -> None:
 
 
 # ---------------------------------------------------------------------------
-# match_three_way — invoice total mismatch → blocked (TOTALS_CHECK fail)
+# match_three_way — invoice total mismatch → exception (TOTALS_CHECK fail)
 # ---------------------------------------------------------------------------
 
-def test_three_way_total_mismatch_blocked() -> None:
+def test_three_way_total_mismatch_exception() -> None:
     po = {**_SAMPLE_PO, "po_total": 3000.0}
     r = invoiceops_match_three_way(_SAMPLE_INVOICE, po, _SAMPLE_RECEIPT, _EMPTY_REGISTER)
-    assert r["data"]["match_result"]["match_status"] == "blocked"
+    assert r["data"]["match_result"]["match_status"] == "exception"
 
 
 def test_three_way_total_mismatch_exception_type() -> None:

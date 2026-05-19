@@ -1,17 +1,17 @@
 # Tool Inventory Report
 
-Generated: 2026-05-19T18:41:02Z
+Generated: 2026-05-19T18:59:39Z
 
-Report JSON: D:/Temp/pytest-of-GeorgeC/pytest-1895/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.json
-Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1895/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.md
+Report JSON: runtime_data/tool_inventory/tool_inventory.json
+Report Markdown: runtime_data/tool_inventory/tool_inventory.md
 
 ## Summary
 
 | Metric | Count |
 |---|---:|
-| Total tools | 83 |
+| Total tools | 113 |
 | Migrated tool-pack tools | 4 |
-| Legacy fallback tools | 79 |
+| Legacy fallback tools | 109 |
 | External enabled tools | 0 |
 | Total tool packs | 2 |
 | Optional disabled tools | 10 |
@@ -53,6 +53,36 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1895/test_inventory_includes_t
 | inventory/filter_reorder_candidates | legacy_fallback |  | no | no | no | reorder_candidates |
 | inventory/read | legacy_fallback |  | no | no | no | inventory_record |
 | inventory/search_low_stock | legacy_fallback |  | no | no | no | low_stock_result |
+| invoiceops/build_evidence_bundle | legacy_fallback |  | no | no | no | invoiceops_report |
+| invoiceops/build_exception_action_plan | legacy_fallback |  | no | no | no | invoiceops_exception_action_plan |
+| invoiceops/build_exception_report | legacy_fallback |  | no | no | no | invoiceops_report |
+| invoiceops/build_ledger_posting_summary | legacy_fallback |  | no | no | no | invoiceops_report |
+| invoiceops/build_match_report | legacy_fallback |  | no | no | no | invoiceops_report |
+| invoiceops/build_rollback_summary | legacy_fallback |  | no | no | no | invoiceops_report |
+| invoiceops/check_duplicate_invoice | legacy_fallback |  | no | no | no | invoiceops_match_check |
+| invoiceops/check_tax | legacy_fallback |  | no | no | no | invoiceops_match_check |
+| invoiceops/check_totals | legacy_fallback |  | no | no | no | invoiceops_match_check |
+| invoiceops/classify_exceptions | legacy_fallback |  | no | no | no | invoiceops_exception_classification |
+| invoiceops/extract_invoice_fields | legacy_fallback |  | no | no | no | invoiceops_invoice |
+| invoiceops/lookup_goods_receipt | legacy_fallback |  | no | no | no | invoiceops_match_check |
+| invoiceops/lookup_purchase_order | legacy_fallback |  | no | no | no | invoiceops_match_check |
+| invoiceops/match_three_way | legacy_fallback |  | no | no | no | invoiceops_match_result |
+| invoiceops/prepare_exception_register_write | legacy_fallback |  | no | no | no | invoiceops_prepared_write |
+| invoiceops/prepare_invoice_register_write | legacy_fallback |  | no | no | no | invoiceops_prepared_write |
+| invoiceops/prepare_ledger_write | legacy_fallback |  | no | no | no | invoiceops_prepared_write |
+| invoiceops/prepare_match_register_write | legacy_fallback |  | no | no | no | invoiceops_prepared_write |
+| invoiceops/prepare_rollback_plan | legacy_fallback |  | no | no | no | invoiceops_rollback_plan |
+| invoiceops/read_exception_register | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
+| invoiceops/read_invoice_file | legacy_fallback |  | no | no | no | invoiceops_raw_invoice_text |
+| invoiceops/read_invoice_register | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
+| invoiceops/read_ledger | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
+| invoiceops/read_po_register | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
+| invoiceops/read_receipt_register | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
+| invoiceops/read_supplier_master | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
+| invoiceops/search_po_fallback | legacy_fallback |  | no | no | no | invoiceops_fallback_result |
+| invoiceops/search_receipt_fallback | legacy_fallback |  | no | no | no | invoiceops_fallback_result |
+| invoiceops/search_supplier_fallback | legacy_fallback |  | no | no | no | invoiceops_fallback_result |
+| invoiceops/validate_invoice_fields | legacy_fallback |  | no | no | no | invoiceops_invoice_validation |
 | memory/set | migrated_toolpack | core_memory | yes | yes | no | memory_set_result |
 | message/validate_customer_status_reply | legacy_fallback |  | no | no | no | reply_validation |
 | message/validate_supplier_reorder_message | legacy_fallback |  | no | no | no | supplier_message_validation |
@@ -110,5 +140,5 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1895/test_inventory_includes_t
 
 | Tool Pack | Status | Environments | Classification | Tool Count | Last Check | Lifecycle Report |
 |---|---|---|---|---:|---|---|
-| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-19T18:41:02Z | D:/Temp/pytest-of-GeorgeC/pytest-1895/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
-| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-19T18:41:02Z | D:/Temp/pytest-of-GeorgeC/pytest-1895/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |
+| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-19T18:59:39Z | runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
+| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-19T18:59:39Z | runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |

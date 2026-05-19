@@ -25,6 +25,10 @@ _MONTHS: dict[str, str] = {
 
 # (regex_pattern, capture_group_index)
 _LABEL_RULES: dict[str, list[str]] = {
+    "supplier_id": [
+        r"Supplier\s+ID:\s*(.+)",
+        r"Supplier\s+Code:\s*(.+)",
+    ],
     "supplier_name": [
         r"Supplier(?:\s+Name)?:\s*(.+)",
         r"From:\s*(.+)",
@@ -88,6 +92,7 @@ def invoiceops_extract_invoice_fields(raw_text: str, source_ref: str = "") -> di
     warnings: list[str] = []
     field_evidence: list[dict] = []
 
+    supplier_id_raw, supplier_id_match = _extract_label(raw_text, "supplier_id")
     supplier_name, sup_raw = _extract_label(raw_text, "supplier_name")
     invoice_number, inv_num_raw = _extract_label(raw_text, "invoice_number")
     invoice_date_raw, date_raw = _extract_label(raw_text, "invoice_date")
@@ -116,7 +121,7 @@ def invoiceops_extract_invoice_fields(raw_text: str, source_ref: str = "") -> di
         warnings.append(f"invoice_date {invoice_date_raw!r} could not be parsed to YYYY-MM-DD")
 
     invoice_id = f"INV-{invoice_number}" if invoice_number else "INV-UNKNOWN"
-    supplier_id = _UNKNOWN_SUPPLIER
+    supplier_id = supplier_id_raw or _UNKNOWN_SUPPLIER
 
     invoice: dict[str, Any] = {
         "invoice_id": invoice_id,
@@ -133,6 +138,7 @@ def invoiceops_extract_invoice_fields(raw_text: str, source_ref: str = "") -> di
     }
 
     # Build per-field evidence
+    _add_evidence(field_evidence, "supplier_id", supplier_id_match, source_ref, 0.95 if supplier_id_match else 0.0)
     _add_evidence(field_evidence, "supplier_name", sup_raw, source_ref, 0.85 if sup_raw else 0.0)
     _add_evidence(field_evidence, "invoice_number", inv_num_raw, source_ref, 0.95 if inv_num_raw else 0.0)
     _add_evidence(field_evidence, "invoice_date", date_raw, source_ref, 0.95 if date_raw else 0.0)

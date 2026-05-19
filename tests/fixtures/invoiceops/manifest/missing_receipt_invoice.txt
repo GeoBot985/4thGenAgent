@@ -1,0 +1,15 @@
+SUPPLIER INVOICE
+
+Supplier:       Acme Supplies (Pty) Ltd
+Supplier ID:    SUP-001
+Invoice Number: INV-2024-100
+Invoice Date:   2024-03-11
+PO Number:      PO-2024-044
+Currency:       ZAR
+
+LINE ITEMS:
+1     SKU-CABLE-01 Network Cable 1m  20    25.00    500.00
+
+Subtotal:      500.00
+VAT (15%):     0.00
+Invoice Total: 500.00

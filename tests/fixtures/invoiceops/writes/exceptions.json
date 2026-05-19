@@ -1,0 +1,22 @@
+[
+  {
+    "exception_id": "EXC-WRITE-001",
+    "exception_type": "amount_mismatch",
+    "severity": "high",
+    "invoice_id": "INV-WRITE-001",
+    "po_number": "PO-2026-001",
+    "message": "Invoice amount does not match PO.",
+    "recommended_action": "Request corrected invoice.",
+    "blocking": true
+  },
+  {
+    "exception_id": "EXC-WRITE-002",
+    "exception_type": "tax_mismatch",
+    "severity": "medium",
+    "invoice_id": "INV-WRITE-002",
+    "po_number": "PO-2026-002",
+    "message": "Tax amount does not match invoice total.",
+    "recommended_action": "Review tax calculation.",
+    "blocking": false
+  }
+]
