@@ -89,6 +89,7 @@ from runtime.tool_health import check_all_tool_health, check_tool_health, load_l
 from runtime.tool_setup import get_tool_setup_instructions, run_safe_setup_action
 from runtime.run_report import generate_demo_run_report
 from src.toolpack_loader import discover_toolpacks, load_toolpack_descriptor, validate_toolpack_descriptor
+from src.readiness_scorecard import build_readiness_scorecard
 
 
 TITLE = "Autonomous Business Worker Demo"
@@ -212,8 +213,10 @@ class OperatorConsole:
         self.active_scenario_id: str | None = None
         self.active_report_result: dict | None = None
         self.active_story_pack_result: dict | None = None
+        self.active_readiness_scorecard_result: dict | None = None
         self.active_artifact_paths: dict = {}
         self.active_story_pack_paths: dict = {}
+        self.active_readiness_scorecard_paths: dict = {}
         self.timeline: list[dict] = []
         self.selected_action_id: str | None = None
         self.last_approval_operation: dict | None = None
@@ -451,6 +454,8 @@ class OperatorConsole:
         ttk.Button(secondary_actions, text="Open story evidence pack", command=self.on_open_story_pack_folder).pack(side="left", padx=(12, 6))
         ttk.Button(secondary_actions, text="Open story HTML", command=self.on_open_story_pack_html).pack(side="left", padx=(0, 6))
         ttk.Button(secondary_actions, text="Open story folder", command=self.on_open_story_pack_folder).pack(side="left")
+        ttk.Button(secondary_actions, text="Generate 90% Readiness Scorecard", command=self.on_generate_readiness_scorecard).pack(side="left", padx=(12, 6))
+        ttk.Button(secondary_actions, text="Open Readiness Report", command=self.on_open_readiness_report).pack(side="left")
 
         scenario_header = ttk.Frame(self.demo_advanced_actions_frame, style="Card.TFrame")
         scenario_header.grid(row=2, column=0, sticky="ew", pady=(12, 0))
@@ -1224,6 +1229,20 @@ class OperatorConsole:
 
         open_report_folder(story_dir)
 
+    def on_generate_readiness_scorecard(self) -> None:
+        result = build_readiness_scorecard(runtime_data_dir=self.runtime_root, strict=True)
+        self.active_readiness_scorecard_result = result
+        self.active_readiness_scorecard_paths = dict(result.get("report_paths", {})) if isinstance(result, dict) else {}
+        self._render_current_view()
+
+    def on_open_readiness_report(self) -> None:
+        scorecard = self.active_readiness_scorecard_result if isinstance(self.active_readiness_scorecard_result, dict) else {}
+        html_path = str(self.active_readiness_scorecard_paths.get("html_path", "") or scorecard.get("report_paths", {}).get("html_path", "")).strip()
+        if not html_path:
+            messagebox.showinfo("Readiness Scorecard", "No readiness scorecard exists for the current session.")
+            return
+        open_report_html(html_path)
+
     def _sync_llm_info(self) -> None:
         if not hasattr(self, "llm_info_frame"):
             return
@@ -1287,8 +1306,10 @@ class OperatorConsole:
         self.active_scenario_id = None
         self.active_report_result = None
         self.active_story_pack_result = None
+        self.active_readiness_scorecard_result = None
         self.active_artifact_paths = {}
         self.active_story_pack_paths = {}
+        self.active_readiness_scorecard_paths = {}
 
     def _selected_demo_id(self) -> str:
         selected = self.selected_demo_id.get().strip() if hasattr(self, "selected_demo_id") else ""
@@ -2398,6 +2419,7 @@ class OperatorConsole:
         self._render_section_text(self.results_body, "TaskFrame Summary", self._format_summary(summary))
         self._render_section_text(self.results_body, "Failure Summary", self._format_failure_summary(failure_summary))
         self._render_section_text(self.results_body, "Report Status", self._format_report_status(self.report_status))
+        self._render_section_text(self.results_body, "Readiness Scorecard", self._format_readiness_scorecard(self.active_readiness_scorecard_result))
         if llm_info:
             self._render_section_text(self.results_body, "LLM Runtime", self._format_llm_info(llm_info))
         self._render_section_text(self.results_body, "Approval Pack", self._format_approval_pack(approval_pack, (view or {}).get("current_step_id", "")))
@@ -4244,6 +4266,26 @@ class OperatorConsole:
                 f"error: {report_status.get('error', '')}",
             ]
         )
+
+    def _format_readiness_scorecard(self, scorecard: dict | None) -> str:
+        if not isinstance(scorecard, dict) or not scorecard:
+            return "No readiness scorecard generated."
+        areas = scorecard.get("areas", {}) if isinstance(scorecard.get("areas", {}), dict) else {}
+        lines = [
+            f"Overall score: {scorecard.get('overall_score', 0)}",
+            f"Threshold: {scorecard.get('threshold', 90)}",
+            f"Status: {scorecard.get('status', '')}",
+            f"Blocking areas: {', '.join(scorecard.get('blocking_areas', [])) or 'none'}",
+            f"JSON path: {scorecard.get('report_paths', {}).get('json_path', '')}",
+            f"Markdown path: {scorecard.get('report_paths', {}).get('markdown_path', '')}",
+            f"HTML path: {scorecard.get('report_paths', {}).get('html_path', '')}",
+            "Area scores:",
+        ]
+        for area_id, area in areas.items():
+            if not isinstance(area, dict):
+                continue
+            lines.append(f"- {area.get('label', area_id)}: {area.get('score', 0)} ({area.get('status', '')})")
+        return chr(10).join(lines)
 
     def _format_approval_pack(self, approval_pack: dict | None, selected_step_id: str) -> str:
         if not isinstance(approval_pack, dict) or not approval_pack:

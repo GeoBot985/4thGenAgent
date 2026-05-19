@@ -38,6 +38,7 @@ The architecture is deliberately controlled:
 - Run report HTML and Markdown outputs
 - Evidence bundle generation
 - Cross-workflow demo story packs
+- 90% readiness scorecard reporting
 - Tool health and inspection surfaces
 - Clean-clone release verification
 
@@ -48,6 +49,7 @@ The architecture is deliberately controlled:
 - Accounting: reconcile business records, explain exceptions, and preserve evidence for review
 - Report generation: build a business report and a run report for the exact TaskFrame
 - Cross-workflow demo story: connect customer support, procurement, and accounting into one reviewer-facing evidence pack
+- Readiness scorecard: measure controlled portfolio/demo readiness across the seven major project areas
 
 ## Evidence And Reporting Model
 
@@ -60,6 +62,7 @@ Two report types are central to the portfolio:
 
 The runtime also produces a TaskFrame audit record and an evidence bundle for each run.
 The cross-workflow demo v2 adds one consolidated story pack that links the individual workflow reports and evidence bundles into a single executive-facing artifact set.
+The readiness scorecard adds a machine-readable gate that makes the portfolio/demo readiness target measurable.
 
 ## Safety And Approval Model
 

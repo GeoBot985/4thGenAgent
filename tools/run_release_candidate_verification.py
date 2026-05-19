@@ -328,15 +328,21 @@ def build_verification_result() -> dict[str, Any]:
         _check_supplier_invoice_report_generation(),
         _check_supplier_invoice_docs_exist(),
         _check_cross_workflow_story_v2(),
+        _check_readiness_scorecard_gate(),
     ])
     manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     story_v2_check = next((check for check in static_checks if check.get("name") == "cross_workflow_story_v2"), {})
+    scorecard_check = next((check for check in static_checks if check.get("name") == "readiness_scorecard_gate"), {})
     for key in ("json_path", "markdown_path"):
         value = str(manifest_health_check.get(key, "")).strip()
         if value:
             evidence_paths.append(_display_path(Path(value)))
     for key in ("story_markdown_path", "story_html_path", "story_pack_dir", "evidence_manifest_path", "summary_json_path"):
         value = str(story_v2_check.get(key, "")).strip()
+        if value:
+            evidence_paths.append(_display_path(Path(value)))
+    for key in ("json_path", "markdown_path", "html_path"):
+        value = str(scorecard_check.get(key, "")).strip()
         if value:
             evidence_paths.append(_display_path(Path(value)))
     for check in static_checks:
@@ -473,6 +479,8 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("supplier invoice docs missing")
             elif check["name"] == "cross_workflow_story_v2":
                 release_blockers.append("cross-workflow story v2 failed")
+            elif check["name"] == "readiness_scorecard_gate":
+                release_blockers.append("readiness scorecard gate failed")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -628,6 +636,7 @@ def build_verification_result() -> dict[str, Any]:
         "toolpack_generated_pack_execution": _status_from_commands(commands, "toolpack_generated_pack_execution_tests"),
         "toolpack_governance": _status_from_static(static_checks, "toolpack_governance"),
         "cross_workflow_story_v2": _status_from_static(static_checks, "cross_workflow_story_v2"),
+        "readiness_scorecard_gate": _status_from_static(static_checks, "readiness_scorecard_gate"),
         "supplier_invoice_manifest_exists": _status_from_static(static_checks, "supplier_invoice_manifest_exists"),
         "supplier_invoice_routes_exist": _status_from_static(static_checks, "supplier_invoice_routes_exist"),
         "supplier_invoice_tools_registered": _status_from_static(static_checks, "supplier_invoice_tools_registered"),
@@ -3173,6 +3182,44 @@ def _check_cross_workflow_story_v2() -> dict[str, Any]:
         }
     except Exception as exc:
         return {"name": "cross_workflow_story_v2", "status": "FAIL", "error": str(exc)}
+
+
+def _check_readiness_scorecard_gate() -> dict[str, Any]:
+    try:
+        from src.readiness_scorecard import build_readiness_scorecard
+    except Exception as exc:
+        return {"name": "readiness_scorecard_gate", "status": "FAIL", "error": str(exc)}
+
+    try:
+        result = build_readiness_scorecard(runtime_data_dir=ROOT / "runtime_data", strict=True, threshold=90)
+        report_paths = result.get("report_paths", {}) if isinstance(result, dict) else {}
+        json_path = Path(str(report_paths.get("json_path", "")))
+        markdown_path = Path(str(report_paths.get("markdown_path", "")))
+        html_path = Path(str(report_paths.get("html_path", "")))
+        areas = result.get("areas", {}) if isinstance(result, dict) else {}
+        area_scores_ok = isinstance(areas, dict) and len(areas) == 7 and all(
+            isinstance(area, dict) and float(area.get("score", 0.0)) >= 90 for area in areas.values()
+        )
+        ok = (
+            bool(result.get("ok"))
+            and result.get("status") == "PASS"
+            and area_scores_ok
+            and not result.get("blocking_areas")
+            and json_path.is_file()
+            and markdown_path.is_file()
+            and html_path.is_file()
+        )
+        return {
+            "name": "readiness_scorecard_gate",
+            "status": "PASS" if ok else "FAIL",
+            "overall_score": result.get("overall_score", 0),
+            "blocking_areas": result.get("blocking_areas", []),
+            "json_path": str(json_path) if json_path.is_file() else "",
+            "markdown_path": str(markdown_path) if markdown_path.is_file() else "",
+            "html_path": str(html_path) if html_path.is_file() else "",
+        }
+    except Exception as exc:
+        return {"name": "readiness_scorecard_gate", "status": "FAIL", "error": str(exc)}
 
 
 def _check_known_limitations_doc() -> dict[str, Any]:

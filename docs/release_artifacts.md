@@ -45,3 +45,11 @@ The portfolio demo v2 now produces a consolidated story pack under `runtime_data
 | Story evidence manifest | `runtime_data/demo_packs/<pack_run_id>/story_pack/evidence_manifest.json` | Linked artifact inventory |
 | Workflow timeline | `runtime_data/demo_packs/<pack_run_id>/story_pack/workflow_timeline.json` | Lane-by-lane execution trace |
 | Screenshot checklist | `runtime_data/demo_packs/<pack_run_id>/story_pack/screenshots_checklist.md` | Portfolio capture checklist |
+
+## Readiness scorecard artifacts
+
+| Artifact | Path | Purpose |
+|---|---|---|
+| Readiness scorecard JSON | `runtime_data/readiness/readiness_scorecard.json` | Machine-readable 90% readiness scorecard |
+| Readiness scorecard Markdown | `runtime_data/readiness/readiness_scorecard.md` | Reviewer-facing readiness summary |
+| Readiness scorecard HTML | `runtime_data/readiness/readiness_scorecard.html` | Browser-friendly readiness view |

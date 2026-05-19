@@ -346,6 +346,7 @@ See [docs/known_limitations.md](docs/known_limitations.md) for the current gener
 - [docs/known_limitations.md](docs/known_limitations.md)
 - [docs/release_candidate_verification.md](docs/release_candidate_verification.md)
 - [docs/release_artifacts.md](docs/release_artifacts.md)
+- [docs/readiness_scorecard.md](docs/readiness_scorecard.md)
 - [docs/core_concepts.md](docs/core_concepts.md)
 - [docs/adding_new_tools.md](docs/adding_new_tools.md)
 - [docs/tool_contract_checklist.md](docs/tool_contract_checklist.md)
@@ -385,3 +386,15 @@ The generated story pack lives under `runtime_data/demo_packs/<pack_run_id>/stor
 - `evidence_manifest.json`
 - `workflow_timeline.json`
 - `screenshots_checklist.md`
+
+## Readiness scorecard
+
+The repository also includes a machine-readable 90% readiness scorecard for the controlled demo/portfolio path.
+
+Run it with:
+
+```bash
+python -m src.taskframe_cli readiness --strict
+```
+
+The scorecard reports seven assessed areas and writes JSON, Markdown, and HTML artifacts under `runtime_data/readiness/`.

@@ -106,6 +106,13 @@ def build_parser() -> argparse.ArgumentParser:
     mh.add_argument("--strict", action="store_true")
     mh.add_argument("--json", action="store_true")
 
+    readiness = sub.add_parser("readiness", help="Build the 90% readiness scorecard.")
+    readiness.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    readiness.add_argument("--strict", action="store_true")
+    readiness.add_argument("--threshold", type=int, default=90)
+    readiness.add_argument("--open-report", action="store_true")
+    readiness.add_argument("--json", action="store_true")
+
     manifests = sub.add_parser("manifests", help="Validate manifest contracts.")
     manifests_sub = manifests.add_subparsers(dest="manifests_command", required=True)
     manifests_validate_strict = manifests_sub.add_parser("validate-strict", help="Validate a manifest using the strict contract.")
@@ -346,6 +353,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_runtime(args)
     if args.command == "manifest-health":
         return _run_manifest_health(args)
+    if args.command == "readiness":
+        return _run_readiness(args)
     if args.command == "manifests":
         return _run_manifest_commands(args)
     if args.command == "safety-status":
@@ -1675,6 +1684,43 @@ def _run_tools_test(args: argparse.Namespace) -> int:
         for err in result["errors"]:
             print(f"Error: {err}")
     return 0 if result.get("ok") else 1
+
+
+def _run_readiness(args: argparse.Namespace) -> int:
+    from src.readiness_scorecard import build_readiness_scorecard
+
+    result = build_readiness_scorecard(
+        runtime_data_dir=str(args.runtime_data_dir),
+        strict=bool(args.strict),
+        threshold=int(getattr(args, "threshold", 90) or 90),
+    )
+    report_paths = result.get("report_paths", {}) if isinstance(result, dict) else {}
+    payload = {
+        "ok": bool(result.get("ok", False)),
+        "status": result.get("status", ""),
+        "threshold": int(result.get("threshold", 90) or 90),
+        "overall_score": result.get("overall_score", 0),
+        "blocking_areas": result.get("blocking_areas", []),
+        "report_paths": report_paths,
+        "generated_at": result.get("generated_at", ""),
+        "areas": result.get("areas", {}),
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("90% Readiness Scorecard")
+        print(f"Overall Score: {payload['overall_score']}")
+        print(f"Threshold: {payload['threshold']}")
+        print(f"Status: {payload['status']}")
+        print(f"Blocking Areas: {', '.join(payload['blocking_areas']) or 'none'}")
+        print(f"JSON Path: {report_paths.get('json_path', '')}")
+        print(f"Markdown Path: {report_paths.get('markdown_path', '')}")
+        print(f"HTML Path: {report_paths.get('html_path', '')}")
+    if bool(args.open_report) and report_paths.get("html_path"):
+        from src.operator_reports import open_report_html
+
+        open_report_html(report_paths["html_path"])
+    return 0 if (not bool(args.strict) or bool(result.get("ok", False))) else 1
 
 
 def _run_tools_examples(args: argparse.Namespace) -> int:

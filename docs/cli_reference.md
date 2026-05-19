@@ -151,6 +151,18 @@ Manifest health modes:
 - `taskframe manifest-health --strict --no-smoke` is the release-gate mode and exits non-zero on active catalog failures.
 - `taskframe manifest-health --json --no-smoke` prints a compact JSON summary while still writing the report files.
 
+### `taskframe readiness`
+
+Builds the 90% readiness scorecard for the controlled demo/portfolio path.
+
+- `--strict`
+- `--threshold <number>`
+- `--runtime-data-dir runtime_data`
+- `--open-report`
+- `--json`
+
+The scorecard writes JSON, Markdown, and HTML reports under `runtime_data/readiness/`.
+
 ### `taskframe manifests validate-strict <manifest_path>`
 
 Validates one manifest against the strict contract without running smoke execution.
