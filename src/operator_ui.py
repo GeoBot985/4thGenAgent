@@ -574,8 +574,13 @@ class OperatorConsole:
         ttk.Button(safety_button_row, text="Copy live confirmation phrase", command=self._copy_live_confirmation_phrase).pack(side="left", padx=(0, 6))
         self.live_execute_button = ttk.Button(safety_button_row, text="Execute live", command=self._execute_live_pending_action, state="disabled")
         self.live_execute_button.pack(side="left")
+        clr_button_row = ttk.Frame(live_safety_card, style="Card.TFrame")
+        clr_button_row.grid(row=4, column=0, sticky="w", pady=(4, 0))
+        ttk.Button(clr_button_row, text="Controlled Live Read Status", command=self._run_controlled_live_read_status).pack(side="left", padx=(0, 6))
+        ttk.Button(clr_button_row, text="Run Live Read Preflight", command=self._run_live_read_preflight).pack(side="left", padx=(0, 6))
+
         confirmation_row = ttk.Frame(live_safety_card, style="Card.TFrame")
-        confirmation_row.grid(row=4, column=0, sticky="ew", pady=(8, 0))
+        confirmation_row.grid(row=5, column=0, sticky="ew", pady=(8, 0))
         ttk.Label(confirmation_row, text="Typed confirmation:", style="Meta.TLabel").pack(side="left")
         self.live_confirmation_entry = ttk.Entry(confirmation_row, textvariable=self.live_execution_confirmation_var, width=48)
         self.live_confirmation_entry.pack(side="left", padx=(8, 0))
@@ -697,6 +702,51 @@ class OperatorConsole:
 
     def _run_live_preflight(self) -> None:
         self._update_live_safety_panel()
+
+    def _run_controlled_live_read_status(self) -> None:
+        try:
+            from src.live_profile_status import build_controlled_live_profile_status
+            status = build_controlled_live_profile_status()
+            lines = [
+                "Controlled Live Read Profile Status",
+                "---",
+                f"Profile: {status.get('profile_id', '')}",
+                f"Live reads: {'allowed' if status.get('allow_live_reads') else 'blocked'}",
+                f"Live side effects: {'allowed' if status.get('allow_live_side_effects') else 'blocked'}",
+                f"Governance: {'OK' if status.get('governance_ok') else 'NOT OK'}",
+                "",
+                "Live reads may access real external data.",
+                "Live writes, sends, deletes, and RPA actions remain blocked.",
+            ]
+            if status.get("errors"):
+                lines += ["", "Errors:"] + [f"  {e}" for e in status["errors"]]
+            self.live_safety_status_var.set("Controlled Live Read Profile: " + ("OK" if status.get("ok") else "errors present"))
+            self._set_text(self.live_safety_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.live_safety_status_var.set(f"Controlled live read status error: {exc}")
+
+    def _run_live_read_preflight(self) -> None:
+        try:
+            from src.live_profile_status import build_controlled_live_profile_status
+            status = build_controlled_live_profile_status()
+            gw = status.get("google_workspace_readiness", {})
+            lines = [
+                "Live Read Preflight",
+                "---",
+                f"Google Workspace available: {str(gw.get('available', False)).lower()}",
+                f"Google Workspace health: {'OK' if gw.get('health_ok') else 'NOT OK'}",
+                "",
+                f"Allowed read tools: {len(status.get('allowed_read_tools', []))}",
+                f"Blocked side-effect tools: {len(status.get('blocked_side_effect_tools', []))}",
+            ]
+            if status.get("warnings"):
+                lines += ["", "Warnings:"] + [f"  {w}" for w in status["warnings"]]
+            if status.get("errors"):
+                lines += ["", "Errors:"] + [f"  {e}" for e in status["errors"]]
+            self.live_safety_status_var.set("Live Read Preflight complete.")
+            self._set_text(self.live_safety_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.live_safety_status_var.set(f"Live read preflight error: {exc}")
 
     def _copy_dry_run_cli_command(self) -> None:
         self._copy_to_clipboard(self._live_dry_run_command())

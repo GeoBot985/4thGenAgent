@@ -320,6 +320,7 @@ def build_verification_result() -> dict[str, Any]:
         _check_order_management_smoke_runs(),
         _check_order_management_approval_dry_run(),
         _check_order_management_docs_exist(),
+        _check_controlled_live_profile_v0(),
         _check_supplier_invoice_manifest_exists(),
         _check_supplier_invoice_routes_exist(),
         _check_supplier_invoice_tools_registered(),
@@ -469,6 +470,8 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("order management approval dry-run safety failed")
             elif check["name"] == "order_management_docs_exist":
                 release_blockers.append("order management docs missing")
+            elif check["name"] == "controlled_live_profile_v0":
+                release_blockers.append("controlled live profile v0 check failed")
             elif check["name"] == "supplier_invoice_manifest_exists":
                 release_blockers.append("supplier invoice manifest missing")
             elif check["name"] == "supplier_invoice_routes_exist":
@@ -3303,6 +3306,57 @@ def _check_portfolio_evidence_pack_v1() -> dict[str, Any]:
         }
     except Exception as exc:
         return {"name": "portfolio_evidence_pack_v1", "status": "FAIL", "error": str(exc)}
+
+
+def _check_controlled_live_profile_v0() -> dict[str, Any]:
+    errors = []
+    # 1. Profile definition exists
+    try:
+        from src.controlled_live_profile import CONTROLLED_LIVE_READ_PROFILE, ALLOWED_LIVE_READ_TOOLS, BLOCKED_LIVE_SIDE_EFFECT_TOOLS
+        if not CONTROLLED_LIVE_READ_PROFILE.get("allow_live_reads"):
+            errors.append("allow_live_reads is not True")
+        if CONTROLLED_LIVE_READ_PROFILE.get("allow_live_side_effects"):
+            errors.append("allow_live_side_effects is not False")
+        if not CONTROLLED_LIVE_READ_PROFILE.get("require_tool_governance"):
+            errors.append("require_tool_governance is not True")
+        if "rpa" not in CONTROLLED_LIVE_READ_PROFILE.get("blocked_tool_classes", []):
+            errors.append("rpa not in blocked_tool_classes")
+    except Exception as exc:
+        errors.append(f"controlled_live_profile import failed: {exc}")
+    # 2. Status report builder exists
+    try:
+        from src.live_profile_status import build_controlled_live_profile_status
+        status = build_controlled_live_profile_status()
+        if not status.get("profile_id"):
+            errors.append("status report missing profile_id")
+    except Exception as exc:
+        errors.append(f"live_profile_status import failed: {exc}")
+    # 3. CLI command
+    try:
+        from src.taskframe_cli import build_parser
+        parser = build_parser()
+        args = parser.parse_args(["profile", "controlled-live-status", "--json"])
+        if args.profile_command != "controlled-live-status":
+            errors.append("CLI command profile controlled-live-status not found")
+    except Exception as exc:
+        errors.append(f"CLI check failed: {exc}")
+    # 4. Side effect blocking
+    try:
+        from src.controlled_live_profile import is_live_side_effect_blocked
+        blocked_gmail, _ = is_live_side_effect_blocked("gmail/send")
+        blocked_cal, _ = is_live_side_effect_blocked("calendar/create")
+        if not blocked_gmail:
+            errors.append("gmail/send not blocked")
+        if not blocked_cal:
+            errors.append("calendar/create not blocked")
+    except Exception as exc:
+        errors.append(f"side effect block check failed: {exc}")
+    # 5. Documentation exists
+    doc_path = ROOT / "docs" / "controlled_live_profile.md"
+    if not doc_path.is_file():
+        errors.append("docs/controlled_live_profile.md not found")
+
+    return {"name": "controlled_live_profile_v0", "status": "PASS" if not errors else "FAIL", "errors": errors}
 
 
 def _check_known_limitations_doc() -> dict[str, Any]:

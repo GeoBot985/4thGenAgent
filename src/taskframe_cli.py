@@ -336,6 +336,13 @@ def build_parser() -> argparse.ArgumentParser:
     events_replay.add_argument("--reason", default="", help="Reason for replay.")
     events_replay.add_argument("--json", action="store_true")
 
+    profile_cmd = sub.add_parser("profile", help="Manage and inspect execution profiles.")
+    profile_sub = profile_cmd.add_subparsers(dest="profile_command", required=True)
+    controlled_live = profile_sub.add_parser("controlled-live-status", help="Show controlled live read profile status.")
+    controlled_live.add_argument("--json", action="store_true")
+    controlled_live.add_argument("--check-tools", action="store_true")
+    controlled_live.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+
     return parser
 
 
@@ -384,6 +391,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_event_sources(args)
     if args.command == "events":
         return _run_events(args)
+    if args.command == "profile":
+        return _run_profile(args)
     parser.print_help()
     return 2
 
@@ -2387,6 +2396,42 @@ def _first_non_empty(data: dict[str, Any], keys: tuple[str, ...]) -> str:
         if value:
             return value
     return ""
+
+
+def _run_profile(args: argparse.Namespace) -> int:
+    command = str(getattr(args, "profile_command", "") or "")
+    if command == "controlled-live-status":
+        return _run_controlled_live_status(args)
+    print("Unknown profile command.", file=sys.stderr)
+    return 2
+
+
+def _run_controlled_live_status(args: argparse.Namespace) -> int:
+    from src.live_profile_status import build_controlled_live_profile_status
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    status = build_controlled_live_profile_status(runtime_data_dir=runtime_data_dir)
+    if bool(args.json):
+        print(json.dumps(status, indent=2, ensure_ascii=False))
+        return 0
+    print(f"Profile ID: {status['profile_id']}")
+    print(f"Live reads allowed: {str(status['allow_live_reads']).lower()}")
+    print(f"Live side effects allowed: {str(status['allow_live_side_effects']).lower()}")
+    print(f"Governance OK: {str(status['governance_ok']).lower()}")
+    gw = status.get("google_workspace_readiness", {})
+    print(f"Google Workspace available: {str(gw.get('available', False)).lower()}")
+    print(f"Google Workspace health OK: {str(gw.get('health_ok', False)).lower()}")
+    print(f"Blocked tool classes: {', '.join(status.get('blocked_tool_classes', []))}")
+    if status.get("errors"):
+        for err in status["errors"]:
+            print(f"ERROR: {err}")
+    if bool(getattr(args, "check_tools", False)):
+        print("\nAllowed live read tools:")
+        for tool in status.get("allowed_read_tools", []):
+            print(f"  {tool}")
+        print("\nBlocked side effect tools:")
+        for tool in status.get("blocked_side_effect_tools", []):
+            print(f"  {tool}")
+    return 0 if status.get("ok") else 1
 
 
 def _is_tk_failure(exc: Exception) -> bool:

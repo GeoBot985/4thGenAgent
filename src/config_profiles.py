@@ -38,6 +38,11 @@ class ConfigProfile:
     active_config_file: Path | None = None
     source: str = "internal"
     raw: dict[str, Any] = field(default_factory=dict)
+    allow_live_reads: bool = False
+    allow_live_side_effects: bool = False
+    require_tool_governance: bool = True
+    blocked_tool_classes: list = field(default_factory=list)
+    allowed_toolpacks: list = field(default_factory=list)
 
 
 def resolve_config_dir(cli_config_dir: str | Path | None = None) -> Path:
@@ -154,6 +159,13 @@ def load_config_profile(
         default=None,
     )
 
+    clr_data = dict(profile_data.get("controlled_live_read") or {})
+    allow_live_reads = _string_to_bool(clr_data.get("allow_live_reads"), default=False)
+    allow_live_side_effects = _string_to_bool(clr_data.get("allow_live_side_effects"), default=False)
+    require_tool_governance = _string_to_bool(clr_data.get("require_tool_governance"), default=True)
+    blocked_tool_classes = list(clr_data.get("blocked_tool_classes") or [])
+    allowed_toolpacks = list(clr_data.get("allowed_toolpacks") or [])
+
     return ConfigProfile(
         name=resolved_profile,
         config_dir=resolved_config_dir,
@@ -172,6 +184,11 @@ def load_config_profile(
         active_config_file=active_config_file if active_config_file.is_file() else None,
         source=source,
         raw=profile_data,
+        allow_live_reads=allow_live_reads,
+        allow_live_side_effects=allow_live_side_effects,
+        require_tool_governance=require_tool_governance,
+        blocked_tool_classes=blocked_tool_classes,
+        allowed_toolpacks=allowed_toolpacks,
     )
 
 
@@ -193,6 +210,11 @@ def describe_config_profile(profile: ConfigProfile) -> dict[str, Any]:
         "live_execution_enabled": profile.live_execution_enabled,
         "active_config_file": str(profile.active_config_file) if profile.active_config_file else "<default internal config>",
         "source": profile.source,
+        "allow_live_reads": profile.allow_live_reads,
+        "allow_live_side_effects": profile.allow_live_side_effects,
+        "require_tool_governance": profile.require_tool_governance,
+        "blocked_tool_classes": profile.blocked_tool_classes,
+        "allowed_toolpacks": profile.allowed_toolpacks,
     }
 
 
@@ -272,6 +294,17 @@ def _default_profile_data(profile: str) -> dict[str, Any]:
         base["accounting"] = {"sheet_config_path": str(Path.home() / ".taskframe" / "accounting_google_sheet.json")}
     if profile == "rpa-local":
         base["rpa"]["enabled"] = True
+    if profile == "controlled_live_read":
+        base["google"]["enabled"] = True
+        base["google"]["credentials_path"] = str(Path.home() / ".taskframe" / "google" / "credentials.json")
+        base["google"]["token_path"] = str(Path.home() / ".taskframe" / "google" / "google_token.json")
+        base["controlled_live_read"] = {
+            "allow_live_reads": True,
+            "allow_live_side_effects": False,
+            "require_tool_governance": True,
+            "allowed_toolpacks": ["google_workspace_readonly"],
+            "blocked_tool_classes": ["rpa", "write", "send", "delete", "mutation", "side_effect"],
+        }
     return base
 
 
