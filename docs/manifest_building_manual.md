@@ -763,6 +763,21 @@ See [manifest_health_dashboard.md](manifest_health_dashboard.md) for the full op
 
 ---
 
+## Order management manifests (Spec 110)
+
+Five production manifests were added as part of the order management workflow pack.
+They demonstrate the prepare/execute pattern for side-effect steps:
+
+| Manifest | Pattern |
+|---|---|
+| `order.validate_new` | Single tool step, completion on `order_validation` output |
+| `order.reserve_stock` | Validate + conditional prepare; completion on `stock_reservation_action` pending action |
+| `order.release_paid` | Payment check + conditional prepare; completion on `release_action` pending action |
+| `order.detect_delayed` | Single tool step; `acceptable_empty_outputs` allows zero delayed orders |
+| `order.update_shipment_status` | Prepare step; completion on `shipment_update_action` pending action |
+
+See [order_management_workflows.md](order_management_workflows.md) for the full reference.
+
 ## Reference documents
 
 - [manifest_command_reference.md](manifest_command_reference.md) — Command syntax, variable reference, and examples.

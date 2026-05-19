@@ -18,6 +18,17 @@ This repository uses a deterministic golden demo to produce RC artifacts in `run
 | Accounting workflow audit JSON | `runtime_data/outputs/audit/accounting_workflow_audit.json` | `scripts/run_golden_demo.py` | Accounting lane structured audit trail | Yes |
 
 
+## Order management workflow pack artifacts
+
+| Artifact | Path | Purpose |
+|---|---|---|
+| Order management doc | `docs/order_management_workflows.md` | Workflow descriptions, tool table, dataset reference |
+| Order validate_new manifest | `manifests/order.validate_new.manifest.json` | Manifest for new order validation |
+| Order reserve_stock manifest | `manifests/order.reserve_stock.manifest.json` | Manifest for stock reservation |
+| Order release_paid manifest | `manifests/order.release_paid.manifest.json` | Manifest for releasing a paid order |
+| Order detect_delayed manifest | `manifests/order.detect_delayed.manifest.json` | Manifest for delayed order detection |
+| Order update_shipment_status manifest | `manifests/order.update_shipment_status.manifest.json` | Manifest for shipment status updates |
+
 ## Google Workspace tool pack artifacts
 
 The release evidence set includes the Google Workspace read-only tool pack descriptor, safety scan, setup guide, and integration-test documentation.

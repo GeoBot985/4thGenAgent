@@ -55,6 +55,18 @@ Reports and evidence are generated from persisted run data, not from the live UI
 
 Side effects are staged as pending actions and must pass an approval gate before they can execute. This keeps live sends, writes, and other external actions visible and operator-controlled.
 
+## Order Management Workflow Lane
+
+The order management lane (Spec 110) adds five manifest-driven workflows for
+validating new orders, reserving stock, releasing paid orders, detecting delayed
+shipments, and updating shipment status. All business logic lives in
+`runtime/order_management_tools.py` and the five manifests in `manifests/`.
+The orchestrator is unchanged — no order logic was added to it. Side-effect
+operations (stock reservation, order release, shipment update) follow the
+standard prepare/execute approval pattern: prepare tools stage pending actions;
+execute tools run with `dry_run=True` and require operator approval before any
+mutation is simulated. See [docs/order_management_workflows.md](order_management_workflows.md).
+
 ## Optional RPA Tools
 
 Browser-backed RPA tools are treated as optional, high-risk, live-environment-dependent adapters. They are excluded from default clean-clone release verification because they depend on local browser state, external authentication, and changing web UIs. They can still support operator-triggered live probes in local mode, but they are not part of the default portfolio demo path.

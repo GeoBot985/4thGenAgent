@@ -32,7 +32,7 @@ def test_no_runtime_mock_company_imports_remain():
     for path in Path(".").rglob("*.py"):
         if path.resolve() == Path(__file__).resolve():
             continue
-        if any(part in {"optional_tools", "private_tools", ".git", ".venv", "venv"} for part in path.parts):
+        if any(part in {"optional_tools", "private_tools", ".git", ".venv", "venv", ".claude"} for part in path.parts):
             continue
         text = path.read_text(encoding="utf-8").lower()
         assert "runtime.mock_company" not in text

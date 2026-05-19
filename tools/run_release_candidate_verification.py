@@ -311,6 +311,13 @@ def build_verification_result() -> dict[str, Any]:
         _check_event_source_builders_importable(),
         _check_event_source_cli_available(),
         _check_event_source_route_alignment(),
+        _check_order_management_manifests_exist(),
+        _check_order_management_routes_exist(),
+        _check_order_management_scenarios_exist(),
+        _check_order_management_tool_registry(),
+        _check_order_management_smoke_runs(),
+        _check_order_management_approval_dry_run(),
+        _check_order_management_docs_exist(),
     ])
     manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     for key in ("json_path", "markdown_path"):
@@ -417,6 +424,20 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("toolpack governance policy check failed")
             elif check["name"] == "toolpack_lifecycle":
                 release_blockers.append("tool pack lifecycle check failed")
+            elif check["name"] == "order_management_manifests_exist":
+                release_blockers.append("order management manifests missing")
+            elif check["name"] == "order_management_routes_exist":
+                release_blockers.append("order management event routes missing")
+            elif check["name"] == "order_management_scenarios_exist":
+                release_blockers.append("order management scenarios missing")
+            elif check["name"] == "order_management_tool_registry":
+                release_blockers.append("order management tool registry incomplete")
+            elif check["name"] == "order_management_smoke_runs":
+                release_blockers.append("order management tool smoke runs failed")
+            elif check["name"] == "order_management_approval_dry_run":
+                release_blockers.append("order management approval dry-run safety failed")
+            elif check["name"] == "order_management_docs_exist":
+                release_blockers.append("order management docs missing")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -2778,6 +2799,85 @@ def _check_event_source_route_alignment() -> dict[str, Any]:
         return {"name": "event_source_route_alignment", "status": "PASS" if result.get("ok") else "FAIL", "route_count": result.get("route_count", 0), "mismatches": len(result.get("mismatches", []))}
     except Exception as exc:
         return {"name": "event_source_route_alignment", "status": "FAIL", "error": str(exc)}
+
+
+def _check_order_management_manifests_exist() -> dict[str, Any]:
+    required = [
+        "manifests/order.validate_new.manifest.json",
+        "manifests/order.reserve_stock.manifest.json",
+        "manifests/order.release_paid.manifest.json",
+        "manifests/order.detect_delayed.manifest.json",
+        "manifests/order.update_shipment_status.manifest.json",
+    ]
+    missing = [p for p in required if not (ROOT / p).is_file()]
+    return {"name": "order_management_manifests_exist", "status": "PASS" if not missing else "FAIL", "missing": missing, "count": len(required) - len(missing)}
+
+
+def _check_order_management_routes_exist() -> dict[str, Any]:
+    path = ROOT / "config" / "event_routes.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+        routes = data.get("routes", data) if isinstance(data, dict) else data
+        order_routes = [r for r in routes if isinstance(r, dict) and str(r.get("route_id", "")).startswith("operator.order_")]
+        return {"name": "order_management_routes_exist", "status": "PASS" if len(order_routes) >= 5 else "FAIL", "count": len(order_routes)}
+    except Exception as exc:
+        return {"name": "order_management_routes_exist", "status": "FAIL", "error": str(exc)}
+
+
+def _check_order_management_scenarios_exist() -> dict[str, Any]:
+    try:
+        from src.operator_scenarios import SCENARIO_CATEGORIES, list_scenarios
+
+        has_category = "order_management" in SCENARIO_CATEGORIES
+        order_scenarios = list_scenarios(category="order_management")
+        return {"name": "order_management_scenarios_exist", "status": "PASS" if has_category and len(order_scenarios) >= 5 else "FAIL", "has_category": has_category, "count": len(order_scenarios)}
+    except Exception as exc:
+        return {"name": "order_management_scenarios_exist", "status": "FAIL", "error": str(exc)}
+
+
+def _check_order_management_tool_registry() -> dict[str, Any]:
+    try:
+        from runtime.tool_registry import TOOL_REGISTRY
+
+        order_tools = [k for k in TOOL_REGISTRY if k.startswith("order/")]
+        return {"name": "order_management_tool_registry", "status": "PASS" if len(order_tools) >= 9 else "FAIL", "count": len(order_tools), "tools": order_tools}
+    except Exception as exc:
+        return {"name": "order_management_tool_registry", "status": "FAIL", "error": str(exc)}
+
+
+def _check_order_management_smoke_runs() -> dict[str, Any]:
+    try:
+        from runtime.order_management_tools import (
+            order_validate_new, order_check_payment_status, order_detect_delayed_orders,
+        )
+
+        val = order_validate_new(customer_id="CUST-1001", items=[{"sku": "SKU-DESK-01", "quantity": 1}])
+        pay = order_check_payment_status(order_ref="ORD-10042")
+        delayed = order_detect_delayed_orders(days_overdue=1)
+        ok = (
+            isinstance(val, dict) and "ok" in val
+            and isinstance(pay, dict) and "ok" in pay
+            and isinstance(delayed, dict) and "delayed_orders" in delayed
+        )
+        return {"name": "order_management_smoke_runs", "status": "PASS" if ok else "FAIL"}
+    except Exception as exc:
+        return {"name": "order_management_smoke_runs", "status": "FAIL", "error": str(exc)}
+
+
+def _check_order_management_approval_dry_run() -> dict[str, Any]:
+    try:
+        from runtime.order_management_tools import order_execute_stock_reservation
+
+        result = order_execute_stock_reservation(order_ref="ORD-10050", reservation_lines=[], dry_run=True)
+        is_dry = result.get("dry_run") is True
+        return {"name": "order_management_approval_dry_run", "status": "PASS" if is_dry else "FAIL", "dry_run": result.get("dry_run")}
+    except Exception as exc:
+        return {"name": "order_management_approval_dry_run", "status": "FAIL", "error": str(exc)}
+
+
+def _check_order_management_docs_exist() -> dict[str, Any]:
+    path = ROOT / "docs" / "order_management_workflows.md"
+    return {"name": "order_management_docs_exist", "status": "PASS" if path.is_file() else "FAIL", "path": str(path)}
 
 
 def _check_known_limitations_doc() -> dict[str, Any]:

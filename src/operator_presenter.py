@@ -23,6 +23,13 @@ STEP_LABELS = {
     "draft_status_reply": "Drafted the customer reply",
     "validate_draft_reply": "Checked the reply against business facts",
     "prepare_pending_send": "Prepared the message for approval",
+    # Order management
+    "validate_new": "Validated new order (customer, items, stock)",
+    "prepare_stock_reservation": "Prepared stock reservation for approval",
+    "check_payment_status": "Checked payment status for order",
+    "prepare_release_paid_order": "Prepared paid-order release for approval",
+    "detect_delayed_orders": "Scanned for delayed shipments",
+    "prepare_shipment_status_update": "Prepared shipment status update for approval",
 }
 
 

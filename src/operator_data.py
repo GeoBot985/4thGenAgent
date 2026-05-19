@@ -72,6 +72,28 @@ def group_events_for_queue(events: list[dict], frames_by_id: dict[str, dict]) ->
     return groups
 
 
+def build_order_management_summary(outputs: dict) -> dict:
+    """Extract order-specific summary fields from a frame's outputs dict."""
+    if not isinstance(outputs, dict):
+        return {}
+    result: dict = {}
+    order_validation = outputs.get("order_validation")
+    if isinstance(order_validation, dict):
+        result["order_valid"] = order_validation.get("valid")
+        result["order_total"] = order_validation.get("order_total")
+        result["failure_reasons"] = order_validation.get("failure_reasons", [])
+    payment_status = outputs.get("payment_status")
+    if isinstance(payment_status, dict):
+        result["payment_status"] = payment_status.get("payment_status")
+        result["can_release"] = payment_status.get("can_release")
+        result["paid_amount"] = payment_status.get("paid_amount")
+    delayed_orders = outputs.get("delayed_orders")
+    if isinstance(delayed_orders, list):
+        result["delayed_count"] = len(delayed_orders)
+        result["delayed_orders"] = [o.get("order_ref") for o in delayed_orders if isinstance(o, dict)]
+    return result
+
+
 def build_event_sources_panel() -> dict:
     try:
         from runtime.event_source_registry import list_event_source_contracts, validate_all_event_source_contracts
