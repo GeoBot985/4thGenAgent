@@ -54,4 +54,4 @@ python scripts/run_release_verification.py
 ## Notes
 
 - Golden demo verdict: READY
-- Known limitations count: 1
+- Known limitations count: 2

@@ -53,3 +53,17 @@ The portfolio demo v2 now produces a consolidated story pack under `runtime_data
 | Readiness scorecard JSON | `runtime_data/readiness/readiness_scorecard.json` | Machine-readable 90% readiness scorecard |
 | Readiness scorecard Markdown | `runtime_data/readiness/readiness_scorecard.md` | Reviewer-facing readiness summary |
 | Readiness scorecard HTML | `runtime_data/readiness/readiness_scorecard.html` | Browser-friendly readiness view |
+
+## Portfolio evidence pack artifacts
+
+| Artifact | Path | Purpose |
+|---|---|---|
+| Portfolio pack index Markdown | `runtime_data/portfolio_evidence/<pack_run_id>/index.md` | Public-facing portfolio evidence overview |
+| Portfolio pack index HTML | `runtime_data/portfolio_evidence/<pack_run_id>/index.html` | Browser-friendly portfolio evidence overview |
+| Portfolio pack summary JSON | `runtime_data/portfolio_evidence/<pack_run_id>/summary.json` | Machine-readable pack summary |
+| Architecture summary | `runtime_data/portfolio_evidence/<pack_run_id>/architecture.md` | Architecture explanation for reviewers |
+| Demo script | `runtime_data/portfolio_evidence/<pack_run_id>/demo_script.md` | Suggested walkthrough for demos and interviews |
+| Tool inventory | `runtime_data/portfolio_evidence/<pack_run_id>/tool_inventory.md` | Tool capability registry summary |
+| Workflow proof | `runtime_data/portfolio_evidence/<pack_run_id>/workflow_proof.md` | Workflow evidence and latest-state summary |
+| Screenshot checklist | `runtime_data/portfolio_evidence/<pack_run_id>/screenshot_checklist.md` | Review capture checklist |
+| Known limitations | `runtime_data/portfolio_evidence/<pack_run_id>/known_limitations.md` | Controlled-demo limitation statement |

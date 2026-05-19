@@ -113,6 +113,13 @@ def build_parser() -> argparse.ArgumentParser:
     readiness.add_argument("--open-report", action="store_true")
     readiness.add_argument("--json", action="store_true")
 
+    portfolio = sub.add_parser("portfolio-pack", help="Build the public-facing portfolio evidence pack.")
+    portfolio.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    portfolio.add_argument("--no-story-pack", action="store_true")
+    portfolio.add_argument("--no-readiness", action="store_true")
+    portfolio.add_argument("--open", action="store_true")
+    portfolio.add_argument("--json", action="store_true")
+
     manifests = sub.add_parser("manifests", help="Validate manifest contracts.")
     manifests_sub = manifests.add_subparsers(dest="manifests_command", required=True)
     manifests_validate_strict = manifests_sub.add_parser("validate-strict", help="Validate a manifest using the strict contract.")
@@ -355,6 +362,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_manifest_health(args)
     if args.command == "readiness":
         return _run_readiness(args)
+    if args.command == "portfolio-pack":
+        return _run_portfolio_pack(args)
     if args.command == "manifests":
         return _run_manifest_commands(args)
     if args.command == "safety-status":
@@ -1721,6 +1730,49 @@ def _run_readiness(args: argparse.Namespace) -> int:
 
         open_report_html(report_paths["html_path"])
     return 0 if (not bool(args.strict) or bool(result.get("ok", False))) else 1
+
+
+def _run_portfolio_pack(args: argparse.Namespace) -> int:
+    from src.operator_reports import open_report_html
+    from src.portfolio_evidence_pack import build_portfolio_evidence_pack
+
+    result = build_portfolio_evidence_pack(
+        runtime_data_dir=str(args.runtime_data_dir),
+        include_latest_story_pack=not bool(args.no_story_pack),
+        include_latest_readiness_scorecard=not bool(args.no_readiness),
+    )
+    payload = {
+        "ok": bool(result.get("ok", False)),
+        "pack_id": result.get("pack_id", ""),
+        "pack_run_id": result.get("pack_run_id", ""),
+        "pack_dir": result.get("pack_dir", ""),
+        "index_markdown_path": result.get("index_markdown_path", ""),
+        "index_html_path": result.get("index_html_path", ""),
+        "summary_json_path": result.get("summary_json_path", ""),
+        "architecture_path": result.get("architecture_path", ""),
+        "demo_script_path": result.get("demo_script_path", ""),
+        "tool_inventory_path": result.get("tool_inventory_path", ""),
+        "workflow_proof_path": result.get("workflow_proof_path", ""),
+        "screenshot_checklist_path": result.get("screenshot_checklist_path", ""),
+        "linked_artifacts": result.get("linked_artifacts", []),
+        "errors": result.get("errors", []),
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("TaskFrame Runtime — Controlled Business Automation Evidence Pack")
+        print(f"Pack ID: {payload['pack_id']}")
+        print(f"Pack Run ID: {payload['pack_run_id']}")
+        print(f"Status: {'PASS' if payload['ok'] else 'FAIL'}")
+        print(f"Pack Folder: {payload['pack_dir']}")
+        print(f"Index Markdown Path: {payload['index_markdown_path']}")
+        print(f"Index HTML Path: {payload['index_html_path']}")
+        print(f"Summary JSON Path: {payload['summary_json_path']}")
+        if payload["errors"]:
+            print(f"Errors: {', '.join(str(item) for item in payload['errors'])}")
+    if bool(args.open) and payload.get("index_html_path"):
+        open_report_html(payload["index_html_path"])
+    return 0 if payload.get("ok") else 1
 
 
 def _run_tools_examples(args: argparse.Namespace) -> int:

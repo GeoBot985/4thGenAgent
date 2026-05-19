@@ -31,6 +31,34 @@ Exit codes:
 - `0` when the scenario completes successfully
 - non-zero on scenario failure
 
+### `taskframe readiness`
+
+Builds the 90% readiness scorecard.
+
+- `--runtime-data-dir runtime_data`
+- `--strict`
+- `--threshold 90`
+- `--open-report`
+- `--json`
+
+Exit codes:
+- `0` when the scorecard passes or when strict mode is off
+- non-zero when strict mode fails
+
+### `taskframe portfolio-pack`
+
+Builds the public-facing portfolio evidence pack.
+
+- `--runtime-data-dir runtime_data`
+- `--no-story-pack`
+- `--no-readiness`
+- `--open`
+- `--json`
+
+Exit codes:
+- `0` when the portfolio evidence pack is generated successfully
+- non-zero when pack generation fails
+
 ### `taskframe golden-demo`
 
 Runs the golden demo verification.

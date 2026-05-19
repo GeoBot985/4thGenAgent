@@ -59,6 +59,7 @@ from src.manifest_health import (
 )
 from runtime.live_execution_safety import build_live_execution_preflight, confirmation_phrase
 from src.live_safety_status import build_live_safety_status
+from src.portfolio_evidence_pack import build_portfolio_evidence_pack
 from src.manifest_workbench import (
     archive_manifest,
     build_manifest_run_comparison,
@@ -214,9 +215,11 @@ class OperatorConsole:
         self.active_report_result: dict | None = None
         self.active_story_pack_result: dict | None = None
         self.active_readiness_scorecard_result: dict | None = None
+        self.active_portfolio_pack_result: dict | None = None
         self.active_artifact_paths: dict = {}
         self.active_story_pack_paths: dict = {}
         self.active_readiness_scorecard_paths: dict = {}
+        self.active_portfolio_pack_paths: dict = {}
         self.timeline: list[dict] = []
         self.selected_action_id: str | None = None
         self.last_approval_operation: dict | None = None
@@ -456,6 +459,10 @@ class OperatorConsole:
         ttk.Button(secondary_actions, text="Open story folder", command=self.on_open_story_pack_folder).pack(side="left")
         ttk.Button(secondary_actions, text="Generate 90% Readiness Scorecard", command=self.on_generate_readiness_scorecard).pack(side="left", padx=(12, 6))
         ttk.Button(secondary_actions, text="Open Readiness Report", command=self.on_open_readiness_report).pack(side="left")
+        ttk.Button(secondary_actions, text="Generate Portfolio Evidence Pack", command=self.on_generate_portfolio_evidence_pack).pack(side="left", padx=(12, 6))
+        ttk.Button(secondary_actions, text="Open Portfolio Pack", command=self.on_open_portfolio_pack).pack(side="left", padx=(0, 6))
+        ttk.Button(secondary_actions, text="Open Portfolio HTML", command=self.on_open_portfolio_html).pack(side="left", padx=(0, 6))
+        ttk.Button(secondary_actions, text="Open Portfolio Folder", command=self.on_open_portfolio_folder).pack(side="left")
 
         scenario_header = ttk.Frame(self.demo_advanced_actions_frame, style="Card.TFrame")
         scenario_header.grid(row=2, column=0, sticky="ew", pady=(12, 0))
@@ -1243,6 +1250,41 @@ class OperatorConsole:
             return
         open_report_html(html_path)
 
+    def on_generate_portfolio_evidence_pack(self) -> None:
+        result = build_portfolio_evidence_pack(runtime_data_dir=self.runtime_root)
+        self.active_portfolio_pack_result = result
+        self.active_portfolio_pack_paths = {
+            "index_html": str(result.get("index_html_path", "")),
+            "index_markdown": str(result.get("index_markdown_path", "")),
+            "pack_folder": str(result.get("pack_dir", "")),
+            "summary_json": str(result.get("summary_json_path", "")),
+        }
+        self._render_current_view()
+
+    def on_open_portfolio_pack(self) -> None:
+        pack = self.active_portfolio_pack_result if isinstance(self.active_portfolio_pack_result, dict) else {}
+        folder_path = self._portfolio_pack_folder_path(pack)
+        if not folder_path:
+            messagebox.showinfo("Portfolio Evidence Pack", "No portfolio evidence pack exists for the current session.")
+            return
+        open_report_folder(folder_path)
+
+    def on_open_portfolio_html(self) -> None:
+        pack = self.active_portfolio_pack_result if isinstance(self.active_portfolio_pack_result, dict) else {}
+        html_path = self._portfolio_pack_html_path(pack)
+        if not html_path:
+            messagebox.showinfo("Portfolio Evidence Pack", "No portfolio evidence pack exists for the current session.")
+            return
+        open_report_html(html_path)
+
+    def on_open_portfolio_folder(self) -> None:
+        pack = self.active_portfolio_pack_result if isinstance(self.active_portfolio_pack_result, dict) else {}
+        folder_path = self._portfolio_pack_folder_path(pack)
+        if not folder_path:
+            messagebox.showinfo("Portfolio Evidence Pack", "No portfolio evidence pack exists for the current session.")
+            return
+        open_report_folder(folder_path)
+
     def _sync_llm_info(self) -> None:
         if not hasattr(self, "llm_info_frame"):
             return
@@ -1307,9 +1349,27 @@ class OperatorConsole:
         self.active_report_result = None
         self.active_story_pack_result = None
         self.active_readiness_scorecard_result = None
+        self.active_portfolio_pack_result = None
         self.active_artifact_paths = {}
         self.active_story_pack_paths = {}
         self.active_readiness_scorecard_paths = {}
+        self.active_portfolio_pack_paths = {}
+
+    def _portfolio_pack_html_path(self, pack: dict | None) -> str:
+        pack = pack if isinstance(pack, dict) else {}
+        html_path = str(self.active_portfolio_pack_paths.get("index_html", "") or pack.get("index_html_path", "")).strip()
+        if not html_path:
+            return ""
+        path = Path(html_path)
+        return html_path if path.is_file() else ""
+
+    def _portfolio_pack_folder_path(self, pack: dict | None) -> str:
+        pack = pack if isinstance(pack, dict) else {}
+        folder_path = str(self.active_portfolio_pack_paths.get("pack_folder", "") or pack.get("pack_dir", "")).strip()
+        if not folder_path:
+            return ""
+        path = Path(folder_path)
+        return folder_path if path.is_dir() else ""
 
     def _selected_demo_id(self) -> str:
         selected = self.selected_demo_id.get().strip() if hasattr(self, "selected_demo_id") else ""
@@ -2420,6 +2480,7 @@ class OperatorConsole:
         self._render_section_text(self.results_body, "Failure Summary", self._format_failure_summary(failure_summary))
         self._render_section_text(self.results_body, "Report Status", self._format_report_status(self.report_status))
         self._render_section_text(self.results_body, "Readiness Scorecard", self._format_readiness_scorecard(self.active_readiness_scorecard_result))
+        self._render_section_text(self.results_body, "Portfolio Evidence Pack", self._format_portfolio_evidence_pack(self.active_portfolio_pack_result))
         if llm_info:
             self._render_section_text(self.results_body, "LLM Runtime", self._format_llm_info(llm_info))
         self._render_section_text(self.results_body, "Approval Pack", self._format_approval_pack(approval_pack, (view or {}).get("current_step_id", "")))
@@ -4285,6 +4346,27 @@ class OperatorConsole:
             if not isinstance(area, dict):
                 continue
             lines.append(f"- {area.get('label', area_id)}: {area.get('score', 0)} ({area.get('status', '')})")
+        return chr(10).join(lines)
+
+    def _format_portfolio_evidence_pack(self, pack: dict | None) -> str:
+        if not isinstance(pack, dict) or not pack:
+            return "No portfolio evidence pack generated."
+        linked_artifacts = pack.get("linked_artifacts", []) if isinstance(pack.get("linked_artifacts", []), list) else []
+        has_story = any(isinstance(item, dict) and "latest_story_pack_link" in str(item.get("artifact_id", "")) for item in linked_artifacts)
+        has_readiness = any(isinstance(item, dict) and "latest_readiness_scorecard_link" in str(item.get("artifact_id", "")) for item in linked_artifacts)
+        lines = [
+            f"Pack ID: {pack.get('pack_id', '')}",
+            f"Pack Run ID: {pack.get('pack_run_id', '')}",
+            f"Status: {'PASS' if pack.get('ok') else 'FAIL'}",
+            f"Pack Folder: {pack.get('pack_dir', '')}",
+            f"Index Markdown: {pack.get('index_markdown_path', '')}",
+            f"Index HTML: {pack.get('index_html_path', '')}",
+            f"Summary JSON: {pack.get('summary_json_path', '')}",
+            f"Story Pack Linked: {has_story}",
+            f"Readiness Linked: {has_readiness}",
+        ]
+        if pack.get("errors"):
+            lines.append(f"Errors: {', '.join(str(item) for item in pack.get('errors', []))}")
         return chr(10).join(lines)
 
     def _format_approval_pack(self, approval_pack: dict | None, selected_step_id: str) -> str:

@@ -157,6 +157,7 @@ def build_verification_result() -> dict[str, Any]:
             "toolpack_generated_pack_execution": "PENDING",
             "toolpack_governance": "PENDING",
             "toolpack_lifecycle": "PENDING",
+            "portfolio_evidence_pack_v1": "PENDING",
         },
         "workflow_checks": {
             "customer": {"status": "PENDING", "count": 0},
@@ -306,6 +307,7 @@ def build_verification_result() -> dict[str, Any]:
         _check_safety_verification_pack(),
         _check_toolpack_governance(),
         _check_toolpack_lifecycle(),
+        _check_portfolio_evidence_pack_v1(),
         _check_event_source_contracts_file(),
         _check_event_source_contracts_valid(),
         _check_event_source_builders_importable(),
@@ -330,9 +332,11 @@ def build_verification_result() -> dict[str, Any]:
         _check_cross_workflow_story_v2(),
         _check_readiness_scorecard_gate(),
     ])
-    manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
-    story_v2_check = next((check for check in static_checks if check.get("name") == "cross_workflow_story_v2"), {})
-    scorecard_check = next((check for check in static_checks if check.get("name") == "readiness_scorecard_gate"), {})
+    # manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
+    manifest_health_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "manifest_catalog_health"), {})
+    story_v2_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "cross_workflow_story_v2"), {})
+    scorecard_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "readiness_scorecard_gate"), {})
+    portfolio_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "portfolio_evidence_pack_v1"), {})
     for key in ("json_path", "markdown_path"):
         value = str(manifest_health_check.get(key, "")).strip()
         if value:
@@ -345,7 +349,13 @@ def build_verification_result() -> dict[str, Any]:
         value = str(scorecard_check.get(key, "")).strip()
         if value:
             evidence_paths.append(_display_path(Path(value)))
+    for key in ("index_markdown_path", "index_html_path", "summary_json_path", "architecture_path", "demo_script_path", "tool_inventory_path", "workflow_proof_path", "screenshot_checklist_path", "pack_dir"):
+        value = str(portfolio_check.get(key, "")).strip()
+        if value:
+            evidence_paths.append(_display_path(Path(value)))
     for check in static_checks:
+        if not isinstance(check, dict):
+            continue
         if check["status"] != "PASS":
             if check["name"] == "python_imports":
                 release_blockers.append("python imports failed")
@@ -481,6 +491,8 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("cross-workflow story v2 failed")
             elif check["name"] == "readiness_scorecard_gate":
                 release_blockers.append("readiness scorecard gate failed")
+            elif check["name"] == "portfolio_evidence_pack_v1":
+                release_blockers.append("portfolio evidence pack failed")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -637,6 +649,7 @@ def build_verification_result() -> dict[str, Any]:
         "toolpack_governance": _status_from_static(static_checks, "toolpack_governance"),
         "cross_workflow_story_v2": _status_from_static(static_checks, "cross_workflow_story_v2"),
         "readiness_scorecard_gate": _status_from_static(static_checks, "readiness_scorecard_gate"),
+        "portfolio_evidence_pack_v1": _status_from_static(static_checks, "portfolio_evidence_pack_v1"),
         "supplier_invoice_manifest_exists": _status_from_static(static_checks, "supplier_invoice_manifest_exists"),
         "supplier_invoice_routes_exist": _status_from_static(static_checks, "supplier_invoice_routes_exist"),
         "supplier_invoice_tools_registered": _status_from_static(static_checks, "supplier_invoice_tools_registered"),
@@ -890,7 +903,8 @@ def write_markdown_report(result: dict[str, Any], path: str) -> None:
         "",
     ]
     for command in result.get("commands", []):
-        lines.append(f"- {command.get('name', '')}: {command.get('status', '')} ({command.get('returncode', '')})")
+        if isinstance(command, dict):
+            lines.append(f"- {command.get('name', '')}: {command.get('status', '')} ({command.get('returncode', '')})")
     lines.extend([
         "",
         "## Workflow Verification",
@@ -904,7 +918,8 @@ def write_markdown_report(result: dict[str, Any], path: str) -> None:
         "",
     ])
     for item in result.get("static_checks", []):
-        lines.append(f"- {item.get('name', '')}: {item.get('status', '')}")
+        if isinstance(item, dict):
+            lines.append(f"- {item.get('name', '')}: {item.get('status', '')}")
     lines.extend([
         "",
         "## Side-Effect Safety Checks",
@@ -921,7 +936,8 @@ def write_markdown_report(result: dict[str, Any], path: str) -> None:
         "",
     ])
     for item in result.get("artifact_checks", []):
-        lines.append(f"- {item.get('path', '')}: {'OK' if item.get('exists') else 'MISSING'}")
+        if isinstance(item, dict):
+            lines.append(f"- {item.get('path', '')}: {'OK' if item.get('exists') else 'MISSING'}")
     lines.extend([
         "",
         "## Report and Evidence Artifact Checks",
@@ -3222,6 +3238,73 @@ def _check_readiness_scorecard_gate() -> dict[str, Any]:
         return {"name": "readiness_scorecard_gate", "status": "FAIL", "error": str(exc)}
 
 
+def _check_portfolio_evidence_pack_v1() -> dict[str, Any]:
+    try:
+        from src.portfolio_evidence_pack import build_portfolio_evidence_pack
+    except Exception as exc:
+        return {"name": "portfolio_evidence_pack_v1", "status": "FAIL", "error": str(exc)}
+
+    try:
+        from uuid import uuid4
+
+        verification_root = ROOT / "runtime_data" / "release_verification" / "portfolio_evidence_pack_v1"
+        verification_root.mkdir(parents=True, exist_ok=True)
+        tmp = verification_root / f"run_{uuid4().hex[:10]}"
+        tmp.mkdir(parents=True, exist_ok=True)
+        result = build_portfolio_evidence_pack(runtime_data_dir=str(tmp))
+        if not result.get("ok"):
+            return {
+                "name": "portfolio_evidence_pack_v1",
+                "status": "FAIL",
+                "pack_id": result.get("pack_id", ""),
+                "pack_run_id": result.get("pack_run_id", ""),
+                "error": "; ".join(str(item) for item in result.get("errors", [])) or "Portfolio pack generation failed.",
+            }
+
+        required_paths = {
+            "index_markdown_path": Path(str(result.get("index_markdown_path", ""))),
+            "index_html_path": Path(str(result.get("index_html_path", ""))),
+            "summary_json_path": Path(str(result.get("summary_json_path", ""))),
+            "architecture_path": Path(str(result.get("architecture_path", ""))),
+            "demo_script_path": Path(str(result.get("demo_script_path", ""))),
+            "tool_inventory_path": Path(str(result.get("tool_inventory_path", ""))),
+            "workflow_proof_path": Path(str(result.get("workflow_proof_path", ""))),
+            "screenshot_checklist_path": Path(str(result.get("screenshot_checklist_path", ""))),
+            "known_limitations_path": Path(str(result.get("pack_dir", ""))) / "known_limitations.md",
+            "readme_path": Path(str(result.get("pack_dir", ""))) / "README.md",
+        }
+        required_ok = all(path.is_file() for path in required_paths.values())
+        summary_json = json.loads(required_paths["summary_json_path"].read_text(encoding="utf-8")) if required_paths["summary_json_path"].is_file() else {}
+        summary_ok = (
+            isinstance(summary_json, dict)
+            and summary_json.get("pack_id") == "portfolio_evidence_pack_v1"
+            and bool(summary_json.get("ok", False))
+            and summary_json.get("live_side_effects_claimed") is False
+            and summary_json.get("production_readiness_claimed") is False
+        )
+        index_text = required_paths["index_markdown_path"].read_text(encoding="utf-8").lower() if required_paths["index_markdown_path"].is_file() else ""
+        known_limitations_text = required_paths["known_limitations_path"].read_text(encoding="utf-8").lower() if required_paths["known_limitations_path"].is_file() else ""
+        text_ok = "not proof of production deployment readiness" in index_text and "controlled portfolio/demo runtime" in known_limitations_text
+        ok = required_ok and summary_ok and text_ok
+        return {
+            "name": "portfolio_evidence_pack_v1",
+            "status": "PASS" if ok else "FAIL",
+            "pack_id": result.get("pack_id", ""),
+            "pack_run_id": result.get("pack_run_id", ""),
+            "pack_dir": result.get("pack_dir", ""),
+            "index_markdown_path": str(required_paths["index_markdown_path"]),
+            "index_html_path": str(required_paths["index_html_path"]),
+            "summary_json_path": str(required_paths["summary_json_path"]),
+            "architecture_path": str(required_paths["architecture_path"]),
+            "demo_script_path": str(required_paths["demo_script_path"]),
+            "tool_inventory_path": str(required_paths["tool_inventory_path"]),
+            "workflow_proof_path": str(required_paths["workflow_proof_path"]),
+            "screenshot_checklist_path": str(required_paths["screenshot_checklist_path"]),
+        }
+    except Exception as exc:
+        return {"name": "portfolio_evidence_pack_v1", "status": "FAIL", "error": str(exc)}
+
+
 def _check_known_limitations_doc() -> dict[str, Any]:
     path = KNOWN_LIMITATIONS_MD
     text = path.read_text(encoding="utf-8").lower() if path.is_file() else ""
@@ -3231,12 +3314,12 @@ def _check_known_limitations_doc() -> dict[str, Any]:
 
 
 def _status_from_commands(commands: list[dict[str, Any]], name: str) -> str:
-    item = next((command for command in commands if command.get("name") == name), None)
+    item = next((command for command in commands if isinstance(command, dict) and command.get("name") == name), None)
     return "PASS" if item and item.get("status") == "PASS" else "FAIL"
 
 
 def _status_from_static(static_checks: list[dict[str, Any]], name: str) -> str:
-    item = next((check for check in static_checks if check.get("name") == name), None)
+    item = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == name), None)
     return "PASS" if item and item.get("status") == "PASS" else "FAIL"
 
 

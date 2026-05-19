@@ -39,6 +39,7 @@ The architecture is deliberately controlled:
 - Evidence bundle generation
 - Cross-workflow demo story packs
 - 90% readiness scorecard reporting
+- Public-facing portfolio evidence packs
 - Tool health and inspection surfaces
 - Clean-clone release verification
 
@@ -50,6 +51,7 @@ The architecture is deliberately controlled:
 - Report generation: build a business report and a run report for the exact TaskFrame
 - Cross-workflow demo story: connect customer support, procurement, and accounting into one reviewer-facing evidence pack
 - Readiness scorecard: measure controlled portfolio/demo readiness across the seven major project areas
+- Portfolio evidence pack: consolidate the architecture summary, demo script, workflow proof, tool inventory, readiness links, and known limitations into one public-facing artifact
 
 ## Evidence And Reporting Model
 
@@ -63,6 +65,17 @@ Two report types are central to the portfolio:
 The runtime also produces a TaskFrame audit record and an evidence bundle for each run.
 The cross-workflow demo v2 adds one consolidated story pack that links the individual workflow reports and evidence bundles into a single executive-facing artifact set.
 The readiness scorecard adds a machine-readable gate that makes the portfolio/demo readiness target measurable.
+The portfolio evidence pack adds a public-facing packaging layer so the runtime can be reviewed as a coherent portfolio artifact without claiming production readiness.
+
+## Portfolio Evidence Pack
+
+Run:
+
+```powershell
+taskframe portfolio-pack
+```
+
+The generated pack links the latest story pack and readiness scorecard when they exist, and it always states the repository limitations clearly.
 
 ## Safety And Approval Model
 

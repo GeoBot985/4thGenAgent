@@ -47,6 +47,8 @@ pip install -e .
 taskframe demo
 taskframe ui
 taskframe verify
+taskframe readiness
+taskframe portfolio-pack
 taskframe config show
 taskframe config paths
 ```
@@ -71,6 +73,8 @@ If everything is working:
 - `taskframe demo` runs a safe deterministic demo.
 - `taskframe ui` opens the Operator Demo Console.
 - `taskframe verify` runs the release verification checks.
+- `taskframe readiness` generates the 90% readiness scorecard.
+- `taskframe portfolio-pack` generates the public-facing portfolio evidence pack.
 - `taskframe config show` prints the active safe configuration profile.
 - `taskframe config paths` prints the config lookup paths.
 - The default portfolio demo does not perform live side effects.
@@ -91,6 +95,8 @@ Do not commit credentials, tokens, browser profiles, or local config files.
 See [docs/configuration.md](docs/configuration.md).
 
 The live-execution safety boundary is documented in [docs/live_execution_safety.md](docs/live_execution_safety.md).
+
+The portfolio evidence pack is described in [docs/portfolio_evidence_pack.md](docs/portfolio_evidence_pack.md).
 
 Tools can also be added through external tool packs. Adding a tool pack does not automatically add it to the default demo or release-candidate path.
 
