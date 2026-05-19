@@ -1,0 +1,12 @@
+[
+  {
+    "exception_id": "EXC-001",
+    "exception_type": "amount_mismatch",
+    "severity": "high",
+    "invoice_id": "INV-INV-2024-001",
+    "po_number": "PO-2024-042",
+    "message": "Invoice total 3450.00 does not match PO total 3000.00.",
+    "recommended_action": "Request corrected invoice from supplier.",
+    "blocking": true
+  }
+]

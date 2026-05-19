@@ -1,0 +1,15 @@
+[
+  {
+    "ledger_entry_id": "LED-INV-001",
+    "source_type": "supplier_invoice",
+    "source_ref": "INV-INV-2024-001",
+    "supplier_id": "SUP-001",
+    "invoice_number": "INV-2024-001",
+    "po_number": "PO-2024-042",
+    "debit_account": "5000-COGS",
+    "credit_account": "2000-AP",
+    "amount": 3450.0,
+    "currency": "ZAR",
+    "status": "posted"
+  }
+]
