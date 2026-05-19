@@ -1,0 +1,26 @@
+[
+  {
+    "supplier_id": "SUP-001",
+    "supplier_name": "Acme Supplies (Pty) Ltd",
+    "status": "active",
+    "vat_number": "VAT-ZA-4411223300",
+    "payment_terms": "30 days",
+    "default_currency": "ZAR"
+  },
+  {
+    "supplier_id": "SUP-002",
+    "supplier_name": "Acme Supplies Pty Ltd",
+    "status": "active",
+    "vat_number": "VAT-ZA-9900112233",
+    "payment_terms": "30 days",
+    "default_currency": "ZAR"
+  },
+  {
+    "supplier_id": "SUP-003",
+    "supplier_name": "Totally Different Corp",
+    "status": "inactive",
+    "vat_number": "VAT-ZA-5555666677",
+    "payment_terms": "60 days",
+    "default_currency": "ZAR"
+  }
+]
