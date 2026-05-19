@@ -126,6 +126,8 @@ def _scenario_title(snapshot: dict, current_run: dict, frame: dict) -> str:
         lowered = manifest_id.lower()
         if "customer" in lowered and "status" in lowered:
             return "Customer Order Status"
+        if "supplier_invoice" in lowered:
+            return "Supplier Invoice Matching"
         if "procurement" in lowered:
             return "Procurement Reorder"
         if "accounting" in lowered:
@@ -156,6 +158,8 @@ def _scenario_summary(current_run: dict, frame: dict, approval: dict, worker_ste
     manifest_id = _string(frame.get("manifest_id"))
     if manifest_id:
         parts.append(f"Scenario source: {humanize_step_id(manifest_id)}.")
+        if "supplier_invoice" in manifest_id.lower():
+            parts.append("Workflow family: supplier invoice matching.")
     return " ".join(parts).strip()
 
 
@@ -275,6 +279,11 @@ def _approval(frame: dict) -> dict:
         label = "Waiting for approval before sending customer message"
     else:
         label = "Approval required before sending customer message" if required else "No approval required"
+    if "supplier_invoice" in _string(frame.get("manifest_id")).lower():
+        if required and (status == "WAITING_FOR_EXECUTE" or frame_state == "WAITING_FOR_EXECUTE"):
+            label = "Waiting for approval before posting supplier invoice ledger entry"
+        else:
+            label = "Approval required before posting supplier invoice ledger entry" if required else "No approval required"
     return {
         "required": required,
         "label": label,

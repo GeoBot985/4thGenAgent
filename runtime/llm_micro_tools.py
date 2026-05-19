@@ -59,6 +59,14 @@ def normalize_micro_tool_output(action: str, raw_text: str, args: dict[str, obje
             "recommended_action": str(parsed.get("recommended_action", "")),
             "invented_facts": bool(parsed.get("invented_facts", False)),
         }
+    if action == "draft_supplier_invoice_exception_summary":
+        return {
+            "summary": str(parsed.get("summary", "")),
+            "risk_level": str(parsed.get("risk_level", "high")),
+            "key_exceptions": list(parsed.get("key_exceptions", [])) if isinstance(parsed.get("key_exceptions", []), list) else [],
+            "recommended_action": str(parsed.get("recommended_action", "")),
+            "invented_facts": bool(parsed.get("invented_facts", False)),
+        }
     if action == "compare_reply_to_facts":
         return {
             "ok": parsed.get("ok", False),
@@ -107,6 +115,11 @@ def validate_micro_tool_output(action: str, output: object, args: dict[str, obje
         validations.append(_validation(f"{action}_invented_facts", not invented_facts, "" if not invented_facts else "invented_facts must be false.", {"invented_facts": invented_facts}))
         risk_level = str(output.get("risk_level", ""))
         validations.append(_validation(f"{action}_risk_level", risk_level in {"low", "medium", "high", "critical"}, "" if risk_level in {"low", "medium", "high", "critical"} else "risk_level must be allowed.", {"risk_level": risk_level}))
+    if action == "draft_supplier_invoice_exception_summary":
+        invented_facts = bool(output.get("invented_facts", False))
+        validations.append(_validation(f"{action}_invented_facts", not invented_facts, "" if not invented_facts else "invented_facts must be false.", {"invented_facts": invented_facts}))
+        risk_level = str(output.get("risk_level", ""))
+        validations.append(_validation(f"{action}_risk_level", risk_level in {"low", "medium", "high", "critical"}, "" if risk_level in {"low", "medium", "high", "critical"} else "risk_level must be allowed.", {"risk_level": risk_level}))
     return validations
 
 
@@ -144,4 +157,6 @@ def _rename_legacy_args(action: str, args: dict[str, object]) -> dict[str, objec
         if "facts" in updated and not isinstance(updated["facts"], str):
             updated["facts"] = updated["facts"]
         return updated
+    if action == "draft_supplier_invoice_exception_summary":
+        return dict(args)
     return dict(args)

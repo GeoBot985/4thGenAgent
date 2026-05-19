@@ -76,6 +76,14 @@ class FakeLLMAdapter(BaseLLMAdapter):
             return json.dumps({"subject": f"Purchase Order {po_id}", "body": f"Good day {supplier_name}, please find draft purchase order {po_id} for {skus}. Please confirm availability and lead time.", "tone": "professional", "included_po_id": True, "included_supplier_name": True, "included_sku_lines": True, "invented_terms": False})
         if action == "draft_reconciliation_exception_summary":
             return json.dumps({"summary": "Payments were reconciled against orders, invoices, and ledger entries. Exceptions require operator review before posting.", "risk_level": "high", "key_exceptions": ["One payment has an amount mismatch.", "One payment reference appears more than once.", "One payment appears to already be posted."], "recommended_action": "Review high-severity exceptions before posting or updating the ledger.", "invented_facts": False})
+        if action == "draft_supplier_invoice_exception_summary":
+            return json.dumps({
+                "summary": "The supplier invoice has deterministic exceptions that require operator review before ledger posting.",
+                "risk_level": "high",
+                "key_exceptions": ["PRICE_MISMATCH", "RECEIPT_NOT_FOUND"],
+                "recommended_action": "Review the exception report and approve only the exception write; do not post the ledger.",
+                "invented_facts": False,
+            })
         if action == "compare_reply_to_facts":
             return json.dumps({"ok": True, "matches_facts": True, "unsupported_claims": [], "missing_required_facts": [], "reason": "Deterministic fake response."})
         if action == "summarize_customer_message":

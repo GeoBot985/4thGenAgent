@@ -124,12 +124,12 @@ def run_demo_definition(
     allow_test_fake_llm: bool = False,
 ) -> dict:
     try:
-        if _allow_test_fake_llm() and not demo.get("llm_provider"):
+        if allow_test_fake_llm or _allow_test_fake_llm():
             use_local_llm = False
         if llm_adapter is not None:
             adapter = llm_adapter
         else:
-            adapter = _build_demo_adapter(demo, use_local_llm)
+            adapter = _build_demo_adapter(demo, use_local_llm, allow_test_fake_llm=allow_test_fake_llm)
         engine = RuntimeEngine(runtime_data_dir=runtime_data_dir, llm_adapter=adapter)
         event = create_event(demo["event_type"], demo["source"], payload=dict(demo["payload"]))
         frame = engine.handle_event(event, dry_run=True)
@@ -232,13 +232,13 @@ def _failure_summary_markdown(failure_summary: dict) -> str:
     ])
 
 
-def _build_demo_adapter(demo: dict, use_local_llm: bool):
+def _build_demo_adapter(demo: dict, use_local_llm: bool, *, allow_test_fake_llm: bool = False):
     if use_local_llm:
         from runtime.llm_config import build_llm_adapter
 
         return build_llm_adapter()
     responses = demo.get("fake_llm_responses")
-    if isinstance(responses, dict) and responses and _allow_test_fake_llm():
+    if isinstance(responses, dict) and responses and (allow_test_fake_llm or _allow_test_fake_llm()):
         return FakeLLMAdapter(responses)
     return None
 

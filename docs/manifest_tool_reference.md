@@ -1260,6 +1260,31 @@
 - `candidates` (str)
 
 ---
+## po/read
+
+| Field | Value |
+|---|---|
+| Namespace | po |
+| Action | read |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `purchase_order_result` |
+
+### Command form
+
+```text
+[t:po/read -> output_name] po_ref=$inputs.po_ref
+```
+
+### Required arguments
+
+- `po_ref` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
+
+---
 ## po/validate_draft
 
 | Field | Value |
@@ -1321,6 +1346,31 @@
 ### Required arguments
 
 - `text` (str)
+
+---
+## receipt/read_by_po
+
+| Field | Value |
+|---|---|
+| Namespace | receipt |
+| Action | read_by_po |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `goods_receipt_result` |
+
+### Command form
+
+```text
+[t:receipt/read_by_po -> output_name] po_ref=$inputs.po_ref
+```
+
+### Required arguments
+
+- `po_ref` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
 
 ---
 ## recon/match_payments
@@ -1684,6 +1734,174 @@
 - `runtime_root` (str)
 
 ---
+## supplier_invoice/build_exception_report
+
+| Field | Value |
+|---|---|
+| Namespace | supplier_invoice |
+| Action | build_exception_report |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `supplier_invoice_exception_report_result` |
+
+### Command form
+
+```text
+[t:supplier_invoice/build_exception_report -> output_name] invoice=$inputs.invoice purchase_order=$inputs.purchase_order receipts=$inputs.receipts match_result=$inputs.match_result
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `purchase_order` (str)
+- `receipts` (str)
+- `match_result` (str)
+
+### Optional arguments
+
+- `exception_summary` (str)
+- `runtime_root` (str)
+
+---
+## supplier_invoice/check_duplicate
+
+| Field | Value |
+|---|---|
+| Namespace | supplier_invoice |
+| Action | check_duplicate |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `supplier_invoice_duplicate_check_result` |
+
+### Command form
+
+```text
+[t:supplier_invoice/check_duplicate -> output_name] supplier_id=$inputs.supplier_id supplier_invoice_number=$inputs.supplier_invoice_number
+```
+
+### Required arguments
+
+- `supplier_id` (str)
+- `supplier_invoice_number` (str)
+
+### Optional arguments
+
+- `invoice_ref` (str)
+- `runtime_root` (str)
+
+---
+## supplier_invoice/execute_ledger_write
+
+| Field | Value |
+|---|---|
+| Namespace | supplier_invoice |
+| Action | execute_ledger_write |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `supplier_invoice_ledger_write_execution_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:supplier_invoice/execute_ledger_write -> output_name] ledger_rows=$inputs.ledger_rows
+```
+
+### Required arguments
+
+- `ledger_rows` (str)
+
+### Optional arguments
+
+- `dry_run` (str)
+- `runtime_root` (str)
+
+---
+## supplier_invoice/match_three_way
+
+| Field | Value |
+|---|---|
+| Namespace | supplier_invoice |
+| Action | match_three_way |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `supplier_invoice_match_result` |
+
+### Command form
+
+```text
+[t:supplier_invoice/match_three_way -> output_name] invoice=$inputs.invoice purchase_order=$inputs.purchase_order receipts=$inputs.receipts
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `purchase_order` (str)
+- `receipts` (str)
+
+### Optional arguments
+
+- `tolerance_amount` (float)
+- `tolerance_percent` (float)
+- `runtime_root` (str)
+
+---
+## supplier_invoice/prepare_ledger_write
+
+| Field | Value |
+|---|---|
+| Namespace | supplier_invoice |
+| Action | prepare_ledger_write |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `supplier_invoice_ledger_write_prepare_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:supplier_invoice/prepare_ledger_write -> output_name] invoice=$inputs.invoice match_result=$inputs.match_result
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `match_result` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
+
+---
+## supplier_invoice/prepare_match_run_write
+
+| Field | Value |
+|---|---|
+| Namespace | supplier_invoice |
+| Action | prepare_match_run_write |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `supplier_invoice_match_write_prepare_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:supplier_invoice/prepare_match_run_write -> output_name] match_result=$inputs.match_result
+```
+
+### Required arguments
+
+- `match_result` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
+
+---
 ## supplier_invoice/read
 
 | Field | Value |
@@ -1692,17 +1910,21 @@
 | Action | read |
 | Side effect | false |
 | Requires approval | false |
-| Output type | `supplier_invoice_record` |
+| Output type | `supplier_invoice_result` |
 
 ### Command form
 
 ```text
-[t:supplier_invoice/read -> output_name] invoice_id=$inputs.invoice_id
+[t:supplier_invoice/read -> output_name] invoice_ref=$inputs.invoice_ref
 ```
 
 ### Required arguments
 
-- `invoice_id` (str)
+- `invoice_ref` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
 
 ---
 ## test/echo

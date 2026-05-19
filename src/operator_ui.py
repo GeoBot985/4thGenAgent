@@ -211,7 +211,9 @@ class OperatorConsole:
         self.active_frame_id: str | None = None
         self.active_scenario_id: str | None = None
         self.active_report_result: dict | None = None
+        self.active_story_pack_result: dict | None = None
         self.active_artifact_paths: dict = {}
+        self.active_story_pack_paths: dict = {}
         self.timeline: list[dict] = []
         self.selected_action_id: str | None = None
         self.last_approval_operation: dict | None = None
@@ -446,6 +448,9 @@ class OperatorConsole:
         ttk.Button(secondary_actions, text="Cancel / Stop demo", command=self.on_reset).pack(side="left", padx=(0, 6))
         ttk.Button(secondary_actions, text="Open evidence folder", command=self.on_open_report_folder).pack(side="left", padx=(0, 6))
         ttk.Button(secondary_actions, text="Open business report", command=self.on_open_business_report_html).pack(side="left")
+        ttk.Button(secondary_actions, text="Open story evidence pack", command=self.on_open_story_pack_folder).pack(side="left", padx=(12, 6))
+        ttk.Button(secondary_actions, text="Open story HTML", command=self.on_open_story_pack_html).pack(side="left", padx=(0, 6))
+        ttk.Button(secondary_actions, text="Open story folder", command=self.on_open_story_pack_folder).pack(side="left")
 
         scenario_header = ttk.Frame(self.demo_advanced_actions_frame, style="Card.TFrame")
         scenario_header.grid(row=2, column=0, sticky="ew", pady=(12, 0))
@@ -484,6 +489,7 @@ class OperatorConsole:
         ttk.Button(advanced_row, text="Run selected scenario", command=self.on_run_scenario).pack(side="left", padx=(0, 6))
         ttk.Button(advanced_row, text="Run selected scenario and generate evidence", command=self.on_run_scenario_and_report).pack(side="left", padx=(0, 6))
         ttk.Button(advanced_row, text="Run full business workflow demo", command=self.on_run_cross_workflow_demo).pack(side="left")
+        ttk.Button(advanced_row, text="Run full business workflow demo v2", command=self.on_run_cross_workflow_demo_v2).pack(side="left", padx=(8, 0))
         self.scenario_result_label = ttk.Label(self.advanced_settings_frame, text="Scenario Result", style="Meta.TLabel")
         self.scenario_result_label.grid(row=5, column=0, sticky="w", pady=(6, 0))
 
@@ -1173,8 +1179,50 @@ class OperatorConsole:
         )
         self.scenario_result = result
         self.report_status = result.get("aggregate_report", {}) if isinstance(result, dict) else {}
+        self.active_story_pack_result = None
+        self.active_story_pack_paths = {}
         self._clear_active_run()
         self._render_current_view()
+
+    def on_run_cross_workflow_demo_v2(self) -> None:
+        result = run_cross_workflow_demo_pack(
+            pack_id="cross_workflow_business_demo_v2",
+            runtime_data_dir=self.runtime_root,
+            reset_dataset=self.scenario_reset_dataset_var.get(),
+            generate_reports=True,
+            use_real_llm=False,
+            allow_test_fake_llm=True,
+        )
+        self.scenario_result = result
+        self.report_status = result.get("aggregate_report", {}) if isinstance(result, dict) else {}
+        self._clear_active_run()
+        self.active_story_pack_result = result.get("story_pack_result", {}) if isinstance(result, dict) else {}
+        self.active_story_pack_paths = {
+            "story_index": str((self.active_story_pack_result or {}).get("index_html_path", "")),
+            "story_folder": str((self.active_story_pack_result or {}).get("story_pack_dir", "")),
+            "story_markdown": str((self.active_story_pack_result or {}).get("index_markdown_path", "")),
+        }
+        self._render_current_view()
+
+    def on_open_story_pack_html(self) -> None:
+        story_pack = self.active_story_pack_result if isinstance(self.active_story_pack_result, dict) else {}
+        html_path = str(story_pack.get("index_html_path", "")).strip()
+        if not html_path:
+            messagebox.showinfo("Story Pack", "No story pack exists for the current run.")
+            return
+        from src.operator_reports import open_report_html
+
+        open_report_html(html_path)
+
+    def on_open_story_pack_folder(self) -> None:
+        story_pack = self.active_story_pack_result if isinstance(self.active_story_pack_result, dict) else {}
+        story_dir = str(story_pack.get("story_pack_dir", "")).strip()
+        if not story_dir:
+            messagebox.showinfo("Story Pack", "No story pack exists for the current run.")
+            return
+        from src.operator_reports import open_report_folder
+
+        open_report_folder(story_dir)
 
     def _sync_llm_info(self) -> None:
         if not hasattr(self, "llm_info_frame"):
@@ -1238,7 +1286,9 @@ class OperatorConsole:
         self.active_frame_id = None
         self.active_scenario_id = None
         self.active_report_result = None
+        self.active_story_pack_result = None
         self.active_artifact_paths = {}
+        self.active_story_pack_paths = {}
 
     def _selected_demo_id(self) -> str:
         selected = self.selected_demo_id.get().strip() if hasattr(self, "selected_demo_id") else ""
@@ -1870,7 +1920,9 @@ class OperatorConsole:
         self.active_frame_id = None
         self.active_scenario_id = None
         self.active_report_result = None
+        self.active_story_pack_result = None
         self.active_artifact_paths = {}
+        self.active_story_pack_paths = {}
         self.timeline = []
         self.playback_timeline = self.timeline
         self.playback_index = -1
@@ -4254,6 +4306,19 @@ class OperatorConsole:
             f"Verdict: {scenario_result.get('scenario_validation', {}).get('verdict', '')}",
             "Checks:",
         ]
+        for label, key in (
+            ("Invoice", "invoice_ref"),
+            ("Supplier", "supplier_id"),
+            ("PO", "po_ref"),
+            ("Receipt", "receipt_ref"),
+            ("Match status", "match_status"),
+            ("Exception count", "exception_count"),
+            ("Ledger posting decision", "ledger_decision"),
+            ("Pending actions", "pending_actions"),
+            ("Completion outcome", "completion_outcome"),
+        ):
+            if key in scenario_result:
+                lines.append(f"{label}: {self._compact_value(scenario_result.get(key))}")
         if checks:
             for item in checks:
                 if not isinstance(item, dict):

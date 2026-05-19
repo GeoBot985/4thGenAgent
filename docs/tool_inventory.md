@@ -1,21 +1,21 @@
 # Tool Inventory Report
 
-Generated: 2026-05-18T19:09:25Z
+Generated: 2026-05-19T07:51:36Z
 
-Report JSON: D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.json
-Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.md
+Report JSON: D:/Temp/pytest-of-GeorgeC/pytest-1768/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.json
+Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1768/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.md
 
 ## Summary
 
 | Metric | Count |
 |---|---:|
-| Total tools | 75 |
+| Total tools | 83 |
 | Migrated tool-pack tools | 4 |
-| Legacy fallback tools | 71 |
+| Legacy fallback tools | 79 |
 | External enabled tools | 0 |
 | Total tool packs | 2 |
 | Optional disabled tools | 10 |
-| Side-effect tools | 21 |
+| Side-effect tools | 24 |
 | Live side-effect allowed | 0 |
 
 ## Tools
@@ -74,9 +74,11 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_t
 | payment/read_by_order | legacy_fallback |  | no | no | no | payment_record |
 | po/build_draft | legacy_fallback |  | no | no | no | draft_po |
 | po/check_duplicate_open | legacy_fallback |  | no | no | no | duplicate_po_check |
+| po/read | legacy_fallback |  | no | no | no | purchase_order_result |
 | po/validate_draft | legacy_fallback |  | no | no | no | po_validation |
 | purchase_order/search_open_by_sku | legacy_fallback |  | no | no | no | purchase_order_list |
 | q/extract_order_ref | migrated_toolpack | core_llm_micro | no | no | no | order_ref_result |
+| receipt/read_by_po | legacy_fallback |  | no | no | no | goods_receipt_result |
 | recon/match_payments | legacy_fallback |  | no | no | no | reconciliation_result |
 | recon/validate_result | legacy_fallback |  | no | no | no | reconciliation_validation |
 | report/generate | migrated_toolpack | core_reports | no | no | no | report_result |
@@ -92,7 +94,13 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_t
 | supplier/search_active | legacy_fallback |  | no | no | no | supplier_list |
 | supplier/select_for_sku | legacy_fallback |  | no | no | no | selected_supplier |
 | supplier/send_message | legacy_fallback |  | yes | yes | no | supplier_send_result |
-| supplier_invoice/read | legacy_fallback |  | no | no | no | supplier_invoice_record |
+| supplier_invoice/build_exception_report | legacy_fallback |  | no | no | no | supplier_invoice_exception_report_result |
+| supplier_invoice/check_duplicate | legacy_fallback |  | no | no | no | supplier_invoice_duplicate_check_result |
+| supplier_invoice/execute_ledger_write | legacy_fallback |  | yes | yes | no | supplier_invoice_ledger_write_execution_result |
+| supplier_invoice/match_three_way | legacy_fallback |  | no | no | no | supplier_invoice_match_result |
+| supplier_invoice/prepare_ledger_write | legacy_fallback |  | yes | yes | no | supplier_invoice_ledger_write_prepare_result |
+| supplier_invoice/prepare_match_run_write | legacy_fallback |  | yes | yes | no | supplier_invoice_match_write_prepare_result |
+| supplier_invoice/read | legacy_fallback |  | no | no | no | supplier_invoice_result |
 | test/echo | legacy_fallback |  | no | no | no | test_echo_result |
 | wa/read | legacy_fallback |  | no | no | no | whatsapp_messages |
 | wa/search | legacy_fallback |  | no | no | no | whatsapp_search_result |
@@ -102,5 +110,5 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_t
 
 | Tool Pack | Status | Environments | Classification | Tool Count | Last Check | Lifecycle Report |
 |---|---|---|---|---:|---|---|
-| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-18T19:09:25Z | D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
-| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-18T19:09:25Z | D:/Temp/pytest-of-GeorgeC/pytest-1595/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |
+| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-19T07:51:36Z | D:/Temp/pytest-of-GeorgeC/pytest-1768/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
+| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-19T07:51:36Z | D:/Temp/pytest-of-GeorgeC/pytest-1768/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |

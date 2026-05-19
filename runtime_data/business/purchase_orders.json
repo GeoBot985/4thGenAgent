@@ -54,7 +54,7 @@
     "quantity": 50,
     "sku": "SKU-CABLE-01",
     "status": "open",
-    "supplier_id": "SUP-003",
+    "supplier_id": "SUP-002",
     "total": 1750.0,
     "total_amount": 1750.0,
     "unit_cost": 35.0
@@ -78,5 +78,110 @@
     "total": 7000.0,
     "total_amount": 7000.0,
     "unit_cost": 700.0
+  },
+  {
+    "created_at": "2026-05-01T08:00:00Z",
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_ref": "1",
+        "line_total": 1000.0,
+        "quantity": 10,
+        "sku": "SKU-1001",
+        "unit_price": 100.0
+      }
+    ],
+    "po_id": "PO-2001",
+    "po_ref": "PO-2001",
+    "status": "closed",
+    "subtotal": 1000.0,
+    "supplier_id": "SUP-1001",
+    "tax": 150.0,
+    "tax_rate": 0.15,
+    "total": 1150.0
+  },
+  {
+    "created_at": "2026-05-01T08:15:00Z",
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_ref": "1",
+        "line_total": 500.0,
+        "quantity": 4,
+        "sku": "SKU-1002",
+        "unit_price": 125.0
+      }
+    ],
+    "po_id": "PO-2002",
+    "po_ref": "PO-2002",
+    "status": "closed",
+    "subtotal": 500.0,
+    "supplier_id": "SUP-1001",
+    "tax": 75.0,
+    "tax_rate": 0.15,
+    "total": 575.0
+  },
+  {
+    "created_at": "2026-05-01T08:20:00Z",
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_ref": "1",
+        "line_total": 500.0,
+        "quantity": 10,
+        "sku": "SKU-2001",
+        "unit_price": 50.0
+      }
+    ],
+    "po_id": "PO-2003",
+    "po_ref": "PO-2003",
+    "status": "open",
+    "subtotal": 500.0,
+    "supplier_id": "SUP-1002",
+    "tax": 75.0,
+    "tax_rate": 0.15,
+    "total": 575.0
+  },
+  {
+    "created_at": "2026-05-01T08:25:00Z",
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_ref": "1",
+        "line_total": 200.0,
+        "quantity": 2,
+        "sku": "SKU-1001",
+        "unit_price": 100.0
+      }
+    ],
+    "po_id": "PO-2004",
+    "po_ref": "PO-2004",
+    "status": "open",
+    "subtotal": 200.0,
+    "supplier_id": "SUP-1001",
+    "tax": 30.0,
+    "tax_rate": 0.15,
+    "total": 230.0
+  },
+  {
+    "created_at": "2026-04-20T08:25:00Z",
+    "currency": "ZAR",
+    "lines": [
+      {
+        "line_ref": "1",
+        "line_total": 125.0,
+        "quantity": 1,
+        "sku": "SKU-1001",
+        "unit_price": 125.0
+      }
+    ],
+    "po_id": "PO-2005",
+    "po_ref": "PO-2005",
+    "status": "closed",
+    "subtotal": 125.0,
+    "supplier_id": "SUP-1001",
+    "tax": 18.75,
+    "tax_rate": 0.15,
+    "total": 143.75
   }
 ]

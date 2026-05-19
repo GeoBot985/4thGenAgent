@@ -553,8 +553,8 @@ def generate_demo_run_report(runtime_data_dir: str | Path, frame_id: str, scenar
     business_markdown_path = Path("")
     business_html_path = Path("")
     business_evidence_path = Path("")
-    if story_type == "report_generation" and not str(frame.get("state", "")).startswith("FAILED"):
-        business_paths = get_demo_business_report_paths(runtime_root, frame_id, scenario_id or "report_generation")
+    if story_type in {"report_generation", "supplier_invoice_matching"} and not str(frame.get("state", "")).startswith("FAILED"):
+        business_paths = get_demo_business_report_paths(runtime_root, frame_id, scenario_id or story_type or "report_generation")
         report_model["business_report_markdown_path"] = business_paths["markdown_path"]
         report_model["business_report_html_path"] = business_paths["html_path"]
         report_model["business_report_evidence_bundle_path"] = business_paths["evidence_bundle_path"]
@@ -1037,6 +1037,7 @@ def render_demo_run_report_html(report_model: dict) -> str:
 
 def render_demo_business_report_markdown(report_model: dict, paths: dict[str, str]) -> str:
     report_model = report_model if isinstance(report_model, dict) else {}
+    story_type = _string(report_model.get("scenario_type"))
     lines = [
         "# Business Report",
         "",
@@ -1072,6 +1073,21 @@ def render_demo_business_report_markdown(report_model: dict, paths: dict[str, st
         f"- Status badge: {report_model.get('status_badge', '')}",
         f"- Output: {report_model.get('output_text', '')}",
         "",
+    ]
+    if story_type == "supplier_invoice_matching":
+        lines.extend(
+            [
+                "## Supplier Invoice Matching Result",
+                "",
+                f"- Invoice Summary: {report_model.get('supplier_invoice_summary', '')}",
+                f"- Match Status: {report_model.get('supplier_invoice_match_status', '')}",
+                f"- Exception Count: {report_model.get('supplier_invoice_exception_count', 0)}",
+                f"- Ledger Posting Decision: {report_model.get('supplier_invoice_ledger_decision', '')}",
+                f"- Pending Actions: {report_model.get('supplier_invoice_pending_actions', '')}",
+                "",
+            ]
+        )
+    lines.extend([
         "## Technical Appendix",
         "",
         "<details>",
@@ -1088,12 +1104,13 @@ def render_demo_business_report_markdown(report_model: dict, paths: dict[str, st
         "```",
         "",
         "</details>",
-    ]
+    ])
     return "\n".join(lines)
 
 
 def render_demo_business_report_html(report_model: dict, paths: dict[str, str]) -> str:
     report_model = report_model if isinstance(report_model, dict) else {}
+    story_type = _string(report_model.get("scenario_type"))
     summary = html.escape(_business_report_summary(report_model))
     artifact_name = html.escape(Path(paths.get("html_path", "")).name)
     markdown_name = html.escape(Path(paths.get("markdown_path", "")).name)
@@ -1148,6 +1165,17 @@ def render_demo_business_report_html(report_model: dict, paths: dict[str, str]) 
       </ul>
     </div>
   </div>
+  {f'''
+  <div class="card">
+    <h2>Supplier Invoice Matching Result</h2>
+    <div class="meta">
+      <div><strong>Invoice Summary:</strong> {html.escape(str(report_model.get('supplier_invoice_summary', '')))}</div>
+      <div><strong>Match Status:</strong> {html.escape(str(report_model.get('supplier_invoice_match_status', '')))}</div>
+      <div><strong>Exception Count:</strong> {html.escape(str(report_model.get('supplier_invoice_exception_count', 0)))}</div>
+      <div><strong>Ledger Posting Decision:</strong> {html.escape(str(report_model.get('supplier_invoice_ledger_decision', '')))}</div>
+      <div><strong>Pending Actions:</strong> {html.escape(str(report_model.get('supplier_invoice_pending_actions', '')))}</div>
+    </div>
+  </div>''' if story_type == 'supplier_invoice_matching' else ''}
   <div class="card">
     <details>
       <summary>Technical appendix</summary>
@@ -1215,6 +1243,8 @@ def _business_report_summary(report_model: dict) -> str:
         return "No business report artifact was found for this run."
     if _string(report_model.get("scenario_type")) == "report_generation":
         return "The worker generated a business report from the selected source data and prepared audit evidence for review."
+    if _string(report_model.get("scenario_type")) == "supplier_invoice_matching":
+        return "The worker matched a supplier invoice against the purchase order and goods receipt data and prepared an exception-ready audit bundle."
     return "The worker generated a run report for this demo run."
 
 
@@ -1708,11 +1738,11 @@ def _detect_demo_story_type(scenario: dict, frame: dict, outputs: dict) -> str:
         scenario.get("scenario_type"),
         scenario.get("story_type"),
         scenario.get("type"),
-        scenario.get("category"),
         scenario.get("id"),
         scenario.get("label"),
         scenario.get("name"),
         scenario.get("description"),
+        scenario.get("category"),
         frame.get("scenario_type"),
         frame.get("manifest_id"),
         frame.get("scenario_id"),
@@ -1730,6 +1760,8 @@ def _story_type_from_value(value: object) -> str:
         return "unknown"
     if any(token in text for token in ("report_generation", "report generation", "generate report", "reporting", "run report", "evidence bundle", "html_path", "markdown_path", "report_artifact", "report artifact", "run_report", "evidence_pack", "evidence pack")):
         return "report_generation"
+    if any(token in text for token in ("supplier_invoice", "three-way match", "invoice match", "match_to_po_receipt", "supplier invoice matching")):
+        return "supplier_invoice_matching"
     if any(token in text for token in ("procurement", "supplier", "reorder", "low stock", "stock", "purchase order", "po_", "supplier_message")):
         return "procurement"
     if any(token in text for token in ("accounting", "reconciliation", "ledger", "invoice", "payments_sheet", "recon_", "sheet write")):
@@ -1841,6 +1873,21 @@ def _step_title_for_story_type(story_type: str, step_id: str, index: int) -> str
         if 1 <= index <= len(titles):
             return titles[index - 1]
         return f"Report step {index}"
+    if story_type == "supplier_invoice_matching":
+        titles = [
+            "Read supplier invoice",
+            "Read purchase order",
+            "Read goods receipts",
+            "Check duplicate invoice",
+            "Run three-way match",
+            "Draft exception summary",
+            "Build exception report",
+            "Prepare match-run write",
+            "Prepare ledger write",
+        ]
+        if 1 <= index <= len(titles):
+            return titles[index - 1]
+        return f"Supplier invoice step {index}"
     mapping = {
         "customer_status": {
             "extract_order_ref": "Extract order reference",
@@ -2022,6 +2069,10 @@ def _plain_summary(story_type: str, state: str, frame: dict, outputs: dict, step
         if state.startswith("FAILED"):
             return "Worker stopped safely. No business report artifact was prepared."
         return "The worker generated a business report from the selected source data and prepared audit evidence for review."
+    if story_type == "supplier_invoice_matching":
+        if state.startswith("FAILED"):
+            return "Worker stopped safely during supplier invoice matching validation."
+        return "The worker matched a supplier invoice to the purchase order and receipt, then prepared exception and ledger evidence for review."
     if story_type == "procurement":
         if state.startswith("FAILED"):
             return "Worker stopped safely before preparing procurement outputs."
@@ -2040,6 +2091,8 @@ def _plain_summary(story_type: str, state: str, frame: dict, outputs: dict, step
 def _output_title(story_type: str, state: str) -> str:
     if story_type == "report_generation":
         return "Business report generated"
+    if story_type == "supplier_invoice_matching":
+        return "Prepared supplier invoice match result"
     if story_type == "procurement":
         return "Prepared procurement action"
     if story_type == "accounting":
@@ -2063,6 +2116,19 @@ def _output_text(story_type: str, state: str, frame: dict, outputs: dict, paths:
                 "- Evidence bundle",
             ]
         )
+    if story_type == "supplier_invoice_matching":
+        if state.startswith("FAILED"):
+            return "No supplier invoice match artifact was found for this run."
+        return "\n".join(
+            [
+                "Supplier invoice match result prepared",
+                f"File: {Path(paths['html_path']).name}",
+                "",
+                "Also created:",
+                "- Markdown report",
+                "- Evidence bundle",
+            ]
+        )
     if state.startswith("FAILED"):
         return "The worker could not safely answer this customer request."
     if story_type == "procurement":
@@ -2079,6 +2145,13 @@ def _output_bullets(story_type: str, state: str, frame: dict, outputs: dict, ste
     if story_type == "report_generation":
         return [
             "Business report generated",
+            "Markdown report created",
+            "Evidence bundle created",
+            f"Report HTML: {Path(paths['html_path']).name}",
+        ]
+    if story_type == "supplier_invoice_matching":
+        return [
+            "Supplier invoice match result prepared",
             "Markdown report created",
             "Evidence bundle created",
             f"Report HTML: {Path(paths['html_path']).name}",
@@ -2112,6 +2185,8 @@ def _approval_text(story_type: str, state: str, frame: dict) -> str:
         return "Pending approval action for this run."
     if story_type == "report_generation":
         return "No approval action was needed for the generated report."
+    if story_type == "supplier_invoice_matching":
+        return "No approval action was needed beyond the staged supplier invoice match flow."
     return "No pending approval action for this run."
 
 
@@ -2136,6 +2211,8 @@ def _pending_actions_for_report(frame: dict) -> list[dict[str, Any]]:
 def _evidence_text(story_type: str, state: str, frame: dict, outputs: dict, step_items: list[dict], audit: list) -> str:
     if story_type == "report_generation":
         return "The worker generated a business report artifact and evidence pack."
+    if story_type == "supplier_invoice_matching":
+        return "The worker generated a supplier invoice match artifact, exception report, and evidence pack."
     if state.startswith("FAILED"):
         return "Validation checks stopped the workflow before any customer message was sent."
     return "The worker used customer, order, shipment, payment, validation, and approval evidence."
@@ -2145,6 +2222,11 @@ def _evidence_items(story_type: str, state: str, frame: dict, outputs: dict, ste
     items: list[str] = []
     if story_type == "report_generation":
         items.append("Report artifact: present")
+        items.append("Evidence pack: present")
+    elif story_type == "supplier_invoice_matching":
+        items.append("Invoice summary: present")
+        items.append("Match result: present")
+        items.append("Exception report: present")
         items.append("Evidence pack: present")
     elif state.startswith("FAILED"):
         items.append("Customer validation: failed")

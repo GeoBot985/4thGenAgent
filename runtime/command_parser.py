@@ -25,7 +25,7 @@ _KIND_ALIASES = {
     "validate": "validate",
 }
 
-_LLM_ACTIONS = {"summarize", "extract", "classify", "draft", "compare", "extract_order_ref", "classify_customer_message", "summarize_customer_message", "summarize_business_context", "draft_customer_status_reply", "compare_reply_to_facts", "draft_supplier_reorder_message", "draft_reconciliation_exception_summary"}
+_LLM_ACTIONS = {"summarize", "extract", "classify", "draft", "compare", "extract_order_ref", "classify_customer_message", "summarize_customer_message", "summarize_business_context", "draft_customer_status_reply", "compare_reply_to_facts", "draft_supplier_reorder_message", "draft_reconciliation_exception_summary", "draft_supplier_invoice_exception_summary"}
 _APPROVAL_ACTIONS = {"list_pending", "approve", "reject", "execute_approved", "execute_live_approved", "approve_and_execute"}
 _APPROVAL_BLOCKED_ACTIONS = {"live_execute", "force_execute", "delete", "mutate", "resume_all", "approve_all", "reject_all"}
 _INSPECTION_ACTIONS = {

@@ -4,7 +4,7 @@
 
 **PASS**
 
-Generated: 2026-05-18T19:08:05.834482Z
+Generated: 2026-05-19T07:50:08.309471Z
 
 ## Summary
 
@@ -17,12 +17,12 @@ Generated: 2026-05-18T19:08:05.834482Z
 | Claim | Status | Evidence |
 |---|---|---|
 | default_demo_no_live_side_effects | PASS | Runtime default_mode='dry_run', live_execution_env_enabled=False. Default demo cannot perform live side effects. |
-| side_effects_stage_pending_actions | PASS | Tool registry has 21 side-effect tool(s), 21 require approval. Side effects must be staged as pending actions. |
+| side_effects_stage_pending_actions | PASS | Tool registry has 24 side-effect tool(s), 24 require approval. Side effects must be staged as pending actions. |
 | approval_required_before_execution | PASS | Pending action state machine: PENDING_APPROVAL → APPROVED → EXECUTING → EXECUTED. Live execution blocked unless action i |
 | dry_run_execution_auditable | PASS | Golden demo audit exists with verdict='READY'. Dry-run execution is auditable. |
 | live_execution_blocked_by_default | PASS | TASKFRAME_ENABLE_LIVE_EXECUTION not set. default_mode='dry_run'. Live execution is blocked by default. |
-| manifest_policy_blocks_live_execution | PASS | All 59 manifest(s) have live_execution.enabled=false or unset. Manifest policy blocks live execution. |
-| tool_policy_blocks_live_side_effects | PASS | 21 side-effect tool(s) all have live side-effects blocked or require approval. Tool policy enforces the safety boundary. |
+| manifest_policy_blocks_live_execution | PASS | All 60 manifest(s) have live_execution.enabled=false or unset. Manifest policy blocks live execution. |
+| tool_policy_blocks_live_side_effects | PASS | 24 side-effect tool(s) all have live side-effects blocked or require approval. Tool policy enforces the safety boundary. |
 | cli_live_guardrails_enforced | PASS | TASKFRAME_ENABLE_LIVE_EXECUTION not set. CLI has live guardrails (--i-understand-live-side-effects, --confirm): True. |
 | optional_rpa_excluded_from_default_path | PASS | rpa_google_messages: core_or_optional=optional, excluded_from_default_release=True, rpa_live_probe_required=True. Option |
 

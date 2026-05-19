@@ -41,7 +41,7 @@
     "sku": "SKU-CABLE-01",
     "status": "active",
     "stock_on_hand": 50,
-    "supplier_id": "SUP-003"
+    "supplier_id": "SUP-002"
   },
   {
     "available_stock": 7,
@@ -52,7 +52,7 @@
     "sku": "SKU-MOUSE-01",
     "status": "active",
     "stock_on_hand": 8,
-    "supplier_id": "SUP-003"
+    "supplier_id": "SUP-002"
   },
   {
     "available_stock": 2,
@@ -74,7 +74,7 @@
     "sku": "SKU-PAD-01",
     "status": "active",
     "stock_on_hand": 20,
-    "supplier_id": "SUP-003"
+    "supplier_id": "SUP-002"
   },
   {
     "available_stock": 4,

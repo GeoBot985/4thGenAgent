@@ -318,10 +318,25 @@ def build_verification_result() -> dict[str, Any]:
         _check_order_management_smoke_runs(),
         _check_order_management_approval_dry_run(),
         _check_order_management_docs_exist(),
+        _check_supplier_invoice_manifest_exists(),
+        _check_supplier_invoice_routes_exist(),
+        _check_supplier_invoice_tools_registered(),
+        _check_supplier_invoice_scenarios_exist(),
+        _check_supplier_invoice_happy_path_smoke(),
+        _check_supplier_invoice_exception_path_smoke(),
+        _check_supplier_invoice_dry_run_approval(),
+        _check_supplier_invoice_report_generation(),
+        _check_supplier_invoice_docs_exist(),
+        _check_cross_workflow_story_v2(),
     ])
     manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
+    story_v2_check = next((check for check in static_checks if check.get("name") == "cross_workflow_story_v2"), {})
     for key in ("json_path", "markdown_path"):
         value = str(manifest_health_check.get(key, "")).strip()
+        if value:
+            evidence_paths.append(_display_path(Path(value)))
+    for key in ("story_markdown_path", "story_html_path", "story_pack_dir", "evidence_manifest_path", "summary_json_path"):
+        value = str(story_v2_check.get(key, "")).strip()
         if value:
             evidence_paths.append(_display_path(Path(value)))
     for check in static_checks:
@@ -438,6 +453,26 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("order management approval dry-run safety failed")
             elif check["name"] == "order_management_docs_exist":
                 release_blockers.append("order management docs missing")
+            elif check["name"] == "supplier_invoice_manifest_exists":
+                release_blockers.append("supplier invoice manifest missing")
+            elif check["name"] == "supplier_invoice_routes_exist":
+                release_blockers.append("supplier invoice routes missing")
+            elif check["name"] == "supplier_invoice_tools_registered":
+                release_blockers.append("supplier invoice tools missing")
+            elif check["name"] == "supplier_invoice_scenarios_exist":
+                release_blockers.append("supplier invoice scenarios missing")
+            elif check["name"] == "supplier_invoice_happy_path_smoke":
+                release_blockers.append("supplier invoice happy path smoke failed")
+            elif check["name"] == "supplier_invoice_exception_path_smoke":
+                release_blockers.append("supplier invoice exception path smoke failed")
+            elif check["name"] == "supplier_invoice_dry_run_approval":
+                release_blockers.append("supplier invoice dry-run approval failed")
+            elif check["name"] == "supplier_invoice_report_generation":
+                release_blockers.append("supplier invoice report generation failed")
+            elif check["name"] == "supplier_invoice_docs_exist":
+                release_blockers.append("supplier invoice docs missing")
+            elif check["name"] == "cross_workflow_story_v2":
+                release_blockers.append("cross-workflow story v2 failed")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -592,6 +627,16 @@ def build_verification_result() -> dict[str, Any]:
         "toolpack_contract_runner": _status_from_commands(commands, "toolpack_contract_runner_tests"),
         "toolpack_generated_pack_execution": _status_from_commands(commands, "toolpack_generated_pack_execution_tests"),
         "toolpack_governance": _status_from_static(static_checks, "toolpack_governance"),
+        "cross_workflow_story_v2": _status_from_static(static_checks, "cross_workflow_story_v2"),
+        "supplier_invoice_manifest_exists": _status_from_static(static_checks, "supplier_invoice_manifest_exists"),
+        "supplier_invoice_routes_exist": _status_from_static(static_checks, "supplier_invoice_routes_exist"),
+        "supplier_invoice_tools_registered": _status_from_static(static_checks, "supplier_invoice_tools_registered"),
+        "supplier_invoice_scenarios_exist": _status_from_static(static_checks, "supplier_invoice_scenarios_exist"),
+        "supplier_invoice_happy_path_smoke": _status_from_static(static_checks, "supplier_invoice_happy_path_smoke"),
+        "supplier_invoice_exception_path_smoke": _status_from_static(static_checks, "supplier_invoice_exception_path_smoke"),
+        "supplier_invoice_dry_run_approval": _status_from_static(static_checks, "supplier_invoice_dry_run_approval"),
+        "supplier_invoice_report_generation": _status_from_static(static_checks, "supplier_invoice_report_generation"),
+        "supplier_invoice_docs_exist": _status_from_static(static_checks, "supplier_invoice_docs_exist"),
     }
 
     if release_blockers:
@@ -2878,6 +2923,256 @@ def _check_order_management_approval_dry_run() -> dict[str, Any]:
 def _check_order_management_docs_exist() -> dict[str, Any]:
     path = ROOT / "docs" / "order_management_workflows.md"
     return {"name": "order_management_docs_exist", "status": "PASS" if path.is_file() else "FAIL", "path": str(path)}
+
+
+def _check_supplier_invoice_manifest_exists() -> dict[str, Any]:
+    path = ROOT / "manifests" / "supplier_invoice_match.manifest.json"
+    return {"name": "supplier_invoice_manifest_exists", "status": "PASS" if path.is_file() else "FAIL", "path": str(path)}
+
+
+def _check_supplier_invoice_routes_exist() -> dict[str, Any]:
+    routes_path = ROOT / "config" / "event_routes.json"
+    try:
+        routes = json.loads(routes_path.read_text(encoding="utf-8")) if routes_path.is_file() else {}
+    except Exception:
+        routes = {}
+    route_items = routes.get("routes", []) if isinstance(routes, dict) else []
+    found = any(
+        isinstance(route, dict)
+        and route.get("route_id") == "operator.supplier_invoice_match"
+        and route.get("manifest_id") == "supplier_invoice.match_to_po_receipt"
+        for route in route_items
+    )
+    return {"name": "supplier_invoice_routes_exist", "status": "PASS" if found else "FAIL", "path": str(routes_path)}
+
+
+def _check_supplier_invoice_tools_registered() -> dict[str, Any]:
+    try:
+        from runtime.tool_registry import TOOL_REGISTRY
+
+        required = [
+            "supplier_invoice/read",
+            "po/read",
+            "receipt/read_by_po",
+            "supplier_invoice/check_duplicate",
+            "supplier_invoice/match_three_way",
+            "supplier_invoice/prepare_match_run_write",
+            "supplier_invoice/prepare_ledger_write",
+            "supplier_invoice/execute_ledger_write",
+            "supplier_invoice/build_exception_report",
+        ]
+        missing = [tool for tool in required if tool not in TOOL_REGISTRY]
+        return {
+            "name": "supplier_invoice_tools_registered",
+            "status": "PASS" if not missing else "FAIL",
+            "count": len(required) - len(missing),
+            "missing": missing,
+        }
+    except Exception as exc:
+        return {"name": "supplier_invoice_tools_registered", "status": "FAIL", "error": str(exc)}
+
+
+def _check_supplier_invoice_scenarios_exist() -> dict[str, Any]:
+    try:
+        from src.operator_scenarios import list_scenarios
+
+        required = {
+            "supplier_invoice_match_happy_path",
+            "supplier_invoice_match_price_exception",
+            "supplier_invoice_match_quantity_exception",
+            "supplier_invoice_match_missing_receipt",
+            "supplier_invoice_match_missing_po",
+            "supplier_invoice_match_duplicate_invoice",
+            "supplier_invoice_match_approve_execute_dry_run",
+            "supplier_invoice_match_report_generation",
+        }
+        scenarios = list_scenarios(category="accounting", include_test_only=False)
+        ids = {str(item.get("id", "")) for item in scenarios}
+        missing = sorted(required - ids)
+        return {
+            "name": "supplier_invoice_scenarios_exist",
+            "status": "PASS" if not missing else "FAIL",
+            "count": len(required) - len(missing),
+            "missing": missing,
+        }
+    except Exception as exc:
+        return {"name": "supplier_invoice_scenarios_exist", "status": "FAIL", "error": str(exc)}
+
+
+def _run_supplier_invoice_scenario(scenario_id: str, *, generate_report: bool = False) -> dict[str, Any]:
+    from src.operator_scenario_runner import run_scenario
+
+    return run_scenario(
+        scenario_id,
+        runtime_data_dir=str(ROOT / "runtime_data"),
+        reset_dataset=False,
+        generate_report=generate_report,
+        allow_test_fake_llm=True,
+    )
+
+
+def _output_data(outputs: dict[str, Any], key: str) -> dict[str, Any]:
+    value = outputs.get(key, {})
+    if isinstance(value, dict):
+        data = value.get("data", {})
+        return data if isinstance(data, dict) else {}
+    return {}
+
+
+def _check_supplier_invoice_happy_path_smoke() -> dict[str, Any]:
+    try:
+        result = _run_supplier_invoice_scenario("supplier_invoice_match_happy_path")
+        outputs = result.get("snapshot", {}).get("outputs", {}) if isinstance(result, dict) else {}
+        ok = (
+            result.get("ok") is True
+            and result.get("state") == "WAITING_FOR_EXECUTE"
+            and _output_data(outputs, "match_result").get("match_status") == "matched"
+        )
+        return {"name": "supplier_invoice_happy_path_smoke", "status": "PASS" if ok else "FAIL"}
+    except Exception as exc:
+        return {"name": "supplier_invoice_happy_path_smoke", "status": "FAIL", "error": str(exc)}
+
+
+def _check_supplier_invoice_exception_path_smoke() -> dict[str, Any]:
+    try:
+        result = _run_supplier_invoice_scenario("supplier_invoice_match_price_exception")
+        outputs = result.get("snapshot", {}).get("outputs", {})
+        match_result = _output_data(outputs, "match_result")
+        ok = (
+            result.get("ok") is True
+            and result.get("state") == "WAITING_FOR_EXECUTE"
+            and match_result.get("match_status") == "exception"
+            and _output_data(outputs, "exception_report").get("match_status") == "exception"
+        )
+        return {"name": "supplier_invoice_exception_path_smoke", "status": "PASS" if ok else "FAIL"}
+    except Exception as exc:
+        return {"name": "supplier_invoice_exception_path_smoke", "status": "FAIL", "error": str(exc)}
+
+
+def _check_supplier_invoice_dry_run_approval() -> dict[str, Any]:
+    try:
+        result = _run_supplier_invoice_scenario("supplier_invoice_match_approve_execute_dry_run")
+        snapshot = result.get("snapshot", {})
+        ok = (
+            result.get("ok") is True
+            and result.get("state") == "COMPLETED"
+            and len(snapshot.get("executed_actions", [])) == 2
+            and any(item.get("tool") == "supplier_invoice/execute_ledger_write" for item in snapshot.get("executed_actions", []))
+        )
+        return {"name": "supplier_invoice_dry_run_approval", "status": "PASS" if ok else "FAIL"}
+    except Exception as exc:
+        return {"name": "supplier_invoice_dry_run_approval", "status": "FAIL", "error": str(exc)}
+
+
+def _check_supplier_invoice_report_generation() -> dict[str, Any]:
+    try:
+        result = _run_supplier_invoice_scenario("supplier_invoice_match_report_generation", generate_report=True)
+        report = result.get("report_result", {}) if isinstance(result, dict) else {}
+        ok = (
+            result.get("ok") is True
+            and report.get("ok") is True
+            and Path(str(report.get("markdown_path", ""))).is_file()
+            and Path(str(report.get("html_path", ""))).is_file()
+            and Path(str(report.get("evidence_bundle_path", ""))).is_file()
+        )
+        return {"name": "supplier_invoice_report_generation", "status": "PASS" if ok else "FAIL", "report": report}
+    except Exception as exc:
+        return {"name": "supplier_invoice_report_generation", "status": "FAIL", "error": str(exc)}
+
+
+def _check_supplier_invoice_docs_exist() -> dict[str, Any]:
+    required = [
+        ROOT / "docs" / "supplier_invoice_matching_workflow.md",
+        ROOT / "docs" / "manifest_building_manual.md",
+        ROOT / "docs" / "release_candidate_verification.md",
+    ]
+    missing = [str(path) for path in required if not path.is_file()]
+    return {"name": "supplier_invoice_docs_exist", "status": "PASS" if not missing else "FAIL", "missing": missing}
+
+
+def _check_cross_workflow_story_v2() -> dict[str, Any]:
+    try:
+        from src.demo_story_pack import build_cross_workflow_story_pack
+        from src.operator_cross_workflow_demo import get_demo_pack, run_cross_workflow_demo_pack
+    except Exception as exc:
+        return {"name": "cross_workflow_story_v2", "status": "FAIL", "error": str(exc)}
+
+    from uuid import uuid4
+
+    try:
+        pack = get_demo_pack("cross_workflow_business_demo_v2")
+        if pack.get("id") != "cross_workflow_business_demo_v2":
+            return {"name": "cross_workflow_story_v2", "status": "FAIL", "error": "v2 pack not registered"}
+        verification_root = ROOT / "runtime_data" / "release_verification" / "cross_workflow_story_v2"
+        verification_root.mkdir(parents=True, exist_ok=True)
+        tmp = verification_root / f"run_{uuid4().hex[:10]}"
+        tmp.mkdir(parents=True, exist_ok=True)
+        result = run_cross_workflow_demo_pack(
+            pack_id="cross_workflow_business_demo_v2",
+            runtime_data_dir=str(tmp),
+            reset_dataset=True,
+            generate_reports=True,
+            use_real_llm=False,
+            allow_test_fake_llm=True,
+            skip_llm_preflight=True,
+        )
+        story = result.get("story_pack_result", {}) if isinstance(result, dict) else {}
+        story_dir = Path(str(story.get("story_pack_dir", "")))
+        index_md = Path(str(story.get("index_markdown_path", "")))
+        index_html = Path(str(story.get("index_html_path", "")))
+        evidence_manifest_path = Path(str(story.get("evidence_manifest_path", "")))
+        summary_json_path = Path(str(story.get("summary_json_path", "")))
+        if not result.get("ok"):
+            return {
+                "name": "cross_workflow_story_v2",
+                "status": "FAIL",
+                "pack_id": result.get("pack_id", ""),
+                "pack_run_id": result.get("pack_run_id", ""),
+                "error": result.get("error", ""),
+            }
+        if not story.get("ok"):
+            return {
+                "name": "cross_workflow_story_v2",
+                "status": "FAIL",
+                "pack_id": result.get("pack_id", ""),
+                "pack_run_id": result.get("pack_run_id", ""),
+                "error": "Story pack builder failed.",
+            }
+        if not (story_dir.is_dir() and index_md.is_file() and index_html.is_file() and evidence_manifest_path.is_file() and summary_json_path.is_file()):
+            return {
+                "name": "cross_workflow_story_v2",
+                "status": "FAIL",
+                "pack_id": result.get("pack_id", ""),
+                "pack_run_id": result.get("pack_run_id", ""),
+                "error": "Missing story pack artifacts.",
+            }
+        manifest_data = json.loads(evidence_manifest_path.read_text(encoding="utf-8"))
+        artifacts = manifest_data.get("artifacts", []) if isinstance(manifest_data, dict) else []
+        evidence_ok = isinstance(artifacts, list) and all(
+            isinstance(item, dict) and Path(str(item.get("path", ""))).is_file() and item.get("exists") is True
+            for item in artifacts
+        )
+        if not evidence_ok:
+            return {
+                "name": "cross_workflow_story_v2",
+                "status": "FAIL",
+                "pack_id": result.get("pack_id", ""),
+                "pack_run_id": result.get("pack_run_id", ""),
+                "error": "Invalid evidence manifest.",
+            }
+        return {
+            "name": "cross_workflow_story_v2",
+            "status": "PASS",
+            "pack_id": result.get("pack_id", ""),
+            "pack_run_id": result.get("pack_run_id", ""),
+            "story_pack_dir": str(story_dir),
+            "story_markdown_path": str(index_md),
+            "story_html_path": str(index_html),
+            "evidence_manifest_path": str(evidence_manifest_path),
+            "summary_json_path": str(summary_json_path),
+        }
+    except Exception as exc:
+        return {"name": "cross_workflow_story_v2", "status": "FAIL", "error": str(exc)}
 
 
 def _check_known_limitations_doc() -> dict[str, Any]:

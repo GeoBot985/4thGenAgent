@@ -103,6 +103,21 @@ LLM_TOOLS: dict[str, dict[str, Any]] = {
         "system": "You are a bounded extraction/drafting function inside a controlled automation runtime. Return only the requested output format. Do not choose tools. Do not perform actions. Do not approve anything. Do not invent facts. Use only the provided input. Summarize only the provided reconciliation result. Do not change counts or invent payment, invoice, ledger, or posting facts.",
         "prompt": "Return JSON only. No markdown. No explanation outside JSON.\nUse only the supplied reconciliation result.\nDo not change counts or invent facts.\nReconciliation result:\n{reconciliation_result}",
     },
+    "draft_supplier_invoice_exception_summary": {
+        "action": "draft_supplier_invoice_exception_summary",
+        "description": "Draft a bounded supplier invoice exception summary from the deterministic match result only.",
+        "required_inputs": ["invoice", "purchase_order", "receipts", "match_result"],
+        "output_schema": {
+            "summary": "str",
+            "risk_level": "str",
+            "key_exceptions": "list",
+            "recommended_action": "str",
+            "invented_facts": "bool",
+        },
+        "allowed_values": {"risk_level": ["low", "medium", "high", "critical"]},
+        "system": "You are a bounded extraction/drafting function inside a controlled automation runtime. Return only the requested output format. Do not choose tools. Do not perform actions. Do not approve anything. Do not invent facts. Use only the provided input. Summarize only the provided match result. Do not invent exception facts, totals, receipts, invoices, or ledger data.",
+        "prompt": "Return JSON only. No markdown. No explanation outside JSON.\nUse only the supplied invoice, purchase order, receipts, and match result.\nDo not invent exception facts.\nInvoice:\n{invoice}\nPurchase order:\n{purchase_order}\nReceipts:\n{receipts}\nMatch result:\n{match_result}",
+    },
 }
 
 
@@ -200,6 +215,9 @@ def validate_llm_output(action: str, raw_text: str) -> dict[str, Any]:
     if action == "draft_supplier_reorder_message":
         if normalized.get("invented_terms") is not False:
             return _schema_failure("LLM_OUTPUT_SCHEMA_INVALID", "invented_terms must be false.", raw_text)
+    if action == "draft_supplier_invoice_exception_summary":
+        if normalized.get("invented_facts") is not False:
+            return _schema_failure("LLM_OUTPUT_SCHEMA_INVALID", "invented_facts must be false.", raw_text)
 
     return {"ok": True, "data": normalized, "error": "", "error_type": "", "raw_text": raw_text}
 

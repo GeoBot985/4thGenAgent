@@ -1,0 +1,148 @@
+{
+  "id": "supplier_invoice.match_to_po_receipt",
+  "name": "Supplier Invoice - Three-Way Match",
+  "trigger_type": "event",
+  "side_effect": true,
+  "inputs": {
+    "required": [
+      "event_id",
+      "invoice_ref",
+      "tolerance_amount",
+      "tolerance_percent"
+    ]
+  },
+  "steps": [
+    {
+      "step_id": "read_invoice",
+      "kind": "tool",
+      "command": "[t:supplier_invoice/read -> invoice] invoice_ref=$inputs.invoice_ref"
+    },
+    {
+      "step_id": "read_purchase_order",
+      "kind": "tool",
+      "command": "[t:po/read -> purchase_order] po_ref=$invoice.data.po_ref",
+      "when": {
+        "all": [
+          {
+            "output": "invoice",
+            "field": "data.po_ref",
+            "not_equals": ""
+          }
+        ]
+      }
+    },
+    {
+      "step_id": "read_receipts",
+      "kind": "tool",
+      "command": "[t:receipt/read_by_po -> receipts] po_ref=$invoice.data.po_ref",
+      "when": {
+        "all": [
+          {
+            "output": "invoice",
+            "field": "data.po_ref",
+            "not_equals": ""
+          }
+        ]
+      }
+    },
+    {
+      "step_id": "check_duplicate",
+      "kind": "tool",
+      "command": "[t:supplier_invoice/check_duplicate -> duplicate_check] supplier_id=$invoice.data.supplier_id; supplier_invoice_number=$invoice.data.supplier_invoice_number; invoice_ref=$invoice.data.invoice_ref"
+    },
+    {
+      "step_id": "match_three_way",
+      "kind": "tool",
+      "command": "[t:supplier_invoice/match_three_way -> match_result] invoice=$invoice.data; purchase_order=$purchase_order.data; receipts=$receipts.data; tolerance_amount=$inputs.tolerance_amount; tolerance_percent=$inputs.tolerance_percent"
+    },
+    {
+      "step_id": "draft_exception_summary",
+      "kind": "llm",
+      "command": "[q:draft_supplier_invoice_exception_summary -> exception_summary] invoice=$invoice.data; purchase_order=$purchase_order.data; receipts=$receipts.data; match_result=$match_result.data"
+    },
+    {
+      "step_id": "build_exception_report",
+      "kind": "tool",
+      "command": "[t:supplier_invoice/build_exception_report -> exception_report] invoice=$invoice.data; purchase_order=$purchase_order.data; receipts=$receipts.data; match_result=$match_result.data; exception_summary=$exception_summary"
+    },
+    {
+      "step_id": "prepare_match_run_write",
+      "kind": "tool",
+      "command": "[t:supplier_invoice/prepare_match_run_write -> match_run_write] match_result=$match_result.data"
+    },
+    {
+      "step_id": "prepare_ledger_write",
+      "kind": "tool",
+      "command": "[t:supplier_invoice/prepare_ledger_write -> ledger_write] invoice=$invoice.data; match_result=$match_result.data",
+      "when": {
+        "all": [
+          {
+            "output": "match_result",
+            "field": "data.match_status",
+            "equals": "matched"
+          }
+        ]
+      }
+    }
+  ],
+  "validations": [
+    {
+      "id": "supplier_invoice_exists",
+      "type": "supplier_invoice_exists",
+      "output": "invoice"
+    },
+    {
+      "id": "supplier_invoice_po_exists",
+      "type": "supplier_invoice_po_exists",
+      "output": "purchase_order"
+    },
+    {
+      "id": "supplier_invoice_receipt_exists",
+      "type": "supplier_invoice_receipt_exists",
+      "output": "receipts"
+    },
+    {
+      "id": "supplier_invoice_duplicate_check_passed",
+      "type": "supplier_invoice_duplicate_check_passed",
+      "output": "duplicate_check"
+    },
+    {
+      "id": "supplier_invoice_match_result_shape_valid",
+      "type": "supplier_invoice_match_result_shape_valid",
+      "output": "match_result"
+    },
+    {
+      "id": "supplier_invoice_exception_report_shape_valid",
+      "type": "supplier_invoice_exception_report_shape_valid",
+      "output": "exception_report"
+    },
+    {
+      "id": "supplier_invoice_ledger_write_allowed_only_when_matched",
+      "type": "supplier_invoice_ledger_write_allowed_only_when_matched"
+    },
+    {
+      "id": "supplier_invoice_pending_actions_consistent",
+      "type": "supplier_invoice_pending_actions_consistent"
+    }
+  ],
+  "completion": {
+    "success_outputs": [
+      "invoice",
+      "purchase_order",
+      "receipts",
+      "duplicate_check",
+      "match_result",
+      "exception_report",
+      "match_run_write"
+    ],
+    "success_pending_actions": [
+      "match_run_write"
+    ],
+    "success_executed_actions": [
+      "match_run_write"
+    ],
+    "allow_pending_approval": true,
+    "continue_after_pending": true,
+    "required_state": "COMPLETED"
+  }
+}

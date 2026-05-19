@@ -33,6 +33,13 @@ def load_business_dataset(runtime_root: str | Path = "runtime_data") -> dict[str
         "suppliers": _load_json(root / "suppliers.json"),
         "purchase_orders": _load_json(root / "purchase_orders.json"),
         "supplier_invoices": _load_json(root / "supplier_invoices.json"),
+        "purchase_order_lines": _load_json(root / "purchase_order_lines.json"),
+        "goods_receipts": _load_json(root / "goods_receipts.json"),
+        "goods_receipt_lines": _load_json(root / "goods_receipt_lines.json"),
+        "supplier_invoice_lines": _load_json(root / "supplier_invoice_lines.json"),
+        "ledger_entries": _load_json(root / "ledger_entries.json"),
+        "supplier_invoice_match_runs": _load_json(root / "supplier_invoice_match_runs.json"),
+        "supplier_invoice_match_exceptions": _load_json(root / "supplier_invoice_match_exceptions.json"),
     }
 
 

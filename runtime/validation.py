@@ -10,6 +10,14 @@ from .models import Manifest, TaskFrame, ValidationResult, validation_fail, vali
 from .taskframe import add_audit_event
 
 
+def _tool_output_data(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        data = value.get("data", {})
+        if isinstance(data, dict):
+            return data
+    return value if isinstance(value, dict) else {}
+
+
 def run_validation(
     frame: TaskFrame,
     validation: dict[str, Any],
@@ -523,6 +531,148 @@ def validate_output_field_in(
     )
 
 
+def validate_supplier_invoice_exists(
+    frame: TaskFrame,
+    validation: dict[str, Any],
+    memory_store: MemoryStore | None = None,
+) -> ValidationResult:
+    output = validation.get("output", "invoice")
+    if output not in frame.outputs:
+        return validation_fail(validation["id"], validation["type"], f"Missing output: {output}", {"output": output})
+    value = frame.outputs[output]
+    if not isinstance(value, dict) or not value:
+        return validation_fail(validation["id"], validation["type"], f"Invalid supplier invoice output: {output}", {"output": output})
+    return validation_ok(validation["id"], validation["type"], f"Supplier invoice exists: {output}", {"output": output})
+
+
+def validate_supplier_invoice_po_exists(
+    frame: TaskFrame,
+    validation: dict[str, Any],
+    memory_store: MemoryStore | None = None,
+) -> ValidationResult:
+    output = validation.get("output", "purchase_order")
+    if output not in frame.outputs:
+        return validation_fail(validation["id"], validation["type"], f"Missing output: {output}", {"output": output})
+    value = frame.outputs[output]
+    if not isinstance(value, dict) or not value:
+        return validation_fail(validation["id"], validation["type"], f"Invalid purchase order output: {output}", {"output": output})
+    return validation_ok(validation["id"], validation["type"], f"Purchase order exists: {output}", {"output": output})
+
+
+def validate_supplier_invoice_receipt_exists(
+    frame: TaskFrame,
+    validation: dict[str, Any],
+    memory_store: MemoryStore | None = None,
+) -> ValidationResult:
+    output = validation.get("output", "receipts")
+    if output not in frame.outputs:
+        return validation_fail(validation["id"], validation["type"], f"Missing output: {output}", {"output": output})
+    value = frame.outputs[output]
+    if isinstance(value, dict):
+        receipt_count = value.get("receipt_count", len(value.get("receipts", [])) if isinstance(value.get("receipts", []), list) else 0)
+        if receipt_count == 0:
+            return validation_ok(validation["id"], validation["type"], f"No receipt rows found: {output}", {"output": output, "receipt_count": 0})
+        return validation_ok(validation["id"], validation["type"], f"Receipts exist: {output}", {"output": output, "receipt_count": receipt_count})
+    if isinstance(value, list):
+        if len(value) == 0:
+            return validation_ok(validation["id"], validation["type"], f"No receipt rows found: {output}", {"output": output, "receipt_count": 0})
+        return validation_ok(validation["id"], validation["type"], f"Receipts exist: {output}", {"output": output, "receipt_count": len(value)})
+    return validation_fail(validation["id"], validation["type"], f"Invalid receipts output: {output}", {"output": output})
+
+
+def validate_supplier_invoice_duplicate_check_passed(
+    frame: TaskFrame,
+    validation: dict[str, Any],
+    memory_store: MemoryStore | None = None,
+) -> ValidationResult:
+    output = validation.get("output", "duplicate_check")
+    if output not in frame.outputs:
+        return validation_fail(validation["id"], validation["type"], f"Missing output: {output}", {"output": output})
+    value = _tool_output_data(frame.outputs[output])
+    if not isinstance(value, dict):
+        return validation_fail(validation["id"], validation["type"], f"Invalid duplicate check output: {output}", {"output": output})
+    if "duplicate" not in value:
+        return validation_fail(validation["id"], validation["type"], "Duplicate check output missing duplicate flag.", {"output": output})
+    return validation_ok(validation["id"], validation["type"], "Duplicate check completed.", {"output": output, "duplicate": bool(value.get("duplicate"))})
+
+
+def validate_supplier_invoice_match_result_shape_valid(
+    frame: TaskFrame,
+    validation: dict[str, Any],
+    memory_store: MemoryStore | None = None,
+) -> ValidationResult:
+    output = validation.get("output", "match_result")
+    if output not in frame.outputs:
+        return validation_fail(validation["id"], validation["type"], f"Missing output: {output}", {"output": output})
+    value = _tool_output_data(frame.outputs[output])
+    if not isinstance(value, dict):
+        return validation_fail(validation["id"], validation["type"], "Match result must be an object.", {"output": output})
+    required = {"match_status", "invoice_ref", "po_ref", "receipt_refs", "matched_lines", "exceptions", "totals"}
+    missing = [field for field in required if field not in value]
+    if missing:
+        return validation_fail(validation["id"], validation["type"], f"Match result missing fields: {', '.join(missing)}", {"output": output, "missing": missing})
+    if not isinstance(value.get("exceptions"), list) or not isinstance(value.get("matched_lines"), list) or not isinstance(value.get("receipt_refs"), list) or not isinstance(value.get("totals"), dict):
+        return validation_fail(validation["id"], validation["type"], "Match result shape invalid.", {"output": output})
+    return validation_ok(validation["id"], validation["type"], "Match result shape valid.", {"output": output})
+
+
+def validate_supplier_invoice_exception_report_shape_valid(
+    frame: TaskFrame,
+    validation: dict[str, Any],
+    memory_store: MemoryStore | None = None,
+) -> ValidationResult:
+    output = validation.get("output", "exception_report")
+    if output not in frame.outputs:
+        return validation_fail(validation["id"], validation["type"], f"Missing output: {output}", {"output": output})
+    value = _tool_output_data(frame.outputs[output])
+    if not isinstance(value, dict):
+        return validation_fail(validation["id"], validation["type"], "Exception report must be an object.", {"output": output})
+    required = {"title", "invoice_ref", "po_ref", "supplier_id", "match_status", "summary", "exceptions", "recommended_action", "evidence_refs"}
+    missing = [field for field in required if field not in value]
+    if missing:
+        return validation_fail(validation["id"], validation["type"], f"Exception report missing fields: {', '.join(missing)}", {"output": output, "missing": missing})
+    if not isinstance(value.get("exceptions"), list) or not isinstance(value.get("evidence_refs"), list):
+        return validation_fail(validation["id"], validation["type"], "Exception report shape invalid.", {"output": output})
+    return validation_ok(validation["id"], validation["type"], "Exception report shape valid.", {"output": output})
+
+
+def validate_supplier_invoice_ledger_write_allowed_only_when_matched(
+    frame: TaskFrame,
+    validation: dict[str, Any],
+    memory_store: MemoryStore | None = None,
+) -> ValidationResult:
+    match_result = _tool_output_data(frame.outputs.get("match_result", {}))
+    match_status = str(match_result.get("match_status", "")).lower() if isinstance(match_result, dict) else ""
+    ledger_pending = [pending for pending in frame.pending_actions if pending.get("output_alias") == "ledger_write" or pending.get("tool") == "supplier_invoice/execute_ledger_write"]
+    if match_status == "matched":
+        if ledger_pending:
+            return validation_ok(validation["id"], validation["type"], "Ledger write is allowed for matched invoice.", {"match_status": match_status, "ledger_pending": True})
+        return validation_fail(validation["id"], validation["type"], "Ledger write must be staged for matched invoice.", {"match_status": match_status})
+    if ledger_pending:
+        return validation_fail(validation["id"], validation["type"], "Ledger write is not allowed for exception invoices.", {"match_status": match_status})
+    return validation_ok(validation["id"], validation["type"], "Ledger write not staged for exception invoice.", {"match_status": match_status, "ledger_pending": False})
+
+
+def validate_supplier_invoice_pending_actions_consistent(
+    frame: TaskFrame,
+    validation: dict[str, Any],
+    memory_store: MemoryStore | None = None,
+) -> ValidationResult:
+    match_result = _tool_output_data(frame.outputs.get("match_result", {}))
+    match_status = str(match_result.get("match_status", "")).lower() if isinstance(match_result, dict) else ""
+    match_run_pending = [pending for pending in frame.pending_actions if pending.get("output_alias") == "match_run_write"]
+    ledger_pending = [pending for pending in frame.pending_actions if pending.get("output_alias") == "ledger_write"]
+    if not match_run_pending:
+        return validation_fail(validation["id"], validation["type"], "Match-run write is missing.", {"match_status": match_status})
+    if match_status == "matched":
+        if not ledger_pending:
+            return validation_fail(validation["id"], validation["type"], "Matched invoice must stage a ledger write.", {"match_status": match_status})
+        return validation_ok(validation["id"], validation["type"], "Matched invoice pending actions are consistent.", {"match_status": match_status, "pending_actions": len(match_run_pending) + len(ledger_pending)})
+    if ledger_pending:
+        return validation_fail(validation["id"], validation["type"], "Exception invoice must not stage a ledger write.", {"match_status": match_status})
+    return validation_ok(validation["id"], validation["type"], "Exception invoice pending actions are consistent.", {"match_status": match_status, "pending_actions": len(match_run_pending)})
+
+
 def validate_output_in_allowed_values(
     frame: TaskFrame,
     validation: dict[str, Any],
@@ -693,6 +843,14 @@ VALIDATION_HANDLERS = {
     "output_field_equals": validate_output_field_equals,
     "output_field_in": validate_output_field_in,
     "output_in_allowed_values": validate_output_in_allowed_values,
+    "supplier_invoice_exists": validate_supplier_invoice_exists,
+    "supplier_invoice_po_exists": validate_supplier_invoice_po_exists,
+    "supplier_invoice_receipt_exists": validate_supplier_invoice_receipt_exists,
+    "supplier_invoice_duplicate_check_passed": validate_supplier_invoice_duplicate_check_passed,
+    "supplier_invoice_match_result_shape_valid": validate_supplier_invoice_match_result_shape_valid,
+    "supplier_invoice_exception_report_shape_valid": validate_supplier_invoice_exception_report_shape_valid,
+    "supplier_invoice_ledger_write_allowed_only_when_matched": validate_supplier_invoice_ledger_write_allowed_only_when_matched,
+    "supplier_invoice_pending_actions_consistent": validate_supplier_invoice_pending_actions_consistent,
     "llm_call_exists": validate_llm_call_exists,
     "llm_call_ok": validate_llm_call_ok,
     "memory_key_exists": validate_memory_key_exists,

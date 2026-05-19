@@ -1,6 +1,6 @@
 # Manifest Health Report
 
-Generated: 2026-05-18T19:09:17.572823Z
+Generated: 2026-05-19T07:51:27.694118Z
 
 Verdict: HEALTHY
 
@@ -8,11 +8,11 @@ Verdict: HEALTHY
 
 | Metric | Count |
 |---|---:|
-| Total manifests | 17 |
+| Total manifests | 18 |
 | Healthy | 0 |
 | Warnings | 0 |
 | Failed | 0 |
-| Repairable | 8 |
+| Repairable | 9 |
 | Manual fix required | 0 |
 | Critical | 0 |
 
@@ -34,6 +34,7 @@ Verdict: HEALTHY
 | SMOKE_SKIPPED | order.reserve_stock | PASS | SKIPPED | 1 | input_declared_but_not_used, event_trigger_without_route_note | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | order.update_shipment_status | PASS | SKIPPED | 1 | input_declared_but_not_used, event_trigger_without_route_note | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | order.validate_new | PASS | SKIPPED | 1 | input_declared_but_not_used, event_trigger_without_route_note | Open Auto-Fix Preview. |
+| SMOKE_SKIPPED | supplier_invoice.match_to_po_receipt | PASS | SKIPPED | 1 | input_declared_but_not_used, event_trigger_without_route_note | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | accounting.payment_reconciliation | PASS | SKIPPED | 0 | event_trigger_without_route_note | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | customer.message_status_check | PASS | SKIPPED | 3 | input_declared_but_not_used, input_declared_but_not_used, input_declared_but_not_used | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | procurement.low_stock_reorder | PASS | SKIPPED | 0 | event_trigger_without_route_note | Run smoke test manually with sample inputs. |

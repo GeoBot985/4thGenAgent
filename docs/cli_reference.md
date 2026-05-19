@@ -18,6 +18,8 @@ Exit codes:
 
 Runs one safe operator demo scenario.
 
+The `cross-workflow-v2` subcommand runs the consolidated cross-workflow business story and writes a story pack under `runtime_data/demo_packs/<pack_run_id>/story_pack/`.
+
 - `--scenario <scenario_id>`
 - `--runtime-data-dir runtime_data`
 - `--reset-dataset`

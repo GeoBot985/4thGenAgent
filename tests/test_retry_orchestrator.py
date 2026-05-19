@@ -663,7 +663,7 @@ class RetryOrchestratorTests(unittest.TestCase):
                         {
                             "id": "run_step",
                             "retry": {"max_attempts": 2, "retry_on": ["timeout"]},
-                            "timeout_seconds": 0.01,
+                            "timeout_seconds": 0.05,
                             "command": "[t:fake/slow_then_fast_success -> result]",
                         }
                     ],

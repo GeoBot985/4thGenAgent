@@ -37,6 +37,7 @@ The architecture is deliberately controlled:
 - Business-readable Demo View
 - Run report HTML and Markdown outputs
 - Evidence bundle generation
+- Cross-workflow demo story packs
 - Tool health and inspection surfaces
 - Clean-clone release verification
 
@@ -46,6 +47,7 @@ The architecture is deliberately controlled:
 - Procurement: detect low stock, prepare a reorder draft, and stage approval before any supplier action
 - Accounting: reconcile business records, explain exceptions, and preserve evidence for review
 - Report generation: build a business report and a run report for the exact TaskFrame
+- Cross-workflow demo story: connect customer support, procurement, and accounting into one reviewer-facing evidence pack
 
 ## Evidence And Reporting Model
 
@@ -57,6 +59,7 @@ Two report types are central to the portfolio:
 | Run report | Audit-style report showing manifest steps, step outcomes, validations, evidence, and pending actions |
 
 The runtime also produces a TaskFrame audit record and an evidence bundle for each run.
+The cross-workflow demo v2 adds one consolidated story pack that links the individual workflow reports and evidence bundles into a single executive-facing artifact set.
 
 ## Safety And Approval Model
 

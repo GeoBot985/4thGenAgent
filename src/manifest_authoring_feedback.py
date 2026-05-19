@@ -39,6 +39,14 @@ _KNOWN_VALIDATION_TYPES = {
     "output_field_equals",
     "output_field_in",
     "output_in_allowed_values",
+    "supplier_invoice_exists",
+    "supplier_invoice_po_exists",
+    "supplier_invoice_receipt_exists",
+    "supplier_invoice_duplicate_check_passed",
+    "supplier_invoice_match_result_shape_valid",
+    "supplier_invoice_exception_report_shape_valid",
+    "supplier_invoice_ledger_write_allowed_only_when_matched",
+    "supplier_invoice_pending_actions_consistent",
 }
 
 # ---------------------------------------------------------------------------

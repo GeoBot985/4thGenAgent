@@ -32,3 +32,16 @@ This repository uses a deterministic golden demo to produce RC artifacts in `run
 ## Google Workspace tool pack artifacts
 
 The release evidence set includes the Google Workspace read-only tool pack descriptor, safety scan, setup guide, and integration-test documentation.
+
+## Cross-workflow demo story pack artifacts
+
+The portfolio demo v2 now produces a consolidated story pack under `runtime_data/demo_packs/<pack_run_id>/story_pack/`.
+
+| Artifact | Path | Purpose |
+|---|---|---|
+| Story index Markdown | `runtime_data/demo_packs/<pack_run_id>/story_pack/index.md` | Reviewer-facing narrative summary |
+| Story index HTML | `runtime_data/demo_packs/<pack_run_id>/story_pack/index.html` | Browser-friendly evidence pack |
+| Story summary JSON | `runtime_data/demo_packs/<pack_run_id>/story_pack/summary.json` | Machine-readable story summary |
+| Story evidence manifest | `runtime_data/demo_packs/<pack_run_id>/story_pack/evidence_manifest.json` | Linked artifact inventory |
+| Workflow timeline | `runtime_data/demo_packs/<pack_run_id>/story_pack/workflow_timeline.json` | Lane-by-lane execution trace |
+| Screenshot checklist | `runtime_data/demo_packs/<pack_run_id>/story_pack/screenshots_checklist.md` | Portfolio capture checklist |

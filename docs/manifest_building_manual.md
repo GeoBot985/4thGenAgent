@@ -79,6 +79,8 @@ Examples:
 [validate:reply_matches_facts]
 ```
 
+For the supplier invoice matching workflow, reference the tool output envelope explicitly when the runtime returns a `ToolResult`. For example, use `$invoice.data.po_ref` and `$match_result.data.match_status` when the step output is a canonical tool result wrapper.
+
 Variable references:
 
 - `$inputs.message`

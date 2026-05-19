@@ -508,9 +508,11 @@ def _manifest_detail(manifest: dict | None) -> dict:
     inputs = manifest.get("inputs", {})
     completion = manifest.get("completion", {})
     steps = _list_value(manifest.get("steps"))
+    manifest_id = _string_value(manifest.get("id"), "")
+    workflow_family = "supplier_invoice_matching" if "supplier_invoice" in manifest_id.lower() else ""
     return {
-        "manifest_id": _string_value(manifest.get("id"), ""),
-        "id": _string_value(manifest.get("id"), ""),
+        "manifest_id": manifest_id,
+        "id": manifest_id,
         "name": _string_value(manifest.get("name"), ""),
         "trigger": _string_value(manifest.get("trigger_type"), ""),
         "inputs": _dict_value(inputs),
@@ -518,6 +520,7 @@ def _manifest_detail(manifest: dict | None) -> dict:
         "validation_count": len(_list_value(completion.get("required_validations"))),
         "step_count": len(steps),
         "side_effect_policy": bool(manifest.get("side_effect", False)),
+        "workflow_family": workflow_family,
     }
 
 

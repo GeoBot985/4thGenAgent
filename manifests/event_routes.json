@@ -136,6 +136,18 @@
       }
     },
     {
+      "route_id": "operator.supplier_invoice_match",
+      "source": "operator_scenario_pack",
+      "event_type": "manual.supplier_invoice_match",
+      "manifest_id": "supplier_invoice.match_to_po_receipt",
+      "enabled": true,
+      "input_map": {
+        "invoice_ref": "payload.invoice_ref",
+        "tolerance_amount": "payload.tolerance_amount",
+        "tolerance_percent": "payload.tolerance_percent"
+      }
+    },
+    {
       "event_type": "daily.low_stock_check",
       "manifest_id": "procurement.low_stock_reorder",
       "enabled": true

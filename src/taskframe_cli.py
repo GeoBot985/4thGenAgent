@@ -53,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     ui.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
 
     demo = sub.add_parser("demo", help="Run a safe default operator demo scenario.")
+    demo.add_argument("demo_command", nargs="?", default="run", choices=["run", "cross-workflow-v2"])
     demo.add_argument("--scenario", default=DEFAULT_DEMO_SCENARIO)
     demo.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     demo.add_argument("--reset-dataset", action="store_true")
@@ -387,7 +388,34 @@ def _run_ui(runtime_data_dir: str) -> int:
 def _run_demo(args: argparse.Namespace) -> int:
     from runtime.llm_adapter import FakeLLMAdapter
     from src.operator_scenario_runner import run_scenario
+    from src.operator_cross_workflow_demo import run_cross_workflow_demo_pack
     from src.operator_scenarios import get_scenario
+
+    if str(getattr(args, "demo_command", "run")) == "cross-workflow-v2":
+        result = run_cross_workflow_demo_pack(
+            pack_id="cross_workflow_business_demo_v2",
+            runtime_data_dir=str(args.runtime_data_dir),
+            reset_dataset=bool(args.reset_dataset),
+            generate_reports=True,
+            use_real_llm=False,
+            allow_test_fake_llm=True,
+        )
+        story = result.get("story_pack_result", {}) if isinstance(result, dict) else {}
+        if args.json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        else:
+            print("Cross-Workflow Business Automation Demo v2")
+            print(f"Pack ID: {result.get('pack_id', '')}")
+            print(f"Pack Run ID: {result.get('pack_run_id', '')}")
+            print(f"Final Status: {'PASS' if result.get('ok') else 'FAIL'}")
+            print(f"Story Markdown Path: {story.get('index_markdown_path', '')}")
+            print(f"Story HTML Path: {story.get('index_html_path', '')}")
+            print(f"Evidence Manifest Path: {story.get('evidence_manifest_path', '')}")
+            if not result.get("ok"):
+                error = str(result.get("error", "")).strip()
+                if error:
+                    print(f"Error: {error}")
+        return 0 if result.get("ok") else 1
 
     scenario_id = str(args.scenario or DEFAULT_DEMO_SCENARIO)
     try:

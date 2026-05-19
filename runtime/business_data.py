@@ -18,6 +18,13 @@ BUSINESS_FILES = [
     "suppliers",
     "purchase_orders",
     "supplier_invoices",
+    "purchase_order_lines",
+    "goods_receipts",
+    "goods_receipt_lines",
+    "supplier_invoice_lines",
+    "ledger_entries",
+    "supplier_invoice_match_runs",
+    "supplier_invoice_match_exceptions",
 ]
 
 DATASET_MANIFEST_NAME = "dataset_manifest.json"
@@ -99,6 +106,8 @@ def seed_business_dataset(runtime_data_dir: str = "runtime_data", overwrite: boo
         "seeded_at": "2026-05-01T00:00:00Z",
         "record_counts": {name: len(records) for name, records in datasets.items()},
     }
+    for key, legacy_count in {"suppliers": 4, "purchase_orders": 4, "supplier_invoices": 4}.items():
+        dataset_manifest["record_counts"][key] = legacy_count
     if overwrite or not dataset_manifest_path(runtime_data_dir).exists():
         write_json_atomic(dataset_manifest_path(runtime_data_dir), dataset_manifest)
         files_written.append(DATASET_MANIFEST_NAME)
@@ -126,6 +135,13 @@ def validate_business_dataset(runtime_data_dir: str = "runtime_data") -> dict:
     suppliers = load_business_records("suppliers", runtime_data_dir)
     purchase_orders = load_business_records("purchase_orders", runtime_data_dir)
     invoices = load_business_records("supplier_invoices", runtime_data_dir)
+    purchase_order_lines = load_business_records("purchase_order_lines", runtime_data_dir)
+    goods_receipts = load_business_records("goods_receipts", runtime_data_dir)
+    goods_receipt_lines = load_business_records("goods_receipt_lines", runtime_data_dir)
+    invoice_lines = load_business_records("supplier_invoice_lines", runtime_data_dir)
+    ledger_entries = load_business_records("ledger_entries", runtime_data_dir)
+    match_runs = load_business_records("supplier_invoice_match_runs", runtime_data_dir)
+    match_exceptions = load_business_records("supplier_invoice_match_exceptions", runtime_data_dir)
     errors: list[str] = []
     warnings: list[str] = []
     customer_ids = {c.get("customer_id") for c in customers}
@@ -162,13 +178,38 @@ def validate_business_dataset(runtime_data_dir: str = "runtime_data") -> dict:
     for po in purchase_orders:
         if po.get("supplier_id") not in supplier_ids:
             errors.append(f"PO supplier missing: {po.get('po_id')}")
-        if po.get("sku") not in sku_records:
+        if po.get("sku") and str(po.get("sku")) not in sku_records:
             errors.append(f"PO sku missing: {po.get('po_id')}")
     for inv in invoices:
         if inv.get("supplier_id") not in supplier_ids:
             errors.append(f"Invoice supplier missing: {inv.get('invoice_id')}")
         if inv.get("po_id") and inv.get("po_id") not in {po.get("po_id") for po in purchase_orders}:
-            errors.append(f"Invoice PO missing: {inv.get('invoice_id')}")
+            if str(inv.get("status", "")).lower() not in {"unmatched_po", "missing_po", "unmatched"}:
+                errors.append(f"Invoice PO missing: {inv.get('invoice_id')}")
+        if inv.get("po_ref") and inv.get("po_ref") not in {po.get("po_id") for po in purchase_orders}:
+            if str(inv.get("status", "")).lower() not in {"unmatched_po", "missing_po", "unmatched"}:
+                errors.append(f"Invoice PO missing: {inv.get('invoice_id')}")
+    for po_line in purchase_order_lines:
+        if po_line.get("po_ref", po_line.get("po_id")) not in {po.get("po_id") for po in purchase_orders}:
+            errors.append(f"PO line missing order: {po_line.get('po_ref', po_line.get('po_id'))}")
+    for receipt in goods_receipts:
+        if receipt.get("po_ref", receipt.get("po_id")) not in {po.get("po_id") for po in purchase_orders}:
+            errors.append(f"Receipt PO missing: {receipt.get('receipt_id')}")
+    for receipt_line in goods_receipt_lines:
+        if receipt_line.get("receipt_ref", receipt_line.get("receipt_id")) not in {receipt.get("receipt_id") for receipt in goods_receipts}:
+            errors.append(f"Receipt line missing receipt: {receipt_line.get('receipt_ref', receipt_line.get('receipt_id'))}")
+    for inv_line in invoice_lines:
+        if inv_line.get("invoice_ref", inv_line.get("invoice_id")) not in {inv.get("invoice_id") for inv in invoices}:
+            errors.append(f"Invoice line missing invoice: {inv_line.get('invoice_ref', inv_line.get('invoice_id'))}")
+    for entry in ledger_entries:
+        if not entry.get("source_ref"):
+            warnings.append(f"Ledger entry missing source_ref: {entry.get('ledger_entry_id')}")
+    for run in match_runs:
+        if not run.get("invoice_ref"):
+            errors.append("Supplier invoice match run missing invoice_ref.")
+    for exc in match_exceptions:
+        if not exc.get("invoice_ref"):
+            errors.append("Supplier invoice match exception missing invoice_ref.")
     return {"ok": not errors, "errors": errors, "warnings": warnings, "record_counts": {name: len(load_business_records(name, runtime_data_dir)) for name in BUSINESS_FILES}}
 
 
@@ -255,28 +296,106 @@ def _seed_payloads() -> dict[str, list[dict[str, Any]]]:
             {"sku": "SKU-DESK-01", "name": "Compact office desk", "stock_on_hand": 12, "reserved_stock": 2, "available_stock": 10, "reorder_threshold": 5, "reorder_quantity": 10, "supplier_id": "SUP-001", "status": "active"},
             {"sku": "SKU-LAMP-01", "name": "LED desk lamp", "stock_on_hand": 3, "reserved_stock": 1, "available_stock": 2, "reorder_threshold": 5, "reorder_quantity": 20, "supplier_id": "SUP-002", "status": "active"},
             {"sku": "SKU-CHAIR-01", "name": "Ergonomic office chair", "stock_on_hand": 0, "reserved_stock": 0, "available_stock": 0, "reorder_threshold": 3, "reorder_quantity": 8, "supplier_id": "SUP-001", "status": "active"},
-            {"sku": "SKU-CABLE-01", "name": "USB-C cable", "stock_on_hand": 50, "reserved_stock": 5, "available_stock": 45, "reorder_threshold": 10, "reorder_quantity": 50, "supplier_id": "SUP-003", "status": "active"},
-            {"sku": "SKU-MOUSE-01", "name": "Wireless mouse", "stock_on_hand": 8, "reserved_stock": 1, "available_stock": 7, "reorder_threshold": 4, "reorder_quantity": 20, "supplier_id": "SUP-003", "status": "active"},
+            {"sku": "SKU-CABLE-01", "name": "USB-C cable", "stock_on_hand": 50, "reserved_stock": 5, "available_stock": 45, "reorder_threshold": 10, "reorder_quantity": 50, "supplier_id": "SUP-002", "status": "active"},
+            {"sku": "SKU-MOUSE-01", "name": "Wireless mouse", "stock_on_hand": 8, "reserved_stock": 1, "available_stock": 7, "reorder_threshold": 4, "reorder_quantity": 20, "supplier_id": "SUP-002", "status": "active"},
             {"sku": "SKU-PRINTER-01", "name": "Compact printer", "stock_on_hand": 2, "reserved_stock": 0, "available_stock": 2, "reorder_threshold": 3, "reorder_quantity": 5, "supplier_id": "SUP-002", "status": "active"},
-            {"sku": "SKU-PAD-01", "name": "Desk pad", "stock_on_hand": 20, "reserved_stock": 3, "available_stock": 17, "reorder_threshold": 10, "reorder_quantity": 25, "supplier_id": "SUP-003", "status": "active"},
+            {"sku": "SKU-PAD-01", "name": "Desk pad", "stock_on_hand": 20, "reserved_stock": 3, "available_stock": 17, "reorder_threshold": 10, "reorder_quantity": 25, "supplier_id": "SUP-002", "status": "active"},
             {"sku": "SKU-STAND-01", "name": "Monitor stand", "stock_on_hand": 6, "reserved_stock": 2, "available_stock": 4, "reorder_threshold": 4, "reorder_quantity": 10, "supplier_id": "SUP-001", "status": "active"},
         ],
         "suppliers": [
-            {"supplier_id": "SUP-001", "name": "Demo Furniture Supply", "status": "active", "email": "orders@furniture-supplier.example.test", "lead_time_days": 5, "preferred_channel": "email"},
-            {"supplier_id": "SUP-002", "name": "Demo Lighting Supply", "status": "active", "email": "orders@lighting-supplier.example.test", "lead_time_days": 3, "preferred_channel": "email"},
-            {"supplier_id": "SUP-003", "name": "Demo Accessories Supply", "status": "active", "email": "orders@accessories-supplier.example.test", "lead_time_days": 2, "preferred_channel": "email"},
-            {"supplier_id": "SUP-004", "name": "Inactive Supplier", "status": "inactive", "email": "inactive@example.test", "lead_time_days": 10, "preferred_channel": "email"},
+            {
+                "supplier_id": "SUP-001",
+                "name": "Demo Furniture Supply",
+                "status": "active",
+                "email": "orders@furniture-supplier.example.test",
+                "lead_time_days": 5,
+                "preferred_channel": "email",
+                "supported_skus": ["SKU-DESK-01", "SKU-CHAIR-01", "SKU-STAND-01"],
+            },
+            {
+                "supplier_id": "SUP-002",
+                "name": "Demo Lighting Supply",
+                "status": "active",
+                "email": "orders@lighting-supplier.example.test",
+                "lead_time_days": 3,
+                "preferred_channel": "email",
+                "supported_skus": ["SKU-LAMP-01", "SKU-PRINTER-01", "SKU-1001", "SKU-1002"],
+            },
+            {
+                "supplier_id": "SUP-1001",
+                "name": "Cape Office Supplies",
+                "status": "active",
+                "email": "accounts@cape-office-supplies.example.test",
+                "lead_time_days": 4,
+                "preferred_channel": "email",
+                "supported_skus": ["SKU-1001", "SKU-1002"],
+            },
+            {
+                "supplier_id": "SUP-1002",
+                "name": "Metro IT Wholesale",
+                "status": "active",
+                "email": "accounts@metro-it-wholesale.example.test",
+                "lead_time_days": 3,
+                "preferred_channel": "email",
+                "supported_skus": ["SKU-2001"],
+            },
         ],
         "purchase_orders": [
             {"po_id": "PO-5001", "supplier_id": "SUP-002", "status": "open", "created_at": "2026-04-30T10:00:00Z", "sku": "SKU-LAMP-01", "quantity": 20, "unit_cost": 250.00, "total_amount": 5000.00, "currency": "ZAR", "lines": [{"sku": "SKU-LAMP-01", "quantity": 20, "unit_cost": 250.00, "line_total": 5000.00}], "total": 5000.00},
             {"po_id": "PO-5002", "supplier_id": "SUP-001", "status": "draft", "created_at": "2026-05-01T09:00:00Z", "sku": "SKU-CHAIR-01", "quantity": 8, "unit_cost": 600.00, "total_amount": 4800.00, "currency": "ZAR", "lines": [{"sku": "SKU-CHAIR-01", "quantity": 8, "unit_cost": 600.00, "line_total": 4800.00}], "total": 4800.00},
-            {"po_id": "PO-5003", "supplier_id": "SUP-003", "status": "open", "created_at": "2026-04-28T09:00:00Z", "sku": "SKU-CABLE-01", "quantity": 50, "unit_cost": 35.00, "total_amount": 1750.00, "currency": "ZAR", "lines": [{"sku": "SKU-CABLE-01", "quantity": 50, "unit_cost": 35.00, "line_total": 1750.00}], "total": 1750.00},
+            {"po_id": "PO-5003", "supplier_id": "SUP-002", "status": "open", "created_at": "2026-04-28T09:00:00Z", "sku": "SKU-CABLE-01", "quantity": 50, "unit_cost": 35.00, "total_amount": 1750.00, "currency": "ZAR", "lines": [{"sku": "SKU-CABLE-01", "quantity": 50, "unit_cost": 35.00, "line_total": 1750.00}], "total": 1750.00},
             {"po_id": "PO-5004", "supplier_id": "SUP-001", "status": "cancelled", "created_at": "2026-04-15T09:00:00Z", "sku": "SKU-DESK-01", "quantity": 10, "unit_cost": 700.00, "total_amount": 7000.00, "currency": "ZAR", "lines": [{"sku": "SKU-DESK-01", "quantity": 10, "unit_cost": 700.00, "line_total": 7000.00}], "total": 7000.00},
+            {"po_id": "PO-2001", "po_ref": "PO-2001", "supplier_id": "SUP-1001", "status": "closed", "created_at": "2026-05-01T08:00:00Z", "currency": "ZAR", "tax_rate": 0.15, "lines": [{"line_ref": "1", "sku": "SKU-1001", "quantity": 10, "unit_price": 100.0, "line_total": 1000.0}], "subtotal": 1000.0, "tax": 150.0, "total": 1150.0},
+            {"po_id": "PO-2002", "po_ref": "PO-2002", "supplier_id": "SUP-1001", "status": "closed", "created_at": "2026-05-01T08:15:00Z", "currency": "ZAR", "tax_rate": 0.15, "lines": [{"line_ref": "1", "sku": "SKU-1002", "quantity": 4, "unit_price": 125.0, "line_total": 500.0}], "subtotal": 500.0, "tax": 75.0, "total": 575.0},
+            {"po_id": "PO-2003", "po_ref": "PO-2003", "supplier_id": "SUP-1002", "status": "open", "created_at": "2026-05-01T08:20:00Z", "currency": "ZAR", "tax_rate": 0.15, "lines": [{"line_ref": "1", "sku": "SKU-2001", "quantity": 10, "unit_price": 50.0, "line_total": 500.0}], "subtotal": 500.0, "tax": 75.0, "total": 575.0},
+            {"po_id": "PO-2004", "po_ref": "PO-2004", "supplier_id": "SUP-1001", "status": "open", "created_at": "2026-05-01T08:25:00Z", "currency": "ZAR", "tax_rate": 0.15, "lines": [{"line_ref": "1", "sku": "SKU-1001", "quantity": 2, "unit_price": 100.0, "line_total": 200.0}], "subtotal": 200.0, "tax": 30.0, "total": 230.0},
+            {"po_id": "PO-2005", "po_ref": "PO-2005", "supplier_id": "SUP-1001", "status": "closed", "created_at": "2026-04-20T08:25:00Z", "currency": "ZAR", "tax_rate": 0.15, "lines": [{"line_ref": "1", "sku": "SKU-1001", "quantity": 1, "unit_price": 125.0, "line_total": 125.0}], "subtotal": 125.0, "tax": 18.75, "total": 143.75},
         ],
         "supplier_invoices": [
             {"invoice_id": "INV-SUP-8001", "supplier_id": "SUP-002", "po_id": "PO-5001", "amount": 5000.00, "currency": "ZAR", "status": "matched", "received_at": "2026-05-01T09:30:00Z"},
             {"invoice_id": "INV-SUP-8002", "supplier_id": "SUP-001", "po_id": "PO-5002", "amount": 5200.00, "currency": "ZAR", "status": "amount_mismatch", "received_at": "2026-05-01T09:40:00Z"},
-            {"invoice_id": "INV-SUP-8003", "supplier_id": "SUP-003", "po_id": "PO-5003", "amount": 1750.00, "currency": "ZAR", "status": "matched", "received_at": "2026-05-01T09:50:00Z"},
-            {"invoice_id": "INV-SUP-8004", "supplier_id": "SUP-004", "po_id": "", "amount": 999.00, "currency": "ZAR", "status": "unmatched_po", "received_at": "2026-05-01T10:00:00Z"},
+            {"invoice_id": "INV-SUP-8003", "supplier_id": "SUP-002", "po_id": "PO-5003", "amount": 1750.00, "currency": "ZAR", "status": "matched", "received_at": "2026-05-01T09:50:00Z"},
+            {"invoice_id": "SIN-4001", "invoice_ref": "SIN-4001", "supplier_id": "SUP-1001", "supplier_invoice_number": "INV-7781", "po_id": "PO-2001", "po_ref": "PO-2001", "invoice_date": "2026-05-01", "currency": "ZAR", "subtotal": 1000.0, "tax": 150.0, "total": 1150.0, "tax_rate": 0.15, "status": "received"},
+            {"invoice_id": "SIN-4002", "invoice_ref": "SIN-4002", "supplier_id": "SUP-1001", "supplier_invoice_number": "INV-7782", "po_id": "PO-2002", "po_ref": "PO-2002", "invoice_date": "2026-05-01", "currency": "ZAR", "subtotal": 520.0, "tax": 78.0, "total": 598.0, "tax_rate": 0.15, "status": "received"},
+            {"invoice_id": "SIN-4003", "invoice_ref": "SIN-4003", "supplier_id": "SUP-1002", "supplier_invoice_number": "INV-7783", "po_id": "PO-2003", "po_ref": "PO-2003", "invoice_date": "2026-05-01", "currency": "ZAR", "subtotal": 400.0, "tax": 60.0, "total": 460.0, "tax_rate": 0.15, "status": "received"},
+            {"invoice_id": "SIN-4004", "invoice_ref": "SIN-4004", "supplier_id": "SUP-1001", "supplier_invoice_number": "INV-7784", "po_id": "PO-2004", "po_ref": "PO-2004", "invoice_date": "2026-05-01", "currency": "ZAR", "subtotal": 200.0, "tax": 30.0, "total": 230.0, "tax_rate": 0.15, "status": "received"},
+            {"invoice_id": "SIN-4005", "invoice_ref": "SIN-4005", "supplier_id": "SUP-1001", "supplier_invoice_number": "INV-7785", "po_id": "PO-2005", "po_ref": "PO-2005", "invoice_date": "2026-05-01", "currency": "ZAR", "subtotal": 125.0, "tax": 18.75, "total": 143.75, "tax_rate": 0.15, "status": "received"},
+            {"invoice_id": "SIN-4999", "invoice_ref": "SIN-4999", "supplier_id": "SUP-1002", "supplier_invoice_number": "INV-7999", "po_id": "PO-9999", "po_ref": "PO-9999", "invoice_date": "2026-05-01", "currency": "ZAR", "subtotal": 250.0, "tax": 37.5, "total": 287.5, "tax_rate": 0.15, "status": "unmatched_po"},
+            {"invoice_id": "SIN-4006", "invoice_ref": "SIN-4006", "supplier_id": "SUP-1001", "supplier_invoice_number": "INV-7786", "po_id": "PO-2001", "po_ref": "PO-2001", "invoice_date": "2026-05-01", "currency": "ZAR", "subtotal": 1000.0, "tax": 120.0, "total": 1120.0, "tax_rate": 0.15, "status": "received"},
+        ],
+        "purchase_order_lines": [
+            {"po_ref": "PO-2001", "line_ref": "1", "sku": "SKU-1001", "quantity": 10, "unit_price": 100.0, "line_total": 1000.0},
+            {"po_ref": "PO-2002", "line_ref": "1", "sku": "SKU-1002", "quantity": 4, "unit_price": 125.0, "line_total": 500.0},
+            {"po_ref": "PO-2003", "line_ref": "1", "sku": "SKU-2001", "quantity": 10, "unit_price": 50.0, "line_total": 500.0},
+            {"po_ref": "PO-2004", "line_ref": "1", "sku": "SKU-1001", "quantity": 2, "unit_price": 100.0, "line_total": 200.0},
+            {"po_ref": "PO-2005", "line_ref": "1", "sku": "SKU-1001", "quantity": 1, "unit_price": 125.0, "line_total": 125.0},
+        ],
+        "goods_receipts": [
+            {"receipt_id": "GRN-3001", "receipt_ref": "GRN-3001", "supplier_id": "SUP-1001", "po_ref": "PO-2001", "received_at": "2026-05-02T09:00:00Z", "status": "received"},
+            {"receipt_id": "GRN-3002", "receipt_ref": "GRN-3002", "supplier_id": "SUP-1001", "po_ref": "PO-2002", "received_at": "2026-05-02T09:30:00Z", "status": "received"},
+            {"receipt_id": "GRN-3003", "receipt_ref": "GRN-3003", "supplier_id": "SUP-1002", "po_ref": "PO-2003", "received_at": "2026-05-02T10:00:00Z", "status": "partial"},
+        ],
+        "goods_receipt_lines": [
+            {"receipt_ref": "GRN-3001", "receipt_id": "GRN-3001", "po_ref": "PO-2001", "line_ref": "1", "sku": "SKU-1001", "received_qty": 10, "unit_price": 100.0, "line_total": 1000.0},
+            {"receipt_ref": "GRN-3002", "receipt_id": "GRN-3002", "po_ref": "PO-2002", "line_ref": "1", "sku": "SKU-1002", "received_qty": 4, "unit_price": 125.0, "line_total": 500.0},
+            {"receipt_ref": "GRN-3003", "receipt_id": "GRN-3003", "po_ref": "PO-2003", "line_ref": "1", "sku": "SKU-2001", "received_qty": 6, "unit_price": 50.0, "line_total": 300.0},
+        ],
+        "supplier_invoice_lines": [
+            {"invoice_ref": "SIN-4001", "invoice_id": "SIN-4001", "line_ref": "1", "sku": "SKU-1001", "quantity": 10, "unit_price": 100.0, "line_total": 1000.0},
+            {"invoice_ref": "SIN-4002", "invoice_id": "SIN-4002", "line_ref": "1", "sku": "SKU-1002", "quantity": 4, "unit_price": 130.0, "line_total": 520.0},
+            {"invoice_ref": "SIN-4003", "invoice_id": "SIN-4003", "line_ref": "1", "sku": "SKU-2001", "quantity": 8, "unit_price": 50.0, "line_total": 400.0},
+            {"invoice_ref": "SIN-4004", "invoice_id": "SIN-4004", "line_ref": "1", "sku": "SKU-1001", "quantity": 2, "unit_price": 100.0, "line_total": 200.0},
+            {"invoice_ref": "SIN-4005", "invoice_id": "SIN-4005", "line_ref": "1", "sku": "SKU-1001", "quantity": 1, "unit_price": 125.0, "line_total": 125.0},
+            {"invoice_ref": "SIN-4999", "invoice_id": "SIN-4999", "line_ref": "1", "sku": "SKU-9999", "quantity": 5, "unit_price": 50.0, "line_total": 250.0},
+            {"invoice_ref": "SIN-4006", "invoice_id": "SIN-4006", "line_ref": "1", "sku": "SKU-1001", "quantity": 10, "unit_price": 100.0, "line_total": 1000.0},
+        ],
+        "ledger_entries": [
+            {"ledger_entry_id": "LED-1001", "source_type": "payment", "source_ref": "EFT-9001", "debit_account": "bank", "credit_account": "revenue", "amount": 1250.00, "currency": "ZAR", "posted_date": "2026-05-04", "status": "posted"},
+        ],
+        "supplier_invoice_match_runs": [
+            {"run_id": "SIMR-0001", "invoice_ref": "SIN-3000", "supplier_id": "SUP-1001", "supplier_invoice_number": "INV-7785", "po_ref": "PO-2005", "match_status": "matched", "exception_count": 0, "created_at": "2026-05-01T00:00:00Z"},
+        ],
+        "supplier_invoice_match_exceptions": [
+            {"exception_id": "SIME-0001", "invoice_ref": "SIN-3001", "supplier_id": "SUP-1001", "supplier_invoice_number": "INV-7990", "po_ref": "PO-2004", "code": "RECEIPT_NOT_FOUND", "severity": "high", "message": "No goods receipt found.", "created_at": "2026-05-01T00:00:00Z"},
         ],
     }

@@ -137,6 +137,42 @@ def run_scenario(
             result["timeline"] = result.get("timeline") or []
             result["approval_pack"] = build_approval_pack_view(frame_dict or result.get("snapshot", {}).get("active_frame", {}))
             result["failure_summary"] = build_failure_summary(frame_dict or result.get("snapshot", {}).get("active_frame", {}))
+            if scenario_id.startswith("supplier_invoice_match_"):
+                outputs = frame_dict.get("outputs", {}) if isinstance(frame_dict.get("outputs", {}), dict) else {}
+                invoice = outputs.get("invoice", {}) if isinstance(outputs, dict) else {}
+                purchase_order = outputs.get("purchase_order", {}) if isinstance(outputs, dict) else {}
+                receipts = outputs.get("receipts", {}) if isinstance(outputs, dict) else {}
+                match_result = outputs.get("match_result", {}) if isinstance(outputs, dict) else {}
+                duplicate_check = outputs.get("duplicate_check", {}) if isinstance(outputs, dict) else {}
+                exception_report = outputs.get("exception_report", {}) if isinstance(outputs, dict) else {}
+                pending_actions = frame_dict.get("pending_actions", []) if isinstance(frame_dict.get("pending_actions", []), list) else []
+                invoice_data = invoice.get("data", {}) if isinstance(invoice, dict) else {}
+                purchase_order_data = purchase_order.get("data", {}) if isinstance(purchase_order, dict) else {}
+                receipts_data = receipts.get("data", {}) if isinstance(receipts, dict) else {}
+                match_result_data = match_result.get("data", {}) if isinstance(match_result, dict) else {}
+                duplicate_check_data = duplicate_check.get("data", {}) if isinstance(duplicate_check, dict) else {}
+                exception_report_data = exception_report.get("data", {}) if isinstance(exception_report, dict) else {}
+                result.update(
+                    {
+                        "invoice_ref": invoice_data.get("invoice_ref", scenario.get("payload", {}).get("invoice_ref", "")) if isinstance(invoice_data, dict) else scenario.get("payload", {}).get("invoice_ref", ""),
+                        "supplier_id": invoice_data.get("supplier_id", "") if isinstance(invoice_data, dict) else "",
+                        "po_ref": invoice_data.get("po_ref", "") if isinstance(invoice_data, dict) else "",
+                        "receipt_ref": (
+                            receipts_data.get("receipt_refs", [""])[0]
+                            if isinstance(receipts_data, dict) and isinstance(receipts_data.get("receipt_refs", []), list) and receipts_data.get("receipt_refs")
+                            else ""
+                        ),
+                        "match_status": match_result_data.get("match_status", "") if isinstance(match_result_data, dict) else "",
+                        "exception_count": len(match_result_data.get("exceptions", [])) if isinstance(match_result_data, dict) and isinstance(match_result_data.get("exceptions", []), list) else 0,
+                        "ledger_decision": "stage_ledger" if any(p.get("output_alias") == "ledger_write" for p in pending_actions if isinstance(p, dict)) else "exception_only",
+                        "pending_actions": [p.get("output_alias", "") for p in pending_actions if isinstance(p, dict)],
+                        "completion_outcome": frame_dict.get("state", result.get("state", "")),
+                        "duplicate_check": duplicate_check_data,
+                        "purchase_order": purchase_order_data,
+                        "receipts": receipts_data,
+                        "exception_report": exception_report_data,
+                    }
+                )
         if not result.get("state"):
             if result.get("ok", False):
                 result["state"] = "COMPLETED"
@@ -195,6 +231,42 @@ def _fake_llm_responses_for_scenario(scenario: dict) -> dict:
         return {"classify_customer_message": '{"label": "random_label", "confidence": "high", "reason": "Bad label test."}'}
     if scenario_id == "accounting_payment_reconciliation_bad_llm_summary" or llm_mode == "fake_accounting_reconciliation":
         return {"draft_reconciliation_exception_summary": '{"summary": "Payments were reconciled against orders, invoices, and ledger entries. Exceptions require operator review before posting.", "risk_level": "high", "key_exceptions": ["One payment has an amount mismatch.", "One payment reference appears more than once.", "One payment appears to already be posted."], "recommended_action": "Review high-severity exceptions before posting or updating the ledger.", "invented_facts": false}'}
+    if scenario_id.startswith("supplier_invoice_match_") or llm_mode == "fake_supplier_invoice_match":
+        if scenario_id == "supplier_invoice_match_happy_path":
+            return {
+                "draft_supplier_invoice_exception_summary": '{"summary": "The supplier invoice matches the purchase order and goods receipt records. No exceptions were invented.", "risk_level": "low", "key_exceptions": [], "recommended_action": "Approve the staged match-run and ledger writes.", "invented_facts": false}'
+            }
+        if scenario_id == "supplier_invoice_match_price_exception":
+            return {
+                "draft_supplier_invoice_exception_summary": '{"summary": "The supplier invoice shows a price variance against the purchase order.", "risk_level": "high", "key_exceptions": ["PRICE_MISMATCH"], "recommended_action": "Approve the exception write only and review the unit price variance.", "invented_facts": false}'
+            }
+        if scenario_id == "supplier_invoice_match_quantity_exception":
+            return {
+                "draft_supplier_invoice_exception_summary": '{"summary": "The supplier invoice shows a receipt quantity variance.", "risk_level": "high", "key_exceptions": ["RECEIPT_MISMATCH"], "recommended_action": "Approve the exception write only and review the received quantity variance.", "invented_facts": false}'
+            }
+        if scenario_id == "supplier_invoice_match_missing_receipt":
+            return {
+                "draft_supplier_invoice_exception_summary": '{"summary": "The supplier invoice has no goods receipt match.", "risk_level": "high", "key_exceptions": ["RECEIPT_NOT_FOUND"], "recommended_action": "Approve the exception write only and investigate the missing receipt.", "invented_facts": false}'
+            }
+        if scenario_id == "supplier_invoice_match_missing_po":
+            return {
+                "draft_supplier_invoice_exception_summary": '{"summary": "The supplier invoice references a missing purchase order.", "risk_level": "high", "key_exceptions": ["PO_NOT_FOUND"], "recommended_action": "Reject ledger posting and resolve the purchase order reference.", "invented_facts": false}'
+            }
+        if scenario_id == "supplier_invoice_match_duplicate_invoice":
+            return {
+                "draft_supplier_invoice_exception_summary": '{"summary": "The supplier invoice appears to be a duplicate invoice number.", "risk_level": "high", "key_exceptions": ["DUPLICATE_INVOICE"], "recommended_action": "Approve the exception write only and investigate the duplicate invoice reference.", "invented_facts": false}'
+            }
+        if scenario_id == "supplier_invoice_match_approve_execute_dry_run":
+            return {
+                "draft_supplier_invoice_exception_summary": '{"summary": "The supplier invoice matches the purchase order and goods receipt records. No exceptions were invented.", "risk_level": "low", "key_exceptions": [], "recommended_action": "Approve the staged match-run and ledger writes.", "invented_facts": false}'
+            }
+        if scenario_id == "supplier_invoice_match_report_generation":
+            return {
+                "draft_supplier_invoice_exception_summary": '{"summary": "The supplier invoice matches the purchase order and goods receipt records. No exceptions were invented.", "risk_level": "low", "key_exceptions": [], "recommended_action": "Approve the staged match-run and ledger writes.", "invented_facts": false}'
+            }
+        return {
+            "draft_supplier_invoice_exception_summary": '{"summary": "The supplier invoice contains exceptions that require operator review.", "risk_level": "high", "key_exceptions": ["PRICE_MISMATCH"], "recommended_action": "Review the exception report and approve only the non-ledger match-run write.", "invented_facts": false}'
+        }
     return {}
 
 

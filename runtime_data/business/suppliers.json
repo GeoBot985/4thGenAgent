@@ -5,7 +5,12 @@
     "name": "Demo Furniture Supply",
     "preferred_channel": "email",
     "status": "active",
-    "supplier_id": "SUP-001"
+    "supplier_id": "SUP-001",
+    "supported_skus": [
+      "SKU-DESK-01",
+      "SKU-CHAIR-01",
+      "SKU-STAND-01"
+    ]
   },
   {
     "email": "orders@lighting-supplier.example.test",
@@ -13,22 +18,35 @@
     "name": "Demo Lighting Supply",
     "preferred_channel": "email",
     "status": "active",
-    "supplier_id": "SUP-002"
+    "supplier_id": "SUP-002",
+    "supported_skus": [
+      "SKU-LAMP-01",
+      "SKU-PRINTER-01",
+      "SKU-1001",
+      "SKU-1002"
+    ]
   },
   {
-    "email": "orders@accessories-supplier.example.test",
-    "lead_time_days": 2,
-    "name": "Demo Accessories Supply",
+    "email": "accounts@cape-office-supplies.example.test",
+    "lead_time_days": 4,
+    "name": "Cape Office Supplies",
     "preferred_channel": "email",
     "status": "active",
-    "supplier_id": "SUP-003"
+    "supplier_id": "SUP-1001",
+    "supported_skus": [
+      "SKU-1001",
+      "SKU-1002"
+    ]
   },
   {
-    "email": "inactive@example.test",
-    "lead_time_days": 10,
-    "name": "Inactive Supplier",
+    "email": "accounts@metro-it-wholesale.example.test",
+    "lead_time_days": 3,
+    "name": "Metro IT Wholesale",
     "preferred_channel": "email",
-    "status": "inactive",
-    "supplier_id": "SUP-004"
+    "status": "active",
+    "supplier_id": "SUP-1002",
+    "supported_skus": [
+      "SKU-2001"
+    ]
   }
 ]

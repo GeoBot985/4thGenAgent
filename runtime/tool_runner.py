@@ -246,7 +246,7 @@ class ToolRunner:
             frame.pending_actions.append(pending_action)
             step.result_ref = pending_action["action_id"]
             step.status = "STAGED"
-            if step.output_alias and key in {"supplier/prepare_message_action", "customer/prepare_message_action", "sheet/prepare_write_rows", "order/prepare_stock_reservation", "order/prepare_release_paid_order", "order/prepare_shipment_status_update"}:
+            if step.output_alias and key in {"supplier/prepare_message_action", "customer/prepare_message_action", "sheet/prepare_write_rows", "order/prepare_stock_reservation", "order/prepare_release_paid_order", "order/prepare_shipment_status_update", "supplier_invoice/prepare_match_run_write", "supplier_invoice/prepare_ledger_write"}:
                 set_output(frame, step.output_alias, pending_action)
             if frame.state == "RUNNING":
                 transition_state(frame, "WAITING_FOR_EXECUTE")
@@ -1567,10 +1567,60 @@ def create_pending_action(
             "mode": str(args.get("mode", "append")),
             "dry_run": True,
         }
+    if tool == "supplier_invoice/prepare_match_run_write":
+        match_result = args.get("match_result") if isinstance(args.get("match_result"), dict) else {}
+        match_status = str(match_result.get("match_status", "exception")).strip().lower()
+        try:
+            from .supplier_invoice_tools import _build_match_run_rows  # type: ignore[attr-defined]
+
+            rows = _build_match_run_rows(match_result)
+        except Exception:
+            rows = [dict(match_result)] if isinstance(match_result, dict) else []
+        staged_args = {
+            "spreadsheet_id": str(args.get("spreadsheet_id", "")),
+            "range_name": "SupplierInvoiceMatchRuns!A:Z" if match_status == "matched" else "SupplierInvoiceMatchExceptions!A:Z",
+            "rows": args.get("rows", rows),
+            "mode": str(args.get("mode", "append")),
+            "dry_run": True,
+            "match_result": match_result,
+        }
+    if tool == "supplier_invoice/prepare_ledger_write":
+        invoice = args.get("invoice") if isinstance(args.get("invoice"), dict) else {}
+        match_result = args.get("match_result") if isinstance(args.get("match_result"), dict) else {}
+        ledger_rows = args.get("ledger_rows", [])
+        if not ledger_rows and str(match_result.get("match_status", "")).lower() == "matched":
+            try:
+                from .supplier_invoice_tools import _build_ledger_rows  # type: ignore[attr-defined]
+
+                ledger_rows = _build_ledger_rows(invoice, match_result)
+            except Exception:
+                ledger_rows = [{
+                    "ledger_entry_id": f"LEDGER-{invoice.get('invoice_ref') or invoice.get('invoice_id') or 'INV'}",
+                    "source_type": "supplier_invoice",
+                    "source_ref": str(invoice.get("invoice_ref") or invoice.get("invoice_id") or ""),
+                    "supplier_invoice_number": str(invoice.get("supplier_invoice_number", "")),
+                    "supplier_id": str(invoice.get("supplier_id", "")),
+                    "po_ref": str(invoice.get("po_ref") or invoice.get("po_id") or ""),
+                    "debit_account": "goods_received_not_invoiced",
+                    "credit_account": "accounts_payable",
+                    "amount": float(invoice.get("total", invoice.get("amount", 0.0)) or 0.0),
+                    "currency": str(invoice.get("currency", "ZAR")),
+                    "status": "prepared",
+                    "match_status": str(match_result.get("match_status", "")),
+                    "posted_at": "",
+                }]
+        staged_args = {
+            "ledger_rows": ledger_rows,
+            "dry_run": True,
+            "invoice": invoice,
+            "match_result": match_result,
+        }
     _ORDER_MGMT_TOOL_MAP = {
         "order/prepare_stock_reservation": ("reserve_stock", "order/execute_stock_reservation"),
         "order/prepare_release_paid_order": ("release_paid_order", "order/execute_release_paid_order"),
         "order/prepare_shipment_status_update": ("update_shipment_status", "order/execute_shipment_status_update"),
+        "supplier_invoice/prepare_match_run_write": ("write_supplier_invoice_match_run", "sheet/write_rows"),
+        "supplier_invoice/prepare_ledger_write": ("post_supplier_invoice_ledger_entry", "supplier_invoice/execute_ledger_write"),
     }
     if tool in _ORDER_MGMT_TOOL_MAP:
         _omgmt_action_type, _omgmt_staged_tool = _ORDER_MGMT_TOOL_MAP[tool]
@@ -1579,6 +1629,8 @@ def create_pending_action(
     else:
         action_type = "send_customer_message" if tool == "customer/prepare_message_action" else "send_supplier_message" if tool == "supplier/prepare_message_action" else "sheet_write_rows" if tool == "sheet/prepare_write_rows" else tool_spec["action"]
         staged_tool = "wa/send" if tool == "customer/prepare_message_action" else "supplier/send_message" if tool == "supplier/prepare_message_action" else "sheet/write_rows" if tool == "sheet/prepare_write_rows" else tool
+    if tool in {"supplier_invoice/prepare_match_run_write", "supplier_invoice/prepare_ledger_write"}:
+        action_type, staged_tool = _ORDER_MGMT_TOOL_MAP[tool]
     body_value = ""
     if tool in {"customer/prepare_message_action", "supplier/prepare_message_action"}:
         message = staged_args.get("message", staged_args.get("reply"))
@@ -1605,7 +1657,7 @@ def create_pending_action(
             {"sent": False}
             if tool in {"customer/prepare_message_action", "supplier/prepare_message_action"}
             else {"written": False}
-            if tool == "sheet/prepare_write_rows"
+            if tool in {"sheet/prepare_write_rows", "supplier_invoice/prepare_match_run_write", "supplier_invoice/prepare_ledger_write"}
             else {}
         ),
     }
@@ -1616,6 +1668,20 @@ def dry_run_tool_result(
     tool_spec: dict,
     args: dict[str, object],
 ) -> ToolResult:
+    if tool_key in {
+        "supplier_invoice/read",
+        "po/read",
+        "receipt/read_by_po",
+        "supplier_invoice/check_duplicate",
+        "supplier_invoice/match_three_way",
+        "supplier_invoice/build_exception_report",
+    }:
+        try:
+            func = import_tool_function(tool_spec["module"], tool_spec["function"])
+            raw_result = call_tool_function(func, args)
+            return normalize_tool_result(raw_result, tool_key, tool_spec, args, dry_run=True, output_alias=str(tool_spec.get("output_type", "")))
+        except (ToolImportError, ToolFunctionError, ToolResultNormalizationError):
+            pass
     return tool_result_ok(
         tool_spec["output_type"],
         data={

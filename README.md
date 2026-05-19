@@ -366,3 +366,22 @@ Tools can be added through external tool packs. Adding a tool pack does not auto
 The Google Workspace tool pack is optional and read-only. It can inspect Gmail, Calendar, and Sheets data when OAuth credentials are configured, but it does not send, create, update, delete, move, or write anything.
 
 See `docs/google_workspace_readonly_toolpack.md` and `docs/google_workspace_setup.md`.
+
+## Cross-workflow demo story
+
+The portfolio demo also includes `cross_workflow_business_demo_v2`, which packages the customer support, procurement, and accounting workflows into one consolidated story pack.
+
+Run it with:
+
+```bash
+python -m src.taskframe_cli demo cross-workflow-v2
+```
+
+The generated story pack lives under `runtime_data/demo_packs/<pack_run_id>/story_pack/` and includes:
+
+- `index.md`
+- `index.html`
+- `summary.json`
+- `evidence_manifest.json`
+- `workflow_timeline.json`
+- `screenshots_checklist.md`

@@ -30,6 +30,14 @@ def read_json_table(table_name: str, runtime_root: str | Path = DEFAULT_RUNTIME_
             rows = []
         else:
             rows = [dict(item) for item in data if isinstance(item, dict)]
+    try:
+        from .business_data import _seed_payloads
+
+        seeded = _seed_payloads().get(table_name, [])
+        if isinstance(seeded, list) and seeded:
+            rows = _merge_seed_rows(table_name, rows, [dict(item) for item in seeded if isinstance(item, dict)])
+    except Exception:
+        pass
     return _merge_procurement_seed_rows(table_name, rows)
 
 
@@ -84,6 +92,51 @@ def _merge_procurement_seed_rows(table_name: str, rows: list[dict[str, Any]]) ->
     elif table_name == "purchase_orders":
         if not any(str(row.get("po_id", "")) == "PO-9001" for row in rows):
             rows.append({"po_id": "PO-9001", "supplier_id": "SUP-1001", "status": "open", "lines": [{"sku": "SKU-1001", "quantity": 20, "unit_cost": 125.5, "line_total": 2510.0}], "currency": "ZAR", "total": 2510.0})
+    return rows
+
+
+def _merge_seed_rows(table_name: str, rows: list[dict[str, Any]], seeded: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not seeded:
+        return rows
+
+    key_fields = {
+        "customers": ("customer_id",),
+        "customer_messages": ("message_id",),
+        "orders": ("order_ref",),
+        "order_items": ("order_ref", "sku"),
+        "shipments": ("order_ref", "shipment_id"),
+        "payments": ("payment_id",),
+        "inventory": ("sku",),
+        "suppliers": ("supplier_id",),
+        "purchase_orders": ("po_ref", "po_id"),
+        "supplier_invoices": ("invoice_ref", "invoice_id"),
+        "purchase_order_lines": ("po_ref", "line_ref"),
+        "goods_receipts": ("receipt_ref", "receipt_id"),
+        "goods_receipt_lines": ("receipt_ref", "line_ref"),
+        "supplier_invoice_lines": ("invoice_ref", "line_ref"),
+        "ledger_entries": ("ledger_entry_id",),
+        "supplier_invoice_match_runs": ("run_id", "invoice_ref", "supplier_invoice_number"),
+        "supplier_invoice_match_exceptions": ("exception_id", "invoice_ref", "code", "line_ref"),
+    }
+    keys = key_fields.get(table_name, ())
+    if not keys:
+        existing = {json.dumps(row, sort_keys=True, default=str) for row in rows}
+        for item in seeded:
+            marker = json.dumps(item, sort_keys=True, default=str)
+            if marker not in existing:
+                rows.append(item)
+                existing.add(marker)
+        return rows
+
+    def _marker(record: dict[str, Any]) -> str:
+        return "::".join(str(record.get(field, "")) for field in keys)
+
+    existing = {_marker(row) for row in rows}
+    for item in seeded:
+        marker = _marker(item)
+        if marker not in existing:
+            rows.append(item)
+            existing.add(marker)
     return rows
 
 

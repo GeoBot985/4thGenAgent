@@ -10,27 +10,54 @@ from runtime.business_data import reset_business_dataset, seed_business_dataset,
 from runtime.llm_adapter import check_llm_available
 from src.operator_scenario_runner import run_scenario
 from src.operator_scenarios import get_scenario
+from src.demo_story_pack import build_cross_workflow_story_pack
+
+
+def _v1_workflow_sequence() -> list[dict[str, str]]:
+    return [
+        {"scenario_id": "customer_status_approve_execute_dry_run", "lane": "customer_support", "required_final_state": "COMPLETED"},
+        {"scenario_id": "procurement_low_stock_approve_execute_dry_run", "lane": "procurement", "required_final_state": "COMPLETED"},
+        {"scenario_id": "accounting_payment_reconciliation_approve_execute_dry_run", "lane": "accounting", "required_final_state": "COMPLETED"},
+    ]
+
+
+def _v2_workflow_sequence() -> list[dict[str, str]]:
+    return _v1_workflow_sequence()
 
 
 DEMO_PACKS: list[dict[str, Any]] = [
     {
         "id": "cross_workflow_business_demo_v1",
         "label": "Cross-Workflow Business Automation Demo v1",
+        "story_title": "Cross-Workflow Business Automation Demo v1",
         "description": (
             "Runs customer support, procurement, and accounting workflows through "
             "the same TaskFrame runtime using real LLM calls, approval gates, "
             "dry-run execution, reports, and evidence bundles."
         ),
-        "workflow_sequence": [
-            {"scenario_id": "customer_status_approve_execute_dry_run", "lane": "customer_support", "required_final_state": "COMPLETED"},
-            {"scenario_id": "procurement_low_stock_approve_execute_dry_run", "lane": "procurement", "required_final_state": "COMPLETED"},
-            {"scenario_id": "accounting_payment_reconciliation_approve_execute_dry_run", "lane": "accounting", "required_final_state": "COMPLETED"},
-        ],
+        "workflow_sequence": _v1_workflow_sequence(),
         "generate_reports": True,
         "stop_on_failure": True,
         "dry_run_only": True,
         "requires_real_llm": True,
-    }
+    },
+    {
+        "id": "cross_workflow_business_demo_v2",
+        "label": "Cross-Workflow Business Automation Demo v2",
+        "story_title": "Order Fulfilment Exception",
+        "story_version": 2,
+        "description": (
+            "Runs a connected order fulfilment exception story across customer support, "
+            "procurement, and accounting through the same TaskFrame runtime, producing "
+            "one consolidated evidence pack."
+        ),
+        "workflow_sequence": _v2_workflow_sequence(),
+        "generate_reports": True,
+        "generate_story_pack": True,
+        "stop_on_failure": True,
+        "dry_run_only": True,
+        "requires_real_llm": True,
+    },
 ]
 
 
@@ -177,6 +204,8 @@ def run_cross_workflow_demo_pack(
         "not_run_count": not_run_count,
         "total_pending_actions": total_pending_actions,
         "total_executed_actions": total_executed_actions,
+        "total_llm_calls": sum(len(_list_value(result, "summary.llm_calls")) for result in workflow_results),
+        "total_tool_calls": sum(len(_list_value(result, "summary.tool_calls")) for result in workflow_results),
         "reports_generated": reports_generated,
         "evidence_bundles_generated": evidence_generated,
     }
@@ -185,11 +214,14 @@ def run_cross_workflow_demo_pack(
         "ok": failed_count == 0 and completed_count == len(pack.get("workflow_sequence", [])),
         "pack_id": pack_id,
         "label": pack.get("label", ""),
+        "story_title": pack.get("story_title", pack.get("label", "")),
         "started_at": started_at,
         "ended_at": ended_at,
         "duration_ms": _duration_ms(started_at, ended_at),
         "dry_run_only": bool(pack.get("dry_run_only", True)),
         "requires_real_llm": bool(pack.get("requires_real_llm", True)),
+        "pack_run_id": pack_run_id,
+        "runtime_data_dir": runtime_data_dir,
         "workflow_results": workflow_results,
         "summary": summary,
         "aggregate_report": aggregate_report,
@@ -197,6 +229,12 @@ def run_cross_workflow_demo_pack(
         "failed_scenario_id": failed_scenario_id,
         "error": "" if failed_count == 0 else error,
     }
+    if pack.get("generate_story_pack"):
+        story_pack_result = build_cross_workflow_story_pack(result, runtime_data_dir=runtime_data_dir)
+        result["story_pack_result"] = story_pack_result
+        if not story_pack_result.get("ok"):
+            result["ok"] = False
+            result["error"] = "; ".join(story_pack_result.get("errors", [])) or "Story pack generation failed."
     _write_json(pack_dir / "cross_workflow_demo_summary.json", result)
     return result
 

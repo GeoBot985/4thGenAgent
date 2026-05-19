@@ -37,6 +37,7 @@ _LLM_ACTIONS = {
     "compare_reply_to_facts",
     "draft_supplier_reorder_message",
     "draft_reconciliation_exception_summary",
+    "draft_supplier_invoice_exception_summary",
 }
 
 
@@ -265,6 +266,20 @@ class LLMCommandRunner:
                 return self._micro_tool_failure(frame, step, action, output_alias, args, llm_call, message, raw_text, "LLM_OUTPUT_SCHEMA_INVALID", output)
             if output.get("invented_terms") is True:
                 message = "Supplier message must not invent terms."
+                return self._micro_tool_failure(frame, step, action, output_alias, args, llm_call, message, raw_text, "LLM_OUTPUT_SCHEMA_INVALID", output)
+        if action == "draft_supplier_invoice_exception_summary" and isinstance(output, dict):
+            match_result = args.get("match_result", {}) if isinstance(args.get("match_result", {}), dict) else {}
+            exceptions = [item for item in (match_result.get("exceptions", []) if isinstance(match_result.get("exceptions", []), list) else []) if isinstance(item, dict)]
+            expected_codes = {str(item.get("code", "")).strip() for item in exceptions if str(item.get("code", "")).strip()}
+            key_exceptions = {str(item).strip() for item in output.get("key_exceptions", []) if str(item).strip()} if isinstance(output.get("key_exceptions", []), list) else set()
+            if output.get("invented_facts") is True:
+                message = "Supplier invoice summary must not invent facts."
+                return self._micro_tool_failure(frame, step, action, output_alias, args, llm_call, message, raw_text, "LLM_OUTPUT_SCHEMA_INVALID", output)
+            if str(match_result.get("match_status", "")).lower() == "matched" and key_exceptions:
+                message = "Matched invoices must not report exceptions."
+                return self._micro_tool_failure(frame, step, action, output_alias, args, llm_call, message, raw_text, "LLM_OUTPUT_SCHEMA_INVALID", output)
+            if expected_codes and not key_exceptions.issubset(expected_codes):
+                message = "Supplier invoice summary key exceptions must come from deterministic match exceptions."
                 return self._micro_tool_failure(frame, step, action, output_alias, args, llm_call, message, raw_text, "LLM_OUTPUT_SCHEMA_INVALID", output)
         validations = validate_micro_tool_output(action, output, args)
         frame.validations.extend([dict(item) for item in validations if isinstance(item, dict)])
