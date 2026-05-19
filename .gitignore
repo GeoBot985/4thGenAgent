@@ -55,3 +55,4 @@ absa_profile_clone/
 
 # Optional local ABSA config with spreadsheet identifiers
 config/absa_messages_sheet.json
+.claude/worktrees/agent-a9649ca94ef59af6a
