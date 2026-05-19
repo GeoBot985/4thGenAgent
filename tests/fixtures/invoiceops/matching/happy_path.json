@@ -1,0 +1,46 @@
+{
+  "description": "Complete happy-path three-way match scenario",
+  "invoice": {
+    "invoice_id": "INV-INV-2024-001",
+    "supplier_id": "SUP-001",
+    "supplier_name": "Acme Supplies (Pty) Ltd",
+    "invoice_number": "INV-2024-001",
+    "invoice_date": "2024-01-15",
+    "po_number": "PO-2024-042",
+    "currency": "ZAR",
+    "subtotal": 3000.0,
+    "tax_total": 450.0,
+    "invoice_total": 3450.0,
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-WIDGET-A", "description": "Widget Type A", "quantity": 10.0, "unit_price": 150.0, "tax_amount": 0.0, "line_total": 1500.0},
+      {"line_no": 2, "sku": "SKU-WIDGET-B", "description": "Widget Type B", "quantity": 5.0, "unit_price": 200.0, "tax_amount": 0.0, "line_total": 1000.0},
+      {"line_no": 3, "sku": "SKU-CABLE-01", "description": "Network Cable 1m", "quantity": 20.0, "unit_price": 25.0, "tax_amount": 0.0, "line_total": 500.0}
+    ]
+  },
+  "purchase_order": {
+    "po_number": "PO-2024-042",
+    "supplier_id": "SUP-001",
+    "supplier_name": "Acme Supplies (Pty) Ltd",
+    "status": "open",
+    "currency": "ZAR",
+    "po_total": 3450.0,
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-WIDGET-A", "description": "Widget Type A", "ordered_quantity": 10.0, "unit_price": 150.0, "line_total": 1500.0},
+      {"line_no": 2, "sku": "SKU-WIDGET-B", "description": "Widget Type B", "ordered_quantity": 5.0, "unit_price": 200.0, "line_total": 1000.0},
+      {"line_no": 3, "sku": "SKU-CABLE-01", "description": "Network Cable 1m", "ordered_quantity": 20.0, "unit_price": 25.0, "line_total": 500.0}
+    ]
+  },
+  "goods_receipt": {
+    "receipt_id": "GRN-001",
+    "po_number": "PO-2024-042",
+    "supplier_id": "SUP-001",
+    "receipt_date": "2024-01-10",
+    "status": "received",
+    "line_items": [
+      {"line_no": 1, "sku": "SKU-WIDGET-A", "description": "Widget Type A", "received_quantity": 10.0},
+      {"line_no": 2, "sku": "SKU-WIDGET-B", "description": "Widget Type B", "received_quantity": 5.0},
+      {"line_no": 3, "sku": "SKU-CABLE-01", "description": "Network Cable 1m", "received_quantity": 20.0}
+    ]
+  },
+  "invoice_register": []
+}

@@ -1,7 +1,7 @@
 {
   "ok": true,
   "status": "HEALTHY",
-  "generated_at": "2026-05-19T18:05:42.299508Z",
+  "generated_at": "2026-05-19T18:26:10.462994Z",
   "manifest_dir": "manifests",
   "summary": {
     "total": 18,
@@ -43,8 +43,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'channel' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -52,8 +52,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'event_id' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "message": "Input 'channel' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -1880,8 +1880,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'channel' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -1889,8 +1889,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'event_id' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "message": "Input 'channel' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
             "example": "",
             "source": "static_manifest_check"
           },
