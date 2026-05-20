@@ -20,6 +20,11 @@ The default portfolio demo does not perform live side effects.
 
 Dry-run is the normal path for both the operator UI and the CLI.
 Optional RPA remains outside the default path and is governed by its own explicit safety checks.
+Runtime profile separation is part of that default safety boundary:
+
+- `demo` stays fixture-backed and dry-run by default
+- `pilot` is the controlled live-read profile, with allowlisted read-only tools only
+- `live` remains reserved and does not enable live side effects
 
 ## CLI guardrails
 

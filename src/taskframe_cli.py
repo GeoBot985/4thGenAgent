@@ -92,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     runtime_governance = runtime_sub.add_parser("governance-check", help="Evaluate runtime governance for a tool.")
     runtime_governance.add_argument("tool_key")
-    runtime_governance.add_argument("--env", default="", choices=["", "demo", "dev", "test", "release", "live"])
+    runtime_governance.add_argument("--env", default="", choices=["", "demo", "dev", "test", "release", "pilot", "live"])
     runtime_governance.add_argument("--dry-run", action="store_true")
     runtime_governance.add_argument("--live-requested", action="store_true")
     runtime_governance.add_argument("--operation", default="execute")
@@ -213,7 +213,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     tools_lifecycle = tools_sub.add_parser("lifecycle", help="Evaluate the lifecycle readiness of a tool pack.")
     tools_lifecycle.add_argument("toolpack_path")
-    tools_lifecycle.add_argument("--env", default="dev", choices=["demo", "dev", "test", "release", "live"])
+    tools_lifecycle.add_argument("--env", default="dev", choices=["demo", "dev", "test", "release", "pilot", "live"])
     tools_lifecycle.add_argument("--config-path", default="config/enabled_toolpacks.json")
     tools_lifecycle.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     tools_lifecycle.add_argument("--no-contract", action="store_true")
@@ -256,7 +256,7 @@ def build_parser() -> argparse.ArgumentParser:
     tools_enable = tools_sub.add_parser("enable", help="Enable a tool pack in one or more environments.")
     tools_enable.add_argument("toolpack_id", help="Tool pack ID to enable.")
     tools_enable.add_argument("--classification", required=True, choices=["core", "optional", "experimental", "high_risk", "blocked"], help="Governance classification.")
-    tools_enable.add_argument("--env", default="dev,test", help="Comma-separated environments (demo,dev,test,release,live).")
+    tools_enable.add_argument("--env", default="dev,test", help="Comma-separated environments (demo,dev,test,release,pilot,live).")
     tools_enable.add_argument("--by", default="operator", help="Who is enabling this pack.")
     tools_enable.add_argument("--reason", default="", help="Reason for enablement.")
     tools_enable.add_argument("--json", action="store_true")
@@ -336,9 +336,25 @@ def build_parser() -> argparse.ArgumentParser:
     events_replay.add_argument("--reason", default="", help="Reason for replay.")
     events_replay.add_argument("--json", action="store_true")
 
-    profile_cmd = sub.add_parser("profile", help="Manage and inspect execution profiles.")
+    profile_cmd = sub.add_parser("profile", help="Inspect runtime execution profiles and safety boundaries.")
     profile_sub = profile_cmd.add_subparsers(dest="profile_command", required=True)
-    controlled_live = profile_sub.add_parser("controlled-live-status", help="Show controlled live read profile status.")
+
+    profile_show = profile_sub.add_parser("show", help="Show the active runtime profile.")
+    profile_show.add_argument("--profile", default="", help="Explicit profile override.")
+    profile_show.add_argument("--config-dir", default="", help="Config directory containing runtime_profile.json.")
+    profile_show.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    profile_show.add_argument("--json", action="store_true")
+
+    profile_list = profile_sub.add_parser("list", help="List the built-in runtime profiles.")
+    profile_list.add_argument("--json", action="store_true")
+
+    profile_check = profile_sub.add_parser("check", help="Check the active runtime profile for safety.")
+    profile_check.add_argument("--profile", default="", help="Explicit profile override.")
+    profile_check.add_argument("--config-dir", default="", help="Config directory containing runtime_profile.json.")
+    profile_check.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    profile_check.add_argument("--json", action="store_true")
+
+    controlled_live = profile_sub.add_parser("controlled-live-status", help="Show the legacy controlled live read profile status.")
     controlled_live.add_argument("--json", action="store_true")
     controlled_live.add_argument("--check-tools", action="store_true")
     controlled_live.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
@@ -607,25 +623,30 @@ def _run_runtime(args: argparse.Namespace) -> int:
 
 
 def _run_runtime_profile(args: argparse.Namespace) -> int:
-    from runtime.runtime_environment import load_runtime_profile, resolve_runtime_environment
+    from runtime.runtime_environment import describe_runtime_profile, load_runtime_profile, resolve_runtime_environment
 
     profile = load_runtime_profile()
     environment = resolve_runtime_environment()
-    payload = {
-        "ok": True,
-        "environment": environment,
-        "governance_enforced": bool(profile.get("governance_enforced", True)),
-        "allow_unknown_toolpack_in_dev": bool(profile.get("allow_unknown_toolpack_in_dev", False)),
-        "allow_high_risk_live_override": bool(profile.get("allow_high_risk_live_override", False)),
-        "profile_path": str((ROOT / "config" / "runtime_profile.json").resolve()),
-    }
+    payload = describe_runtime_profile(profile)
+    payload.update(
+        {
+            "ok": True,
+            "environment": environment,
+            "profile_path": str((ROOT / "config" / "runtime_profile.json").resolve()),
+            "source_path": payload.get("profile_path", ""),
+        }
+    )
     if bool(args.json):
         print(json.dumps(payload, separators=(",", ":"), ensure_ascii=False))
         return 0
+    print(f"Runtime profile: {payload['profile']}")
     print(f"Runtime environment: {payload['environment']}")
+    print(f"Profile source: {payload['source']}")
     print(f"Governance enforced: {str(payload['governance_enforced']).lower()}")
-    print(f"Allow unknown toolpack in dev: {str(payload['allow_unknown_toolpack_in_dev']).lower()}")
-    print(f"Allow high-risk live override: {str(payload['allow_high_risk_live_override']).lower()}")
+    print(f"Fixture mode: {str(payload['fixture_mode']).lower()}")
+    print(f"Dry-run default: {str(payload['dry_run_default']).lower()}")
+    print(f"Allow live reads: {str(payload['allow_live_reads']).lower()}")
+    print(f"Allow live side effects: {str(payload['allow_live_side_effects']).lower()}")
     return 0
 
 
@@ -2400,10 +2421,97 @@ def _first_non_empty(data: dict[str, Any], keys: tuple[str, ...]) -> str:
 
 def _run_profile(args: argparse.Namespace) -> int:
     command = str(getattr(args, "profile_command", "") or "")
+    if command == "show":
+        return _run_profile_show(args)
+    if command == "list":
+        return _run_profile_list(args)
+    if command == "check":
+        return _run_profile_check(args)
     if command == "controlled-live-status":
         return _run_controlled_live_status(args)
     print("Unknown profile command.", file=sys.stderr)
     return 2
+
+
+def _run_profile_show(args: argparse.Namespace) -> int:
+    from runtime.runtime_environment import describe_runtime_profile, load_runtime_profile
+
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    profile_name = str(getattr(args, "profile", "") or "") or None
+    config_dir = str(getattr(args, "config_dir", "") or "") or None
+    profile = load_runtime_profile(profile_name=profile_name, path=ROOT / "config" / "runtime_profile.json" if not config_dir else Path(config_dir) / "runtime_profile.json")
+    payload = describe_runtime_profile(profile)
+    payload.update(
+        {
+            "ok": True,
+            "runtime_data_dir": runtime_data_dir,
+            "source_path": payload.get("profile_path", ""),
+        }
+    )
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print(f"Active profile: {payload['profile']}")
+    print(f"Source: {payload['source']}")
+    print(f"Runtime data dir: {runtime_data_dir}")
+    print(f"Fixture mode: {str(payload['fixture_mode']).lower()}")
+    print(f"Live reads: {str(payload['allow_live_reads']).lower()}")
+    print(f"Live side effects: {str(payload['allow_live_side_effects']).lower()}")
+    print(f"Allowed toolpacks: {', '.join(payload.get('allowed_toolpacks', [])) or '(none)'}")
+    print(f"Blocked tool classes: {', '.join(payload.get('blocked_tool_classes', [])) or '(none)'}")
+    print(f"Safe for demo: {str(payload['safe_for_demo']).lower()}")
+    print(f"Safe for pilot: {str(payload['safe_for_pilot']).lower()}")
+    print(f"Safe for release: {str(payload['safe_for_release']).lower()}")
+    return 0
+
+
+def _run_profile_list(args: argparse.Namespace) -> int:
+    from runtime.runtime_environment import list_runtime_profiles
+
+    payload = {"ok": True, "profiles": list_runtime_profiles()}
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print("Runtime Profiles")
+    print("")
+    for item in payload["profiles"]:
+        print(
+            f"  {item['profile']:<8} fixture={str(item['fixture_mode']).lower():<5} "
+            f"dry_run={str(item['dry_run_default']).lower():<5} "
+            f"live_reads={str(item['allow_live_reads']).lower():<5} "
+            f"side_effects={str(item['allow_live_side_effects']).lower():<5} "
+            f"demo={str(item['safe_for_demo']).lower():<5} "
+            f"pilot={str(item['safe_for_pilot']).lower():<5} "
+            f"release={str(item['safe_for_release']).lower():<5}"
+        )
+    return 0
+
+
+def _run_profile_check(args: argparse.Namespace) -> int:
+    from runtime.runtime_environment import check_runtime_profile, load_runtime_profile
+
+    profile_name = str(getattr(args, "profile", "") or "") or None
+    config_dir = str(getattr(args, "config_dir", "") or "") or None
+    profile = load_runtime_profile(profile_name=profile_name, path=ROOT / "config" / "runtime_profile.json" if not config_dir else Path(config_dir) / "runtime_profile.json")
+    result = check_runtime_profile(profile)
+    if bool(args.json):
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    print(f"Active profile: {result['profile']}")
+    print(f"Source: {result['source']}")
+    print(f"Fixture mode: {str(result['fixture_mode']).lower()}")
+    print(f"Live reads: {str(result['allow_live_reads']).lower()}")
+    print(f"Live side effects: {str(result['allow_live_side_effects']).lower()}")
+    print(f"Allowed toolpacks: {', '.join(result.get('allowed_toolpacks', [])) or '(none)'}")
+    print(f"Blocked tool classes: {', '.join(result.get('blocked_tool_classes', [])) or '(none)'}")
+    print(f"Safe for demo: {str(result['safe_for_demo']).lower()}")
+    print(f"Safe for pilot: {str(result['safe_for_pilot']).lower()}")
+    print(f"Safe for release: {str(result['safe_for_release']).lower()}")
+    if result.get("blockers"):
+        print("Blockers:")
+        for blocker in result["blockers"]:
+            print(f"  - {blocker.get('message', '')}")
+    return 0 if result.get("ok") else 1
 
 
 def _run_controlled_live_status(args: argparse.Namespace) -> int:

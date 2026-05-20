@@ -16,7 +16,7 @@ from src.toolpack_loader import (
 
 ROOT = Path(__file__).resolve().parents[1]
 LIFECYCLE_DIRNAME = Path("toolpacks") / "lifecycle"
-ENVIRONMENTS = ("demo", "dev", "test", "release", "live")
+ENVIRONMENTS = ("demo", "dev", "test", "release", "pilot", "live")
 LIFECYCLE_STATUSES = {
     "UNKNOWN",
     "DISCOVERED",

@@ -32,7 +32,11 @@ from .taskframe import (
     transition_state,
     utc_now,
 )
-from .runtime_environment import resolve_runtime_environment
+from .runtime_environment import (
+    assert_runtime_profile_allows_tool_execution,
+    load_runtime_profile,
+    resolve_runtime_environment,
+)
 from .tool_governance import evaluate_tool_governance
 from .tool_result_contract import build_tool_evidence, normalize_evidence, validate_tool_result_contract
 from .tool_registry import coerce_tool_args, get_tool_spec, tool_key, validate_tool_args
@@ -42,6 +46,7 @@ class ToolRunner:
     def __init__(self, dry_run: bool = True, *, environment: str = ""):
         self.dry_run = dry_run
         self.environment = resolve_runtime_environment(environment)
+        self.runtime_profile = load_runtime_profile(profile_name=environment or None)
 
     def _evaluate_governance(self, tool_key: str, tool_spec: dict, *, operation: str, live_requested: bool) -> dict[str, Any]:
         environment = self._governance_environment(tool_spec, live_requested=live_requested)
@@ -227,6 +232,68 @@ class ToolRunner:
                 },
             )
             result = _blocked_governance_tool_result(key, tool_spec, governance, output_alias=step.output_alias or "")
+            _finalize_tool_call(
+                tool_call,
+                ok=False,
+                result_type=result.type,
+                error=result.error,
+                dry_run=self.dry_run,
+                live=not self.dry_run,
+                source=str(tool_spec.get("source", "legacy_fallback")),
+                mode="dry_run" if self.dry_run else "live",
+                operation=governance_operation,
+            )
+            return result
+
+        profile_live_requested = (not self.dry_run) and not should_stage_command(step.kind, tool_spec)
+        try:
+            profile_decision = assert_runtime_profile_allows_tool_execution(
+                self.runtime_profile,
+                key,
+                tool_spec,
+                dry_run=self.dry_run,
+                live_requested=profile_live_requested,
+                operation=governance_operation,
+                data_source="fixture" if self.dry_run or not profile_live_requested else "live",
+                evidence_required=True,
+                credentials_required=bool(tool_spec.get("auth_required", False)),
+            )
+        except Exception as exc:
+            message = str(exc)
+            step.status = "FAILED"
+            step.error = message
+            step.last_error = message
+            frame.state = "FAILED_EXECUTION"
+            add_audit_event(
+                frame,
+                "RUNTIME_PROFILE_POLICY_BLOCKED",
+                message,
+                {
+                    "step_id": step.step_id,
+                    "tool": key,
+                    "profile": str(self.runtime_profile.get("profile", "")),
+                },
+            )
+            record_error(
+                frame,
+                "runtime_profile_policy_blocked",
+                message,
+                {
+                    "step_id": step.step_id,
+                    "tool": key,
+                    "profile": str(self.runtime_profile.get("profile", "")),
+                },
+            )
+            result = tool_result_error(
+                "step_failed",
+                message,
+                metadata={
+                    "tool": key,
+                    "step_id": step.step_id,
+                    "error_type": type(exc).__name__,
+                    "tag": "policy",
+                },
+            )
             _finalize_tool_call(
                 tool_call,
                 ok=False,
@@ -925,6 +992,56 @@ class ToolRunner:
                 },
             )
             return _blocked_governance_tool_result(tool, tool_spec, governance, output_alias=str(output_alias or ""))
+
+        try:
+            profile_decision = assert_runtime_profile_allows_tool_execution(
+                self.runtime_profile,
+                tool,
+                tool_spec,
+                dry_run=False,
+                live_requested=True,
+                operation="execute_pending_action",
+                data_source="live",
+                evidence_required=True,
+                credentials_required=bool(tool_spec.get("auth_required", False)),
+            )
+        except Exception as exc:
+            message = str(exc)
+            pending_action["status"] = "FAILED"
+            pending_action["last_error"] = message
+            frame.state = "FAILED_EXECUTION"
+            record_error(
+                frame,
+                "runtime_profile_policy_blocked",
+                message,
+                {
+                    "action_id": action_id,
+                    "tool": tool,
+                    "profile": str(self.runtime_profile.get("profile", "")),
+                },
+            )
+            add_audit_event(
+                frame,
+                "RUNTIME_PROFILE_POLICY_BLOCKED",
+                message,
+                {
+                    "frame_id": frame.frame_id,
+                    "action_id": action_id,
+                    "tool": tool,
+                    "profile": str(self.runtime_profile.get("profile", "")),
+                },
+            )
+            return tool_result_error(
+                "pending_action_failed",
+                message,
+                metadata={
+                    "action_id": action_id,
+                    "tool": tool,
+                    "error_type": type(exc).__name__,
+                    "tag": "policy",
+                    "live_side_effect": True,
+                },
+            )
 
         add_audit_event(
             frame,

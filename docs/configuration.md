@@ -6,6 +6,15 @@ TaskFrame uses a safe default configuration for the demo path. You can run the p
 
 Configuration is profile-based. Profiles change where settings are read from; they do not automatically enable live side effects.
 
+Runtime profiles are separate from config profiles. The runtime profile controls execution safety and tool access, and it defaults to the safe `demo` profile.
+
+Runtime profile resolution order:
+
+1. explicit CLI argument
+2. environment variable
+3. user config file
+4. safe internal default (`demo`)
+
 ## Safe default configuration
 
 The default profile uses:
@@ -17,6 +26,21 @@ The default profile uses:
 - local runtime data paths
 
 This is the right choice for first-time setup and public demos.
+
+## Runtime profiles
+
+Available runtime profiles:
+
+- `demo` - safe portfolio/demo mode using fixtures and dry-run behavior
+- `dev` - local development with relaxed diagnostics and no live side effects by default
+- `test` - deterministic fixture-backed automated test mode
+- `release` - strict release-verification mode
+- `pilot` - controlled live-read mode with explicit allowlists
+- `live` - reserved future profile, blocked unless explicitly enabled by a future override
+
+The runtime profile does not enable live side effects by default. `pilot` may allow governed live reads for allowlisted read-only tools only.
+
+Use `taskframe profile show`, `taskframe profile list`, and `taskframe profile check` to inspect the active runtime profile.
 
 ## Config profiles
 
@@ -47,6 +71,7 @@ Supported variables:
 
 - `TASKFRAME_CONFIG_DIR`
 - `TASKFRAME_PROFILE`
+- `TASKFRAME_ENV` - legacy alias for runtime profile resolution
 - `TASKFRAME_RUNTIME_DIR`
 - `TASKFRAME_LLM_PROVIDER`
 - `TASKFRAME_OLLAMA_MODEL`
@@ -55,6 +80,7 @@ Supported variables:
 - `ENABLE_OPTIONAL_RPA_TOOLS`
 
 CLI arguments win over environment variables.
+If `taskframe profile show` reports the wrong runtime profile, check `TASKFRAME_PROFILE`, `TASKFRAME_ENV`, and `config/runtime_profile.json`.
 
 ## Google integration config
 

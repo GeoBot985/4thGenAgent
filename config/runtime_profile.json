@@ -1,6 +1,26 @@
 {
+  "profile": "demo",
   "environment": "demo",
+  "fixture_mode": true,
+  "dry_run_default": true,
+  "allow_live_reads": false,
+  "allow_live_side_effects": false,
+  "require_tool_governance": true,
   "governance_enforced": true,
+  "allowed_toolpacks": [],
+  "blocked_tool_classes": [
+    "rpa",
+    "write",
+    "send",
+    "delete",
+    "mutation",
+    "side_effect"
+  ],
+  "llm_provider": "fake",
+  "requires_credentials": false,
+  "evidence_required": true,
+  "allow_unknown_toolpacks": false,
   "allow_unknown_toolpack_in_dev": false,
-  "allow_high_risk_live_override": false
+  "allow_high_risk_live_override": false,
+  "allow_reserved_live_profile": false
 }

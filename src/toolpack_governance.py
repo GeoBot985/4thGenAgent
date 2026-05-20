@@ -9,7 +9,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 GOVERNANCE_PATH = ROOT / "config" / "toolpack_governance.json"
 
-ENVIRONMENTS = ("demo", "dev", "test", "release", "live")
+ENVIRONMENTS = ("demo", "dev", "test", "release", "pilot", "live")
 CLASSIFICATIONS = ("core", "optional", "experimental", "high_risk", "blocked")
 
 # Which environments are restricted — non-core/optional packs need explicit governance to enter

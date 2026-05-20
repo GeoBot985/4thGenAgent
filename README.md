@@ -77,6 +77,7 @@ If everything is working:
 - `taskframe portfolio-pack` generates the public-facing portfolio evidence pack.
 - `taskframe config show` prints the active safe configuration profile.
 - `taskframe config paths` prints the config lookup paths.
+- `taskframe profile show` prints the active runtime safety profile.
 - The default portfolio demo does not perform live side effects.
 - No live email, message, RPA, or Google Sheet action is performed by default.
 
@@ -93,6 +94,8 @@ Live integrations should use user-local config under `~/.taskframe/` or a direct
 Do not commit credentials, tokens, browser profiles, or local config files.
 
 See [docs/configuration.md](docs/configuration.md).
+
+Runtime profile separation and safety boundaries are documented in [docs/runtime_profiles.md](docs/runtime_profiles.md).
 
 The live-execution safety boundary is documented in [docs/live_execution_safety.md](docs/live_execution_safety.md).
 

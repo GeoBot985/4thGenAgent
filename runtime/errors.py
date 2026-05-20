@@ -296,3 +296,7 @@ class LiveGuardrailError(LiveExecutionError):
 
 class LiveExecutionNotAllowedForTool(LiveExecutionError):
     pass
+
+
+class RuntimeProfilePolicyError(RuntimeSpecError):
+    pass

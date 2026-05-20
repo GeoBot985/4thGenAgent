@@ -25,6 +25,7 @@ CONFIGURATION_MD = ROOT / "docs" / "configuration.md"
 CURRENT_RELEASE_STATUS_MD = ROOT / "docs" / "current_release_status.md"
 RELEASE_EVIDENCE_PACK_MD = ROOT / "docs" / "release_evidence_pack.md"
 RUNTIME_CONTRACTS_MD = ROOT / "docs" / "runtime_contracts.md"
+RUNTIME_PROFILES_MD = ROOT / "docs" / "runtime_profiles.md"
 DEFAULT_DEMO_BOUNDARY_MD = ROOT / "docs" / "default_demo_boundary.md"
 ADDING_NEW_TOOLS_MD = ROOT / "docs" / "adding_new_tools.md"
 TOOL_CONTRACT_CHECKLIST_MD = ROOT / "docs" / "tool_contract_checklist.md"
@@ -136,6 +137,7 @@ def build_verification_result() -> dict[str, Any]:
             "core_tool_health_safe_checks": "PENDING",
             "optional_rpa_excluded": "PENDING",
             "optional_rpa_live_probes_excluded": "PENDING",
+            "runtime_profiles": "PENDING",
             "default_scenario_pack": "PENDING",
             "golden_demo": "PENDING",
             "release_artifacts": "PENDING",
@@ -283,6 +285,7 @@ def build_verification_result() -> dict[str, Any]:
         _check_default_scenario_pack(),
         _check_runtime_contract_docs(),
         _check_runtime_tool_governance(),
+        _check_runtime_profiles(),
         _check_default_demo_boundary_doc(),
         _check_known_limitations_doc(),
         _check_adding_new_tools_doc(),
@@ -630,6 +633,7 @@ def build_verification_result() -> dict[str, Any]:
         "tool_capability_registry": _status_from_static(static_checks, "TOOL_CAPABILITY_REGISTRY"),
         "core_tool_health_safe_checks": _status_from_static(static_checks, "CORE_TOOL_HEALTH_SAFE_CHECKS"),
         "runtime_tool_governance": _status_from_static(static_checks, "runtime_tool_governance"),
+        "runtime_profiles": _status_from_static(static_checks, "runtime_profiles"),
         "optional_rpa_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC"),
         "optional_rpa_live_probes_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC"),
         "default_scenario_pack": _status_from_static(static_checks, "default_scenario_pack"),
@@ -2677,6 +2681,139 @@ def _check_runtime_tool_governance() -> dict[str, Any]:
         "pending_block": pending_block,
         "rpa_health": rpa_health.to_dict() if rpa_health else None,
         "resolved_environment": resolved_env,
+        "missing": missing,
+    }
+
+
+def _check_runtime_profiles() -> dict[str, Any]:
+    missing: list[str] = []
+
+    doc_paths = [
+        RUNTIME_PROFILES_MD,
+        CONFIGURATION_MD,
+        ROOT / "docs" / "live_execution_safety.md",
+    ]
+    for path in doc_paths:
+        if path is not None and not Path(path).is_file():
+            missing.append(_display_path(Path(path)))
+
+    runtime_profiles_doc = RUNTIME_PROFILES_MD
+    if runtime_profiles_doc.is_file():
+        doc_text = runtime_profiles_doc.read_text(encoding="utf-8").lower()
+        for required in (
+            "demo",
+            "dev",
+            "test",
+            "release",
+            "pilot",
+            "live",
+            "default profile",
+            "pilot mode",
+            "live side effects",
+        ):
+            if required not in doc_text:
+                missing.append(f"runtime_profiles_doc_missing:{required}")
+
+    configuration_doc = CONFIGURATION_MD
+    if configuration_doc.is_file():
+        config_text = configuration_doc.read_text(encoding="utf-8").lower()
+        for required in (
+            "runtime profiles",
+            "default profile",
+            "profile show",
+            "profile list",
+            "profile check",
+        ):
+            if required not in config_text:
+                missing.append(f"configuration_doc_missing:{required}")
+
+    cli_ref = ROOT / "docs" / "cli_reference.md"
+    if cli_ref.is_file():
+        cli_text = cli_ref.read_text(encoding="utf-8").lower()
+        for required in (
+            "taskframe profile show",
+            "taskframe profile list",
+            "taskframe profile check",
+        ):
+            if required not in cli_text:
+                missing.append(f"cli_reference_missing:{required}")
+    else:
+        missing.append("docs/cli_reference.md")
+
+    try:
+        from runtime.runtime_environment import check_runtime_profile, load_runtime_profile, list_runtime_profiles
+    except Exception as exc:
+        return {"name": "runtime_profiles", "status": "FAIL", "error": str(exc)}
+
+    try:
+        default_profile = load_runtime_profile()
+        release_profile = load_runtime_profile(profile_name="release")
+        pilot_profile = load_runtime_profile(profile_name="pilot")
+        live_profile = load_runtime_profile(profile_name="live")
+        profile_matrix = list_runtime_profiles()
+    except Exception as exc:
+        return {"name": "runtime_profiles", "status": "FAIL", "error": f"runtime profile load failed: {exc}"}
+
+    if str(default_profile.get("profile", "")).strip() != "demo":
+        missing.append("default_profile_not_demo")
+    if bool(default_profile.get("allow_live_side_effects", False)):
+        missing.append("default_profile_allows_live_side_effects")
+    if not bool(default_profile.get("require_tool_governance", False)):
+        missing.append("default_profile_requires_tool_governance_false")
+
+    if bool(release_profile.get("allow_live_side_effects", False)):
+        missing.append("release_profile_allows_live_side_effects")
+    if bool(release_profile.get("allow_live_reads", False)):
+        missing.append("release_profile_allows_live_reads")
+    if not bool(release_profile.get("require_tool_governance", False)):
+        missing.append("release_profile_requires_tool_governance_false")
+
+    if not bool(pilot_profile.get("allow_live_reads", False)):
+        missing.append("pilot_profile_blocks_live_reads")
+    if bool(pilot_profile.get("allow_live_side_effects", False)):
+        missing.append("pilot_profile_allows_live_side_effects")
+    if not bool(pilot_profile.get("require_tool_governance", False)):
+        missing.append("pilot_profile_requires_tool_governance_false")
+
+    if not bool(live_profile.get("activation_blocked", False)):
+        missing.append("live_profile_not_reserved")
+    if bool(live_profile.get("allow_live_side_effects", False)):
+        missing.append("live_profile_allows_live_side_effects")
+
+    profile_ids = {str(item.get("profile", "")).strip() for item in profile_matrix if isinstance(item, dict)}
+    for required_profile in ("demo", "dev", "test", "release", "pilot", "live"):
+        if required_profile not in profile_ids:
+            missing.append(f"missing_profile:{required_profile}")
+
+    cli_commands = [
+        ("profile_show", ["python", "-m", "src.taskframe_cli", "profile", "show", "--json"]),
+        ("profile_list", ["python", "-m", "src.taskframe_cli", "profile", "list", "--json"]),
+        ("profile_check", ["python", "-m", "src.taskframe_cli", "profile", "check", "--json"]),
+    ]
+    for name, command in cli_commands:
+        result = run_command(name, command, timeout_seconds=120)
+        if result["status"] != "PASS":
+            missing.append(f"{name}_failed")
+        else:
+            try:
+                payload = json.loads(result["stdout"] or "{}")
+            except Exception:
+                payload = {}
+            if not payload:
+                missing.append(f"{name}_invalid_json")
+
+    profile_check = check_runtime_profile(default_profile)
+    if not profile_check.get("ok", False):
+        missing.append("default_profile_check_failed")
+
+    return {
+        "name": "runtime_profiles",
+        "status": "PASS" if not missing else "FAIL",
+        "default_profile": default_profile,
+        "release_profile": release_profile,
+        "pilot_profile": pilot_profile,
+        "live_profile": live_profile,
+        "profile_matrix": profile_matrix,
         "missing": missing,
     }
 

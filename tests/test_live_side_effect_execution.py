@@ -29,6 +29,11 @@ class LiveSideEffectExecutionTests(unittest.TestCase):
     def setUp(self):
         self._saved_registry: dict[str, dict | None] = {}
         self._modules_to_cleanup: list[str] = []
+        import runtime.tool_runner as tool_runner_module
+
+        self._tool_runner_module = tool_runner_module
+        self._saved_runtime_profile_loader = tool_runner_module.load_runtime_profile
+        tool_runner_module.load_runtime_profile = lambda profile_name=None: self._permissive_runtime_profile()
 
     def tearDown(self):
         for key, value in self._saved_registry.items():
@@ -38,6 +43,7 @@ class LiveSideEffectExecutionTests(unittest.TestCase):
                 TOOL_REGISTRY[key] = value
         for module_name in self._modules_to_cleanup:
             sys.modules.pop(module_name, None)
+        self._tool_runner_module.load_runtime_profile = self._saved_runtime_profile_loader
 
     def _register_tool(self, key: str, spec: dict) -> None:
         if key not in self._saved_registry:
@@ -133,6 +139,23 @@ class LiveSideEffectExecutionTests(unittest.TestCase):
                 "arg_types": {},
             },
         )
+
+    def _permissive_runtime_profile(self) -> dict[str, object]:
+        return {
+            "profile": "live",
+            "environment": "live",
+            "fixture_mode": False,
+            "dry_run_default": True,
+            "allow_live_reads": True,
+            "allow_live_side_effects": True,
+            "require_tool_governance": True,
+            "allowed_toolpacks": ["google_workspace_readonly"],
+            "blocked_tool_classes": [],
+            "llm_provider": "external",
+            "requires_credentials": True,
+            "evidence_required": True,
+            "allow_reserved_live_profile": True,
+        }
 
     def test_dry_run_approved_execution_still_works_unchanged(self):
         with tempfile.TemporaryDirectory() as tmp:

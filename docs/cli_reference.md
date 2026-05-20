@@ -402,9 +402,33 @@ Exit codes:
 - `0` when no violations are found
 - non-zero when policy violations exist
 
+### `taskframe profile show`
+
+Shows the active runtime profile, its source, and the safety posture used by the tool runner.
+
+- `--profile <name>` - explicit override for inspection
+- `--config-dir <path>` - directory containing `runtime_profile.json`
+- `--runtime-data-dir <path>`
+- `--json`
+
+### `taskframe profile list`
+
+Lists the built-in runtime profiles and their safety characteristics.
+
+- `--json`
+
+### `taskframe profile check`
+
+Checks the active runtime profile for policy blockers and release-safety boundaries.
+
+- `--profile <name>` - explicit override for inspection
+- `--config-dir <path>` - directory containing `runtime_profile.json`
+- `--runtime-data-dir <path>`
+- `--json`
+
 ### `taskframe runtime profile`
 
-Shows the resolved runtime environment and governance profile used by the tool runner.
+Legacy alias for profile inspection. Prefer `taskframe profile show`.
 
 - `--json`
 
@@ -412,7 +436,7 @@ Shows the resolved runtime environment and governance profile used by the tool r
 
 Evaluates runtime governance for a tool key such as `customer/read` or `gmail/search`.
 
-- `--env <demo|dev|test|release|live>`
+- `--env <demo|dev|test|release|pilot|live>`
 - `--dry-run`
 - `--live-requested`
 - `--operation <name>`
