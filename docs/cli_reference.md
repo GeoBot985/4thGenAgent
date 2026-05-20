@@ -59,6 +59,19 @@ Exit codes:
 - `0` when the portfolio evidence pack is generated successfully
 - non-zero when pack generation fails
 
+### `taskframe pilot-readiness`
+
+Runs the controlled pilot readiness gate and scorecard.
+
+- `--runtime-data-dir runtime_data`
+- `--write-pack` — write the full pilot evidence pack to disk
+- `--strict` — exit non-zero if the scorecard fails
+- `--json`
+
+Exit codes:
+- `0` when the gate passes or when strict mode is off
+- non-zero when strict mode fails or gate is blocked
+
 ### `taskframe golden-demo`
 
 Runs the golden demo verification.

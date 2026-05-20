@@ -931,3 +931,11 @@ def _empty_run_health_index(runtime_data_dir: str | Path) -> dict[str, Any]:
         "tool_health_status": {"status": "unknown", "summary": {}, "recommended_action": ""},
         "live_read_readiness": {"status": "blocked", "reason": "No monitoring data available."},
     }
+
+
+def build_monitoring_report(
+    runtime_data_dir: str | Path = "runtime_data",
+    *,
+    profile_name: str | None = None,
+) -> dict[str, Any]:
+    return build_monitoring_summary(runtime_data_dir=runtime_data_dir, profile_name=profile_name)

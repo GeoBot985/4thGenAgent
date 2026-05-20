@@ -70,3 +70,20 @@ JSON output is available for all three commands.
 - Use `demo` for portfolio demos and default local runs.
 - Use `pilot` only when the toolpack and credential boundary have been deliberately allowlisted.
 - Treat `live` as reserved until a later spec explicitly enables it.
+
+## Pilot Readiness Gate
+
+The `pilot` profile is validated by the pilot readiness gate:
+
+```bash
+taskframe pilot-readiness
+taskframe pilot-readiness --write-pack
+```
+
+The gate checks:
+- Profile safety (no live side effects in default or pilot profile)
+- Live-read control (explicit enable, no unknown toolpacks)
+- Side-effect blocking evidence
+- Tool governance, store integrity, monitoring, and recovery
+
+See [pilot_readiness.md](pilot_readiness.md) for full documentation of the pilot readiness gate.

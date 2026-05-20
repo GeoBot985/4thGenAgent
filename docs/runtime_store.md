@@ -158,3 +158,14 @@ Those reports record:
 - idempotency keys
 
 Recovery is dry-run by default and does not overwrite active runtime data. It exists to support controlled recovery review, not automatic repair.
+
+## Pilot Readiness Integration
+
+The runtime store is validated as part of the pilot readiness gate. The gate checks:
+
+- Required folder layout is present
+- JSON artifacts are loadable
+- Backup directory is resolvable
+- Backup manifest is present in the store contract
+
+See [pilot_readiness.md](pilot_readiness.md) for the full pilot readiness gate documentation.

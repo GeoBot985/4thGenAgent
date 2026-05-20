@@ -61,3 +61,13 @@ Validation failures indicate the manifest, input data, or business rule set is n
 ## Safety Boundary
 
 Recovery uses the runtime store, monitoring summary, profile safety checks, and idempotency records to decide whether a run is retryable or resumable. That supports controlled pilot readiness, not full production readiness.
+
+## Pilot Readiness Integration
+
+Recovery and idempotency are validated as part of the pilot readiness gate. The gate checks:
+
+- Recovery assessment stub can be generated
+- `DUPLICATE_SIDE_EFFECT_BLOCKED` constant is present (idempotency protection)
+- Recovery documentation is present
+
+See [pilot_readiness.md](pilot_readiness.md) for the full pilot readiness gate documentation.

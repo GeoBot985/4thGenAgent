@@ -49,6 +49,7 @@ taskframe ui
 taskframe verify
 taskframe readiness
 taskframe portfolio-pack
+taskframe pilot-readiness
 taskframe config show
 taskframe config paths
 ```
@@ -75,6 +76,8 @@ If everything is working:
 - `taskframe verify` runs the release verification checks.
 - `taskframe readiness` generates the 90% readiness scorecard.
 - `taskframe portfolio-pack` generates the public-facing portfolio evidence pack.
+- `taskframe pilot-readiness` runs the controlled pilot readiness gate.
+- `taskframe pilot-readiness --write-pack` writes the full pilot evidence pack.
 - `taskframe config show` prints the active safe configuration profile.
 - `taskframe config paths` prints the config lookup paths.
 - `taskframe profile show` prints the active runtime safety profile.
@@ -84,6 +87,22 @@ If everything is working:
 - No live email, message, RPA, or Google Sheet action is performed by default.
 
 See [docs/quickstart.md](docs/quickstart.md) for a detailed setup guide including troubleshooting.
+
+---
+
+## Controlled Pilot Readiness
+
+The pilot readiness gate determines whether the runtime is suitable for a controlled, supervised, live-read pilot:
+
+```bash
+taskframe pilot-readiness
+taskframe pilot-readiness --json
+taskframe pilot-readiness --write-pack
+```
+
+The gate scores nine areas (profile safety, live-read control, side-effect blocking, tool governance, store integrity, backup/restore, monitoring, recovery, and documentation) against an 80% threshold. It enforces mandatory safety checks and produces a full evidence pack.
+
+**This is not a production readiness claim.** Live side effects remain blocked. See [docs/pilot_readiness.md](docs/pilot_readiness.md) for the full documentation.
 
 ---
 

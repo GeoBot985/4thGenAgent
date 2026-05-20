@@ -78,6 +78,15 @@ Monitoring does not:
 
 This layer supports controlled pilot readiness by making failure visibility and runtime discipline explicit. It is not full production monitoring and it does not claim production-grade incident response.
 
+## Pilot Readiness Integration
+
+Operational monitoring is validated as part of the pilot readiness gate. The gate checks:
+
+- Monitoring report can be generated without error
+- Monitoring documentation is present
+
+See [pilot_readiness.md](pilot_readiness.md) for the full pilot readiness gate documentation.
+
 ## Recovery Cross-Reference
 
 Monitoring and recovery work together:

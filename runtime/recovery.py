@@ -1344,3 +1344,23 @@ def _error_tag_from_failure_summary(failure_summary: dict[str, Any]) -> str:
     if category in {"tool_execution_failure"}:
         return "transient"
     return "unknown"
+
+
+DUPLICATE_SIDE_EFFECT_BLOCKED = "DUPLICATE_SIDE_EFFECT_BLOCKED"
+
+
+def build_recovery_assessment_stub() -> dict[str, Any]:
+    return {
+        "generated_at": utc_now(),
+        "assessment_type": "recovery_assessment_stub",
+        "description": "Recovery is operator-initiated via dry-run planning. No autonomous recovery daemon.",
+        "capabilities": [
+            "assess_recovery",
+            "retry_step_dry_run",
+            "resume_dry_run",
+            "idempotency_key_generation",
+            "duplicate_side_effect_blocking",
+        ],
+        "idempotency_constant": DUPLICATE_SIDE_EFFECT_BLOCKED,
+        "ok": True,
+    }

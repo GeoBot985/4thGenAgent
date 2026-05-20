@@ -120,6 +120,12 @@ def build_parser() -> argparse.ArgumentParser:
     portfolio.add_argument("--open", action="store_true")
     portfolio.add_argument("--json", action="store_true")
 
+    pilot = sub.add_parser("pilot-readiness", help="Build the controlled pilot readiness scorecard and evidence pack.")
+    pilot.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    pilot.add_argument("--write-pack", action="store_true", help="Write the full pilot evidence pack to disk.")
+    pilot.add_argument("--strict", action="store_true", help="Exit non-zero if scorecard fails.")
+    pilot.add_argument("--json", action="store_true")
+
     manifests = sub.add_parser("manifests", help="Validate manifest contracts.")
     manifests_sub = manifests.add_subparsers(dest="manifests_command", required=True)
     manifests_validate_strict = manifests_sub.add_parser("validate-strict", help="Validate a manifest using the strict contract.")
@@ -469,6 +475,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_readiness(args)
     if args.command == "portfolio-pack":
         return _run_portfolio_pack(args)
+    if args.command == "pilot-readiness":
+        return _run_pilot_readiness(args)
     if args.command == "manifests":
         return _run_manifest_commands(args)
     if args.command == "safety-status":
@@ -1891,6 +1899,53 @@ def _run_portfolio_pack(args: argparse.Namespace) -> int:
     if bool(args.open) and payload.get("index_html_path"):
         open_report_html(payload["index_html_path"])
     return 0 if payload.get("ok") else 1
+
+
+def _run_pilot_readiness(args: argparse.Namespace) -> int:
+    from src.pilot_readiness import build_pilot_readiness_scorecard, write_pilot_evidence_pack
+
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    write_pack = bool(getattr(args, "write_pack", False))
+
+    scorecard = build_pilot_readiness_scorecard(runtime_data_dir=runtime_data_dir)
+
+    pack_result: dict = {}
+    if write_pack:
+        pack_result = write_pilot_evidence_pack(runtime_data_dir=runtime_data_dir, scorecard=scorecard)
+
+    payload = {
+        "ok": bool(scorecard.get("ok", False)),
+        "status": scorecard.get("status", ""),
+        "overall_score": scorecard.get("overall_score", 0),
+        "threshold": scorecard.get("threshold", 80),
+        "mandatory_failures": scorecard.get("mandatory_failures", []),
+        "claim": scorecard.get("claim", ""),
+        "generated_at": scorecard.get("generated_at", ""),
+    }
+    if write_pack:
+        payload["pack_dir"] = pack_result.get("pack_dir", "")
+        payload["pack_errors"] = pack_result.get("errors", [])
+
+    if bool(getattr(args, "json", False)):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("TaskFrame — Controlled Pilot Readiness Gate")
+        print(f"Overall Score: {payload['overall_score']}%")
+        print(f"Threshold:     {payload['threshold']}%")
+        print(f"Status:        {payload['status']}")
+        if payload["mandatory_failures"]:
+            print("Mandatory Failures:")
+            for f in payload["mandatory_failures"]:
+                print(f"  - {f}")
+        else:
+            print("Mandatory Failures: none")
+        if write_pack:
+            print(f"Evidence Pack: {payload.get('pack_dir', '')}")
+        print("")
+        print(f"Claim: {payload['claim']}")
+
+    strict = bool(getattr(args, "strict", False))
+    return 0 if (not strict or payload["ok"]) else 1
 
 
 def _run_tools_examples(args: argparse.Namespace) -> int:

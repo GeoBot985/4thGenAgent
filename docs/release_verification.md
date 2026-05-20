@@ -31,4 +31,15 @@ Recovery and idempotency checks include:
 - recovery report generation
 - dry-run-only recovery commands
 
+Pilot readiness checks include:
+
+- pilot readiness scorecard (80% threshold)
+- mandatory safety checks (profile, side-effect blocking, store, monitoring, recovery, docs)
+- pilot evidence pack generation (all required files)
+- live-read preflight results
+- side-effect blocking evidence
+- known limitations register
+
 Verification is not a claim of production readiness. It is a controlled release-readiness gate for the current demo and pilot posture.
+
+See [pilot_readiness.md](pilot_readiness.md) for the difference between demo readiness, pilot readiness, and production readiness.

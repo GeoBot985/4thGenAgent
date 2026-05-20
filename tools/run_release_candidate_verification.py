@@ -36,6 +36,7 @@ TOOL_CONTRACT_CHECKLIST_MD = ROOT / "docs" / "tool_contract_checklist.md"
 TOOL_RESULT_CONTRACT_MD = ROOT / "docs" / "tool_result_contract.md"
 RELEASE_STATUS_JSON = ROOT / "runtime_data" / "audit" / "release_status_latest.json"
 RELEASE_EVIDENCE_JSON = ROOT / "runtime_data" / "audit" / "release_evidence_pack.json"
+PILOT_READINESS_MD = ROOT / "docs" / "pilot_readiness.md"
 
 
 def utc_now() -> str:
@@ -166,6 +167,7 @@ def build_verification_result() -> dict[str, Any]:
             "toolpack_governance": "PENDING",
             "toolpack_lifecycle": "PENDING",
             "portfolio_evidence_pack_v1": "PENDING",
+            "pilot_readiness_gate": "PENDING",
         },
         "workflow_checks": {
             "customer": {"status": "PENDING", "count": 0},
@@ -344,12 +346,14 @@ def build_verification_result() -> dict[str, Any]:
         _check_supplier_invoice_docs_exist(),
         _check_cross_workflow_story_v2(),
         _check_readiness_scorecard_gate(),
+        _check_pilot_readiness_gate(),
     ])
     # manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     manifest_health_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "manifest_catalog_health"), {})
     story_v2_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "cross_workflow_story_v2"), {})
     scorecard_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "readiness_scorecard_gate"), {})
     portfolio_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "portfolio_evidence_pack_v1"), {})
+    pilot_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "pilot_readiness_gate"), {})
     for key in ("json_path", "markdown_path"):
         value = str(manifest_health_check.get(key, "")).strip()
         if value:
@@ -364,6 +368,10 @@ def build_verification_result() -> dict[str, Any]:
             evidence_paths.append(_display_path(Path(value)))
     for key in ("index_markdown_path", "index_html_path", "summary_json_path", "architecture_path", "demo_script_path", "tool_inventory_path", "workflow_proof_path", "screenshot_checklist_path", "pack_dir"):
         value = str(portfolio_check.get(key, "")).strip()
+        if value:
+            evidence_paths.append(_display_path(Path(value)))
+    for key in ("pack_dir",):
+        value = str(pilot_check.get(key, "")).strip()
         if value:
             evidence_paths.append(_display_path(Path(value)))
     for check in static_checks:
@@ -512,6 +520,8 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("readiness scorecard gate failed")
             elif check["name"] == "portfolio_evidence_pack_v1":
                 release_blockers.append("portfolio evidence pack failed")
+            elif check["name"] == "pilot_readiness_gate":
+                release_blockers.append("pilot readiness gate failed")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -675,6 +685,7 @@ def build_verification_result() -> dict[str, Any]:
         "cross_workflow_story_v2": _status_from_static(static_checks, "cross_workflow_story_v2"),
         "readiness_scorecard_gate": _status_from_static(static_checks, "readiness_scorecard_gate"),
         "portfolio_evidence_pack_v1": _status_from_static(static_checks, "portfolio_evidence_pack_v1"),
+        "pilot_readiness_gate": _status_from_static(static_checks, "pilot_readiness_gate"),
         "supplier_invoice_manifest_exists": _status_from_static(static_checks, "supplier_invoice_manifest_exists"),
         "supplier_invoice_routes_exist": _status_from_static(static_checks, "supplier_invoice_routes_exist"),
         "supplier_invoice_tools_registered": _status_from_static(static_checks, "supplier_invoice_tools_registered"),
@@ -4024,6 +4035,60 @@ def _check_controlled_live_profile_v0() -> dict[str, Any]:
         errors.append("docs/controlled_live_profile.md not found")
 
     return {"name": "controlled_live_profile_v0", "status": "PASS" if not errors else "FAIL", "errors": errors}
+
+
+def _check_pilot_readiness_gate() -> dict[str, Any]:
+    try:
+        from src.pilot_readiness import build_pilot_readiness_scorecard, write_pilot_evidence_pack
+    except Exception as exc:
+        return {"name": "pilot_readiness_gate", "status": "FAIL", "error": str(exc)}
+
+    try:
+        scorecard = build_pilot_readiness_scorecard(runtime_data_dir=str(ROOT / "runtime_data"))
+        if not isinstance(scorecard, dict):
+            return {"name": "pilot_readiness_gate", "status": "FAIL", "error": "scorecard is not a dict"}
+        if scorecard.get("scorecard_type") != "pilot_readiness":
+            return {"name": "pilot_readiness_gate", "status": "FAIL", "error": "scorecard_type mismatch"}
+        claim = str(scorecard.get("claim", ""))
+        if "production ready" in claim.lower() or "production-ready" in claim.lower():
+            return {"name": "pilot_readiness_gate", "status": "FAIL", "error": "evidence pack claims production readiness — forbidden"}
+        pack_result = write_pilot_evidence_pack(runtime_data_dir=str(ROOT / "runtime_data"), scorecard=scorecard)
+        pack_dir_str = pack_result.get("pack_dir", "")
+        pack_dir = ROOT / pack_dir_str if pack_dir_str else None
+        required_files = [
+            "pilot_readiness_scorecard.json",
+            "pilot_readiness_report.md",
+            "pilot_readiness_report.html",
+            "runtime_profile_summary.json",
+            "live_read_preflight.json",
+            "side_effect_blocking_evidence.json",
+            "tool_governance_report.json",
+            "runtime_store_validation.json",
+            "backup_restore_validation.json",
+            "monitoring_summary.json",
+            "recovery_idempotency_summary.json",
+            "limitations.md",
+            "README.md",
+        ]
+        missing_files = []
+        if pack_dir and pack_dir.is_dir():
+            missing_files = [f for f in required_files if not (pack_dir / f).is_file()]
+        else:
+            missing_files = required_files
+
+        gate_ok = bool(scorecard.get("ok")) and not missing_files and not pack_result.get("errors")
+        return {
+            "name": "pilot_readiness_gate",
+            "status": "PASS" if gate_ok else "FAIL",
+            "overall_score": scorecard.get("overall_score", 0),
+            "threshold": scorecard.get("threshold", 80),
+            "mandatory_failures": scorecard.get("mandatory_failures", []),
+            "pack_dir": pack_dir_str,
+            "missing_files": missing_files,
+            "pack_errors": pack_result.get("errors", []),
+        }
+    except Exception as exc:
+        return {"name": "pilot_readiness_gate", "status": "FAIL", "error": str(exc)}
 
 
 def _check_known_limitations_doc() -> dict[str, Any]:
