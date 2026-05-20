@@ -70,6 +70,22 @@ class ToolExecutionError(RuntimeSpecError):
     pass
 
 
+class RecoveryError(RuntimeSpecError):
+    pass
+
+
+class RecoveryAssessmentError(RecoveryError):
+    pass
+
+
+class RecoveryPolicyError(RecoveryError):
+    pass
+
+
+class DuplicateSideEffectBlocked(ToolExecutionError):
+    pass
+
+
 class LiveToolExecutionBlocked(ToolExecutionError):
     pass
 
@@ -215,6 +231,26 @@ class TaskFramePersistenceError(PersistenceError):
 
 
 class RunLedgerError(PersistenceError):
+    pass
+
+
+class RuntimeStoreError(PersistenceError):
+    pass
+
+
+class RuntimeStoreValidationError(RuntimeStoreError):
+    pass
+
+
+class RuntimeStoreBackupError(RuntimeStoreError):
+    pass
+
+
+class RuntimeStoreRestoreError(RuntimeStoreError):
+    pass
+
+
+class RuntimeStorePolicyError(RuntimeStoreError):
     pass
 
 

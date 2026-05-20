@@ -37,6 +37,7 @@ from .runtime_environment import (
     load_runtime_profile,
     resolve_runtime_environment,
 )
+from .recovery import ensure_pending_action_idempotency, verify_pending_action_safe_to_execute
 from .tool_governance import evaluate_tool_governance
 from .tool_result_contract import build_tool_evidence, normalize_evidence, validate_tool_result_contract
 from .tool_registry import coerce_tool_args, get_tool_spec, tool_key, validate_tool_args
@@ -677,6 +678,48 @@ class ToolRunner:
                 metadata={"action_id": action_id, "tool": tool},
             )
 
+        duplicate_check = verify_pending_action_safe_to_execute(
+            frame,
+            pending_action,
+            profile_name=str(self.runtime_profile.get("profile", "")) if isinstance(self.runtime_profile, dict) else None,
+        )
+        if not duplicate_check.get("ok", False):
+            message = str(duplicate_check.get("reason", "Duplicate side effect blocked."))
+            pending_action["status"] = "FAILED"
+            pending_action["last_error"] = message
+            record_error(
+                frame,
+                str(duplicate_check.get("error_code", "DUPLICATE_SIDE_EFFECT_BLOCKED")),
+                message,
+                {
+                    "action_id": action_id,
+                    "tool": tool,
+                    "idempotency_key": duplicate_check.get("idempotency_key", ""),
+                    "business_ref": duplicate_check.get("business_ref", ""),
+                },
+            )
+            add_audit_event(
+                frame,
+                "PENDING_ACTION_DUPLICATE_BLOCKED",
+                message,
+                {
+                    "action_id": action_id,
+                    "tool": tool,
+                    "idempotency_key": duplicate_check.get("idempotency_key", ""),
+                    "business_ref": duplicate_check.get("business_ref", ""),
+                },
+            )
+            return tool_result_error(
+                "pending_action_failed",
+                message,
+                metadata={
+                    "action_id": action_id,
+                    "tool": tool,
+                    "error_type": str(duplicate_check.get("error_code", "DuplicateSideEffectBlocked")),
+                    "tag": "policy",
+                },
+            )
+
         if not tool or not namespace or not action_name:
             message = "Pending action is missing tool metadata."
             pending_action["status"] = "FAILED"
@@ -818,10 +861,14 @@ class ToolRunner:
             "tool": tool,
             "namespace": namespace,
             "action": action_name,
+            "action_type": pending_action.get("action_type", action_name),
             "output_alias": output_alias,
             "args": dict(exec_args),
             "status": "EXECUTED",
             "dry_run": True,
+            "side_effect_performed": False,
+            "idempotency_key": pending_action.get("idempotency_key", ""),
+            "business_ref": pending_action.get("business_ref", ""),
             "result_type": tool_spec["output_type"],
             "executed_at": utc_now(),
             "governance": pending_action.get("governance", {}),
@@ -855,12 +902,16 @@ class ToolRunner:
                 "error": "",
                 "timestamp": utc_now(),
                 "governance": pending_action.get("governance", {}),
+                "idempotency_key": pending_action.get("idempotency_key", ""),
+                "business_ref": pending_action.get("business_ref", ""),
+                "side_effect_performed": False,
             }
         )
         transition_pending_action(pending_action, "EXECUTED")
         pending_action["executed_at"] = utc_now()
         pending_action["dry_run"] = True
         pending_action["result_type"] = tool_spec["output_type"]
+        pending_action["side_effect_performed"] = False
         add_audit_event(
             frame,
             "PENDING_ACTION_EXECUTED",
@@ -932,6 +983,54 @@ class ToolRunner:
 
         if self.dry_run:
             raise LiveExecutionBlocked("Live pending-action execution requires ToolRunner.dry_run=False.")
+
+        duplicate_check = verify_pending_action_safe_to_execute(
+            frame,
+            pending_action,
+            profile_name=str(self.runtime_profile.get("profile", "")) if isinstance(self.runtime_profile, dict) else None,
+        )
+        if not duplicate_check.get("ok", False):
+            message = str(duplicate_check.get("reason", "Duplicate side effect blocked."))
+            pending_action["status"] = "FAILED"
+            pending_action["last_error"] = message
+            frame.state = "FAILED_EXECUTION"
+            record_error(
+                frame,
+                str(duplicate_check.get("error_code", "DUPLICATE_SIDE_EFFECT_BLOCKED")),
+                message,
+                {
+                    "action_id": action_id,
+                    "tool": tool,
+                    "idempotency_key": duplicate_check.get("idempotency_key", ""),
+                    "business_ref": duplicate_check.get("business_ref", ""),
+                },
+            )
+            add_audit_event(
+                frame,
+                "LIVE_SIDE_EFFECT_EXECUTION_BLOCKED",
+                message,
+                {
+                    "frame_id": frame.frame_id,
+                    "action_id": action_id,
+                    "tool": tool,
+                    "manifest_id": getattr(manifest, "manifest_id", ""),
+                    "runtime_live_mode": runtime_live_mode,
+                    "guardrail": pending_action.get("guardrail", ""),
+                    "args": dict(pending_action.get("args", {})),
+                    "idempotency_key": duplicate_check.get("idempotency_key", ""),
+                },
+            )
+            return tool_result_error(
+                "pending_action_failed",
+                message,
+                metadata={
+                    "action_id": action_id,
+                    "tool": tool,
+                    "error_type": str(duplicate_check.get("error_code", "DuplicateSideEffectBlocked")),
+                    "tag": "policy",
+                    "live_side_effect": True,
+                },
+            )
 
         lookup_tool = tool if isinstance(tool, str) and "/" in tool else None
         try:
@@ -1366,6 +1465,7 @@ class ToolRunner:
             "tool": tool,
             "namespace": namespace,
             "action": action_name,
+            "action_type": pending_action.get("action_type", action_name),
             "output_alias": output_alias,
             "args": dict(pending_action.get("args", {})),
             "status": "EXECUTED",
@@ -1373,6 +1473,9 @@ class ToolRunner:
             "live": True,
             "live_side_effect": True,
             "guardrail": guardrail_name,
+            "side_effect_performed": True,
+            "idempotency_key": pending_action.get("idempotency_key", ""),
+            "business_ref": pending_action.get("business_ref", ""),
             "result_type": tool_spec["output_type"],
             "executed_at": utc_now(),
             "governance": pending_action.get("governance", {}),
@@ -1395,9 +1498,12 @@ class ToolRunner:
                 "result_type": tool_spec["output_type"],
                 "dry_run": False,
                 "live": True,
+                "side_effect_performed": True,
                 "error": "",
                 "timestamp": utc_now(),
                 "governance": pending_action.get("governance", {}),
+                "idempotency_key": pending_action.get("idempotency_key", ""),
+                "business_ref": pending_action.get("business_ref", ""),
             }
         )
         transition_pending_action(pending_action, "EXECUTED")
@@ -1407,6 +1513,7 @@ class ToolRunner:
         pending_action["live_side_effect"] = True
         pending_action["guardrail"] = guardrail_name
         pending_action["result_type"] = tool_spec["output_type"]
+        pending_action["side_effect_performed"] = True
         add_audit_event(
             frame,
             "LIVE_SIDE_EFFECT_EXECUTION_COMPLETED",
@@ -1756,7 +1863,7 @@ def create_pending_action(
         else:
             body_value = str(message or staged_args.get("body") or "")
 
-    return {
+    pending_action = {
         "action_id": f"pa_{uuid4().hex}",
         "step_id": step.step_id,
         "tool": staged_tool,
@@ -1778,6 +1885,7 @@ def create_pending_action(
             else {}
         ),
     }
+    return ensure_pending_action_idempotency(frame, pending_action, step_id=step.step_id)
 
 
 def dry_run_tool_result(

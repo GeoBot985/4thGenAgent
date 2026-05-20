@@ -426,6 +426,134 @@ Checks the active runtime profile for policy blockers and release-safety boundar
 - `--runtime-data-dir <path>`
 - `--json`
 
+### `taskframe runtime-store check`
+
+Validates the runtime store layout and reports corrupted or orphaned artifacts without deleting anything.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store index`
+
+Rebuilds the runtime store index from the current artifacts.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store backup`
+
+Creates a zip backup under `runtime_data/backups/` with a backup manifest.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store restore`
+
+Validates and extracts a backup into a separate target folder. It never overwrites active `runtime_data`.
+
+- `--backup <path>`
+- `--target <path>`
+- `--validate-only`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store retention-plan`
+
+Builds a dry-run retention plan for derived runtime-store artifacts.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store cleanup`
+
+Runs the retention workflow in dry-run mode only. Destructive cleanup is not enabled here.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--dry-run`
+- `--json`
+
+### `taskframe monitor summary`
+
+Shows the operational health summary for indexed runs.
+
+- `--runtime-data-dir <path>`
+- `--profile <name>`
+- `--limit <n>`
+- `--rebuild`
+- `--json`
+
+### `taskframe monitor failed`
+
+Lists failed runs from the monitoring index.
+
+- `--runtime-data-dir <path>`
+- `--profile <name>`
+- `--limit <n>`
+- `--rebuild`
+- `--json`
+
+### `taskframe monitor pending`
+
+Lists pending approval and waiting runs from the monitoring index.
+
+### `taskframe monitor stuck`
+
+Lists stale `RUNNING` frames from the monitoring index.
+
+### `taskframe monitor blocked`
+
+Lists blocked runs caused by external auth, dependency, or profile-policy issues.
+
+### `taskframe monitor tools`
+
+Shows aggregated tool-health status without live side effects.
+
+### `taskframe monitor report`
+
+Writes JSON, Markdown, and HTML operational-health reports under `runtime_data/monitoring/`.
+
+- `--runtime-data-dir <path>`
+- `--profile <name>`
+- `--limit <n>`
+- `--rebuild`
+- `--json`
+
+### `taskframe recover assess`
+
+Assesses whether a failed, interrupted, or stale TaskFrame is retryable or resumable.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--profile <name>`
+- `--dry-run`
+- `--json`
+
+### `taskframe recover retry-step`
+
+Assesses a single failed step for safe retry. This command stays dry-run by default.
+
+- `--step <step_id>`
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--profile <name>`
+- `--dry-run`
+- `--json`
+
+### `taskframe recover resume`
+
+Assesses whether a TaskFrame can resume from the last safe point. This command stays dry-run by default.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--profile <name>`
+- `--dry-run`
+- `--json`
+
 ### `taskframe runtime profile`
 
 Legacy alias for profile inspection. Prefer `taskframe profile show`.

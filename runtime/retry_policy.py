@@ -67,6 +67,12 @@ def validate_retry_policy(policy: dict[str, Any]) -> None:
     if any(not isinstance(item, str) or not item.strip() for item in retry_on):
         raise RetryPolicyValidationError("Retry policy retry_on items must be non-empty strings.")
 
+    do_not_retry_on = policy.get("do_not_retry_on", [])
+    if not isinstance(do_not_retry_on, list):
+        raise RetryPolicyValidationError("Retry policy do_not_retry_on must be a list.")
+    if any(not isinstance(item, str) or not item.strip() for item in do_not_retry_on):
+        raise RetryPolicyValidationError("Retry policy do_not_retry_on items must be non-empty strings.")
+
     fail_on_exhausted = policy.get("fail_on_exhausted", DEFAULT_RETRY_POLICY["fail_on_exhausted"])
     if not isinstance(fail_on_exhausted, bool):
         raise RetryPolicyValidationError("Retry policy fail_on_exhausted must be a boolean.")
@@ -115,14 +121,26 @@ def is_retryable_error(error_info: dict[str, str], retry_policy: dict[str, Any])
 
 
 def should_retry_step(step, error_info: dict[str, str]) -> bool:
-    if getattr(step, "kind", "") == "validate":
+    if isinstance(step, dict):
+        kind = str(step.get("kind", "") or "")
+        retry_policy = step.get("retry", None)
+        attempts = int(step.get("attempts", 0) or 0)
+    else:
+        kind = str(getattr(step, "kind", "") or "")
+        retry_policy = getattr(step, "retry", None)
+        attempts = int(getattr(step, "attempts", 0) or 0)
+    if kind == "validate":
         return False
     if error_info.get("tag") in {"policy", "validation"}:
         return False
     if error_info.get("error_type") in {"LiveToolExecutionBlocked", "RetryExhaustedError"}:
         return False
-    policy = normalize_retry_policy(getattr(step, "retry", None))
-    if getattr(step, "attempts", 0) >= int(policy["max_attempts"]):
+    policy = normalize_retry_policy(retry_policy)
+    do_not_retry_on = policy.get("do_not_retry_on", [])
+    if isinstance(do_not_retry_on, list):
+        if error_info.get("error_type") in do_not_retry_on or error_info.get("tag") in do_not_retry_on:
+            return False
+    if attempts >= int(policy["max_attempts"]):
         return False
     return is_retryable_error(error_info, policy)
 

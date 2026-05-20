@@ -359,6 +359,88 @@ def build_parser() -> argparse.ArgumentParser:
     controlled_live.add_argument("--check-tools", action="store_true")
     controlled_live.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
 
+    runtime_store = sub.add_parser("runtime-store", help="Inspect, validate, back up, and assess the runtime store.")
+    runtime_store_sub = runtime_store.add_subparsers(dest="runtime_store_command", required=True)
+
+    runtime_store_check = runtime_store_sub.add_parser("check", help="Validate the runtime store layout and artifacts.")
+    runtime_store_check.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    runtime_store_check.add_argument("--manifest-dir", default="manifests")
+    runtime_store_check.add_argument("--json", action="store_true")
+
+    runtime_store_index = runtime_store_sub.add_parser("index", help="Rebuild the runtime store index.")
+    runtime_store_index.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    runtime_store_index.add_argument("--manifest-dir", default="manifests")
+    runtime_store_index.add_argument("--json", action="store_true")
+
+    runtime_store_backup = runtime_store_sub.add_parser("backup", help="Write a safe runtime store backup archive.")
+    runtime_store_backup.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    runtime_store_backup.add_argument("--manifest-dir", default="manifests")
+    runtime_store_backup.add_argument("--json", action="store_true")
+
+    runtime_store_restore = runtime_store_sub.add_parser("restore", help="Validate and restore a runtime store backup into a target folder.")
+    runtime_store_restore.add_argument("--backup", required=True)
+    runtime_store_restore.add_argument("--target", required=True)
+    runtime_store_restore.add_argument("--validate-only", action="store_true", default=True)
+    runtime_store_restore.add_argument("--manifest-dir", default="manifests")
+    runtime_store_restore.add_argument("--json", action="store_true")
+
+    runtime_store_retention = runtime_store_sub.add_parser("retention-plan", help="Build a dry-run runtime store retention plan.")
+    runtime_store_retention.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    runtime_store_retention.add_argument("--manifest-dir", default="manifests")
+    runtime_store_retention.add_argument("--json", action="store_true")
+
+    runtime_store_cleanup = runtime_store_sub.add_parser("cleanup", help="Dry-run runtime store cleanup.")
+    runtime_store_cleanup.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    runtime_store_cleanup.add_argument("--manifest-dir", default="manifests")
+    runtime_store_cleanup.add_argument("--dry-run", action="store_true", default=True)
+    runtime_store_cleanup.add_argument("--json", action="store_true")
+
+    monitor = sub.add_parser("monitor", help="Inspect operational monitoring and run health.")
+    monitor_sub = monitor.add_subparsers(dest="monitor_command", required=True)
+    for name, help_text in (
+        ("summary", "Show a monitoring summary."),
+        ("failed", "List failed runs."),
+        ("pending", "List pending runs."),
+        ("stuck", "List stuck runs."),
+        ("blocked", "List blocked runs."),
+        ("tools", "Show aggregated tool health."),
+        ("report", "Write an operational monitoring report."),
+    ):
+        monitor_cmd_parser = monitor_sub.add_parser(name, help=help_text)
+        monitor_cmd_parser.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+        monitor_cmd_parser.add_argument("--profile", default="")
+        monitor_cmd_parser.add_argument("--limit", type=int, default=20)
+        monitor_cmd_parser.add_argument("--rebuild", action="store_true")
+        monitor_cmd_parser.add_argument("--json", action="store_true")
+
+    recover = sub.add_parser("recover", help="Assess safe retry and resume options.")
+    recover_sub = recover.add_subparsers(dest="recover_command", required=True)
+
+    recover_assess = recover_sub.add_parser("assess", help="Assess recovery for a frame.")
+    recover_assess.add_argument("frame_id", help="TaskFrame ID to assess.")
+    recover_assess.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    recover_assess.add_argument("--manifest-dir", default="manifests")
+    recover_assess.add_argument("--profile", default="")
+    recover_assess.add_argument("--dry-run", action="store_true", default=True)
+    recover_assess.add_argument("--json", action="store_true")
+
+    recover_retry = recover_sub.add_parser("retry-step", help="Assess retry safety for a failed step.")
+    recover_retry.add_argument("frame_id", help="TaskFrame ID to assess.")
+    recover_retry.add_argument("--step", required=True, help="Step ID to retry.")
+    recover_retry.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    recover_retry.add_argument("--manifest-dir", default="manifests")
+    recover_retry.add_argument("--profile", default="")
+    recover_retry.add_argument("--dry-run", action="store_true", default=True)
+    recover_retry.add_argument("--json", action="store_true")
+
+    recover_resume = recover_sub.add_parser("resume", help="Assess resume safety for a frame.")
+    recover_resume.add_argument("frame_id", help="TaskFrame ID to assess.")
+    recover_resume.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    recover_resume.add_argument("--manifest-dir", default="manifests")
+    recover_resume.add_argument("--profile", default="")
+    recover_resume.add_argument("--dry-run", action="store_true", default=True)
+    recover_resume.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -409,6 +491,12 @@ def main(argv: list[str] | None = None) -> int:
         return _run_events(args)
     if args.command == "profile":
         return _run_profile(args)
+    if args.command == "runtime-store":
+        return _run_runtime_store(args)
+    if args.command == "monitor":
+        return _run_monitor(args)
+    if args.command == "recover":
+        return _run_recover(args)
     parser.print_help()
     return 2
 
@@ -2512,6 +2600,387 @@ def _run_profile_check(args: argparse.Namespace) -> int:
         for blocker in result["blockers"]:
             print(f"  - {blocker.get('message', '')}")
     return 0 if result.get("ok") else 1
+
+
+def _run_runtime_store(args: argparse.Namespace) -> int:
+    command = str(getattr(args, "runtime_store_command", "") or "")
+    if command == "check":
+        return _run_runtime_store_check(args)
+    if command == "index":
+        return _run_runtime_store_index(args)
+    if command == "backup":
+        return _run_runtime_store_backup(args)
+    if command == "restore":
+        return _run_runtime_store_restore(args)
+    if command == "retention-plan":
+        return _run_runtime_store_retention_plan(args)
+    if command == "cleanup":
+        return _run_runtime_store_cleanup(args)
+    print("Unknown runtime-store command.", file=sys.stderr)
+    return 2
+
+
+def _runtime_store_profile_name() -> str:
+    try:
+        from runtime.runtime_environment import load_runtime_profile
+
+        profile = load_runtime_profile()
+        return str(profile.get("profile", "") or "demo")
+    except Exception:
+        return "demo"
+
+
+def _run_runtime_store_check(args: argparse.Namespace) -> int:
+    from runtime.errors import RuntimeStoreError
+    from runtime.runtime_store import validate_runtime_store
+
+    try:
+        payload = validate_runtime_store(args.runtime_data_dir, manifest_dir=args.manifest_dir)
+    except RuntimeStoreError as exc:
+        payload = {"ok": False, "error": str(exc), "runtime_data_dir": str(args.runtime_data_dir), "artifact_counts": {}, "issues": []}
+    payload["ok"] = bool(payload.get("ok", False))
+    payload["active_profile"] = _runtime_store_profile_name()
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("Runtime Store Check")
+        print(f"Runtime data dir: {payload.get('runtime_data_dir', '')}")
+        print(f"Ok: {str(payload.get('ok', False)).lower()}")
+        print(f"TaskFrames: {payload.get('artifact_counts', {}).get('taskframes', 0)}")
+        print(f"Reports: {payload.get('artifact_counts', {}).get('reports', 0)}")
+        print(f"Approval packs: {payload.get('artifact_counts', {}).get('approval_packs', 0)}")
+        print(f"Evidence: {payload.get('artifact_counts', {}).get('evidence', 0)}")
+        print("Live data protected: true")
+        if payload.get("issues"):
+            print("Issues:")
+            for issue in payload["issues"]:
+                print(f"- {issue.get('category', '')}: {issue.get('message', '')}")
+    return 0 if payload.get("ok") else 1
+
+
+def _run_runtime_store_index(args: argparse.Namespace) -> int:
+    from runtime.errors import RuntimeStoreError
+    from runtime.runtime_store import rebuild_runtime_store_index
+
+    try:
+        payload = rebuild_runtime_store_index(args.runtime_data_dir, manifest_dir=args.manifest_dir, persist=True)
+    except RuntimeStoreError as exc:
+        payload = {"ok": False, "error": str(exc), "artifact_counts": {}}
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("Runtime Store Index")
+        print(f"Index path: {Path(args.runtime_data_dir) / 'indexes' / 'runtime_store_index.json'}")
+        print(f"Ok: {str(payload.get('ok', False)).lower()}")
+        print(f"TaskFrames: {payload.get('artifact_counts', {}).get('taskframes', 0)}")
+    return 0 if payload.get("ok") else 1
+
+
+def _run_runtime_store_backup(args: argparse.Namespace) -> int:
+    from runtime.errors import RuntimeStoreError
+    from runtime.runtime_store import backup_runtime_store
+
+    try:
+        payload = backup_runtime_store(args.runtime_data_dir, manifest_dir=args.manifest_dir)
+    except RuntimeStoreError as exc:
+        payload = {"ok": False, "error": str(exc), "manifest": {}}
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("Runtime Store Backup")
+        print(f"Backup path: {payload.get('backup_path', '')}")
+        print(f"Manifest path: {payload.get('manifest_path', '')}")
+        print(f"Contains pending actions: {str(payload.get('manifest', {}).get('contains_pending_actions', False)).lower()}")
+    return 0 if payload.get("ok") else 1
+
+
+def _run_runtime_store_restore(args: argparse.Namespace) -> int:
+    from runtime.errors import RuntimeStoreError
+    from runtime.runtime_store import restore_runtime_store_backup
+
+    try:
+        payload = restore_runtime_store_backup(args.backup, args.target, validate_only=bool(args.validate_only), manifest_dir=args.manifest_dir)
+    except RuntimeStoreError as exc:
+        payload = {"ok": False, "error": str(exc), "backup_path": str(args.backup), "target_path": str(args.target), "validate_only": bool(args.validate_only)}
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("Runtime Store Restore")
+        print(f"Backup: {payload.get('backup_path', '')}")
+        print(f"Target: {payload.get('target_path', '')}")
+        print(f"Validate only: {str(payload.get('validate_only', False)).lower()}")
+        print(f"Ok: {str(payload.get('ok', False)).lower()}")
+    return 0 if payload.get("ok") else 1
+
+
+def _run_runtime_store_retention_plan(args: argparse.Namespace) -> int:
+    from runtime.errors import RuntimeStoreError
+    from runtime.runtime_store import build_runtime_store_retention_plan
+
+    try:
+        payload = build_runtime_store_retention_plan(args.runtime_data_dir, manifest_dir=args.manifest_dir)
+    except RuntimeStoreError as exc:
+        payload = {"ok": False, "error": str(exc), "candidate_count": 0, "protected_count": 0}
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("Runtime Store Retention Plan")
+        print(f"Dry run: {str(payload.get('dry_run', True)).lower()}")
+        print(f"Candidate count: {payload.get('candidate_count', 0)}")
+        print(f"Protected count: {payload.get('protected_count', 0)}")
+    return 0
+
+
+def _run_runtime_store_cleanup(args: argparse.Namespace) -> int:
+    from runtime.errors import RuntimeStoreError
+    from runtime.runtime_store import cleanup_runtime_store
+
+    try:
+        payload = cleanup_runtime_store(args.runtime_data_dir, manifest_dir=args.manifest_dir, dry_run=bool(args.dry_run))
+    except RuntimeStoreError as exc:
+        payload = {"ok": False, "error": str(exc), "candidate_count": 0, "protected_count": 0, "cleanup_performed": False, "dry_run": True}
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("Runtime Store Cleanup")
+        print(f"Dry run: {str(payload.get('dry_run', True)).lower()}")
+        print(f"Candidate count: {payload.get('candidate_count', 0)}")
+        print(f"Cleanup performed: {str(payload.get('cleanup_performed', False)).lower()}")
+    return 0
+
+
+def _run_monitor(args: argparse.Namespace) -> int:
+    command = str(getattr(args, "monitor_command", "") or "")
+    if command == "summary":
+        return _run_monitor_summary(args)
+    if command == "failed":
+        return _run_monitor_filtered(args, "failed")
+    if command == "pending":
+        return _run_monitor_filtered(args, "pending")
+    if command == "stuck":
+        return _run_monitor_filtered(args, "stuck")
+    if command == "blocked":
+        return _run_monitor_filtered(args, "blocked")
+    if command == "tools":
+        return _run_monitor_tools(args)
+    if command == "report":
+        return _run_monitor_report(args)
+    print("Unknown monitor command.", file=sys.stderr)
+    return 2
+
+
+def _build_monitoring_payload(args: argparse.Namespace) -> dict[str, Any]:
+    from runtime.operational_monitoring import aggregate_tool_health, build_monitoring_summary
+
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    profile = str(getattr(args, "profile", "") or "") or None
+    limit = int(getattr(args, "limit", 20) or 20)
+    rebuild = bool(getattr(args, "rebuild", False))
+    summary = build_monitoring_summary(runtime_data_dir, profile_name=profile, limit=limit, rebuild=rebuild)
+    summary["tool_health"] = aggregate_tool_health(runtime_data_dir, refresh=rebuild)
+    summary["runtime_data_dir"] = runtime_data_dir
+    summary["profile"] = profile or summary.get("profile", "demo")
+    summary["limit"] = limit
+    summary["rebuild"] = rebuild
+    return summary
+
+
+def _run_monitor_summary(args: argparse.Namespace) -> int:
+    payload = _build_monitoring_payload(args)
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    print("Operational Monitoring Summary")
+    print(f"Runtime data dir: {payload.get('runtime_data_dir', '')}")
+    print(f"Profile: {payload.get('profile', '')}")
+    print(f"Total indexed runs: {summary.get('total_indexed_runs', 0)}")
+    print(f"Healthy count: {summary.get('healthy_count', 0)}")
+    print(f"Pending count: {summary.get('pending_count', 0)}")
+    print(f"Warning count: {summary.get('warning_count', 0)}")
+    print(f"Failed count: {summary.get('failed_count', 0)}")
+    print(f"Stuck count: {summary.get('stuck_count', 0)}")
+    print(f"Blocked count: {summary.get('blocked_count', 0)}")
+    print(f"Tool health status: {payload.get('tool_health', {}).get('status', 'unknown')}")
+    print(f"Runtime store validation status: {payload.get('runtime_store_status', {}).get('ok', False)}")
+    print(f"Live-read readiness status: {payload.get('live_read_readiness', {}).get('status', 'blocked')}")
+    newest = payload.get("newest_failure", {}) if isinstance(payload.get("newest_failure", {}), dict) else {}
+    oldest = payload.get("oldest_pending_approval", {}) if isinstance(payload.get("oldest_pending_approval", {}), dict) else {}
+    print(f"Newest failure: {newest.get('frame_id', '') or 'none'}")
+    print(f"Oldest pending approval: {oldest.get('frame_id', '') or 'none'}")
+    return 0
+
+
+def _run_monitor_filtered(args: argparse.Namespace, health: str) -> int:
+    payload = _build_monitoring_payload(args)
+    key_map = {
+        "failed": "latest_failed_runs",
+        "pending": "latest_pending_runs",
+        "stuck": "latest_stuck_runs",
+        "blocked": "latest_blocked_runs",
+    }
+    rows = list(payload.get(key_map[health], [])) if isinstance(payload.get(key_map[health], []), list) else []
+    result = {
+        "ok": True,
+        "health": health,
+        "runtime_data_dir": payload.get("runtime_data_dir", ""),
+        "profile": payload.get("profile", ""),
+        "limit": payload.get("limit", 20),
+        "runs": rows,
+    }
+    if bool(args.json):
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    print(f"Operational Monitoring: {health.title()}")
+    for row in rows[: int(payload.get("limit", 20) or 20)]:
+        print(
+            f"- {row.get('frame_id', '')} | manifest={row.get('manifest_id', '')} | state={row.get('state', '')} | "
+            f"health={row.get('health', '')} | {row.get('failure_category', row.get('stale_warning', ''))} | "
+            f"{row.get('recommended_action', '')} | {row.get('report_path', '')}"
+        )
+    if not rows:
+        print("(none)")
+    return 0
+
+
+def _run_monitor_tools(args: argparse.Namespace) -> int:
+    payload = _build_monitoring_payload(args)
+    tool_health = payload.get("tool_health", {}) if isinstance(payload.get("tool_health", {}), dict) else {}
+    if bool(args.json):
+        print(json.dumps(tool_health, indent=2, ensure_ascii=False))
+        return 0
+    print("Tool Health")
+    print(f"Status: {tool_health.get('status', 'unknown')}")
+    summary = tool_health.get("summary", {}) if isinstance(tool_health.get("summary", {}), dict) else {}
+    for key in ("total", "ready", "needs_auth", "missing_dependency", "misconfigured", "failing", "disabled_optional", "unknown"):
+        print(f"{key.replace('_', ' ').title()}: {summary.get(key, 0)}")
+    if tool_health.get("recommended_action"):
+        print(f"Recommended action: {tool_health.get('recommended_action', '')}")
+    return 0
+
+
+def _run_monitor_report(args: argparse.Namespace) -> int:
+    from runtime.operational_monitoring import build_operational_monitoring_report
+
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    profile = str(getattr(args, "profile", "") or "") or None
+    limit = int(getattr(args, "limit", 20) or 20)
+    rebuild = bool(getattr(args, "rebuild", False))
+    report = build_operational_monitoring_report(runtime_data_dir, profile_name=profile, limit=limit, rebuild=rebuild)
+    if bool(args.json):
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0
+    print("Operational Monitoring Report")
+    print(f"JSON: {report.get('json_path', '')}")
+    print(f"Markdown: {report.get('markdown_path', '')}")
+    print(f"HTML: {report.get('html_path', '')}")
+    return 0
+
+
+def _run_recover(args: argparse.Namespace) -> int:
+    command = str(getattr(args, "recover_command", "") or "")
+    if command == "assess":
+        return _run_recover_assess(args)
+    if command == "retry-step":
+        return _run_recover_retry_step(args)
+    if command == "resume":
+        return _run_recover_resume(args)
+    print("Unknown recover command.", file=sys.stderr)
+    return 2
+
+
+def _recover_payload(args: argparse.Namespace) -> dict[str, Any]:
+    from runtime.recovery import recover_assess, recover_resume, recover_retry_step
+
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    manifest_dir = str(getattr(args, "manifest_dir", "manifests") or "manifests")
+    profile = str(getattr(args, "profile", "") or "") or None
+    frame_id = str(getattr(args, "frame_id", "") or "")
+    dry_run = bool(getattr(args, "dry_run", True))
+    if getattr(args, "recover_command", "") == "retry-step":
+        return recover_retry_step(
+            frame_id,
+            step_id=str(getattr(args, "step", "") or ""),
+            runtime_data_dir=runtime_data_dir,
+            manifest_dir=manifest_dir,
+            profile_name=profile,
+            dry_run=dry_run,
+        )
+    if getattr(args, "recover_command", "") == "resume":
+        return recover_resume(
+            frame_id,
+            runtime_data_dir=runtime_data_dir,
+            manifest_dir=manifest_dir,
+            profile_name=profile,
+            dry_run=dry_run,
+        )
+    return recover_assess(
+        frame_id,
+        runtime_data_dir=runtime_data_dir,
+        manifest_dir=manifest_dir,
+        profile_name=profile,
+    )
+
+
+def _run_recover_assess(args: argparse.Namespace) -> int:
+    try:
+        payload = _recover_payload(args)
+    except Exception as exc:
+        payload = {"ok": False, "error": str(exc), "frame_id": str(getattr(args, "frame_id", "") or ""), "dry_run": True}
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0 if payload.get("ok", True) else 1
+    print("Recovery Assessment")
+    print(f"Frame ID: {payload.get('frame_id', '')}")
+    print(f"Recovery status: {payload.get('recovery_status', '')}")
+    print(f"Safe to retry: {str(payload.get('safe_to_retry', False)).lower()}")
+    print(f"Safe to resume: {str(payload.get('safe_to_resume', False)).lower()}")
+    print(f"Side-effect risk: {payload.get('side_effect_risk', '')}")
+    print(f"Recommended action: {payload.get('recommended_action', '')}")
+    print(f"Command suggestion: {payload.get('command_suggestion', '')}")
+    print(f"Dry run: {str(payload.get('dry_run', True)).lower()}")
+    return 0 if payload.get("ok", True) else 1
+
+
+def _run_recover_retry_step(args: argparse.Namespace) -> int:
+    try:
+        payload = _recover_payload(args)
+    except Exception as exc:
+        payload = {
+            "ok": False,
+            "error": str(exc),
+            "frame_id": str(getattr(args, "frame_id", "") or ""),
+            "step_id": str(getattr(args, "step", "") or ""),
+            "dry_run": True,
+        }
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0 if payload.get("ok", True) else 1
+    print("Recovery Retry Step")
+    print(f"Frame ID: {payload.get('frame_id', '')}")
+    print(f"Step ID: {payload.get('step_id', '')}")
+    print(f"Recovery status: {payload.get('recovery_status', '')}")
+    print(f"Safe to retry: {str(payload.get('safe_to_retry', False)).lower()}")
+    print(f"Dry run: {str(payload.get('dry_run', True)).lower()}")
+    print(f"Command suggestion: {payload.get('command_suggestion', '')}")
+    return 0 if payload.get("ok", True) else 1
+
+
+def _run_recover_resume(args: argparse.Namespace) -> int:
+    try:
+        payload = _recover_payload(args)
+    except Exception as exc:
+        payload = {"ok": False, "error": str(exc), "frame_id": str(getattr(args, "frame_id", "") or ""), "dry_run": True}
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0 if payload.get("ok", True) else 1
+    print("Recovery Resume")
+    print(f"Frame ID: {payload.get('frame_id', '')}")
+    print(f"Recovery status: {payload.get('recovery_status', '')}")
+    print(f"Safe to resume: {str(payload.get('safe_to_resume', False)).lower()}")
+    print(f"Dry run: {str(payload.get('dry_run', True)).lower()}")
+    print(f"Command suggestion: {payload.get('command_suggestion', '')}")
+    return 0 if payload.get("ok", True) else 1
 
 
 def _run_controlled_live_status(args: argparse.Namespace) -> int:

@@ -26,6 +26,10 @@ CURRENT_RELEASE_STATUS_MD = ROOT / "docs" / "current_release_status.md"
 RELEASE_EVIDENCE_PACK_MD = ROOT / "docs" / "release_evidence_pack.md"
 RUNTIME_CONTRACTS_MD = ROOT / "docs" / "runtime_contracts.md"
 RUNTIME_PROFILES_MD = ROOT / "docs" / "runtime_profiles.md"
+RUNTIME_STORE_MD = ROOT / "docs" / "runtime_store.md"
+OPERATIONAL_MONITORING_MD = ROOT / "docs" / "operational_monitoring.md"
+OPERATOR_UI_MD = ROOT / "docs" / "operator_ui.md"
+RECOVERY_AND_IDEMPOTENCY_MD = ROOT / "docs" / "recovery_and_idempotency.md"
 DEFAULT_DEMO_BOUNDARY_MD = ROOT / "docs" / "default_demo_boundary.md"
 ADDING_NEW_TOOLS_MD = ROOT / "docs" / "adding_new_tools.md"
 TOOL_CONTRACT_CHECKLIST_MD = ROOT / "docs" / "tool_contract_checklist.md"
@@ -138,6 +142,8 @@ def build_verification_result() -> dict[str, Any]:
             "optional_rpa_excluded": "PENDING",
             "optional_rpa_live_probes_excluded": "PENDING",
             "runtime_profiles": "PENDING",
+            "runtime_store": "PENDING",
+            "operational_monitoring": "PENDING",
             "default_scenario_pack": "PENDING",
             "golden_demo": "PENDING",
             "release_artifacts": "PENDING",
@@ -286,6 +292,9 @@ def build_verification_result() -> dict[str, Any]:
         _check_runtime_contract_docs(),
         _check_runtime_tool_governance(),
         _check_runtime_profiles(),
+        _check_runtime_store(),
+        _check_operational_monitoring(),
+        _check_recovery(),
         _check_default_demo_boundary_doc(),
         _check_known_limitations_doc(),
         _check_adding_new_tools_doc(),
@@ -475,6 +484,10 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("order management docs missing")
             elif check["name"] == "controlled_live_profile_v0":
                 release_blockers.append("controlled live profile v0 check failed")
+            elif check["name"] == "runtime_store":
+                release_blockers.append("runtime store validation failed")
+            elif check["name"] == "operational_monitoring":
+                release_blockers.append("operational monitoring validation failed")
             elif check["name"] == "supplier_invoice_manifest_exists":
                 release_blockers.append("supplier invoice manifest missing")
             elif check["name"] == "supplier_invoice_routes_exist":
@@ -562,6 +575,10 @@ def build_verification_result() -> dict[str, Any]:
         "docs/capture_screenshots.md",
         "docs/portfolio_summary.md",
         "docs/release_candidate_verification.md",
+        "docs/release_verification.md",
+        "docs/runtime_store.md",
+        "docs/operational_monitoring.md",
+        "docs/operator_ui.md",
         "runtime_data/outputs/reports/golden_demo_report.md",
         "runtime_data/outputs/reports/golden_demo_report.html",
         "runtime_data/outputs/audit/golden_demo_audit.json",
@@ -634,6 +651,7 @@ def build_verification_result() -> dict[str, Any]:
         "core_tool_health_safe_checks": _status_from_static(static_checks, "CORE_TOOL_HEALTH_SAFE_CHECKS"),
         "runtime_tool_governance": _status_from_static(static_checks, "runtime_tool_governance"),
         "runtime_profiles": _status_from_static(static_checks, "runtime_profiles"),
+        "runtime_store": _status_from_static(static_checks, "runtime_store"),
         "optional_rpa_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC"),
         "optional_rpa_live_probes_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC"),
         "default_scenario_pack": _status_from_static(static_checks, "default_scenario_pack"),
@@ -2814,6 +2832,518 @@ def _check_runtime_profiles() -> dict[str, Any]:
         "pilot_profile": pilot_profile,
         "live_profile": live_profile,
         "profile_matrix": profile_matrix,
+        "missing": missing,
+    }
+
+
+def _check_runtime_store() -> dict[str, Any]:
+    missing: list[str] = []
+
+    doc_paths = [
+        RUNTIME_STORE_MD,
+        CONFIGURATION_MD,
+        ROOT / "docs" / "cli_reference.md",
+        ROOT / "docs" / "release_verification.md",
+    ]
+    for path in doc_paths:
+        if not path.is_file():
+            missing.append(_display_path(path))
+
+    if RUNTIME_STORE_MD.is_file():
+        doc_text = RUNTIME_STORE_MD.read_text(encoding="utf-8").lower()
+        for required in (
+            "runtime store layout",
+            "backup",
+            "restore",
+            "retention",
+            "taskframes",
+            "approval packs",
+            "evidence",
+            "pending actions",
+            "live data",
+        ):
+            if required not in doc_text:
+                missing.append(f"runtime_store_doc_missing:{required}")
+
+    if ROOT.joinpath("docs", "cli_reference.md").is_file():
+        cli_text = ROOT.joinpath("docs", "cli_reference.md").read_text(encoding="utf-8").lower()
+        for required in (
+            "taskframe runtime-store check",
+            "taskframe runtime-store index",
+            "taskframe runtime-store backup",
+            "taskframe runtime-store restore",
+            "taskframe runtime-store retention-plan",
+            "taskframe runtime-store cleanup",
+        ):
+            if required not in cli_text:
+                missing.append(f"cli_reference_missing:{required}")
+
+    try:
+        from runtime.persistence import PersistenceManager, write_json_atomic
+        from runtime.runtime_store import (
+            backup_runtime_store,
+            build_runtime_store_retention_plan,
+            cleanup_runtime_store,
+            ensure_runtime_store_layout,
+            restore_runtime_store_backup,
+            validate_runtime_store,
+        )
+        from runtime.run_report import generate_operator_run_report
+        from runtime.manifest_loader import load_manifest
+        from runtime.taskframe import create_taskframe
+    except Exception as exc:
+        return {"name": "runtime_store", "status": "FAIL", "error": str(exc)}
+
+    import tempfile
+    import zipfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        runtime_root = Path(tmp) / "runtime_data"
+        ensure_runtime_store_layout(runtime_root)
+        manifest = load_manifest("manifests/smoke_gmail_check.manifest.json")
+        frame = create_taskframe(manifest)
+        frame.state = "WAITING_FOR_EXECUTE"
+        frame.pending_actions.append({"action_id": "pa_1", "tool": "wa/send", "status": "PENDING_APPROVAL", "frame_id": frame.frame_id})
+        PersistenceManager(runtime_root).save_snapshot(frame)
+        generate_operator_run_report(runtime_root, frame.frame_id, rebuild=True)
+        write_json_atomic(
+            runtime_root / "tool_health" / "latest_tool_health.json",
+            {"schema_version": 1, "generated_at": frame.updated_at, "results": [], "by_tool": {}, "summary": {}},
+        )
+
+        seeded_validation = validate_runtime_store(runtime_root)
+        if not seeded_validation.get("ok", False):
+            missing.append("seeded_runtime_store_validation_failed")
+
+        backup = backup_runtime_store(runtime_root)
+        backup_path = Path(str(backup.get("backup_path", "")))
+        if not backup.get("ok", False) or not backup_path.is_file():
+            missing.append("runtime_store_backup_failed")
+        else:
+            with zipfile.ZipFile(backup_path, "r") as archive:
+                names = set(archive.namelist())
+            if "backup_manifest.json" not in names:
+                missing.append("backup_manifest_missing")
+
+        restore_target = Path(tmp) / "restore_target"
+        restore = restore_runtime_store_backup(backup_path, restore_target, validate_only=True)
+        if not restore.get("ok", False):
+            missing.append("runtime_store_restore_validate_only_failed")
+        if not (restore_target / "restore_report.json").is_file():
+            missing.append("runtime_store_restore_report_missing")
+
+        corrupted_root = Path(tmp) / "corrupted_runtime_data"
+        ensure_runtime_store_layout(corrupted_root)
+        (corrupted_root / "taskframes" / "corrupted.json").write_text("{not valid json", encoding="utf-8")
+        corrupted = validate_runtime_store(corrupted_root)
+        if not any(issue.get("category") == "invalid_json" for issue in corrupted.get("issues", [])):
+            missing.append("runtime_store_invalid_json_not_detected")
+
+        retention = build_runtime_store_retention_plan(runtime_root)
+        if not bool(retention.get("dry_run", False)):
+            missing.append("retention_plan_not_dry_run")
+
+        cleanup = cleanup_runtime_store(runtime_root, dry_run=False)
+        if not bool(cleanup.get("dry_run", False)) or bool(cleanup.get("cleanup_performed", False)):
+            missing.append("cleanup_not_non_destructive")
+
+        cli_commands = [
+            ("runtime_store_check", ["python", "-m", "src.taskframe_cli", "runtime-store", "check", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("runtime_store_index", ["python", "-m", "src.taskframe_cli", "runtime-store", "index", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("runtime_store_backup", ["python", "-m", "src.taskframe_cli", "runtime-store", "backup", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("runtime_store_retention_plan", ["python", "-m", "src.taskframe_cli", "runtime-store", "retention-plan", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("runtime_store_cleanup", ["python", "-m", "src.taskframe_cli", "runtime-store", "cleanup", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("runtime_store_restore", ["python", "-m", "src.taskframe_cli", "runtime-store", "restore", "--backup", str(backup_path), "--target", str(Path(tmp) / "cli_restore"), "--json"]),
+        ]
+        for name, command in cli_commands:
+            result = run_command(name, command, timeout_seconds=180)
+            if result["status"] != "PASS":
+                missing.append(f"{name}_failed")
+                continue
+            try:
+                payload = json.loads(result["stdout"] or "{}")
+            except Exception:
+                payload = {}
+            if not payload:
+                missing.append(f"{name}_invalid_json")
+
+    return {
+        "name": "runtime_store",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_operational_monitoring() -> dict[str, Any]:
+    missing: list[str] = []
+
+    doc_paths = [
+        OPERATIONAL_MONITORING_MD,
+        OPERATOR_UI_MD,
+        ROOT / "docs" / "cli_reference.md",
+        ROOT / "docs" / "release_verification.md",
+    ]
+    for path in doc_paths:
+        if not path.is_file():
+            missing.append(_display_path(path))
+
+    if OPERATIONAL_MONITORING_MD.is_file():
+        doc_text = OPERATIONAL_MONITORING_MD.read_text(encoding="utf-8").lower()
+        for required in (
+            "run health classifications",
+            "taskframe monitor summary",
+            "taskframe monitor failed",
+            "taskframe monitor pending",
+            "stuck-run detection",
+            "tool health",
+            "does not do automatically",
+            "controlled pilot readiness",
+        ):
+            if required not in doc_text:
+                missing.append(f"operational_monitoring_doc_missing:{required}")
+
+    if OPERATOR_UI_MD.is_file():
+        ui_doc = OPERATOR_UI_MD.read_text(encoding="utf-8").lower()
+        if "operational health" not in ui_doc:
+            missing.append("operator_ui_doc_missing:operational health")
+
+    if ROOT.joinpath("docs", "cli_reference.md").is_file():
+        cli_text = ROOT.joinpath("docs", "cli_reference.md").read_text(encoding="utf-8").lower()
+        for required in (
+            "taskframe monitor summary",
+            "taskframe monitor failed",
+            "taskframe monitor pending",
+            "taskframe monitor stuck",
+            "taskframe monitor blocked",
+            "taskframe monitor tools",
+            "taskframe monitor report",
+        ):
+            if required not in cli_text:
+                missing.append(f"cli_reference_missing:{required}")
+
+    try:
+        from runtime.operational_monitoring import build_monitoring_summary, build_operational_monitoring_report, rebuild_run_health_index
+        from runtime.persistence import PersistenceManager, write_json_atomic
+        from runtime.runtime_store import ensure_runtime_store_layout, validate_runtime_store
+        from runtime.run_report import generate_operator_run_report
+        from runtime.manifest_loader import load_manifest
+        from runtime.taskframe import create_taskframe
+    except Exception as exc:
+        return {"name": "operational_monitoring", "status": "FAIL", "error": str(exc)}
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        runtime_root = Path(tmp) / "runtime_data"
+        ensure_runtime_store_layout(runtime_root)
+        manifest = load_manifest("manifests/smoke_gmail_check.manifest.json")
+
+        def _save_frame(frame: Any) -> None:
+            PersistenceManager(runtime_root).save_snapshot(frame)
+            generate_operator_run_report(runtime_root, frame.frame_id, rebuild=True)
+
+        completed = create_taskframe(manifest)
+        completed.state = "COMPLETED"
+        completed.updated_at = "2026-05-20T10:00:00Z"
+        _save_frame(completed)
+
+        failed_validation = create_taskframe(manifest)
+        failed_validation.state = "FAILED_VALIDATION"
+        failed_validation.errors.append({"type": "validation", "message": "Business validation failed", "data": {}, "timestamp": failed_validation.updated_at})
+        _save_frame(failed_validation)
+
+        failed_execution = create_taskframe(manifest)
+        failed_execution.state = "FAILED_EXECUTION"
+        failed_execution.errors.append({"type": "tool", "message": "Tool execution failure", "data": {}, "timestamp": failed_execution.updated_at})
+        _save_frame(failed_execution)
+
+        waiting = create_taskframe(manifest)
+        waiting.state = "WAITING_FOR_EXECUTE"
+        waiting.pending_actions.append({"action_id": "pa_1", "tool": "wa/send", "status": "PENDING_APPROVAL"})
+        _save_frame(waiting)
+
+        stale = create_taskframe(manifest)
+        stale.state = "RUNNING"
+        stale.updated_at = "2026-05-10T10:00:00Z"
+        _save_frame(stale)
+
+        blocked_auth = create_taskframe(manifest)
+        blocked_auth.state = "FAILED_EXECUTION"
+        blocked_auth.errors.append({"type": "tool", "message": "invalid_grant: authentication failed", "data": {}, "timestamp": blocked_auth.updated_at})
+        _save_frame(blocked_auth)
+
+        blocked_dep = create_taskframe(manifest)
+        blocked_dep.state = "FAILED_EXECUTION"
+        blocked_dep.errors.append({"type": "tool", "message": "Connection timeout: external dependency unavailable", "data": {}, "timestamp": blocked_dep.updated_at})
+        _save_frame(blocked_dep)
+
+        write_json_atomic(
+            runtime_root / "tool_health" / "latest_tool_health.json",
+            {
+                "schema_version": 1,
+                "generated_at": "2026-05-20T10:00:00Z",
+                "include_optional": True,
+                "live_rpa": False,
+                "results": [
+                    {
+                        "tool_id": "google_workspace_readonly",
+                        "ok": True,
+                        "status": "ready",
+                        "severity": "info",
+                        "message": "Read-only Google Workspace tools are ready.",
+                        "can_auto_resolve": False,
+                        "recommended_action": "",
+                        "checked_at": "2026-05-20T10:00:00Z",
+                        "details": {},
+                    },
+                    {
+                        "tool_id": "gmail",
+                        "ok": False,
+                        "status": "needs_auth",
+                        "severity": "warning",
+                        "message": "Gmail requires authentication.",
+                        "can_auto_resolve": False,
+                        "recommended_action": "Refresh credentials before enabling live reads.",
+                        "checked_at": "2026-05-20T10:00:00Z",
+                        "details": {},
+                    },
+                ],
+                "by_tool": {},
+                "summary": {"tool_count": 2, "ready_count": 1, "failed_count": 1},
+            },
+        )
+
+        store_validation = validate_runtime_store(runtime_root)
+        if not store_validation.get("ok", False):
+            missing.append("seeded_runtime_store_validation_failed")
+
+        try:
+            index = rebuild_run_health_index(runtime_root, profile_name="demo", refresh_tool_health=False)
+            summary = build_monitoring_summary(runtime_root, profile_name="demo", rebuild=False)
+            report = build_operational_monitoring_report(runtime_root, profile_name="demo", rebuild=False)
+        except Exception:
+            missing.append("monitoring_report_generation_failed")
+            index = {"runs": []}
+            summary = {
+                "latest_failed_runs": [],
+                "latest_pending_runs": [],
+                "latest_stuck_runs": [],
+                "latest_blocked_runs": [],
+                "tool_health_status": {"status": "unknown"},
+            }
+            report = {"json_path": "", "markdown_path": "", "html_path": ""}
+
+        if not any(row.get("frame_id") == failed_validation.frame_id for row in summary.get("latest_failed_runs", [])):
+            missing.append("failed_run_missing_from_monitoring")
+        if not any(row.get("frame_id") == waiting.frame_id for row in summary.get("latest_pending_runs", [])):
+            missing.append("pending_run_missing_from_monitoring")
+        if not any(row.get("frame_id") == stale.frame_id for row in summary.get("latest_stuck_runs", [])):
+            missing.append("stale_run_missing_from_monitoring")
+        if not any(row.get("frame_id") in {blocked_auth.frame_id, blocked_dep.frame_id} for row in summary.get("latest_blocked_runs", [])):
+            missing.append("blocked_run_missing_from_monitoring")
+        if not bool(summary.get("tool_health_status", {}).get("status")):
+            missing.append("tool_health_aggregation_failed")
+        if not all(Path(str(report.get(key, ""))).is_file() for key in ("json_path", "markdown_path", "html_path")):
+            missing.append("monitoring_report_missing_outputs")
+        if not index.get("runs"):
+            missing.append("monitoring_index_empty")
+
+        cli_commands = [
+            ("monitor_summary", ["python", "-m", "src.taskframe_cli", "monitor", "summary", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("monitor_failed", ["python", "-m", "src.taskframe_cli", "monitor", "failed", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("monitor_pending", ["python", "-m", "src.taskframe_cli", "monitor", "pending", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("monitor_stuck", ["python", "-m", "src.taskframe_cli", "monitor", "stuck", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("monitor_blocked", ["python", "-m", "src.taskframe_cli", "monitor", "blocked", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("monitor_tools", ["python", "-m", "src.taskframe_cli", "monitor", "tools", "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("monitor_report", ["python", "-m", "src.taskframe_cli", "monitor", "report", "--runtime-data-dir", str(runtime_root), "--json"]),
+        ]
+        for name, command in cli_commands:
+            result = run_command(name, command, timeout_seconds=180)
+            if result["status"] != "PASS":
+                missing.append(f"{name}_failed")
+                continue
+            try:
+                payload = json.loads(result["stdout"] or "{}")
+            except Exception:
+                payload = {}
+            if not payload:
+                missing.append(f"{name}_invalid_json")
+
+    return {
+        "name": "operational_monitoring",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_recovery() -> dict[str, Any]:
+    missing: list[str] = []
+
+    doc_paths = [
+        RECOVERY_AND_IDEMPOTENCY_MD,
+        ROOT / "docs" / "cli_reference.md",
+        ROOT / "docs" / "runtime_store.md",
+        ROOT / "docs" / "operational_monitoring.md",
+        ROOT / "docs" / "live_execution_safety.md",
+    ]
+    for path in doc_paths:
+        if not path.is_file():
+            missing.append(_display_path(path))
+
+    if RECOVERY_AND_IDEMPOTENCY_MD.is_file():
+        doc_text = RECOVERY_AND_IDEMPOTENCY_MD.read_text(encoding="utf-8").lower()
+        for required in (
+            "retryable",
+            "manual review",
+            "idempotency",
+            "dry-run by default",
+            "taskframe recover assess",
+            "taskframe recover retry-step",
+            "taskframe recover resume",
+        ):
+            if required not in doc_text:
+                missing.append(f"recovery_doc_missing:{required}")
+
+    if ROOT.joinpath("docs", "cli_reference.md").is_file():
+        cli_text = ROOT.joinpath("docs", "cli_reference.md").read_text(encoding="utf-8").lower()
+        for required in (
+            "taskframe recover assess",
+            "taskframe recover retry-step",
+            "taskframe recover resume",
+        ):
+            if required not in cli_text:
+                missing.append(f"cli_reference_missing:{required}")
+
+    try:
+        from runtime.manifest_loader import load_manifest
+        from runtime.persistence import PersistenceManager, write_json_atomic
+        from runtime.recovery import assess_recovery, generate_recovery_report, ensure_pending_action_idempotency, verify_pending_action_safe_to_execute
+        from runtime.runtime_store import ensure_runtime_store_layout
+        from runtime.taskframe import create_taskframe
+    except Exception as exc:
+        return {"name": "recovery", "status": "FAIL", "error": str(exc)}
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        runtime_root = Path(tmp) / "runtime_data"
+        ensure_runtime_store_layout(runtime_root)
+        manifest = load_manifest("manifests/smoke_gmail_check.manifest.json")
+
+        def _save_frame(frame: Any) -> None:
+            PersistenceManager(runtime_root).save_snapshot(frame)
+
+        retryable = create_taskframe(manifest)
+        retryable.state = "FAILED_EXECUTION"
+        retryable.steps[0].status = "FAILED"
+        retryable.steps[0].last_error = "Connection timeout: external dependency unavailable"
+        retryable.errors.append({"type": "tool", "message": retryable.steps[0].last_error, "data": {}, "timestamp": retryable.updated_at})
+        _save_frame(retryable)
+
+        validation = create_taskframe(manifest)
+        validation.state = "FAILED_VALIDATION"
+        validation.steps[0].status = "FAILED"
+        validation.errors.append({"type": "validation", "message": "Business validation failed", "data": {}, "timestamp": validation.updated_at})
+        _save_frame(validation)
+
+        stale = create_taskframe(manifest)
+        stale.state = "RUNNING"
+        stale.updated_at = "2026-05-01T10:00:00Z"
+        _save_frame(stale)
+
+        duplicate = create_taskframe(load_manifest("manifests/smoke_whatsapp_stage_send.manifest.json"))
+        duplicate.state = "WAITING_FOR_EXECUTE"
+        duplicate.pending_actions.append(
+            ensure_pending_action_idempotency(
+                duplicate,
+                {
+                    "action_id": "pa_1",
+                    "step_id": "stage_message",
+                    "tool": "wa/send",
+                    "namespace": "wa",
+                    "action": "send",
+                    "action_type": "send_customer_message",
+                    "output_alias": "sent_msg",
+                    "args": {"chat": "Cornelia", "message": "Hello"},
+                    "status": "APPROVED",
+                    "side_effect": True,
+                    "requires_approval": True,
+                    "created_at": duplicate.updated_at,
+                    "side_effect_performed": False,
+                },
+                step_id="stage_message",
+            )
+        )
+        duplicate.executed_actions.append(
+            {
+                "action_id": "pa_1",
+                "step_id": "stage_message",
+                "tool": "wa/send",
+                "namespace": "wa",
+                "action": "send",
+                "action_type": "send_customer_message",
+                "output_alias": "sent_msg",
+                "args": {"chat": "Cornelia", "message": "Hello"},
+                "status": "EXECUTED",
+                "dry_run": True,
+                "side_effect_performed": False,
+                "idempotency_key": duplicate.pending_actions[0]["idempotency_key"],
+                "business_ref": duplicate.pending_actions[0]["business_ref"],
+                "result_type": "whatsapp_send_result",
+                "executed_at": duplicate.updated_at,
+                "governance": {},
+            }
+        )
+        _save_frame(duplicate)
+
+        report_frame = create_taskframe(manifest)
+        report_frame.state = "FAILED_EXECUTION"
+        report_frame.steps[0].status = "FAILED"
+        report_frame.steps[0].last_error = "temporary failure"
+        _save_frame(report_frame)
+
+        retry_assessment = assess_recovery(retryable, runtime_data_dir=runtime_root, profile_name="demo")
+        if retry_assessment.get("recovery_status") != "retryable":
+            missing.append("retryable_read_failure_not_classified")
+
+        validation_assessment = assess_recovery(validation, runtime_data_dir=runtime_root, profile_name="demo")
+        if validation_assessment.get("recovery_status") != "manual_review_required":
+            missing.append("validation_failure_not_manual_review")
+
+        stale_assessment = assess_recovery(stale, runtime_data_dir=runtime_root, profile_name="demo")
+        if stale_assessment.get("recovery_status") != "resumable":
+            missing.append("stale_running_not_resumable")
+
+        duplicate_check = verify_pending_action_safe_to_execute(duplicate, duplicate.pending_actions[0], profile_name="demo")
+        if duplicate_check.get("ok", True):
+            missing.append("duplicate_pending_action_not_blocked")
+
+        report = generate_recovery_report(report_frame, runtime_data_dir=runtime_root, profile_name="demo")
+        if not all(Path(str(report.get(key, ""))).is_file() for key in ("json_path", "markdown_path")):
+            missing.append("recovery_report_missing_outputs")
+
+        cli_commands = [
+            ("recover_assess", ["python", "-m", "src.taskframe_cli", "recover", "assess", str(retryable.frame_id), "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("recover_retry_step", ["python", "-m", "src.taskframe_cli", "recover", "retry-step", str(retryable.frame_id), "--step", retryable.steps[0].step_id, "--runtime-data-dir", str(runtime_root), "--json"]),
+            ("recover_resume", ["python", "-m", "src.taskframe_cli", "recover", "resume", str(stale.frame_id), "--runtime-data-dir", str(runtime_root), "--json"]),
+        ]
+        for name, command in cli_commands:
+            result = run_command(name, command, timeout_seconds=180)
+            if result["status"] != "PASS":
+                missing.append(f"{name}_failed")
+                continue
+            try:
+                payload = json.loads(result["stdout"] or "{}")
+            except Exception:
+                payload = {}
+            if not payload:
+                missing.append(f"{name}_invalid_json")
+            if payload and not bool(payload.get("dry_run", False)):
+                missing.append(f"{name}_not_dry_run")
+
+    return {
+        "name": "recovery",
+        "status": "PASS" if not missing else "FAIL",
         "missing": missing,
     }
 

@@ -65,6 +65,24 @@ Lookup order:
 
 Runtime data defaults to `runtime_data/` unless `TASKFRAME_RUNTIME_DIR` or a CLI override is supplied.
 
+The runtime store is organized as a documented artifact layout under `runtime_data/`:
+
+- `taskframes/`
+- `reports/`
+- `approval_packs/`
+- `evidence/`
+- `tool_health/`
+- `indexes/`
+- `backups/`
+- `cleanup/`
+- `migrations/`
+
+`taskframe runtime-store check` validates that layout and reports corrupted or orphaned artifacts. `taskframe runtime-store backup` writes a zip archive into `runtime_data/backups/`, and `taskframe runtime-store restore` only extracts into a separate target directory.
+
+Operational monitoring is layered on top of the runtime store and is read-only. Use `taskframe monitor summary`, `taskframe monitor failed`, `taskframe monitor pending`, `taskframe monitor stuck`, `taskframe monitor blocked`, `taskframe monitor tools`, and `taskframe monitor report` to inspect run health without changing execution state.
+
+Pending actions and live-related artifacts are protected by default so demo and pilot runs cannot be cleaned away accidentally.
+
 ## Environment variables
 
 Supported variables:

@@ -26,6 +26,8 @@ Runtime profile separation is part of that default safety boundary:
 - `pilot` is the controlled live-read profile, with allowlisted read-only tools only
 - `live` remains reserved and does not enable live side effects
 
+Recovery stays dry-run by default as well. Retry and resume assessments are operator-reviewed controls, not automatic self-healing paths.
+
 ## CLI guardrails
 
 Use these commands to inspect safety before attempting any execution:

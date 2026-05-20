@@ -19,19 +19,23 @@ from .tool_capabilities import ToolHealthResult
 from .tool_capability_registry import get_tool_capability, list_tool_capabilities
 
 
-LATEST_TOOL_HEALTH_JSON = Path("runtime_data") / "tool_health" / "latest_tool_health.json"
+def get_latest_tool_health_json_path(runtime_data_dir: str | Path = "runtime_data") -> Path:
+    return Path(runtime_data_dir) / "tool_health" / "latest_tool_health.json"
 
 
-def check_tool_health(tool_id: str, *, live: bool = False) -> ToolHealthResult:
+LATEST_TOOL_HEALTH_JSON = get_latest_tool_health_json_path()
+
+
+def check_tool_health(tool_id: str, *, live: bool = False, runtime_data_dir: str | Path = "runtime_data") -> ToolHealthResult:
     result = _check_tool_health(tool_id, live=live)
-    snapshot = load_latest_tool_health_snapshot()
+    snapshot = load_latest_tool_health_snapshot(runtime_data_dir)
     previous = [ToolHealthResult.from_dict(item) for item in snapshot.get("results", []) if isinstance(item, dict) and str(item.get("tool_id", "")) != tool_id]
     previous.append(result)
-    _persist_latest(previous, include_optional=bool(snapshot.get("include_optional", True)), live_rpa=bool(snapshot.get("live_rpa", False)) or live)
+    _persist_latest(previous, include_optional=bool(snapshot.get("include_optional", True)), live_rpa=bool(snapshot.get("live_rpa", False)) or live, runtime_data_dir=runtime_data_dir)
     return result
 
 
-def check_all_tool_health(*, include_optional: bool = True, live_rpa: bool = False) -> list[ToolHealthResult]:
+def check_all_tool_health(*, include_optional: bool = True, live_rpa: bool = False, runtime_data_dir: str | Path = "runtime_data") -> list[ToolHealthResult]:
     results = []
     for capability in list_tool_capabilities():
         if not include_optional and capability.core_or_optional != "core":
@@ -50,15 +54,16 @@ def check_all_tool_health(*, include_optional: bool = True, live_rpa: bool = Fal
                 details={"capability": capability.to_dict()},
             )
         results.append(result)
-    _persist_latest(results, include_optional=include_optional, live_rpa=live_rpa)
+    _persist_latest(results, include_optional=include_optional, live_rpa=live_rpa, runtime_data_dir=runtime_data_dir)
     return results
 
 
-def load_latest_tool_health_snapshot() -> dict[str, Any]:
-    if not LATEST_TOOL_HEALTH_JSON.is_file():
+def load_latest_tool_health_snapshot(runtime_data_dir: str | Path = "runtime_data") -> dict[str, Any]:
+    path = get_latest_tool_health_json_path(runtime_data_dir)
+    if not path.is_file():
         return {"results": [], "by_tool": {}, "generated_at": "", "include_optional": True, "live_rpa": False}
     try:
-        payload = json.loads(LATEST_TOOL_HEALTH_JSON.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return {"results": [], "by_tool": {}, "generated_at": "", "include_optional": True, "live_rpa": False}
     if not isinstance(payload, dict):
@@ -662,8 +667,9 @@ def _check_toolpack(capability, checked_at: str, *, live: bool = False) -> ToolH
     )
 
 
-def _persist_latest(results: list[ToolHealthResult], *, include_optional: bool, live_rpa: bool) -> None:
-    LATEST_TOOL_HEALTH_JSON.parent.mkdir(parents=True, exist_ok=True)
+def _persist_latest(results: list[ToolHealthResult], *, include_optional: bool, live_rpa: bool, runtime_data_dir: str | Path = "runtime_data") -> None:
+    path = get_latest_tool_health_json_path(runtime_data_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
     results_payload = [result.to_dict() for result in results]
     by_tool = {result.tool_id: result.to_dict() for result in results}
     payload = {
@@ -678,4 +684,4 @@ def _persist_latest(results: list[ToolHealthResult], *, include_optional: bool, 
             "failed_count": sum(1 for result in results if not result.ok),
         },
     }
-    LATEST_TOOL_HEALTH_JSON.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

@@ -89,6 +89,8 @@ from runtime.tool_capability_registry import list_tool_capabilities
 from runtime.tool_health import check_all_tool_health, check_tool_health, load_latest_tool_health_snapshot
 from runtime.tool_setup import get_tool_setup_instructions, run_safe_setup_action
 from runtime.run_report import generate_demo_run_report
+from runtime.operational_monitoring import build_monitoring_summary, build_operational_monitoring_report
+from runtime.recovery import assess_recovery
 from src.toolpack_loader import discover_toolpacks, load_toolpack_descriptor, validate_toolpack_descriptor
 from src.readiness_scorecard import build_readiness_scorecard
 
@@ -174,6 +176,12 @@ def create_scroll_card(parent: ttk.Widget, title: str, height: int = 8) -> tuple
 # Generate Report
 # Open HTML
 # Open Folder
+# Recovery Assessment
+# safe-to-retry
+# safe-to-resume
+# side-effect risk
+# recommended action
+# retry/resume command suggestion
 # Report Status
 # Selected Step Detail
 # Event Detail
@@ -246,6 +254,9 @@ class OperatorConsole:
         self.report_status: dict = {}
         self.scenario_result: dict = {}
         self.tool_health_snapshot: dict = {}
+        self.monitoring_snapshot: dict = {}
+        self.monitoring_report: dict = {}
+        self.recovery_snapshot: dict = {}
         self.toolpack_discovery_snapshot: dict = {}
         self.selected_tool_id: str = ""
         self.view_mode_var = tk.StringVar(value="Demo")
@@ -1379,6 +1390,7 @@ class OperatorConsole:
         self.active_report_result = result.get("report_result", {}) if isinstance(result.get("report_result", {}), dict) else {}
         artifact_state = build_artifact_state(self.active_frame_id, self.active_report_result)
         self.active_artifact_paths = artifact_state.get("paths", {}) if isinstance(artifact_state.get("paths", {}), dict) else {}
+        self._ensure_recovery_snapshot()
 
     def _load_result_frame(self, result: dict | None) -> None:
         result = result if isinstance(result, dict) else {}
@@ -1391,6 +1403,7 @@ class OperatorConsole:
         self.playback_running = self.playing
         self.playback_paused = False
         self._cancel_playback_timer()
+        self._ensure_recovery_snapshot()
 
     def _clear_active_run(self) -> None:
         self.current_run = None
@@ -1705,6 +1718,120 @@ class OperatorConsole:
         )
         self.tool_health_details.pack(fill="x", expand=False)
 
+        operational = ttk.Frame(panel, style="Card.TFrame", padding=8)
+        operational.pack(fill="both", expand=True, pady=(10, 0))
+        operational.columnconfigure(0, weight=1)
+        ttk.Label(operational, text="Operational Health", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        op_controls = ttk.Frame(operational, style="Card.TFrame")
+        op_controls.grid(row=1, column=0, sticky="ew", pady=(6, 8))
+        ttk.Button(op_controls, text="Refresh", command=self.on_refresh_operational_health).pack(side="left", padx=(0, 6))
+        ttk.Button(op_controls, text="Generate Report", command=self.on_generate_operational_health_report).pack(side="left", padx=(0, 6))
+        ttk.Button(op_controls, text="Open Report Folder", command=self.on_open_operational_health_report_folder).pack(side="left")
+
+        summary_row = ttk.Frame(operational, style="Card.TFrame")
+        summary_row.grid(row=2, column=0, sticky="ew")
+        for idx in range(8):
+            summary_row.columnconfigure(idx, weight=1)
+        self.operational_summary_labels: dict[str, ttk.Label] = {}
+        for index, (label, key) in enumerate(
+            (
+                ("Run Health Summary", "total_indexed_runs"),
+                ("Failed Runs", "failed_count"),
+                ("Pending Approvals", "pending_count"),
+                ("Stuck Runs", "stuck_count"),
+                ("Tool Health", "tool_health_status"),
+                ("External Dependencies", "blocked_count"),
+                ("Runtime Store Status", "runtime_store_status"),
+                ("Recommended Actions", "recommended_actions"),
+            )
+        ):
+            card = ttk.Frame(summary_row, style="Card.TFrame", padding=(6, 4))
+            card.grid(row=0, column=index, sticky="nsew", padx=(0, 6))
+            ttk.Label(card, text=label, style="Meta.TLabel", wraplength=110, justify="left").pack(anchor="w")
+            value_label = ttk.Label(card, text="—", style="Section.TLabel", wraplength=110, justify="left")
+            value_label.pack(anchor="w")
+            self.operational_summary_labels[key] = value_label
+
+        tree_frame = ttk.Frame(operational, style="Card.TFrame")
+        tree_frame.grid(row=3, column=0, sticky="nsew", pady=(10, 0))
+        tree_frame.columnconfigure(0, weight=1)
+        tree_frame.rowconfigure(0, weight=1)
+        columns = ("frame_id", "manifest_id", "state", "health", "updated_at", "failure_category", "recommended_action", "report_path")
+        self.operational_health_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=8, selectmode="browse")
+        for column, heading, width in (
+            ("frame_id", "Frame ID", 120),
+            ("manifest_id", "Manifest ID", 150),
+            ("state", "State", 120),
+            ("health", "Health", 90),
+            ("updated_at", "Updated", 140),
+            ("failure_category", "Failure Category", 150),
+            ("recommended_action", "Recommended Action", 220),
+            ("report_path", "Report Path", 220),
+        ):
+            self.operational_health_tree.heading(column, text=heading)
+            self.operational_health_tree.column(column, width=width, anchor="w")
+        self.operational_health_tree.grid(row=0, column=0, sticky="nsew")
+        op_scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.operational_health_tree.yview)
+        op_scroll.grid(row=0, column=1, sticky="ns")
+        self.operational_health_tree.configure(yscrollcommand=op_scroll.set)
+        self.operational_health_tree.bind("<<TreeviewSelect>>", self._on_operational_health_selected)
+
+        self.operational_health_detail = tk.Text(
+            operational,
+            wrap="word",
+            height=6,
+            bg="#f7f8fa",
+            fg="#1f2937",
+            relief="flat",
+            highlightthickness=0,
+            borderwidth=0,
+            font=("Consolas", 9),
+            padx=8,
+            pady=8,
+        )
+        self.operational_health_detail.grid(row=4, column=0, sticky="nsew", pady=(8, 0))
+
+        recovery = ttk.Frame(panel, style="Card.TFrame", padding=8)
+        recovery.pack(fill="both", expand=True, pady=(10, 0))
+        recovery.columnconfigure(0, weight=1)
+        ttk.Label(recovery, text="Recovery Assessment", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        recovery_cards = ttk.Frame(recovery, style="Card.TFrame")
+        recovery_cards.grid(row=1, column=0, sticky="ew", pady=(6, 8))
+        for idx in range(6):
+            recovery_cards.columnconfigure(idx, weight=1)
+        self.recovery_summary_labels: dict[str, ttk.Label] = {}
+        for index, (label, key) in enumerate(
+            (
+                ("Recovery Status", "recovery_status"),
+                ("Safe To Retry", "safe_to_retry"),
+                ("Safe To Resume", "safe_to_resume"),
+                ("Side-Effect Risk", "side_effect_risk"),
+                ("Recommended Action", "recommended_action"),
+                ("Command Suggestion", "command_suggestion"),
+            )
+        ):
+            card = ttk.Frame(recovery_cards, style="Card.TFrame", padding=(6, 4))
+            card.grid(row=0, column=index, sticky="nsew", padx=(0, 6))
+            ttk.Label(card, text=label, style="Meta.TLabel", wraplength=110, justify="left").pack(anchor="w")
+            value_label = ttk.Label(card, text="—", style="Section.TLabel", wraplength=160, justify="left")
+            value_label.pack(anchor="w")
+            self.recovery_summary_labels[key] = value_label
+
+        self.recovery_detail = tk.Text(
+            recovery,
+            wrap="word",
+            height=5,
+            bg="#f7f8fa",
+            fg="#1f2937",
+            relief="flat",
+            highlightthickness=0,
+            borderwidth=0,
+            font=("Consolas", 9),
+            padx=8,
+            pady=8,
+        )
+        self.recovery_detail.grid(row=2, column=0, sticky="nsew")
+
     def _build_runtime_trace(self, parent: ttk.Frame) -> None:
         ttk.Label(parent, text="Runtime Trace", style="DarkSection.TLabel").grid(row=0, column=0, sticky="w", pady=(0, 10))
         body = ttk.Frame(parent, style="DarkCard.TFrame")
@@ -1755,6 +1882,9 @@ class OperatorConsole:
         self._ensure_toolpack_discovery_snapshot()
         self._refresh_workbench_manifest_catalog()
         self._ensure_tool_health_snapshot()
+        self._ensure_monitoring_snapshot()
+        self._ensure_recovery_snapshot()
+        self.monitoring_report = {}
         self.last_action_result = None
         self.current_run = None
         self.timeline = []
@@ -1769,10 +1899,82 @@ class OperatorConsole:
         self._render_tool_capabilities_panel()
 
     def _ensure_tool_health_snapshot(self) -> None:
-        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        self.tool_health_snapshot = load_latest_tool_health_snapshot(self.runtime_root)
         if not self.tool_health_snapshot.get("results"):
-            check_all_tool_health(include_optional=True, live_rpa=False)
-            self.tool_health_snapshot = load_latest_tool_health_snapshot()
+            check_all_tool_health(include_optional=True, live_rpa=False, runtime_data_dir=self.runtime_root)
+            self.tool_health_snapshot = load_latest_tool_health_snapshot(self.runtime_root)
+
+    def _ensure_monitoring_snapshot(self) -> None:
+        try:
+            self.monitoring_snapshot = build_monitoring_summary(self.runtime_root, limit=20, rebuild=False)
+        except Exception:
+            self.monitoring_snapshot = {
+                "ok": False,
+                "summary": {
+                    "total_indexed_runs": 0,
+                    "healthy_count": 0,
+                    "pending_count": 0,
+                    "warning_count": 0,
+                    "failed_count": 0,
+                    "stuck_count": 0,
+                    "blocked_count": 0,
+                },
+                "tool_health_status": {"status": "unknown", "summary": {}},
+                "runtime_store_status": {"ok": False, "index_rebuildable": False},
+                "live_read_readiness": {"status": "blocked"},
+                "latest_failed_runs": [],
+                "latest_pending_runs": [],
+                "latest_stuck_runs": [],
+                "latest_blocked_runs": [],
+            }
+
+    def _ensure_recovery_snapshot(self) -> None:
+        frame = {}
+        if isinstance(self.last_snapshot, dict):
+            active_frame = self.last_snapshot.get("active_frame", {})
+            if isinstance(active_frame, dict) and active_frame.get("frame_id"):
+                frame = active_frame
+        if not frame and isinstance(self.current_run, dict):
+            snapshot = self.current_run.get("snapshot", {})
+            if isinstance(snapshot, dict):
+                active_frame = snapshot.get("active_frame", {})
+                if isinstance(active_frame, dict) and active_frame.get("frame_id"):
+                    frame = active_frame
+        if not frame and isinstance(self.current_run, dict) and self.current_run.get("frame_id"):
+            frame = self.current_run
+        if not frame and isinstance(self.last_action_result, dict) and self.last_action_result.get("frame_id"):
+            frame = self.last_action_result
+        if not isinstance(frame, dict) or not frame.get("frame_id"):
+            self.recovery_snapshot = {
+                "ok": False,
+                "frame_id": "",
+                "manifest_id": "",
+                "state": "",
+                "recovery_status": "not_recoverable",
+                "safe_to_retry": False,
+                "safe_to_resume": False,
+                "side_effect_risk": "unknown",
+                "reason": "No active frame is selected.",
+                "recommended_action": "Select a run to inspect recovery options.",
+                "command_suggestion": "",
+            }
+            return
+        try:
+            self.recovery_snapshot = assess_recovery(frame, runtime_data_dir=self.runtime_root, manifest_dir="manifests")
+        except Exception:
+            self.recovery_snapshot = {
+                "ok": False,
+                "frame_id": str(frame.get("frame_id", "")),
+                "manifest_id": str(frame.get("manifest_id", "")),
+                "state": str(frame.get("state", "")),
+                "recovery_status": "manual_review_required",
+                "safe_to_retry": False,
+                "safe_to_resume": False,
+                "side_effect_risk": "unknown",
+                "reason": "Recovery assessment could not be generated.",
+                "recommended_action": "Inspect the active frame manually.",
+                "command_suggestion": "",
+            }
 
     def _ensure_toolpack_discovery_snapshot(self) -> None:
         try:
@@ -1811,7 +2013,12 @@ class OperatorConsole:
         self._update_dataset_validation_label()
 
     def on_refresh_tool_health(self) -> None:
-        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        self.tool_health_snapshot = load_latest_tool_health_snapshot(self.runtime_root)
+        self._render_tool_capabilities_panel()
+
+    def on_refresh_operational_health(self) -> None:
+        self._ensure_monitoring_snapshot()
+        self._ensure_recovery_snapshot()
         self._render_tool_capabilities_panel()
 
     def on_refresh_tool_packs(self) -> None:
@@ -1838,16 +2045,18 @@ class OperatorConsole:
             pass
 
     def on_run_all_tool_health(self) -> None:
-        check_all_tool_health(include_optional=True, live_rpa=False)
-        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        check_all_tool_health(include_optional=True, live_rpa=False, runtime_data_dir=self.runtime_root)
+        self.tool_health_snapshot = load_latest_tool_health_snapshot(self.runtime_root)
+        self._ensure_monitoring_snapshot()
         self._render_tool_capabilities_panel()
 
     def on_test_selected_tool(self) -> None:
         tool_id = self._selected_tool_id()
         if not tool_id:
             return
-        check_tool_health(tool_id, live=False)
-        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        check_tool_health(tool_id, live=False, runtime_data_dir=self.runtime_root)
+        self.tool_health_snapshot = load_latest_tool_health_snapshot(self.runtime_root)
+        self._ensure_monitoring_snapshot()
         self._render_tool_capabilities_panel()
 
     def on_retry_selected_tool(self) -> None:
@@ -1871,8 +2080,9 @@ class OperatorConsole:
         )
         if not confirmed:
             return
-        check_tool_health(tool_id, live=True)
-        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        check_tool_health(tool_id, live=True, runtime_data_dir=self.runtime_root)
+        self.tool_health_snapshot = load_latest_tool_health_snapshot(self.runtime_root)
+        self._ensure_monitoring_snapshot()
         self._render_tool_capabilities_panel()
 
     def on_setup_selected_tool(self) -> None:
@@ -1899,8 +2109,9 @@ class OperatorConsole:
             )
             return
         run_safe_setup_action(tool_id)
-        check_tool_health(tool_id, live=False)
-        self.tool_health_snapshot = load_latest_tool_health_snapshot()
+        check_tool_health(tool_id, live=False, runtime_data_dir=self.runtime_root)
+        self.tool_health_snapshot = load_latest_tool_health_snapshot(self.runtime_root)
+        self._ensure_monitoring_snapshot()
         self._render_tool_capabilities_panel()
 
     def on_select_customer_message(self, message_id: str) -> None:
@@ -2384,6 +2595,7 @@ class OperatorConsole:
         self.last_action_result = result
         self._record_active_run(result)
         self._load_result_frame(result)
+        self._ensure_recovery_snapshot()
         self._render_current_view()
 
     def _on_speed_changed(self, _event: object) -> None:
@@ -2597,6 +2809,174 @@ class OperatorConsole:
             self.tool_health_tree.focus(first)
             self.selected_tool_id = first
         self._render_tool_details()
+        self._render_operational_health_panel()
+        self._render_recovery_panel()
+
+    def _render_operational_health_panel(self) -> None:
+        if not hasattr(self, "operational_health_tree"):
+            return
+        snapshot = self.monitoring_snapshot if isinstance(self.monitoring_snapshot, dict) else {}
+        summary = snapshot.get("summary", {}) if isinstance(snapshot.get("summary", {}), dict) else {}
+        profile_safety = snapshot.get("profile_safety", {}) if isinstance(snapshot.get("profile_safety", {}), dict) else {}
+        tool_health = snapshot.get("tool_health_status", {}) if isinstance(snapshot.get("tool_health_status", {}), dict) else {}
+        runtime_store_status = snapshot.get("runtime_store_status", {}) if isinstance(snapshot.get("runtime_store_status", {}), dict) else {}
+        live_read = snapshot.get("live_read_readiness", {}) if isinstance(snapshot.get("live_read_readiness", {}), dict) else {}
+        recommended_actions = snapshot.get("newest_failure", {}) if isinstance(snapshot.get("newest_failure", {}), dict) else {}
+
+        for item_id in self.operational_health_tree.get_children():
+            self.operational_health_tree.delete(item_id)
+        rows = []
+        for bucket in ("latest_failed_runs", "latest_pending_runs", "latest_stuck_runs", "latest_blocked_runs"):
+            rows.extend([item for item in snapshot.get(bucket, []) if isinstance(item, dict)])
+        rows = sorted(rows, key=lambda item: str(item.get("updated_at", "")), reverse=True)
+        self.operational_health_rows: dict[str, dict] = {}
+        for index, row in enumerate(rows):
+            iid = f"{row.get('frame_id', '')}:{index}"
+            self.operational_health_rows[iid] = row
+            self.operational_health_tree.insert(
+                "",
+                "end",
+                iid=iid,
+                values=(
+                    row.get("frame_id", ""),
+                    row.get("manifest_id", ""),
+                    row.get("state", ""),
+                    row.get("health", ""),
+                    row.get("updated_at", ""),
+                    row.get("failure_category", row.get("stale_warning", "")),
+                    row.get("recommended_action", ""),
+                    row.get("report_path", ""),
+                ),
+            )
+        if self.operational_health_tree.get_children():
+            first = self.operational_health_tree.get_children()[0]
+            self.operational_health_tree.selection_set(first)
+            self.operational_health_tree.focus(first)
+        self._update_operational_summary_labels(summary, tool_health, runtime_store_status, live_read, profile_safety)
+        self._render_operational_health_detail()
+
+    def _update_operational_summary_labels(
+        self,
+        summary: dict,
+        tool_health: dict,
+        runtime_store_status: dict,
+        live_read: dict,
+        profile_safety: dict,
+    ) -> None:
+        labels = getattr(self, "operational_summary_labels", {})
+        if not isinstance(labels, dict):
+            return
+        values = {
+            "total_indexed_runs": summary.get("total_indexed_runs", 0),
+            "failed_count": summary.get("failed_count", 0),
+            "pending_count": summary.get("pending_count", 0),
+            "stuck_count": summary.get("stuck_count", 0),
+            "tool_health_status": tool_health.get("status", "unknown"),
+            "blocked_count": summary.get("blocked_count", 0),
+            "runtime_store_status": "ok" if runtime_store_status.get("ok") else "issue",
+            "recommended_actions": "review" if (summary.get("failed_count", 0) or summary.get("blocked_count", 0) or summary.get("stuck_count", 0)) else "none",
+        }
+        for key, value in values.items():
+            widget = labels.get(key)
+            if isinstance(widget, ttk.Label):
+                widget.configure(text=str(value))
+        self.operational_health_runtime_note = (
+            f"Profile safe for demo={str(profile_safety.get('safe_for_demo', False)).lower()} | "
+            f"live-read={str(live_read.get('status', 'blocked'))}"
+        )
+
+    def _render_operational_health_detail(self) -> None:
+        if not hasattr(self, "operational_health_detail"):
+            return
+        selected = self.operational_health_tree.selection() if hasattr(self, "operational_health_tree") else []
+        payload = self.monitoring_snapshot if isinstance(self.monitoring_snapshot, dict) else {}
+        selected_row = {}
+        if selected:
+            selected_row = dict(getattr(self, "operational_health_rows", {}).get(selected[0], {}))
+        lines = [
+            "Operational Health",
+            "---",
+            f"Profile: {payload.get('profile', '')}",
+            f"Runtime store validation: {'ok' if payload.get('runtime_store_validation', {}).get('ok') else 'issue'}",
+            f"Live-read readiness: {payload.get('live_read_readiness', {}).get('status', 'blocked')}",
+            f"Tool health: {payload.get('tool_health_status', {}).get('status', 'unknown')}",
+            "",
+            f"Newest failure: {payload.get('newest_failure', {}).get('frame_id', '')}",
+            f"Oldest pending: {payload.get('oldest_pending_approval', {}).get('frame_id', '')}",
+        ]
+        if selected_row:
+            lines.extend(
+                [
+                    "",
+                    f"Selected frame: {selected_row.get('frame_id', '')}",
+                    f"Manifest ID: {selected_row.get('manifest_id', '')}",
+                    f"State: {selected_row.get('state', '')}",
+                    f"Health: {selected_row.get('health', '')}",
+                    f"Failure category: {selected_row.get('failure_category', selected_row.get('stale_warning', ''))}",
+                    f"Recommended action: {selected_row.get('recommended_action', '')}",
+                    f"Report path: {selected_row.get('report_path', '')}",
+                ]
+            )
+        if payload.get("runtime_store_status"):
+            lines.extend(
+                [
+                    "",
+                    f"Runtime store issues: {payload.get('runtime_store_status', {}).get('issue_count', 0)}",
+                    f"Corrupted paths: {payload.get('runtime_store_status', {}).get('corrupted_path_count', 0)}",
+                ]
+            )
+        self._set_text(self.operational_health_detail, chr(10).join(lines))
+
+    def _render_recovery_panel(self) -> None:
+        if not hasattr(self, "recovery_detail"):
+            return
+        payload = self.recovery_snapshot if isinstance(self.recovery_snapshot, dict) else {}
+        labels = getattr(self, "recovery_summary_labels", {})
+        if isinstance(labels, dict):
+            values = {
+                "recovery_status": payload.get("recovery_status", "not_recoverable"),
+                "safe_to_retry": str(payload.get("safe_to_retry", False)).lower(),
+                "safe_to_resume": str(payload.get("safe_to_resume", False)).lower(),
+                "side_effect_risk": payload.get("side_effect_risk", "unknown"),
+                "recommended_action": payload.get("recommended_action", ""),
+                "command_suggestion": payload.get("command_suggestion", ""),
+            }
+            for key, value in values.items():
+                widget = labels.get(key)
+                if isinstance(widget, ttk.Label):
+                    widget.configure(text=str(value))
+        lines = [
+            "Recovery Assessment",
+            "---",
+            f"Frame ID: {payload.get('frame_id', '')}",
+            f"Manifest ID: {payload.get('manifest_id', '')}",
+            f"State: {payload.get('state', '')}",
+            f"Recovery status: {payload.get('recovery_status', '')}",
+            f"Safe to retry: {str(payload.get('safe_to_retry', False)).lower()}",
+            f"Safe to resume: {str(payload.get('safe_to_resume', False)).lower()}",
+            f"Side-effect risk: {payload.get('side_effect_risk', '')}",
+            f"Recommended action: {payload.get('recommended_action', '')}",
+            f"Retry/resume command suggestion: {payload.get('command_suggestion', '')}",
+        ]
+        if payload.get("reason"):
+            lines.extend(["", f"Reason: {payload.get('reason', '')}"])
+        if payload.get("idempotency_keys"):
+            lines.extend(["", "Idempotency keys:"] + [f"- {key}" for key in payload.get("idempotency_keys", []) if key])
+        self._set_text(self.recovery_detail, chr(10).join(lines))
+
+    def _on_operational_health_selected(self, _event: object) -> None:
+        self._render_operational_health_detail()
+
+    def on_generate_operational_health_report(self) -> None:
+        report = build_operational_monitoring_report(self.runtime_root, limit=20, rebuild=True)
+        self.monitoring_report = report
+        self.monitoring_snapshot = report.get("summary", self.monitoring_snapshot)
+        self._render_tool_capabilities_panel()
+
+    def on_open_operational_health_report_folder(self) -> None:
+        report = self.monitoring_report if isinstance(self.monitoring_report, dict) else {}
+        folder = Path(str(report.get("json_path", ""))).parent if report.get("json_path") else Path(self.runtime_root) / "monitoring"
+        open_report_folder(str(folder))
 
     def _on_tool_selected(self, _event: object) -> None:
         selected = self.tool_health_tree.selection()

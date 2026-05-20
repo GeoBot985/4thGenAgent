@@ -78,6 +78,8 @@ If everything is working:
 - `taskframe config show` prints the active safe configuration profile.
 - `taskframe config paths` prints the config lookup paths.
 - `taskframe profile show` prints the active runtime safety profile.
+- `taskframe monitor summary` prints the operational health summary.
+- `taskframe recover assess <frame_id>` inspects retry and resume safety for a frame.
 - The default portfolio demo does not perform live side effects.
 - No live email, message, RPA, or Google Sheet action is performed by default.
 
@@ -98,6 +100,12 @@ See [docs/configuration.md](docs/configuration.md).
 Runtime profile separation and safety boundaries are documented in [docs/runtime_profiles.md](docs/runtime_profiles.md).
 
 The live-execution safety boundary is documented in [docs/live_execution_safety.md](docs/live_execution_safety.md).
+
+The persistent runtime store layout, backup workflow, and retention policy are documented in [docs/runtime_store.md](docs/runtime_store.md).
+
+Operational monitoring and the run-health dashboard are documented in [docs/operational_monitoring.md](docs/operational_monitoring.md) and [docs/operator_ui.md](docs/operator_ui.md).
+
+Recovery and idempotency controls are documented in [docs/recovery_and_idempotency.md](docs/recovery_and_idempotency.md).
 
 The portfolio evidence pack is described in [docs/portfolio_evidence_pack.md](docs/portfolio_evidence_pack.md).
 
@@ -215,6 +223,10 @@ See [docs/architecture_overview.md](docs/architecture_overview.md) for the detai
 | `taskframe ui` | Open the Operator Demo Console. |
 | `taskframe golden-demo` | Run the full golden demo pack. |
 | `taskframe verify` | Run release verification. |
+| `taskframe runtime-store check` | Validate the runtime store layout and artifacts. |
+| `taskframe runtime-store backup` | Export a safe runtime store backup archive. |
+| `taskframe monitor summary` | Inspect run health and operational monitoring status. |
+| `taskframe monitor report` | Write an operational health report. |
 | `taskframe manifest-health` | Generate a manifest catalog health report. |
 | `taskframe manifest-health --strict --no-smoke` | Run manifest health as a release gate. |
 | `taskframe version` | Print the installed version. |

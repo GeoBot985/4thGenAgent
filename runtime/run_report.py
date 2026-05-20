@@ -53,9 +53,8 @@ def generate_operator_run_report(runtime_data_dir: str | Path, frame_id: str, re
 
     failure_report_md = reports_dir / "failure_report.md"
     failure_report_html = reports_dir / "failure_report.html"
-    if str(bundle.get("state", "")).startswith("FAILED"):
-        failure_report_md.write_text(render_failure_report_markdown(failure_summary), encoding="utf-8")
-        failure_report_html.write_text(render_failure_report_html(failure_summary), encoding="utf-8")
+    failure_report_md.write_text(render_failure_report_markdown(failure_summary), encoding="utf-8")
+    failure_report_html.write_text(render_failure_report_html(failure_summary), encoding="utf-8")
 
     approval_pack_md = reports_dir / "approval_pack_report.md"
     approval_pack_html = reports_dir / "approval_pack_report.html"
