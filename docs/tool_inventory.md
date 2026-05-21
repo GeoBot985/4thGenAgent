@@ -1,6 +1,6 @@
 # Tool Inventory Report
 
-Generated: 2026-05-20T18:25:38Z
+Generated: 2026-05-21T06:11:44Z
 
 Report JSON: runtime_data/tool_inventory/tool_inventory.json
 Report Markdown: runtime_data/tool_inventory/tool_inventory.md
@@ -9,13 +9,13 @@ Report Markdown: runtime_data/tool_inventory/tool_inventory.md
 
 | Metric | Count |
 |---|---:|
-| Total tools | 113 |
+| Total tools | 114 |
 | Migrated tool-pack tools | 4 |
-| Legacy fallback tools | 109 |
+| Legacy fallback tools | 110 |
 | External enabled tools | 0 |
 | Total tool packs | 2 |
 | Optional disabled tools | 10 |
-| Side-effect tools | 24 |
+| Side-effect tools | 25 |
 | Live side-effect allowed | 0 |
 
 ## Tools
@@ -50,6 +50,7 @@ Report Markdown: runtime_data/tool_inventory/tool_inventory.md
 | gb/cancel | legacy_fallback |  | yes | yes | no | gobook_cancel_result |
 | gb/list | legacy_fallback |  | no | no | no | gobook_booking_list |
 | gb/open_courts | legacy_fallback |  | no | no | no | gobook_open_court_list |
+| gmail/send | legacy_fallback |  | yes | yes | yes | gmail_send_result |
 | inventory/filter_reorder_candidates | legacy_fallback |  | no | no | no | reorder_candidates |
 | inventory/read | legacy_fallback |  | no | no | no | inventory_record |
 | inventory/search_low_stock | legacy_fallback |  | no | no | no | low_stock_result |
@@ -140,5 +141,5 @@ Report Markdown: runtime_data/tool_inventory/tool_inventory.md
 
 | Tool Pack | Status | Environments | Classification | Tool Count | Last Check | Lifecycle Report |
 |---|---|---|---|---:|---|---|
-| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-20T18:25:38Z | runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
-| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-20T18:25:38Z | runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |
+| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-21T06:11:44Z | runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
+| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-21T06:11:44Z | runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |

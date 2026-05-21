@@ -87,3 +87,26 @@ The gate checks:
 - Tool governance, store integrity, monitoring, and recovery
 
 See [pilot_readiness.md](pilot_readiness.md) for full documentation of the pilot readiness gate.
+
+## Live side-effect execution contract (Spec 132)
+
+Spec 132 adds a formal contract for live side-effect execution. The `live` profile remains the only profile that could ever allow live side effects, and only when every check in the preflight gate passes.
+
+Key points:
+
+- Live side effects are disabled by default (`enabled: false` in the policy)
+- The `live` profile still blocks live side effects unless `allow_live_side_effects: true` is explicitly set in the profile data
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles are unconditionally blocked
+- `pilot` mode remains live-read only — it does not allow live writes
+
+See [live_side_effect_execution_contract.md](live_side_effect_execution_contract.md) for the full contract.
+
+## Spec 133 — Gmail send profile restrictions
+
+`gmail/send` is the first live side-effect tool. Its profile restrictions follow the same rules as Spec 132:
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles are unconditionally blocked from live Gmail sends.
+- `live` profile may allow sending only when manifest explicitly opts in and all preflight checks pass.
+- Gmail sending is disabled by default (`enabled: false` in config).
+
+See [live_gmail_send.md](live_gmail_send.md) for the Gmail send tool documentation.

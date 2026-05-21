@@ -1,6 +1,6 @@
 # Manifest Health Report
 
-Generated: 2026-05-19T18:40:52.681177Z
+Generated: 2026-05-21T06:13:15.799963Z
 
 Verdict: HEALTHY
 
@@ -8,7 +8,7 @@ Verdict: HEALTHY
 
 | Metric | Count |
 |---|---:|
-| Total manifests | 18 |
+| Total manifests | 19 |
 | Healthy | 0 |
 | Warnings | 0 |
 | Failed | 0 |
@@ -21,6 +21,7 @@ Verdict: HEALTHY
 | Health | Manifest | Validation | Smoke | Repairable | Top Findings | Next Action |
 |---|---|---|---|---:|---|---|
 | SMOKE_SKIPPED | customer.status_llm_e2e | PASS | SKIPPED | 3 | input_declared_but_not_used, input_declared_but_not_used, input_declared_but_not_used | Open Auto-Fix Preview. |
+| SMOKE_SKIPPED | invoiceops.process_supplier_invoice_v1 | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | llm.classify_customer_message | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | llm.customer_status_reply | PASS | SKIPPED | 2 | input_declared_but_not_used, input_declared_but_not_used | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | llm.extract_order_ref | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |

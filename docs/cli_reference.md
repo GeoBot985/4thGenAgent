@@ -147,6 +147,54 @@ Exit codes:
 
 Live execution requires `TASKFRAME_ENABLE_LIVE_EXECUTION=1` and a typed confirmation phrase. `--live` alone is insufficient.
 
+**Spec 132 typed confirmation:** The `--confirm` argument must be the literal string `LIVE-EXECUTE`. Any other value (including the frame-scoped phrase) fails with `TYPED_CONFIRMATION_REQUIRED`.
+
+```bash
+# Dry-run (default and safe)
+taskframe execute-approved --frame-id <frame_id> --action-id <action_id> --dry-run
+
+# Live execution (all gates must pass)
+taskframe execute-approved \
+  --frame-id <frame_id> \
+  --action-id <action_id> \
+  --live \
+  --i-understand-live-side-effects \
+  --confirm "LIVE-EXECUTE"
+```
+
+### `taskframe gmail-send dry-run`
+
+Validates a pending Gmail send action without calling the Gmail API.
+
+```bash
+taskframe gmail-send dry-run --frame-id <frame_id> --action-id <action_id>
+```
+
+Exit codes:
+- `0` on valid payload
+- non-zero when payload validation fails
+
+### `taskframe gmail-send preflight`
+
+Runs the full Spec 132 preflight gate plus the `gmail_send` guardrail for a pending Gmail send.
+
+```bash
+taskframe gmail-send preflight --frame-id <frame_id> --action-id <action_id>
+```
+
+**Live Gmail send** requires all preflight checks and guardrail checks to pass, plus the `LIVE-EXECUTE` typed confirmation:
+
+```bash
+taskframe execute-approved \
+  --frame-id <frame_id> \
+  --action-id <action_id> \
+  --live \
+  --i-understand-live-side-effects \
+  --confirm "LIVE-EXECUTE"
+```
+
+Gmail live send is blocked in `demo`, `pilot`, `release`, `test`, and `dev` profiles. Only the `live` profile with explicit manifest opt-in may execute a live Gmail send.
+
 ### `taskframe config show`
 
 Prints the active config profile in sanitized form.

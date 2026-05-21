@@ -168,6 +168,8 @@ def build_verification_result() -> dict[str, Any]:
             "toolpack_lifecycle": "PENDING",
             "portfolio_evidence_pack_v1": "PENDING",
             "pilot_readiness_gate": "PENDING",
+            "live_side_effect_contract": "PENDING",
+            "gmail_send_tool": "PENDING",
         },
         "workflow_checks": {
             "customer": {"status": "PENDING", "count": 0},
@@ -239,6 +241,24 @@ def build_verification_result() -> dict[str, Any]:
         ("toolpack_scaffold_cli_tests", ["python", "-m", "pytest", "tests/test_toolpack_scaffold_cli.py"]),
         ("toolpack_generated_pack_execution_tests", ["python", "-m", "pytest", "tests/test_toolpack_generated_pack_execution.py"]),
         ("toolpack_governance_tests", ["python", "-m", "pytest", "tests/test_toolpack_governance.py", "tests/test_toolpack_governance_report.py", "tests/test_toolpack_governance_cli.py", "tests/test_toolpack_governance_docs.py", "tests/test_toolpack_governance_release_verifier.py"]),
+        ("live_side_effect_contract_tests", ["python", "-m", "pytest",
+            "tests/test_live_side_effect_contract.py",
+            "tests/test_live_side_effect_preflight.py",
+            "tests/test_live_side_effect_idempotency.py",
+            "tests/test_live_side_effect_guardrails.py",
+            "tests/test_live_side_effect_cli.py",
+            "tests/test_live_side_effect_reports.py",
+            "tests/test_release_verifier_live_side_effect_contract.py",
+        ]),
+        ("gmail_send_tests", ["python", "-m", "pytest",
+            "tests/test_gmail_live_send_tool.py",
+            "tests/test_gmail_send_guardrail.py",
+            "tests/test_gmail_send_pending_action.py",
+            "tests/test_gmail_send_idempotency.py",
+            "tests/test_gmail_send_cli.py",
+            "tests/test_gmail_send_reports.py",
+            "tests/test_release_verifier_gmail_send.py",
+        ]),
     ]
 
     for name, command in command_groups:
@@ -347,6 +367,8 @@ def build_verification_result() -> dict[str, Any]:
         _check_cross_workflow_story_v2(),
         _check_readiness_scorecard_gate(),
         _check_pilot_readiness_gate(),
+        _check_live_side_effect_contract(),
+        _check_gmail_send_tool(),
     ])
     # manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     manifest_health_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "manifest_catalog_health"), {})
@@ -522,6 +544,10 @@ def build_verification_result() -> dict[str, Any]:
                 release_blockers.append("portfolio evidence pack failed")
             elif check["name"] == "pilot_readiness_gate":
                 release_blockers.append("pilot readiness gate failed")
+            elif check["name"] == "live_side_effect_contract":
+                release_blockers.append("live side-effect execution contract check failed")
+            elif check["name"] == "gmail_send_tool":
+                release_blockers.append("gmail send tool check failed")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -614,6 +640,8 @@ def build_verification_result() -> dict[str, Any]:
         "src/toolpack_governance.py",
         "docs/toolpack_governance.md",
         "config/toolpack_governance.json",
+        "docs/live_gmail_send.md",
+        "runtime/gmail_send_tool.py",
     ]
     for path in artifact_paths:
         item = check_file_exists(path)
@@ -686,6 +714,7 @@ def build_verification_result() -> dict[str, Any]:
         "readiness_scorecard_gate": _status_from_static(static_checks, "readiness_scorecard_gate"),
         "portfolio_evidence_pack_v1": _status_from_static(static_checks, "portfolio_evidence_pack_v1"),
         "pilot_readiness_gate": _status_from_static(static_checks, "pilot_readiness_gate"),
+        "live_side_effect_contract": _status_from_static(static_checks, "live_side_effect_contract"),
         "supplier_invoice_manifest_exists": _status_from_static(static_checks, "supplier_invoice_manifest_exists"),
         "supplier_invoice_routes_exist": _status_from_static(static_checks, "supplier_invoice_routes_exist"),
         "supplier_invoice_tools_registered": _status_from_static(static_checks, "supplier_invoice_tools_registered"),
@@ -784,6 +813,9 @@ def build_verification_result() -> dict[str, Any]:
         "src/toolpack_governance.py",
         "docs/toolpack_governance.md",
         "config/toolpack_governance.json",
+        "docs/live_side_effect_execution_contract.md",
+        "runtime/live_side_effect_contract.py",
+        "runtime/live_execution_reports.py",
     ]
     for path in artifact_paths:
         item = check_file_exists(path)
@@ -4189,6 +4221,173 @@ def _unique(items: list[str]) -> list[str]:
         seen.add(item)
         out.append(item)
     return out
+
+
+def _check_live_side_effect_contract() -> dict[str, Any]:
+    missing: list[str] = []
+    failures: list[str] = []
+
+    contract_module = ROOT / "runtime" / "live_side_effect_contract.py"
+    if not contract_module.is_file():
+        missing.append("runtime/live_side_effect_contract.py")
+
+    reports_module = ROOT / "runtime" / "live_execution_reports.py"
+    if not reports_module.is_file():
+        missing.append("runtime/live_execution_reports.py")
+
+    contract_doc = ROOT / "docs" / "live_side_effect_execution_contract.md"
+    if not contract_doc.is_file():
+        missing.append("docs/live_side_effect_execution_contract.md")
+
+    if contract_module.is_file():
+        try:
+            content = contract_module.read_text(encoding="utf-8")
+            required_error_codes = [
+                "LIVE_SIDE_EFFECTS_DISABLED",
+                "LIVE_PROFILE_NOT_ALLOWED",
+                "LIVE_TOOL_NOT_ALLOWED",
+                "LIVE_MANIFEST_NOT_ALLOWED",
+                "PENDING_ACTION_NOT_APPROVED",
+                "IDEMPOTENCY_KEY_REQUIRED",
+                "DUPLICATE_SIDE_EFFECT_BLOCKED",
+                "LIVE_GUARDRAIL_FAILED",
+                "TYPED_CONFIRMATION_REQUIRED",
+                "LIVE_EVIDENCE_WRITE_FAILED",
+            ]
+            for code in required_error_codes:
+                if code not in content:
+                    failures.append(f"error_code_missing:{code}")
+            if "run_live_side_effect_preflight" not in content:
+                failures.append("preflight_gate_missing")
+            if "LIVE_SIDE_EFFECT_EXECUTION_POLICY" not in content:
+                failures.append("policy_object_missing")
+            if "enabled.*False" not in content and '"enabled": False' not in content:
+                if "enabled" not in content:
+                    failures.append("policy_enabled_default_missing")
+        except Exception as exc:
+            failures.append(f"contract_module_read_error:{exc}")
+
+    try:
+        from runtime.live_side_effect_contract import (
+            LIVE_SIDE_EFFECT_EXECUTION_POLICY,
+            profile_allows_live_side_effects,
+        )
+        policy = LIVE_SIDE_EFFECT_EXECUTION_POLICY.get("live_side_effect_execution", {})
+        if policy.get("enabled") is not False:
+            failures.append("policy_enabled_not_false")
+        if not policy.get("default_dry_run"):
+            failures.append("policy_default_dry_run_not_true")
+        for profile in ("demo", "dev", "test", "release", "pilot"):
+            if profile_allows_live_side_effects(profile):
+                failures.append(f"profile_{profile}_should_block_live_side_effects")
+    except Exception as exc:
+        failures.append(f"contract_import_error:{exc}")
+
+    all_issues = missing + failures
+    status = "PASS" if not all_issues else "FAIL"
+    return {
+        "name": "live_side_effect_contract",
+        "status": status,
+        "missing": missing,
+        "failures": failures,
+        "details": all_issues,
+    }
+
+
+def _check_gmail_send_tool() -> dict[str, Any]:
+    missing: list[str] = []
+    failures: list[str] = []
+
+    tool_module = ROOT / "runtime" / "gmail_send_tool.py"
+    if not tool_module.is_file():
+        missing.append("runtime/gmail_send_tool.py")
+
+    doc = ROOT / "docs" / "live_gmail_send.md"
+    if not doc.is_file():
+        missing.append("docs/live_gmail_send.md")
+
+    if tool_module.is_file():
+        try:
+            content = tool_module.read_text(encoding="utf-8")
+            for symbol in (
+                "GMAIL_SEND_TOOL_KEY",
+                "GMAIL_SEND_DEFAULT_CONFIG",
+                "GMAIL_SEND_AUDIT_EVENT_EXECUTED",
+                "GMAIL_SEND_AUDIT_EVENT_BLOCKED",
+                "build_gmail_send_pending_action",
+                "gmail_send_dry_run",
+                "gmail_send_live_execute",
+                "build_gmail_send_report",
+                "write_gmail_send_report",
+            ):
+                if symbol not in content:
+                    failures.append(f"symbol_missing:{symbol}")
+            if '"gmail/send"' not in content and "'gmail/send'" not in content:
+                failures.append("tool_key_gmail_send_missing")
+            if "enabled.*False" not in content and '"enabled": False' not in content:
+                if "enabled" not in content:
+                    failures.append("gmail_send_enabled_default_missing")
+            if "body" in content and "# email body" not in content.lower() and "body is not included" not in content.lower():
+                pass  # body field presence is normal in tool code
+        except Exception as exc:
+            failures.append(f"tool_module_read_error:{exc}")
+
+    try:
+        from runtime.gmail_send_tool import (
+            GMAIL_SEND_DEFAULT_CONFIG,
+            GMAIL_SEND_TOOL_KEY,
+        )
+        if GMAIL_SEND_TOOL_KEY != "gmail/send":
+            failures.append("tool_key_not_gmail_send")
+        cfg = GMAIL_SEND_DEFAULT_CONFIG.get("gmail_send", {})
+        if cfg.get("enabled") is not False:
+            failures.append("gmail_send_enabled_not_false")
+        if cfg.get("allow_attachments") is not False:
+            failures.append("gmail_send_allow_attachments_not_false")
+    except Exception as exc:
+        failures.append(f"gmail_send_import_error:{exc}")
+
+    try:
+        from runtime.tool_registry import TOOL_REGISTRY
+        if "gmail/send" not in TOOL_REGISTRY:
+            failures.append("gmail_send_not_in_tool_registry")
+        else:
+            spec = TOOL_REGISTRY["gmail/send"]
+            if not spec.get("side_effect"):
+                failures.append("gmail_send_registry_side_effect_missing")
+            if not spec.get("requires_approval"):
+                failures.append("gmail_send_registry_requires_approval_missing")
+            if not spec.get("allow_live_side_effect"):
+                failures.append("gmail_send_registry_allow_live_side_effect_missing")
+            if spec.get("live_guardrail") != "gmail_send":
+                failures.append("gmail_send_registry_live_guardrail_wrong")
+    except Exception as exc:
+        failures.append(f"tool_registry_check_error:{exc}")
+
+    try:
+        from runtime.live_side_effect_contract import profile_allows_live_side_effects
+        for profile in ("demo", "dev", "test", "release", "pilot"):
+            if profile_allows_live_side_effects(profile):
+                failures.append(f"gmail_send_profile_{profile}_should_block")
+    except Exception as exc:
+        failures.append(f"profile_block_check_error:{exc}")
+
+    try:
+        from runtime.live_guardrails import guardrail_gmail_send
+        if not callable(guardrail_gmail_send):
+            failures.append("guardrail_gmail_send_not_callable")
+    except Exception as exc:
+        failures.append(f"guardrail_import_error:{exc}")
+
+    all_issues = missing + failures
+    status = "PASS" if not all_issues else "FAIL"
+    return {
+        "name": "gmail_send_tool",
+        "status": status,
+        "missing": missing,
+        "failures": failures,
+        "details": all_issues,
+    }
 
 
 if __name__ == "__main__":

@@ -71,3 +71,23 @@ Recovery and idempotency are validated as part of the pilot readiness gate. The 
 - Recovery documentation is present
 
 See [pilot_readiness.md](pilot_readiness.md) for the full pilot readiness gate documentation.
+
+## Spec 132 — Live side-effect idempotency contract
+
+Spec 132 extends idempotency enforcement to the live side-effect execution path. Before any live side effect runs, the preflight gate checks:
+
+1. The pending action carries an `idempotency_key` (fails with `IDEMPOTENCY_KEY_REQUIRED` if absent)
+2. The same key has not already been used by a different executed action (`DUPLICATE_SIDE_EFFECT_BLOCKED`)
+3. The pending action has not already been marked `live_executed: true` (`DUPLICATE_SIDE_EFFECT_BLOCKED`)
+
+These checks run as part of `run_live_side_effect_preflight()` in `runtime/live_side_effect_contract.py`. Recovery dry-run paths are unaffected — they remain dry-run only with the same idempotency key tracking as before.
+
+## Spec 133 — Gmail send idempotency
+
+Spec 133 extends idempotency enforcement to `gmail/send`. Before any live Gmail is sent:
+
+1. The pending action carries an `idempotency_key` — absent key fails with `IDEMPOTENCY_KEY_REQUIRED`
+2. The key has not been used by another executed action — duplicate blocked with `DUPLICATE_SIDE_EFFECT_BLOCKED`
+3. The pending action has not already been marked `live_executed: true`
+
+These are enforced by the Spec 132 preflight gate in `run_live_side_effect_preflight()`. No Gmail-specific idempotency code is needed — the contract handles it generically.

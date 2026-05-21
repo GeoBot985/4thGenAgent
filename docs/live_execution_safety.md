@@ -93,3 +93,34 @@ taskframe execute-approved --frame-id frame_123 --action-id pa_456 --dry-run
 ## Why this matters
 
 The live boundary is the controlled side-effect edge. It must remain visible, auditable, and difficult to bypass.
+
+## Spec 132 — Live side-effect execution contract
+
+Spec 132 formalises the common execution rules that all future live-write tools must obey. It does not add specific live tools yet.
+
+The contract adds:
+
+- A formal `live_side_effect_execution` policy object (disabled by default)
+- Ten explicit preflight checks with named error codes
+- Extended manifest live allowlist fields (`allowed_actions`, `max_live_actions`, `requires_operator_confirmation`)
+- Pending action live fields (`live_capable`, `live_executed`, `live_executed_at`, `dry_run_executed`, `guardrail_result`)
+- `LIVE-EXECUTE` typed confirmation requirement for the CLI
+- Idempotency key presence and duplicate-key checks
+- Audit events `LIVE_SIDE_EFFECT_EXECUTED` / `LIVE_SIDE_EFFECT_BLOCKED`
+- JSON and Markdown execution reports under `runtime_data/live_execution/`
+
+See [live_side_effect_execution_contract.md](live_side_effect_execution_contract.md) for full details.
+
+## Spec 133 — Approved live Gmail send tool
+
+Spec 133 implements the first narrow live side-effect tool: `gmail/send`. It builds on Spec 132.
+
+Key constraints:
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles never allow live Gmail sends.
+- Gmail sending is disabled by default (`enabled: false` in the config).
+- The email body is never written to reports or audit logs.
+- All Spec 132 preflight checks plus the `gmail_send` guardrail must pass before any email is sent.
+- No automatic sending, no unapproved sends, no attachments unless config explicitly allows them.
+
+See [live_gmail_send.md](live_gmail_send.md) for the full Spec 133 documentation.

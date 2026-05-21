@@ -677,6 +677,38 @@
 - `slowmo` (int)
 
 ---
+## gmail/send
+
+| Field | Value |
+|---|---|
+| Namespace | gmail |
+| Action | send |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `gmail_send_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:gmail/send -> output_name] to=$inputs.to subject=$inputs.subject body=$inputs.body
+```
+
+### Required arguments
+
+- `to` (str)
+- `subject` (str)
+- `body` (str)
+
+### Optional arguments
+
+- `cc` (str)
+- `bcc` (str)
+- `attachments` (str)
+- `dry_run` (bool)
+
+---
 ## inventory/filter_reorder_candidates
 
 | Field | Value |
@@ -734,6 +766,688 @@
 ```text
 [t:inventory/search_low_stock -> output_name]
 ```
+
+---
+## invoiceops/build_evidence_bundle
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_evidence_bundle |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_evidence_bundle -> output_name] invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `invoice` (str)
+
+### Optional arguments
+
+- `match_result` (str)
+- `exceptions` (str)
+- `prepared_writes` (str)
+
+---
+## invoiceops/build_exception_action_plan
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_exception_action_plan |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_exception_action_plan` |
+
+### Command form
+
+```text
+[t:invoiceops/build_exception_action_plan -> output_name] invoice=$inputs.invoice exceptions=$inputs.exceptions
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `exceptions` (str)
+
+### Optional arguments
+
+- `fallback_results` (str)
+
+---
+## invoiceops/build_exception_report
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_exception_report |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_exception_report -> output_name] invoice=$inputs.invoice exceptions=$inputs.exceptions
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `exceptions` (str)
+
+### Optional arguments
+
+- `action_plan` (str)
+
+---
+## invoiceops/build_ledger_posting_summary
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_ledger_posting_summary |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_ledger_posting_summary -> output_name] invoice=$inputs.invoice ledger_rows=$inputs.ledger_rows
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `ledger_rows` (str)
+
+---
+## invoiceops/build_match_report
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_match_report |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_match_report -> output_name] invoice=$inputs.invoice match_result=$inputs.match_result
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `match_result` (str)
+
+---
+## invoiceops/build_rollback_summary
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_rollback_summary |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_rollback_summary -> output_name] prepared_writes=$inputs.prepared_writes
+```
+
+### Required arguments
+
+- `prepared_writes` (str)
+
+---
+## invoiceops/check_duplicate_invoice
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | check_duplicate_invoice |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/check_duplicate_invoice -> output_name] invoice=$inputs.invoice invoice_register=$inputs.invoice_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `invoice_register` (str)
+
+---
+## invoiceops/check_tax
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | check_tax |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/check_tax -> output_name] invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `invoice` (str)
+
+---
+## invoiceops/check_totals
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | check_totals |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/check_totals -> output_name] invoice=$inputs.invoice purchase_order=$inputs.purchase_order
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `purchase_order` (str)
+
+---
+## invoiceops/classify_exceptions
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | classify_exceptions |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_exception_classification` |
+
+### Command form
+
+```text
+[t:invoiceops/classify_exceptions -> output_name] match_result=$inputs.match_result invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `match_result` (str)
+- `invoice` (str)
+
+---
+## invoiceops/extract_invoice_fields
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | extract_invoice_fields |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_invoice` |
+
+### Command form
+
+```text
+[t:invoiceops/extract_invoice_fields -> output_name] raw_text=$inputs.raw_text
+```
+
+### Required arguments
+
+- `raw_text` (str)
+
+### Optional arguments
+
+- `source_ref` (str)
+
+---
+## invoiceops/lookup_goods_receipt
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | lookup_goods_receipt |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/lookup_goods_receipt -> output_name] invoice=$inputs.invoice receipt_register=$inputs.receipt_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `receipt_register` (str)
+
+---
+## invoiceops/lookup_purchase_order
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | lookup_purchase_order |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/lookup_purchase_order -> output_name] invoice=$inputs.invoice po_register=$inputs.po_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `po_register` (str)
+
+---
+## invoiceops/match_three_way
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | match_three_way |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_result` |
+
+### Command form
+
+```text
+[t:invoiceops/match_three_way -> output_name] invoice=$inputs.invoice purchase_order=$inputs.purchase_order goods_receipt=$inputs.goods_receipt
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `purchase_order` (str)
+- `goods_receipt` (str)
+
+### Optional arguments
+
+- `invoice_register` (str)
+
+---
+## invoiceops/prepare_exception_register_write
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_exception_register_write |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_prepared_write` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_exception_register_write -> output_name] exceptions=$inputs.exceptions
+```
+
+### Required arguments
+
+- `exceptions` (str)
+
+---
+## invoiceops/prepare_invoice_register_write
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_invoice_register_write |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_prepared_write` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_invoice_register_write -> output_name] invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `invoice` (str)
+
+---
+## invoiceops/prepare_ledger_write
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_ledger_write |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_prepared_write` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_ledger_write -> output_name] ledger_rows=$inputs.ledger_rows
+```
+
+### Required arguments
+
+- `ledger_rows` (str)
+
+---
+## invoiceops/prepare_match_register_write
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_match_register_write |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_prepared_write` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_match_register_write -> output_name] match_result=$inputs.match_result
+```
+
+### Required arguments
+
+- `match_result` (str)
+
+---
+## invoiceops/prepare_rollback_plan
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_rollback_plan |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_rollback_plan` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_rollback_plan -> output_name] prepared_write=$inputs.prepared_write
+```
+
+### Required arguments
+
+- `prepared_write` (str)
+
+---
+## invoiceops/read_exception_register
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_exception_register |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_exception_register -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_invoice_file
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_invoice_file |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_raw_invoice_text` |
+
+### Command form
+
+```text
+[t:invoiceops/read_invoice_file -> output_name] path=$inputs.path
+```
+
+### Required arguments
+
+- `path` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
+
+---
+## invoiceops/read_invoice_register
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_invoice_register |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_invoice_register -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_ledger
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_ledger |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_ledger -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_po_register
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_po_register |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_po_register -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_receipt_register
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_receipt_register |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_receipt_register -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_supplier_master
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_supplier_master |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_supplier_master -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/search_po_fallback
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | search_po_fallback |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_fallback_result` |
+
+### Command form
+
+```text
+[t:invoiceops/search_po_fallback -> output_name] invoice=$inputs.invoice po_register=$inputs.po_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `po_register` (str)
+
+---
+## invoiceops/search_receipt_fallback
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | search_receipt_fallback |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_fallback_result` |
+
+### Command form
+
+```text
+[t:invoiceops/search_receipt_fallback -> output_name] invoice=$inputs.invoice receipt_register=$inputs.receipt_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `receipt_register` (str)
+
+---
+## invoiceops/search_supplier_fallback
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | search_supplier_fallback |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_fallback_result` |
+
+### Command form
+
+```text
+[t:invoiceops/search_supplier_fallback -> output_name] invoice=$inputs.invoice supplier_master=$inputs.supplier_master
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `supplier_master` (str)
+
+---
+## invoiceops/validate_invoice_fields
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | validate_invoice_fields |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_invoice_validation` |
+
+### Command form
+
+```text
+[t:invoiceops/validate_invoice_fields -> output_name] invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `invoice` (str)
 
 ---
 ## memory/set

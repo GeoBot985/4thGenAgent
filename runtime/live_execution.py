@@ -9,7 +9,10 @@ from .models import Manifest, TaskFrame
 DEFAULT_LIVE_EXECUTION_POLICY = {
     "enabled": False,
     "allowed_tools": [],
+    "allowed_actions": [],
+    "max_live_actions": 1,
     "requires_approval": True,
+    "requires_operator_confirmation": True,
 }
 
 
@@ -19,7 +22,14 @@ def normalize_live_execution_policy(policy: dict[str, Any] | None) -> dict[str, 
         return normalized
     if not isinstance(policy, dict):
         raise LiveExecutionPolicyError("live_execution policy must be an object.")
-    for key in ("enabled", "allowed_tools", "requires_approval"):
+    for key in (
+        "enabled",
+        "allowed_tools",
+        "allowed_actions",
+        "max_live_actions",
+        "requires_approval",
+        "requires_operator_confirmation",
+    ):
         if key in policy:
             normalized[key] = policy[key]
     return normalized
@@ -30,7 +40,10 @@ def validate_live_execution_policy(policy: dict[str, Any]) -> None:
         raise LiveExecutionPolicyError("live_execution policy must be an object.")
     enabled = policy.get("enabled", False)
     allowed_tools = policy.get("allowed_tools", [])
+    allowed_actions = policy.get("allowed_actions", [])
     requires_approval = policy.get("requires_approval", True)
+    requires_operator_confirmation = policy.get("requires_operator_confirmation", True)
+    max_live_actions = policy.get("max_live_actions", 1)
 
     if not isinstance(enabled, bool):
         raise LiveExecutionPolicyError("live_execution.enabled must be a boolean.")
@@ -38,10 +51,20 @@ def validate_live_execution_policy(policy: dict[str, Any]) -> None:
         raise LiveExecutionPolicyError("live_execution.allowed_tools must be a list.")
     if any(not isinstance(tool, str) or not tool.strip() for tool in allowed_tools):
         raise LiveExecutionPolicyError("live_execution.allowed_tools must contain non-empty strings.")
+    if not isinstance(allowed_actions, list):
+        raise LiveExecutionPolicyError("live_execution.allowed_actions must be a list.")
+    if any(not isinstance(a, str) or not a.strip() for a in allowed_actions):
+        raise LiveExecutionPolicyError("live_execution.allowed_actions must contain non-empty strings.")
     if not isinstance(requires_approval, bool):
         raise LiveExecutionPolicyError("live_execution.requires_approval must be a boolean.")
     if requires_approval is False:
-        raise LiveExecutionPolicyError("live_execution.requires_approval must remain true in Spec 019.")
+        raise LiveExecutionPolicyError("live_execution.requires_approval must remain true.")
+    if not isinstance(requires_operator_confirmation, bool):
+        raise LiveExecutionPolicyError("live_execution.requires_operator_confirmation must be a boolean.")
+    if requires_operator_confirmation is False:
+        raise LiveExecutionPolicyError("live_execution.requires_operator_confirmation must remain true.")
+    if not isinstance(max_live_actions, int) or max_live_actions < 1:
+        raise LiveExecutionPolicyError("live_execution.max_live_actions must be a positive integer.")
 
 
 def manifest_allows_live_tool(manifest: Manifest | dict[str, Any], tool_key: str) -> bool:

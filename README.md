@@ -120,6 +120,10 @@ Runtime profile separation and safety boundaries are documented in [docs/runtime
 
 The live-execution safety boundary is documented in [docs/live_execution_safety.md](docs/live_execution_safety.md).
 
+The Spec 132 live side-effect execution contract — error codes, preflight gate, manifest allowlist, idempotency requirements, typed confirmation, and audit records — is documented in [docs/live_side_effect_execution_contract.md](docs/live_side_effect_execution_contract.md). Live side effects remain disabled by default; this spec creates the contract, not broad production automation.
+
+The Spec 133 approved live Gmail send tool (`gmail/send`) is the first live side-effect tool built on this contract. Gmail sending is disabled by default, blocked in all non-`live` profiles, and requires all 10 preflight checks plus the `gmail_send` guardrail. Email body is never written to reports. See [docs/live_gmail_send.md](docs/live_gmail_send.md).
+
 The persistent runtime store layout, backup workflow, and retention policy are documented in [docs/runtime_store.md](docs/runtime_store.md).
 
 Operational monitoring and the run-health dashboard are documented in [docs/operational_monitoring.md](docs/operational_monitoring.md) and [docs/operator_ui.md](docs/operator_ui.md).
