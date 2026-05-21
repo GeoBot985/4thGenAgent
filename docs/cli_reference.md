@@ -209,6 +209,39 @@ taskframe execute-approved \
 
 Gmail live send is blocked in `demo`, `pilot`, `release`, `test`, and `dev` profiles. Only the `live` profile with explicit manifest opt-in may execute a live Gmail send.
 
+### `taskframe sheet-write dry-run`
+
+Validates a pending Sheets write action without calling Google Sheets API.
+
+```bash
+taskframe sheet-write dry-run --frame-id <frame_id> --action-id <action_id>
+```
+
+Exit codes:
+- `0` on valid payload
+- non-zero when payload validation fails
+
+### `taskframe sheet-write preflight`
+
+Runs the full Spec 132 preflight gate plus the `sheet_write_rows_guardrail` for a pending Sheets write.
+
+```bash
+taskframe sheet-write preflight --frame-id <frame_id> --action-id <action_id>
+```
+
+**Live Sheets write** requires all preflight checks and guardrail checks to pass, plus the `LIVE-EXECUTE` typed confirmation:
+
+```bash
+taskframe execute-approved \
+  --frame-id <frame_id> \
+  --action-id <action_id> \
+  --live \
+  --i-understand-live-side-effects \
+  --confirm "LIVE-EXECUTE"
+```
+
+Sheets live write is blocked in `demo`, `pilot`, `release`, `test`, and `dev` profiles. Only the `live` profile with explicit manifest opt-in and a configured allowlist may execute a live Sheets write.
+
 ### `taskframe config show`
 
 Prints the active config profile in sanitized form.

@@ -15,6 +15,8 @@ def run_live_guardrail(
         return guardrail_sheet_create(pending_action, tool_spec)
     if guardrail_name == "sheet_write":
         return guardrail_sheet_write(pending_action, tool_spec)
+    if guardrail_name == "sheet_write_rows_guardrail":
+        return guardrail_sheet_write_rows(pending_action, tool_spec, **kwargs)
     if guardrail_name == "gmail_send":
         return guardrail_gmail_send(pending_action, tool_spec, **kwargs)
     return guardrail_blocked(pending_action, tool_spec)
@@ -216,6 +218,147 @@ def guardrail_gmail_send(
     result: dict[str, Any] = {"ok": ok, "guardrail": "gmail_send", "checks": checks}
     if not ok:
         result["error"] = "Gmail send guardrail failed."
+    return result
+
+
+def guardrail_sheet_write_rows(
+    pending_action: dict[str, Any],
+    tool_spec: dict[str, Any],
+    *,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    from .sheet_write_tool import normalize_sheet_write_config
+
+    checks: list[dict[str, Any]] = []
+    ok = True
+
+    def add_check(name: str, passed: bool, message: str = "") -> None:
+        nonlocal ok
+        checks.append({"name": name, "ok": passed, "message": message})
+        if not passed:
+            ok = False
+
+    status = str(pending_action.get("status") or "").upper()
+    passed = status == "APPROVED"
+    add_check("action_approved", passed, "" if passed else f"Action status is not APPROVED: {status}")
+
+    tool = str(pending_action.get("tool") or "")
+    passed = tool == "sheet/write_rows"
+    add_check("tool_is_sheet_write_rows", passed, "" if passed else f"Tool is not sheet/write_rows: {tool}")
+
+    tool_allow = bool(tool_spec.get("allow_live_side_effect", False))
+    add_check(
+        "tool_allows_live_side_effect",
+        tool_allow,
+        "" if tool_allow else "Tool does not allow live side effects.",
+    )
+
+    cfg = normalize_sheet_write_config(config)
+
+    sheet_write_enabled = bool(cfg.get("enabled", False))
+    add_check(
+        "sheet_write_config_enabled",
+        sheet_write_enabled,
+        "" if sheet_write_enabled else "Google Sheets write is not enabled in config.",
+    )
+
+    payload = dict(pending_action.get("payload") or {})
+    spreadsheet_id = str(payload.get("spreadsheet_id") or "").strip()
+    range_name = str(payload.get("range_name") or "").strip()
+    rows = list(payload.get("rows") or [])
+    write_mode = str(payload.get("write_mode") or "append").strip()
+    expected_headers = list(payload.get("expected_headers") or [])
+
+    add_check(
+        "spreadsheet_id_present",
+        bool(spreadsheet_id),
+        "" if spreadsheet_id else "Spreadsheet ID must not be empty.",
+    )
+
+    allowed_spreadsheets = [s for s in (cfg.get("allowed_spreadsheets") or []) if s]
+    if allowed_spreadsheets:
+        passed = spreadsheet_id in set(allowed_spreadsheets)
+        add_check(
+            "spreadsheet_id_allowlisted",
+            passed,
+            "" if passed else f"Spreadsheet ID '{spreadsheet_id}' is not in the allowlist.",
+        )
+
+    allowed_ranges = [r for r in (cfg.get("allowed_ranges") or []) if r]
+    if allowed_ranges:
+        range_tab = range_name.split("!")[0].strip() if "!" in range_name else range_name
+        passed = range_name in set(allowed_ranges) or range_tab in set(allowed_ranges)
+        add_check(
+            "range_allowlisted",
+            passed,
+            "" if passed else f"Range '{range_name}' is not in the allowed ranges.",
+        )
+
+    blocked_ranges = [r for r in (cfg.get("blocked_ranges") or []) if r]
+    if blocked_ranges:
+        range_tab = range_name.split("!")[0].strip() if "!" in range_name else range_name
+        is_blocked = range_name in set(blocked_ranges) or range_tab in set(blocked_ranges)
+        add_check(
+            "range_not_blocked",
+            not is_blocked,
+            "" if not is_blocked else f"Range '{range_name}' is in the blocked ranges list.",
+        )
+
+    supported_modes: list[str] = []
+    if cfg.get("allow_append_mode"):
+        supported_modes.append("append")
+    if cfg.get("allow_update_mode"):
+        supported_modes.append("update")
+    passed = write_mode in supported_modes
+    add_check(
+        "write_mode_supported",
+        passed,
+        "" if passed else f"Write mode '{write_mode}' is not supported. Supported: {supported_modes}.",
+    )
+
+    add_check(
+        "rows_not_empty",
+        bool(rows),
+        "" if rows else "rows must not be empty.",
+    )
+
+    max_rows = int(cfg.get("max_rows_per_action") or 50)
+    passed = len(rows) <= max_rows
+    add_check(
+        "row_count_within_limit",
+        passed,
+        "" if passed else f"Row count ({len(rows)}) exceeds max_rows_per_action ({max_rows}).",
+    )
+
+    if expected_headers and rows:
+        first_row = rows[0] if rows else []
+        passed = len(first_row) == len(expected_headers)
+        add_check(
+            "column_count_matches_headers",
+            passed,
+            "" if passed else (
+                f"Column count ({len(first_row)}) does not match "
+                f"expected headers ({len(expected_headers)})."
+            ),
+        )
+
+    business_ref = str(pending_action.get("business_ref") or "").strip()
+    add_check(
+        "business_ref_exists",
+        bool(business_ref),
+        "" if business_ref else "Business ref is required.",
+    )
+
+    idempotency_key = str(pending_action.get("idempotency_key") or "").strip()
+    add_check(
+        "idempotency_key_present",
+        bool(idempotency_key),
+        "" if idempotency_key else "Idempotency key is required.",
+    )
+
+    result: dict[str, Any] = {"ok": ok, "guardrail": "sheet_write_rows_guardrail", "checks": checks}
+    if not ok:
+        result["error"] = "Sheet write rows guardrail failed."
     return result
 
 

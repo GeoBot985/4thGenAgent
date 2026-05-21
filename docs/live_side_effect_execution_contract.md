@@ -232,3 +232,16 @@ Spec 133 implements `gmail/send` as the first live side-effect tool built on thi
 - Email body is never included in reports.
 
 See [live_gmail_send.md](live_gmail_send.md) for the full Spec 133 documentation.
+
+## Spec 134 — Second live tool: sheet/write_rows
+
+Spec 134 implements `sheet/write_rows` as the second narrow live side-effect tool built on this contract.
+
+- `sheet/write_rows` requires all 10 preflight checks from this contract to pass.
+- Additional `sheet_write_rows_guardrail` checks run after preflight, including spreadsheet/range allowlist enforcement.
+- Sheets live writing is disabled by default (`enabled: false`) and blocked in all non-`live` profiles.
+- Row payloads are never written to summary reports or audit logs.
+- `append` mode is the default safe write mode. `update` mode is disabled by default.
+- Spreadsheet ID and range/tab allowlists are mandatory for live writes.
+
+See [live_google_sheets_write.md](live_google_sheets_write.md) for the full Spec 134 documentation.

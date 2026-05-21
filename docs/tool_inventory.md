@@ -1,9 +1,9 @@
 # Tool Inventory Report
 
-Generated: 2026-05-21T07:02:04Z
+Generated: 2026-05-21T07:33:39Z
 
-Report JSON: D:/Projects/4thGenAgent/runtime_data/tool_inventory/tool_inventory.json
-Report Markdown: D:/Projects/4thGenAgent/runtime_data/tool_inventory/tool_inventory.md
+Report JSON: runtime_data/tool_inventory/tool_inventory.json
+Report Markdown: runtime_data/tool_inventory/tool_inventory.md
 
 ## Summary
 
@@ -118,7 +118,7 @@ Report Markdown: D:/Projects/4thGenAgent/runtime_data/tool_inventory/tool_invent
 | sheet/read | legacy_fallback |  | no | no | no | sheet_rows |
 | sheet/read_range | legacy_fallback |  | no | no | no | sheet_read_range_result |
 | sheet/write | legacy_fallback |  | yes | yes | yes | sheet_write_result |
-| sheet/write_rows | legacy_fallback |  | yes | yes | yes | sheet_write_rows_result |
+| sheet/write_rows | legacy_fallback |  | yes | yes | yes | sheet_write_result |
 | shipment/read | legacy_fallback |  | no | no | no | shipment_read_result |
 | supplier/prepare_message_action | legacy_fallback |  | yes | yes | no | supplier_message_pending_action |
 | supplier/read | legacy_fallback |  | no | no | no | supplier_record |
@@ -141,5 +141,5 @@ Report Markdown: D:/Projects/4thGenAgent/runtime_data/tool_inventory/tool_invent
 
 | Tool Pack | Status | Environments | Classification | Tool Count | Last Check | Lifecycle Report |
 |---|---|---|---|---:|---|---|
-| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-21T07:02:04Z | D:/Projects/4thGenAgent/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
-| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-21T07:02:04Z | D:/Projects/4thGenAgent/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |
+| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-21T07:33:39Z | runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
+| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-21T07:33:39Z | runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |

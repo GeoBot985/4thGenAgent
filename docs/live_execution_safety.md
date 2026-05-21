@@ -124,3 +124,19 @@ Key constraints:
 - No automatic sending, no unapproved sends, no attachments unless config explicitly allows them.
 
 See [live_gmail_send.md](live_gmail_send.md) for the full Spec 133 documentation.
+
+## Spec 134 — Approved live Google Sheets write tool
+
+Spec 134 implements the second narrow live side-effect tool: `sheet/write_rows`. It follows the same safety pattern as Spec 133.
+
+Key constraints:
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles never allow live Sheets writes.
+- Sheets writing is disabled by default (`enabled: false` in the config).
+- Row payloads are never written to summary reports or audit logs.
+- All Spec 132 preflight checks plus the `sheet_write_rows_guardrail` must pass before any write is made.
+- Spreadsheet ID and range/tab allowlists are mandatory.
+- `append` mode is the preferred safe mode. `update` mode is disabled by default.
+- No automatic writes, no unapproved writes, no spreadsheet mutations without an explicit allowlist.
+
+See [live_google_sheets_write.md](live_google_sheets_write.md) for the full Spec 134 documentation.

@@ -91,3 +91,14 @@ Spec 133 extends idempotency enforcement to `gmail/send`. Before any live Gmail 
 3. The pending action has not already been marked `live_executed: true`
 
 These are enforced by the Spec 132 preflight gate in `run_live_side_effect_preflight()`. No Gmail-specific idempotency code is needed — the contract handles it generically.
+
+## Spec 134 — Google Sheets write idempotency
+
+Spec 134 extends idempotency enforcement to `sheet/write_rows`. Before any live Sheets write executes:
+
+1. The pending action carries an `idempotency_key` — absent key fails with `IDEMPOTENCY_KEY_REQUIRED`
+2. The key has not been used by another executed action — duplicate blocked with `DUPLICATE_SIDE_EFFECT_BLOCKED`
+3. The pending action has not already been marked `live_executed: true`
+4. The same `business_ref` has not already been written to the same target range by the same action type
+
+These checks prevent duplicate rows from being appended to a Sheets register. If any check fails, no write is made and the block is recorded in the audit log. The Spec 132 preflight gate handles checks 1–3 generically; check 4 is enforced in the `sheet_write_rows_guardrail`.

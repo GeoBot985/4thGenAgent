@@ -79,3 +79,24 @@ Release verification (Spec 133) confirms:
 - Audit event constants `LIVE_EMAIL_SENT` and `LIVE_EMAIL_SEND_BLOCKED` are defined
 - Email body is never included in reports
 - Gmail send report files use the `email_send_` prefix
+
+## Spec 134 — Google Sheets write tool checks
+
+Release verification (Spec 134) confirms:
+
+- `runtime/sheet_write_tool.py` exists with all required symbols
+- `docs/live_google_sheets_write.md` exists
+- `sheet/write_rows` is registered in the tool registry with `side_effect=true`, `requires_approval=true`, `allow_live_side_effect=true`, `live_guardrail="sheet_write_rows_guardrail"`
+- Sheets write config defaults: `enabled=false`, `allow_update_mode=false`, `allow_append_mode=true`, `max_rows_per_action=50`
+- `guardrail_sheet_write_rows` is importable from `runtime.live_guardrails`
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles block live Sheets writes
+- Audit event constants `LIVE_SHEET_ROWS_WRITTEN` and `LIVE_SHEET_WRITE_BLOCKED` are defined
+- Row payloads are never included in summary reports
+- Sheets write report files use the `sheet_write_` prefix
+- Spreadsheet ID and range allowlists are enforced
+- Row count limit (`max_rows_per_action`) is enforced
+- Missing idempotency key blocks write
+- Duplicate idempotency key blocks write
+- Dry-run write does not call Google Sheets API
+- Mocked live write produces audit event and report
+- Default demo workflows still do not live-write

@@ -110,3 +110,15 @@ See [live_side_effect_execution_contract.md](live_side_effect_execution_contract
 - Gmail sending is disabled by default (`enabled: false` in config).
 
 See [live_gmail_send.md](live_gmail_send.md) for the Gmail send tool documentation.
+
+## Spec 134 — Google Sheets write profile restrictions
+
+`sheet/write_rows` is the second live side-effect tool. Its profile restrictions follow the same rules as Spec 132:
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles are unconditionally blocked from live Sheets writes.
+- `live` profile may allow writes only when manifest explicitly opts in and all preflight checks pass.
+- Sheets writing is disabled by default (`enabled: false` in config).
+- No demo or pilot profile may enable live Sheets writing by default.
+- `pilot` mode remains live-read only — it does not allow live writes to Sheets.
+
+See [live_google_sheets_write.md](live_google_sheets_write.md) for the Sheets write tool documentation.
