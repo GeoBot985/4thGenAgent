@@ -1,0 +1,8 @@
+{
+  "profile": "sqlite-local",
+  "persistence": {
+    "backend": "sqlite",
+    "sqlite_db_path": "runtime_data/taskframe_runtime.db",
+    "dual_write_json_artifacts": true
+  }
+}

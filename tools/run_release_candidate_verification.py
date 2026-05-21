@@ -239,6 +239,8 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         _check_manifest_contract_strict(),
         _check_manifest_regression_gallery_validation(),
         _check_artifact_stability_gate(mode),
+        _check_production_persistence_backend(),
+        _check_durable_event_queue(),
     ])
 
     if mode == "standard":
@@ -273,6 +275,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         "optional_rpa_live_probes_excluded": _status_from_static_mode(static_checks, "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC"),
         "runtime_profiles": _status_from_static_mode(static_checks, "runtime_profiles"),
         "runtime_store": _status_from_static_mode(static_checks, "runtime_store"),
+        "production_persistence_backend": _status_from_static_mode(static_checks, "production_persistence_backend"),
         "operational_monitoring": _status_from_static_mode(static_checks, "operational_monitoring"),
         "default_demo_boundary_doc": _status_from_static_mode(static_checks, "default_demo_boundary_doc"),
         "golden_demo": "SKIPPED",
@@ -335,6 +338,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
             "manifest_regression_gallery_validation",
             "runtime_profiles",
             "runtime_store",
+            "production_persistence_backend",
             "operational_monitoring",
             "recovery",
             "public_quickstart_docs",
@@ -605,6 +609,8 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         _check_runtime_tool_governance(),
         _check_runtime_profiles(),
         _check_runtime_store(),
+        _check_production_persistence_backend(),
+        _check_durable_event_queue(),
         _check_operational_monitoring(),
         _check_recovery(),
         _check_default_demo_boundary_doc(),
@@ -806,6 +812,8 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
                 release_blockers.append("controlled live profile v0 check failed")
             elif check["name"] == "runtime_store":
                 release_blockers.append("runtime store validation failed")
+            elif check["name"] == "production_persistence_backend":
+                release_blockers.append("production persistence backend validation failed")
             elif check["name"] == "operational_monitoring":
                 release_blockers.append("operational monitoring validation failed")
             elif check["name"] == "supplier_invoice_manifest_exists":
@@ -980,6 +988,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         "runtime_tool_governance": _status_from_static(static_checks, "runtime_tool_governance"),
         "runtime_profiles": _status_from_static(static_checks, "runtime_profiles"),
         "runtime_store": _status_from_static(static_checks, "runtime_store"),
+        "production_persistence_backend": _status_from_static(static_checks, "production_persistence_backend"),
         "optional_rpa_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC"),
         "optional_rpa_live_probes_excluded": _status_from_static(static_checks, "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC"),
         "default_scenario_pack": _status_from_static(static_checks, "default_scenario_pack"),
@@ -3380,6 +3389,200 @@ def _check_runtime_store() -> dict[str, Any]:
 
     return {
         "name": "runtime_store",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_production_persistence_backend() -> dict[str, Any]:
+    missing: list[str] = []
+    try:
+        from runtime.event_queue import build_queue_record, load_queue_record, write_queue_record
+        from runtime.event_store import append_event, get_event
+        from runtime.events import create_event, event_to_dict
+        from runtime.manifest_loader import load_manifest
+        from runtime.persistence import load_taskframe_dict, save_taskframe
+        from runtime.persistence_backends.backend_factory import get_persistence_backend
+        from runtime.persistence_backends.migration import init_persistence, verify_persistence
+        from runtime.run_ledger import append_ledger_record, read_ledger_records
+        from runtime.taskframe import create_taskframe
+    except Exception as exc:
+        return {"name": "production_persistence_backend", "status": "FAIL", "error": str(exc)}
+
+    import tempfile
+
+    old_backend = os.environ.get("TASKFRAME_PERSISTENCE_BACKEND")
+    old_db = os.environ.get("TASKFRAME_SQLITE_DB_PATH")
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime_root = Path(tmp) / "runtime_data"
+            backend = get_persistence_backend(runtime_root)
+            if getattr(backend, "backend_name", "") != "filesystem":
+                missing.append("filesystem_not_default")
+
+            db_path = runtime_root / "taskframe_runtime.db"
+            os.environ["TASKFRAME_PERSISTENCE_BACKEND"] = "sqlite"
+            os.environ["TASKFRAME_SQLITE_DB_PATH"] = str(db_path)
+            init = init_persistence(runtime_root)
+            if not init.get("ok") or not db_path.is_file():
+                missing.append("sqlite_init_failed")
+
+            manifest = load_manifest("manifests/smoke_gmail_check.manifest.json")
+            frame = create_taskframe(manifest)
+            frame.state = "COMPLETED"
+            save_taskframe(frame, runtime_root)
+            loaded = load_taskframe_dict(frame.frame_id, runtime_root)
+            if loaded.get("frame_id") != frame.frame_id:
+                missing.append("taskframe_roundtrip_failed")
+            if not (runtime_root / "runs" / frame.frame_id / "taskframe.json").is_file():
+                missing.append("json_dual_write_missing")
+
+            event = event_to_dict(create_event("manual.persistence_check", "release_verifier", payload={"ok": True}))
+            append_event(event, runtime_root)
+            if not get_event(str(event["event_id"]), runtime_root):
+                missing.append("event_roundtrip_failed")
+
+            queue_record = build_queue_record(event, status="COMPLETED", linked_frame_id=frame.frame_id)
+            write_queue_record(queue_record, runtime_root)
+            if not load_queue_record(str(event["event_id"]), runtime_root):
+                missing.append("queue_roundtrip_failed")
+
+            append_ledger_record(frame, runtime_root)
+            if not any(record.get("frame_id") == frame.frame_id for record in read_ledger_records(runtime_root)):
+                missing.append("run_ledger_roundtrip_failed")
+
+            verify = verify_persistence(runtime_root)
+            if not verify.get("ok"):
+                missing.append("schema_verify_failed")
+    except Exception as exc:
+        missing.append(str(exc))
+    finally:
+        if old_backend is None:
+            os.environ.pop("TASKFRAME_PERSISTENCE_BACKEND", None)
+        else:
+            os.environ["TASKFRAME_PERSISTENCE_BACKEND"] = old_backend
+        if old_db is None:
+            os.environ.pop("TASKFRAME_SQLITE_DB_PATH", None)
+        else:
+            os.environ["TASKFRAME_SQLITE_DB_PATH"] = old_db
+
+    return {
+        "name": "production_persistence_backend",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_durable_event_queue() -> dict[str, Any]:
+    missing: list[str] = []
+    try:
+        from runtime.event_queue_contract import (
+            STATUS_PENDING,
+            STATUS_COMPLETED,
+            STATUS_DEAD_LETTER,
+            STATUS_FAILED_RETRYABLE,
+            build_durable_queue_record,
+            build_dedupe_key,
+            is_terminal_status,
+            is_retryable_failure_category,
+            FAILURE_RUNTIME_EXCEPTION,
+            FAILURE_ROUTE_NOT_FOUND,
+        )
+        from runtime.event_queue import (
+            enqueue_event,
+            claim_next_event,
+            mark_event_processing,
+            mark_event_completed,
+            mark_event_failed,
+            list_queue,
+            queue_health,
+            retry_event,
+        )
+        from runtime.event_queue_runner import process_next_queued_event
+        from runtime.operator_queue_panel import build_queue_panel
+    except Exception as exc:
+        return {"name": "durable_event_queue", "status": "FAIL", "error": str(exc)}
+
+    import tempfile
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            rd = Path(tmp)
+
+            # Smoke path: enqueue → list → process-next
+            event = {
+                "event_id": "verifier-dq-001",
+                "source": "verifier",
+                "event_type": "verifier.smoke",
+                "payload": {"test": True},
+            }
+            enqueue_result = enqueue_event(event, runtime_data_dir=rd)
+            if not enqueue_result.get("ok"):
+                missing.append("enqueue_failed")
+
+            queue_id = enqueue_result.get("queue_id", "")
+            list_result = list_queue(status=STATUS_PENDING, runtime_data_dir=rd)
+            if list_result.get("count", 0) < 1:
+                missing.append("list_queue_failed")
+
+            # Dedupe smoke
+            dup = enqueue_event(event, runtime_data_dir=rd)
+            if dup.get("ok"):
+                missing.append("dedupe_not_blocked")
+
+            # Retry / dead-letter smoke
+            event2 = {**event, "event_id": "verifier-dq-002"}
+            r2 = enqueue_event(event2, runtime_data_dir=rd)
+            q2 = r2.get("queue_id", "")
+            claim_next_event("verifier", rd)
+            mark_event_processing(q2, rd)
+            failed = mark_event_failed(q2, {"message": "test", "category": FAILURE_RUNTIME_EXCEPTION}, rd)
+            if failed.get("status") not in (STATUS_FAILED_RETRYABLE, STATUS_DEAD_LETTER):
+                missing.append("retry_classification_failed")
+
+            # Filesystem fallback still works (filesystem is default)
+            health = queue_health(rd)
+            if health.get("backend") != "filesystem":
+                missing.append("filesystem_not_default")
+
+            # SQLite smoke
+            db_path = rd / "test_dq.db"
+            old_backend = os.environ.get("TASKFRAME_PERSISTENCE_BACKEND")
+            old_db = os.environ.get("TASKFRAME_SQLITE_DB_PATH")
+            try:
+                os.environ["TASKFRAME_PERSISTENCE_BACKEND"] = "sqlite"
+                os.environ["TASKFRAME_SQLITE_DB_PATH"] = str(db_path)
+                rd_sq = Path(tmp) / "sq"
+                rd_sq.mkdir(parents=True, exist_ok=True)
+                event_sq = {**event, "event_id": "verifier-dq-sq-001"}
+                sq_result = enqueue_event(event_sq, runtime_data_dir=rd_sq)
+                if not sq_result.get("ok"):
+                    missing.append("sqlite_enqueue_failed")
+                sq_health = queue_health(rd_sq)
+                if sq_health.get("pending_count", 0) < 1:
+                    missing.append("sqlite_queue_health_failed")
+            finally:
+                if old_backend is None:
+                    os.environ.pop("TASKFRAME_PERSISTENCE_BACKEND", None)
+                else:
+                    os.environ["TASKFRAME_PERSISTENCE_BACKEND"] = old_backend
+                if old_db is None:
+                    os.environ.pop("TASKFRAME_SQLITE_DB_PATH", None)
+                else:
+                    os.environ["TASKFRAME_SQLITE_DB_PATH"] = old_db
+
+            # Operator panel smoke
+            panel = build_queue_panel(rd)
+            if not panel.get("ok"):
+                missing.append("operator_panel_failed")
+            if "summary" not in panel:
+                missing.append("operator_panel_missing_summary")
+
+    except Exception as exc:
+        missing.append(str(exc))
+
+    return {
+        "name": "durable_event_queue",
         "status": "PASS" if not missing else "FAIL",
         "missing": missing,
     }

@@ -107,7 +107,7 @@ Default retention policy:
 }
 ```
 
-Only derived artifacts are candidates for cleanup. Pending actions and live-related records are protected so audit evidence is not removed accidentally.
+Only derived artifacts are candidates for cleanup. Pending actions and live data records are protected so audit evidence is not removed accidentally.
 
 ## Demo Versus Pilot Records
 

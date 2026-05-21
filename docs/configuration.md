@@ -15,6 +15,21 @@ Runtime profile resolution order:
 3. user config file
 4. safe internal default (`demo`)
 
+## Persistence Backends
+
+TaskFrame uses filesystem JSON persistence by default. This keeps portfolio/demo runs easy to inspect and preserves evidence artifacts under `runtime_data/runs/<frame_id>/`.
+
+SQLite can be enabled for production-shaped operational state:
+
+```powershell
+$env:TASKFRAME_PERSISTENCE_BACKEND="sqlite"
+$env:TASKFRAME_SQLITE_DB_PATH="runtime_data/taskframe_runtime.db"
+```
+
+In SQLite mode the runtime dual-writes: SQLite stores operational state, while JSON artifacts, reports, screenshots, evidence bundles, and exported markdown/html files remain file-based. Do not store credentials, OAuth tokens, raw secrets, private local config contents, live confirmation phrases, or raw browser profile paths in SQLite.
+
+See `config/examples/taskframe.sqlite.example.json` and `docs/production_persistence_backend.md`.
+
 ## Safe default configuration
 
 The default profile uses:

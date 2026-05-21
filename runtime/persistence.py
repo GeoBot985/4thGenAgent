@@ -89,11 +89,17 @@ def save_taskframe(
     frame: TaskFrame,
     runtime_data_dir: str | Path = DEFAULT_RUNTIME_DATA_DIR,
 ) -> Path:
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    frame_data = to_dict(frame)
     frame_dir = ensure_dir(get_frame_dir(frame.frame_id, runtime_data_dir))
-    write_json_atomic(get_taskframe_path(frame.frame_id, runtime_data_dir), to_dict(frame))
+    write_json_atomic(get_taskframe_path(frame.frame_id, runtime_data_dir), frame_data)
     write_json_atomic(get_audit_path(frame.frame_id, runtime_data_dir), [json_safe(item) for item in frame.audit])
     write_json_atomic(get_outputs_path(frame.frame_id, runtime_data_dir), frame.outputs)
     write_json_atomic(get_summary_path(frame.frame_id, runtime_data_dir), build_taskframe_summary(frame))
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem":
+        backend.save_taskframe(frame_data)
     return frame_dir
 
 
@@ -112,6 +118,13 @@ def load_taskframe_dict(
     frame_id: str,
     runtime_data_dir: str | Path = DEFAULT_RUNTIME_DATA_DIR,
 ) -> dict[str, Any]:
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem":
+        data = backend.load_taskframe(frame_id)
+        if isinstance(data, dict):
+            return data
     data = read_json(get_taskframe_path(frame_id, runtime_data_dir))
     if not isinstance(data, dict):
         raise TaskFramePersistenceError("TaskFrame artifact must be a JSON object.")
@@ -122,6 +135,11 @@ def taskframe_exists(
     frame_id: str,
     runtime_data_dir: str | Path = DEFAULT_RUNTIME_DATA_DIR,
 ) -> bool:
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem" and backend.load_taskframe(frame_id) is not None:
+        return True
     return get_taskframe_path(frame_id, runtime_data_dir).is_file()
 
 

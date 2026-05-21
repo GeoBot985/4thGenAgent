@@ -50,6 +50,11 @@ def append_ledger_record(
         with ledger_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True))
             handle.write("\n")
+        from .persistence_backends.backend_factory import get_persistence_backend
+
+        backend = get_persistence_backend(runtime_data_dir)
+        if getattr(backend, "backend_name", "filesystem") != "filesystem":
+            backend.append_run_ledger_record(record)
     except Exception as exc:  # pragma: no cover - defensive guard
         raise RunLedgerError(f"Unable to append ledger record: {ledger_path}") from exc
 
@@ -57,6 +62,13 @@ def append_ledger_record(
 def read_ledger_records(
     runtime_data_dir: str | Path = DEFAULT_RUNTIME_DATA_DIR,
 ) -> list[dict[str, Any]]:
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem":
+        records = backend.list_run_ledger_records(limit=10_000_000)
+        if records:
+            return records
     ledger_path = get_ledger_path(runtime_data_dir)
     if not ledger_path.is_file():
         return []

@@ -1,8 +1,8 @@
 {
   "ok": true,
   "status": "HEALTHY",
-  "generated_at": "2026-05-21T07:02:05.167647Z",
-  "manifest_dir": "D:\\Projects\\4thGenAgent\\manifests",
+  "generated_at": "2026-05-21T10:35:09.510819Z",
+  "manifest_dir": "manifests",
   "summary": {
     "total": 19,
     "healthy": 0,
@@ -23,7 +23,7 @@
     {
       "manifest_id": "customer.status_llm_e2e",
       "name": "Customer Status - LLM Assisted E2E",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\customer_status_llm_e2e.manifest.json",
+      "path": "manifests\\customer_status_llm_e2e.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -43,8 +43,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'channel' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -61,8 +61,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
+            "message": "Input 'channel' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -236,7 +236,7 @@
     {
       "manifest_id": "invoiceops.process_supplier_invoice_v1",
       "name": "InvoiceOps Process Supplier Invoice v1",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\invoiceops.process_supplier_invoice_v1.manifest.json",
+      "path": "manifests\\invoiceops.process_supplier_invoice_v1.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -278,7 +278,7 @@
     {
       "manifest_id": "llm.classify_customer_message",
       "name": "LLM Classify Customer Message",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\llm_classify_customer_message.manifest.json",
+      "path": "manifests\\llm_classify_customer_message.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -320,7 +320,7 @@
     {
       "manifest_id": "llm.customer_status_reply",
       "name": "LLM Customer Status Reply",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\llm_customer_status_reply.manifest.json",
+      "path": "manifests\\llm_customer_status_reply.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -339,8 +339,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
+            "message": "Input 'channel' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -348,8 +348,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'channel' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           }
@@ -458,7 +458,7 @@
     {
       "manifest_id": "llm.extract_order_ref",
       "name": "LLM Extract Order Reference",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\llm_extract_order_ref.manifest.json",
+      "path": "manifests\\llm_extract_order_ref.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -500,7 +500,7 @@
     {
       "manifest_id": "maintenance.cleanup_dry_run",
       "name": "Maintenance - Cleanup Dry Run",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_cleanup_dry_run.manifest.json",
+      "path": "manifests\\maintenance_cleanup_dry_run.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -542,7 +542,7 @@
     {
       "manifest_id": "maintenance.artifact_index_rebuild",
       "name": "Maintenance - Rebuild Artifact Index",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_rebuild_artifact_index.manifest.json",
+      "path": "manifests\\maintenance_rebuild_artifact_index.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -584,7 +584,7 @@
     {
       "manifest_id": "maintenance.report_failed_runs",
       "name": "Maintenance - Report Failed Runs",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_report_failed_runs.manifest.json",
+      "path": "manifests\\maintenance_report_failed_runs.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -626,7 +626,7 @@
     {
       "manifest_id": "maintenance.report_live_packs",
       "name": "Maintenance - Report Live Approval Packs",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_report_live_packs.manifest.json",
+      "path": "manifests\\maintenance_report_live_packs.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -668,7 +668,7 @@
     {
       "manifest_id": "maintenance.report_pending_runs",
       "name": "Maintenance - Report Pending Runs",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\maintenance_report_pending_runs.manifest.json",
+      "path": "manifests\\maintenance_report_pending_runs.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -710,7 +710,7 @@
     {
       "manifest_id": "order.detect_delayed",
       "name": "Order - Detect Delayed",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\order.detect_delayed.manifest.json",
+      "path": "manifests\\order.detect_delayed.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -832,7 +832,7 @@
     {
       "manifest_id": "order.release_paid",
       "name": "Order - Release Paid",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\order.release_paid.manifest.json",
+      "path": "manifests\\order.release_paid.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -954,7 +954,7 @@
     {
       "manifest_id": "order.reserve_stock",
       "name": "Order - Reserve Stock",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\order.reserve_stock.manifest.json",
+      "path": "manifests\\order.reserve_stock.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1076,7 +1076,7 @@
     {
       "manifest_id": "order.update_shipment_status",
       "name": "Order - Update Shipment Status",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\order.update_shipment_status.manifest.json",
+      "path": "manifests\\order.update_shipment_status.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1198,7 +1198,7 @@
     {
       "manifest_id": "order.validate_new",
       "name": "Order Validation - New Order",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\order.validate_new.manifest.json",
+      "path": "manifests\\order.validate_new.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1320,7 +1320,7 @@
     {
       "manifest_id": "supplier_invoice.match_to_po_receipt",
       "name": "Supplier Invoice - Three-Way Match",
-      "path": "D:\\Projects\\4thGenAgent\\manifests\\supplier_invoice_match.manifest.json",
+      "path": "manifests\\supplier_invoice_match.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1538,8 +1538,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'channel' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -1556,8 +1556,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
+            "message": "Input 'channel' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
             "example": "",
             "source": "static_manifest_check"
           },

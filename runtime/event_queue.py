@@ -169,6 +169,11 @@ def write_queue_record(
         handle.write(json.dumps(json_safe(record), ensure_ascii=False, sort_keys=True))
         handle.write("\n")
     _update_queue_index(record, runtime_data_dir)
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem":
+        backend.save_queue_record(record)
 
 
 def _update_queue_index(
@@ -198,6 +203,13 @@ def load_queue_record(
     runtime_data_dir: str | Path = "runtime_data",
 ) -> dict[str, Any] | None:
     """Load the latest queue record for an event from the index."""
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem":
+        record = backend.get_queue_record(event_id)
+        if record is not None:
+            return record
     index_path = get_queue_index_path(runtime_data_dir)
     if not index_path.is_file():
         return None
@@ -220,6 +232,11 @@ def list_queue_records(
     limit: int = 100,
 ) -> list[dict[str, Any]]:
     """List queue records from the index, optionally filtered."""
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem":
+        return backend.list_queue_records(limit=limit, status=status, source=source, event_type=event_type)
     index_path = get_queue_index_path(runtime_data_dir)
     if not index_path.is_file():
         return []
@@ -265,6 +282,358 @@ def build_event_fingerprint(event: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 # Replay
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Spec 137 — Durable queue operations
+# ---------------------------------------------------------------------------
+
+DURABLE_QUEUE_DIR = "queue"
+DURABLE_QUEUE_FILE = "durable_queue.jsonl"
+DURABLE_QUEUE_INDEX_FILE = "durable_queue_index.json"
+
+
+def _get_durable_queue_dir(runtime_data_dir: str | Path = "runtime_data") -> Path:
+    return Path(runtime_data_dir) / DURABLE_QUEUE_DIR
+
+
+def _save_durable_record(
+    record: dict[str, Any],
+    runtime_data_dir: str | Path = "runtime_data",
+) -> None:
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    backend.save_durable_queue_record(record)
+
+
+def _load_durable_record(
+    queue_id: str,
+    runtime_data_dir: str | Path = "runtime_data",
+) -> dict[str, Any] | None:
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    return backend.get_durable_queue_record(queue_id)
+
+
+def _list_durable_records(
+    runtime_data_dir: str | Path = "runtime_data",
+    status: str | None = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    filters: dict[str, Any] = {}
+    if status:
+        filters["status"] = status
+    return backend.list_durable_queue_records(limit=limit, **filters)
+
+
+def _find_active_by_dedupe_key(
+    dedupe_key: str,
+    runtime_data_dir: str | Path = "runtime_data",
+) -> dict[str, Any] | None:
+    from .event_queue_contract import TERMINAL_STATUSES
+
+    records = _list_durable_records(runtime_data_dir=runtime_data_dir, limit=10_000)
+    for record in records:
+        if record.get("dedupe_key") == dedupe_key and record.get("status") not in TERMINAL_STATUSES:
+            return record
+    return None
+
+
+def enqueue_event(
+    event: dict[str, Any],
+    runtime_data_dir: str | Path = "runtime_data",
+    *,
+    priority: int = 100,
+    max_attempts: int = 3,
+) -> dict[str, Any]:
+    """Enqueue an event as a durable queue record.
+
+    Returns ok=True with the new queue record, or ok=False with duplicate info.
+    """
+    from .event_queue_contract import build_dedupe_key, build_durable_queue_record, TERMINAL_STATUSES
+
+    dedupe_key = build_dedupe_key(event)
+    existing = _find_active_by_dedupe_key(dedupe_key, runtime_data_dir)
+    if existing is not None:
+        return {
+            "ok": False,
+            "duplicate": True,
+            "existing_queue_id": existing.get("queue_id"),
+            "existing_status": existing.get("status"),
+            "dedupe_key": dedupe_key,
+        }
+
+    record = build_durable_queue_record(event, priority=priority, max_attempts=max_attempts)
+    _save_durable_record(record, runtime_data_dir)
+    return {"ok": True, "duplicate": False, "queue_id": record["queue_id"], "record": record}
+
+
+def claim_next_event(
+    worker_id: str,
+    runtime_data_dir: str | Path = "runtime_data",
+) -> dict[str, Any]:
+    """Claim the next PENDING event ordered by priority then available_at."""
+    from .event_queue_contract import STATUS_PENDING, STATUS_CLAIMED, update_durable_queue_record
+
+    now = utc_now()
+    records = _list_durable_records(runtime_data_dir=runtime_data_dir, status=STATUS_PENDING, limit=100)
+    eligible = [r for r in records if str(r.get("available_at", "") or "") <= now]
+    if not eligible:
+        return {"ok": False, "no_pending_event": True, "message": "No PENDING events available."}
+
+    eligible.sort(key=lambda r: (int(r.get("priority", 100) or 100), str(r.get("available_at") or "")))
+    record = eligible[0]
+
+    claimed = update_durable_queue_record(record, status=STATUS_CLAIMED, claimed_at=now, claimed_by=str(worker_id))
+    _save_durable_record(claimed, runtime_data_dir)
+    return {"ok": True, "queue_id": claimed["queue_id"], **claimed}
+
+
+def mark_event_processing(
+    queue_id: str,
+    runtime_data_dir: str | Path = "runtime_data",
+) -> dict[str, Any]:
+    """Transition a CLAIMED event to PROCESSING."""
+    from .event_queue_contract import STATUS_PROCESSING, update_durable_queue_record
+
+    record = _load_durable_record(queue_id, runtime_data_dir)
+    if record is None:
+        return {"ok": False, "error": f"Queue record not found: {queue_id}"}
+
+    updated = update_durable_queue_record(record, status=STATUS_PROCESSING)
+    _save_durable_record(updated, runtime_data_dir)
+    return {"ok": True, "queue_id": queue_id, "status": STATUS_PROCESSING}
+
+
+def mark_event_completed(
+    queue_id: str,
+    frame_id: str,
+    runtime_data_dir: str | Path = "runtime_data",
+) -> dict[str, Any]:
+    """Mark a PROCESSING event as COMPLETED, linking the resulting TaskFrame."""
+    from .event_queue_contract import STATUS_COMPLETED, update_durable_queue_record
+
+    record = _load_durable_record(queue_id, runtime_data_dir)
+    if record is None:
+        return {"ok": False, "error": f"Queue record not found: {queue_id}"}
+
+    now = utc_now()
+    updated = update_durable_queue_record(
+        record,
+        status=STATUS_COMPLETED,
+        linked_frame_id=str(frame_id or ""),
+        completed_at=now,
+    )
+    _save_durable_record(updated, runtime_data_dir)
+    return {"ok": True, "queue_id": queue_id, "frame_id": frame_id, "status": STATUS_COMPLETED}
+
+
+def mark_event_failed(
+    queue_id: str,
+    error: dict[str, Any],
+    runtime_data_dir: str | Path = "runtime_data",
+) -> dict[str, Any]:
+    """Mark a queue item as failed, classifying into retryable or permanent failure."""
+    from .event_queue_contract import (
+        STATUS_FAILED_RETRYABLE,
+        STATUS_FAILED_PERMANENT,
+        STATUS_DEAD_LETTER,
+        is_retryable_failure_category,
+        DEFAULT_MAX_ATTEMPTS,
+        update_durable_queue_record,
+    )
+
+    record = _load_durable_record(queue_id, runtime_data_dir)
+    if record is None:
+        return {"ok": False, "error": f"Queue record not found: {queue_id}"}
+
+    category = str(error.get("category", "") or "")
+    message = str(error.get("message", "") or "")
+    attempt_count = int(record.get("attempt_count", 0) or 0) + 1
+    max_attempts = int(record.get("max_attempts", DEFAULT_MAX_ATTEMPTS) or DEFAULT_MAX_ATTEMPTS)
+
+    retryable = is_retryable_failure_category(category)
+
+    if not retryable:
+        new_status = STATUS_FAILED_PERMANENT
+    elif attempt_count >= max_attempts:
+        new_status = STATUS_DEAD_LETTER
+    else:
+        new_status = STATUS_FAILED_RETRYABLE
+
+    updated = update_durable_queue_record(
+        record,
+        status=new_status,
+        attempt_count=attempt_count,
+        last_error=message,
+        failure_category=category,
+    )
+    _save_durable_record(updated, runtime_data_dir)
+    return {
+        "ok": True,
+        "queue_id": queue_id,
+        "status": new_status,
+        "attempt_count": attempt_count,
+        "failure_category": category,
+    }
+
+
+def retry_event(
+    queue_id: str,
+    runtime_data_dir: str | Path = "runtime_data",
+) -> dict[str, Any]:
+    """Re-queue a FAILED_RETRYABLE item back to PENDING."""
+    from .event_queue_contract import STATUS_FAILED_RETRYABLE, STATUS_PENDING, update_durable_queue_record
+
+    record = _load_durable_record(queue_id, runtime_data_dir)
+    if record is None:
+        return {"ok": False, "error": f"Queue record not found: {queue_id}"}
+
+    if record.get("status") != STATUS_FAILED_RETRYABLE:
+        return {
+            "ok": False,
+            "error": f"Only FAILED_RETRYABLE records can be retried. Current status: {record.get('status')}",
+        }
+
+    updated = update_durable_queue_record(
+        record,
+        status=STATUS_PENDING,
+        available_at=utc_now(),
+        claimed_at="",
+        claimed_by="",
+    )
+    _save_durable_record(updated, runtime_data_dir)
+    return {"ok": True, "queue_id": queue_id, "status": STATUS_PENDING}
+
+
+def cancel_event(
+    queue_id: str,
+    reason: str,
+    runtime_data_dir: str | Path = "runtime_data",
+) -> dict[str, Any]:
+    """Cancel a non-terminal queue item."""
+    from .event_queue_contract import STATUS_CANCELLED, TERMINAL_STATUSES, update_durable_queue_record
+
+    record = _load_durable_record(queue_id, runtime_data_dir)
+    if record is None:
+        return {"ok": False, "error": f"Queue record not found: {queue_id}"}
+
+    if record.get("status") in TERMINAL_STATUSES:
+        return {
+            "ok": False,
+            "error": f"Cannot cancel a terminal record. Status: {record.get('status')}",
+        }
+
+    updated = update_durable_queue_record(
+        record,
+        status=STATUS_CANCELLED,
+        last_error=str(reason),
+    )
+    _save_durable_record(updated, runtime_data_dir)
+    return {"ok": True, "queue_id": queue_id, "status": STATUS_CANCELLED}
+
+
+def list_queue(
+    status: str | None = None,
+    limit: int = 100,
+    runtime_data_dir: str | Path = "runtime_data",
+) -> dict[str, Any]:
+    """List durable queue records, optionally filtered by status."""
+    records = _list_durable_records(runtime_data_dir=runtime_data_dir, status=status, limit=limit)
+    return {"ok": True, "count": len(records), "records": records}
+
+
+def queue_health(runtime_data_dir: str | Path = "runtime_data") -> dict[str, Any]:
+    """Return queue health summary with counts per status and oldest pending item."""
+    from .event_queue_contract import STATUS_PENDING, STATUS_FAILED_RETRYABLE, STATUS_DEAD_LETTER
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    backend_health = backend.health()
+
+    all_records = _list_durable_records(runtime_data_dir=runtime_data_dir, limit=10_000)
+    counts: dict[str, int] = {}
+    for r in all_records:
+        s = str(r.get("status", "") or "unknown")
+        counts[s] = counts.get(s, 0) + 1
+
+    pending = [r for r in all_records if r.get("status") == STATUS_PENDING]
+    pending.sort(key=lambda r: str(r.get("created_at", "") or ""))
+    oldest_pending = pending[0] if pending else None
+
+    return {
+        "ok": True,
+        "backend": str(getattr(backend, "backend_name", "unknown")),
+        "counts_by_status": counts,
+        "total": len(all_records),
+        "pending_count": counts.get(STATUS_PENDING, 0),
+        "failed_retryable_count": counts.get(STATUS_FAILED_RETRYABLE, 0),
+        "dead_letter_count": counts.get(STATUS_DEAD_LETTER, 0),
+        "oldest_pending_created_at": str(oldest_pending.get("created_at", "") or "") if oldest_pending else "",
+    }
+
+
+def recover_stale_queue_items(
+    runtime_data_dir: str | Path = "runtime_data",
+    stale_timeout_minutes: int = 15,
+) -> dict[str, Any]:
+    """Find CLAIMED/PROCESSING items older than stale_timeout_minutes and recover them."""
+    from .event_queue_contract import (
+        STATUS_CLAIMED,
+        STATUS_PROCESSING,
+        STATUS_FAILED_RETRYABLE,
+        STATUS_DEAD_LETTER,
+        DEFAULT_MAX_ATTEMPTS,
+        update_durable_queue_record,
+    )
+    import datetime
+
+    now_dt = datetime.datetime.now(datetime.timezone.utc)
+    cutoff_dt = now_dt - datetime.timedelta(minutes=int(stale_timeout_minutes))
+    cutoff_str = cutoff_dt.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
+    all_records = _list_durable_records(runtime_data_dir=runtime_data_dir, limit=10_000)
+    stale_statuses = {STATUS_CLAIMED, STATUS_PROCESSING}
+    recovered: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+
+    for record in all_records:
+        if record.get("status") not in stale_statuses:
+            continue
+        updated_at = str(record.get("updated_at", "") or "")
+        if updated_at >= cutoff_str:
+            continue
+
+        queue_id = str(record.get("queue_id", ""))
+        attempt_count = int(record.get("attempt_count", 0) or 0)
+        max_attempts = int(record.get("max_attempts", DEFAULT_MAX_ATTEMPTS) or DEFAULT_MAX_ATTEMPTS)
+
+        if attempt_count >= max_attempts:
+            new_status = STATUS_DEAD_LETTER
+        else:
+            new_status = STATUS_FAILED_RETRYABLE
+
+        updated = update_durable_queue_record(
+            record,
+            status=new_status,
+            last_error=f"Stale {record.get('status')} item recovered after {stale_timeout_minutes}m timeout.",
+            failure_category="runtime_exception",
+        )
+        _save_durable_record(updated, runtime_data_dir)
+        recovered.append({"queue_id": queue_id, "old_status": record.get("status"), "new_status": new_status})
+
+    return {
+        "ok": True,
+        "recovered_count": len(recovered),
+        "skipped_count": len(skipped),
+        "recovered": recovered,
+        "stale_timeout_minutes": stale_timeout_minutes,
+    }
+
 
 def replay_event_dry_run(
     event_id: str,

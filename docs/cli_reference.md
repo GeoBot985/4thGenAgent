@@ -754,6 +754,90 @@ Exit codes:
 - `0`
 
 
+## Durable Event Queue (`taskframe queue`)
+
+Manage and inspect the Spec 137 durable event queue.
+
+### `taskframe queue status`
+
+Show queue health: backend, counts by status, oldest pending item.
+
+```bash
+taskframe queue status
+taskframe queue status --json
+```
+
+### `taskframe queue list`
+
+List durable queue records, optionally filtered by status.
+
+```bash
+taskframe queue list
+taskframe queue list --status PENDING
+taskframe queue list --status FAILED_RETRYABLE --limit 20 --json
+```
+
+### `taskframe queue enqueue-fixture <fixture_name>`
+
+Enqueue a safe local fixture event. Available fixtures: `customer_status`, `order_status`, `system_health`.
+
+```bash
+taskframe queue enqueue-fixture customer_status
+```
+
+### `taskframe queue process-next`
+
+Claim and process one PENDING item into a TaskFrame (dry-run only).
+
+```bash
+taskframe queue process-next
+taskframe queue process-next --worker-id my-worker --json
+```
+
+### `taskframe queue process-batch`
+
+Process up to `--limit` PENDING items.
+
+```bash
+taskframe queue process-batch --limit 10
+```
+
+### `taskframe queue retry <queue_id>`
+
+Re-queue a `FAILED_RETRYABLE` item back to `PENDING`.
+
+```bash
+taskframe queue retry abc123...
+```
+
+### `taskframe queue cancel <queue_id>`
+
+Cancel a non-terminal queue item.
+
+```bash
+taskframe queue cancel abc123... --reason "Stale test fixture"
+```
+
+### `taskframe queue dead-letter`
+
+List all `DEAD_LETTER` items.
+
+```bash
+taskframe queue dead-letter
+taskframe queue dead-letter --json
+```
+
+### `taskframe queue recover-stale`
+
+Recover stale `CLAIMED`/`PROCESSING` items (older than `--stale-timeout-minutes`, default 15).
+
+```bash
+taskframe queue recover-stale
+taskframe queue recover-stale --stale-timeout-minutes 30
+```
+
+---
+
 ## Google Workspace tool pack
 
 - `taskframe tools discover`

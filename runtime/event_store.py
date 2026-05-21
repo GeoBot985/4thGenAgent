@@ -121,9 +121,19 @@ def append_event(event: RuntimeEvent | dict[str, Any], runtime_data_dir: str | P
     with get_events_path(runtime_data_dir).open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(json_safe(record), ensure_ascii=False, sort_keys=True))
         handle.write("\n")
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem":
+        backend.append_event(record)
 
 
 def list_events(limit: int = 50, runtime_data_dir: str | Path = "runtime_data") -> list[dict[str, Any]]:
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem":
+        return backend.list_events(limit=limit if limit is not None else 10_000_000)
     path = get_events_path(runtime_data_dir)
     if not path.is_file():
         return []
@@ -147,6 +157,11 @@ def list_events(limit: int = 50, runtime_data_dir: str | Path = "runtime_data") 
 def get_event(event_id: str, runtime_data_dir: str | Path = "runtime_data") -> dict[str, Any] | None:
     if not isinstance(event_id, str) or not event_id.strip():
         return None
+    from .persistence_backends.backend_factory import get_persistence_backend
+
+    backend = get_persistence_backend(runtime_data_dir)
+    if getattr(backend, "backend_name", "filesystem") != "filesystem":
+        return backend.get_event(event_id)
     events = list_events(limit=10_000_000, runtime_data_dir=runtime_data_dir)
     for event in reversed(events):
         if str(event.get("event_id", "")) == event_id:

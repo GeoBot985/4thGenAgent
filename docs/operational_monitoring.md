@@ -65,7 +65,7 @@ For pilot readiness, live reads are only meaningful when the active profile allo
 
 ## What Monitoring Does Not Do
 
-Monitoring does not:
+Monitoring does not do automatically:
 
 - retry failed runs automatically
 - recover stuck runs automatically

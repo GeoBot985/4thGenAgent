@@ -1,5 +1,9 @@
 # 90% Readiness Scorecard
 
+## Persistence Readiness
+
+Production persistence now has a v1 backend boundary. Filesystem mode remains valid for demos and evidence packs; SQLite is available as an opt-in transactional backend for operational state with JSON dual-write compatibility.
+
 ## Purpose
 
 This scorecard measures controlled portfolio/demo readiness across the repository. It does not certify production deployment readiness.

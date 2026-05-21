@@ -401,6 +401,18 @@ def build_parser() -> argparse.ArgumentParser:
     runtime_store_cleanup.add_argument("--dry-run", action="store_true", default=True)
     runtime_store_cleanup.add_argument("--json", action="store_true")
 
+    persistence = sub.add_parser("persistence", help="Inspect and manage TaskFrame persistence backends.")
+    persistence_sub = persistence.add_subparsers(dest="persistence_command", required=True)
+    for name, help_text in (
+        ("status", "Show active persistence backend status."),
+        ("init", "Initialize the configured persistence backend."),
+        ("migrate-json", "Backfill SQLite from JSON runtime artifacts."),
+        ("verify", "Verify the configured persistence backend."),
+    ):
+        persistence_cmd = persistence_sub.add_parser(name, help=help_text)
+        persistence_cmd.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+        persistence_cmd.add_argument("--json", action="store_true")
+
     artifacts = sub.add_parser("artifacts", help="Manage runtime artifacts and retention policies.")
     artifacts_sub = artifacts.add_subparsers(dest="artifacts_command", required=True)
     
@@ -463,6 +475,57 @@ def build_parser() -> argparse.ArgumentParser:
     recover_resume.add_argument("--dry-run", action="store_true", default=True)
     recover_resume.add_argument("--json", action="store_true")
 
+    # Spec 137 — Durable event queue
+    queue = sub.add_parser("queue", help="Manage and inspect the durable event queue.")
+    queue_sub = queue.add_subparsers(dest="queue_command", required=True)
+
+    queue_status = queue_sub.add_parser("status", help="Show durable queue health summary.")
+    queue_status.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    queue_status.add_argument("--json", action="store_true")
+
+    queue_list = queue_sub.add_parser("list", help="List durable queue records.")
+    queue_list.add_argument("--status", default="", help="Filter by status (PENDING, CLAIMED, PROCESSING, COMPLETED, FAILED_RETRYABLE, FAILED_PERMANENT, DEAD_LETTER, CANCELLED).")
+    queue_list.add_argument("--limit", type=int, default=20, help="Max records to return.")
+    queue_list.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    queue_list.add_argument("--json", action="store_true")
+
+    queue_enqueue = queue_sub.add_parser("enqueue-fixture", help="Enqueue a safe local fixture event.")
+    queue_enqueue.add_argument("fixture_name", help="Fixture name (e.g. customer_status, order_status).")
+    queue_enqueue.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    queue_enqueue.add_argument("--json", action="store_true")
+
+    queue_process_next = queue_sub.add_parser("process-next", help="Process one PENDING queue item into a TaskFrame.")
+    queue_process_next.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    queue_process_next.add_argument("--worker-id", default="local")
+    queue_process_next.add_argument("--json", action="store_true")
+
+    queue_process_batch = queue_sub.add_parser("process-batch", help="Process a batch of PENDING queue items.")
+    queue_process_batch.add_argument("--limit", type=int, default=10, help="Max items to process.")
+    queue_process_batch.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    queue_process_batch.add_argument("--worker-id", default="local")
+    queue_process_batch.add_argument("--json", action="store_true")
+
+    queue_retry = queue_sub.add_parser("retry", help="Retry a FAILED_RETRYABLE queue item.")
+    queue_retry.add_argument("queue_id", help="Queue ID to retry.")
+    queue_retry.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    queue_retry.add_argument("--json", action="store_true")
+
+    queue_cancel = queue_sub.add_parser("cancel", help="Cancel a non-terminal queue item.")
+    queue_cancel.add_argument("queue_id", help="Queue ID to cancel.")
+    queue_cancel.add_argument("--reason", default="Cancelled by operator.")
+    queue_cancel.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    queue_cancel.add_argument("--json", action="store_true")
+
+    queue_dead_letter = queue_sub.add_parser("dead-letter", help="List DEAD_LETTER queue items.")
+    queue_dead_letter.add_argument("--limit", type=int, default=20)
+    queue_dead_letter.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    queue_dead_letter.add_argument("--json", action="store_true")
+
+    queue_recover = queue_sub.add_parser("recover-stale", help="Recover stale CLAIMED/PROCESSING items.")
+    queue_recover.add_argument("--stale-timeout-minutes", type=int, default=15)
+    queue_recover.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    queue_recover.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -517,12 +580,16 @@ def main(argv: list[str] | None = None) -> int:
         return _run_profile(args)
     if args.command == "runtime-store":
         return _run_runtime_store(args)
+    if args.command == "persistence":
+        return _run_persistence(args)
     if args.command == "artifacts":
         return _run_artifacts(args)
     if args.command == "monitor":
         return _run_monitor(args)
     if args.command == "recover":
         return _run_recover(args)
+    if args.command == "queue":
+        return _run_queue(args)
     parser.print_help()
     return 2
 
@@ -2822,6 +2889,59 @@ def _run_runtime_store_cleanup(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_persistence(args: argparse.Namespace) -> int:
+    from runtime.persistence_backends.migration import (
+        init_persistence,
+        migrate_json_to_sqlite,
+        persistence_status,
+        verify_persistence,
+    )
+
+    command = str(getattr(args, "persistence_command", "") or "")
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    if command == "status":
+        payload = persistence_status(runtime_data_dir)
+    elif command == "init":
+        payload = init_persistence(runtime_data_dir)
+    elif command == "migrate-json":
+        payload = migrate_json_to_sqlite(runtime_data_dir)
+    elif command == "verify":
+        payload = verify_persistence(runtime_data_dir)
+    else:
+        print("Unknown persistence command.", file=sys.stderr)
+        return 2
+
+    if bool(getattr(args, "json", False)):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0 if payload.get("ok", False) else 1
+
+    print("TaskFrame Persistence")
+    print(f"Backend: {payload.get('active_backend', payload.get('backend', 'filesystem'))}")
+    if payload.get("sqlite_path"):
+        print(f"SQLite path: {payload.get('sqlite_path')}")
+    if "db_exists" in payload:
+        print(f"DB exists: {str(payload.get('db_exists')).lower()}")
+    if "schema_version" in payload:
+        print(f"Schema version: {payload.get('schema_version')}")
+    for key, label in (
+        ("taskframe_count", "TaskFrames"),
+        ("event_count", "Events"),
+        ("run_ledger_count", "Run ledger records"),
+        ("last_write_timestamp", "Last write"),
+    ):
+        if key in payload:
+            print(f"{label}: {payload.get(key)}")
+    if payload.get("migrated"):
+        print(f"Migrated: {json.dumps(payload.get('migrated'), sort_keys=True)}")
+    if payload.get("warnings"):
+        print("Warnings:")
+        for warning in payload.get("warnings", []):
+            print(f"- {warning}")
+    if payload.get("error"):
+        print(f"Error: {payload.get('error')}")
+    return 0 if payload.get("ok", False) else 1
+
+
 def _run_monitor(args: argparse.Namespace) -> int:
     command = str(getattr(args, "monitor_command", "") or "")
     if command == "summary":
@@ -3185,6 +3305,213 @@ def _run_artifacts_cleanup(args: argparse.Namespace) -> int:
     print(f"Space reclaimed: {res.get('reclaimed_bytes', 0) / (1024*1024):.2f} MB")
     print(f"Items skipped: {res.get('skipped_count', 0)}")
     return 0
+
+
+_QUEUE_FIXTURES: dict[str, dict] = {
+    "customer_status": {
+        "event_id": "fixture-customer-status-001",
+        "source": "operator_ui",
+        "event_type": "customer.status_check",
+        "payload": {
+            "customer_id": "CUST-1001",
+            "request_type": "status_check",
+            "channel": "fixture",
+        },
+    },
+    "order_status": {
+        "event_id": "fixture-order-status-001",
+        "source": "operator_ui",
+        "event_type": "order.status_check",
+        "payload": {
+            "order_id": "ORD-5001",
+            "request_type": "status_check",
+            "channel": "fixture",
+        },
+    },
+    "system_health": {
+        "event_id": "fixture-system-health-001",
+        "source": "system",
+        "event_type": "system.health_check",
+        "payload": {
+            "check_type": "health",
+            "channel": "fixture",
+        },
+    },
+}
+
+
+def _run_queue(args: Any) -> int:
+    import datetime
+
+    from runtime.event_queue import (
+        cancel_event,
+        enqueue_event,
+        list_queue,
+        queue_health,
+        recover_stale_queue_items,
+        retry_event,
+    )
+    from runtime.event_queue_runner import process_next_queued_event, process_queued_events
+
+    rd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    use_json = bool(getattr(args, "json", False))
+    cmd = args.queue_command
+
+    if cmd == "status":
+        try:
+            result = queue_health(rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        print("Queue Status")
+        print(f"  Backend:              {result.get('backend', 'unknown')}")
+        print(f"  Total records:        {result.get('total', 0)}")
+        print(f"  Pending:              {result.get('pending_count', 0)}")
+        print(f"  Failed (retryable):   {result.get('failed_retryable_count', 0)}")
+        print(f"  Dead-letter:          {result.get('dead_letter_count', 0)}")
+        if result.get("oldest_pending_created_at"):
+            print(f"  Oldest pending at:    {result['oldest_pending_created_at']}")
+        for status, count in sorted((result.get("counts_by_status") or {}).items()):
+            print(f"  {status:25s} {count}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "list":
+        status_filter = str(getattr(args, "status", "") or "").strip() or None
+        limit = int(getattr(args, "limit", 20))
+        try:
+            result = list_queue(status=status_filter, limit=limit, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc), "records": []}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        records = result.get("records", [])
+        print(f"Queue records ({len(records)} shown):")
+        for r in records:
+            print(f"  {r.get('queue_id', '')[:8]}..  {r.get('status', ''):20s}  {r.get('source', '')}:{r.get('event_type', '')}  attempt={r.get('attempt_count', 0)}")
+        return 0
+
+    if cmd == "enqueue-fixture":
+        fixture_name = str(getattr(args, "fixture_name", "")).strip()
+        fixture = _QUEUE_FIXTURES.get(fixture_name)
+        if fixture is None:
+            available = ", ".join(sorted(_QUEUE_FIXTURES.keys()))
+            if use_json:
+                print(json.dumps({"ok": False, "error": f"Unknown fixture: {fixture_name}", "available": available}))
+            else:
+                print(f"Unknown fixture '{fixture_name}'. Available: {available}")
+            return 1
+        import uuid as _uuid
+        event = dict(fixture)
+        event["event_id"] = f"fixture-{fixture_name}-{_uuid.uuid4().hex[:8]}"
+        try:
+            result = enqueue_event(event, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if result.get("ok"):
+            print(f"Enqueued fixture '{fixture_name}': queue_id={result.get('queue_id', '')[:8]}...")
+        else:
+            print(f"Fixture '{fixture_name}' not enqueued: {result.get('error') or 'duplicate (dedupe key already active)'}")
+        return 0 if result.get("ok") else 0
+
+    if cmd == "process-next":
+        worker_id = str(getattr(args, "worker_id", "local") or "local")
+        try:
+            result = process_next_queued_event(runtime_data_dir=rd, worker_id=worker_id)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if result.get("no_pending_event"):
+            print("No PENDING events in queue.")
+            return 0
+        if result.get("ok"):
+            print(f"Processed: queue_id={result.get('queue_id', '')[:8]}...  frame_id={result.get('frame_id', '')[:8] if result.get('frame_id') else 'n/a'}  status={result.get('status', '')}")
+        else:
+            print(f"Failed: queue_id={result.get('queue_id', '')[:8]}...  category={result.get('failure_category', '')}  error={result.get('error', {}).get('message', '')}")
+        return 0 if result.get("ok") or result.get("no_pending_event") else 1
+
+    if cmd == "process-batch":
+        limit = int(getattr(args, "limit", 10))
+        worker_id = str(getattr(args, "worker_id", "local") or "local")
+        try:
+            result = process_queued_events(limit=limit, runtime_data_dir=rd, worker_id=worker_id)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        print(f"Batch complete: processed={result.get('processed', 0)}  completed={result.get('completed', 0)}  failed={result.get('failed', 0)}")
+        return 0
+
+    if cmd == "retry":
+        queue_id = str(getattr(args, "queue_id", "")).strip()
+        try:
+            result = retry_event(queue_id, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if result.get("ok"):
+            print(f"Retried: queue_id={queue_id[:8]}...  new status=PENDING")
+        else:
+            print(f"Retry failed: {result.get('error', 'unknown error')}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "cancel":
+        queue_id = str(getattr(args, "queue_id", "")).strip()
+        reason = str(getattr(args, "reason", "Cancelled by operator."))
+        try:
+            result = cancel_event(queue_id, reason=reason, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if result.get("ok"):
+            print(f"Cancelled: queue_id={queue_id[:8]}...")
+        else:
+            print(f"Cancel failed: {result.get('error', 'unknown error')}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "dead-letter":
+        limit = int(getattr(args, "limit", 20))
+        try:
+            result = list_queue(status="DEAD_LETTER", limit=limit, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc), "records": []}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        records = result.get("records", [])
+        print(f"Dead-letter records ({len(records)}):")
+        for r in records:
+            print(f"  {r.get('queue_id', '')[:8]}..  attempts={r.get('attempt_count', 0)}  category={r.get('failure_category', '')}  {r.get('source', '')}:{r.get('event_type', '')}")
+        return 0
+
+    if cmd == "recover-stale":
+        timeout = int(getattr(args, "stale_timeout_minutes", 15))
+        try:
+            result = recover_stale_queue_items(runtime_data_dir=rd, stale_timeout_minutes=timeout)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        recovered = result.get("recovered", [])
+        print(f"Stale recovery complete: {len(recovered)} item(s) recovered.")
+        for item in recovered:
+            print(f"  {item.get('queue_id', '')[:8]}..  {item.get('old_status', '')} → {item.get('new_status', '')}")
+        return 0
+
+    return 2
 
 
 def _is_tk_failure(exc: Exception) -> bool:

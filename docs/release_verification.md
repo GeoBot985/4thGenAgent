@@ -14,6 +14,14 @@ Runtime store checks include:
 - corrupted artifact detection
 - dry-run retention planning
 
+Production persistence checks include:
+
+- filesystem persistence remains the default compatibility mode
+- SQLite initializes in a temporary runtime directory
+- required tables and indexes exist at the current schema version
+- sample TaskFrame, event, queue, and run-ledger records roundtrip
+- JSON dual-write artifacts remain available for evidence and reports
+
 Operational monitoring checks include:
 
 - monitoring docs

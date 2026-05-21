@@ -74,6 +74,10 @@ Browser-backed RPA tools are treated as optional, high-risk, live-environment-de
 ## Boundary Summary
 
 - `runtime/` owns execution, persistence, validation, tool routing, and reporting
+- `runtime/persistence_backends/` owns the persistence backend contract plus filesystem and SQLite implementations
+- `runtime/event_queue_contract.py` defines the Spec 137 durable queue record shape and status constants
+- `runtime/event_queue_runner.py` processes PENDING queue items into TaskFrames (always dry-run)
+- `runtime/operator_queue_panel.py` provides read-only queue data for the operator UI
 - `src/` owns UI presentation and view-model construction
 - `tools/` owns CLI utilities and release verification
 - `optional_tools/` owns optional integration surfaces

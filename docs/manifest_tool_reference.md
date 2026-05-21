@@ -2290,7 +2290,7 @@
 | Action | write_rows |
 | Side effect | true |
 | Requires approval | true |
-| Output type | `sheet_write_rows_result` |
+| Output type | `sheet_write_result` |
 
 > **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
 
@@ -2308,8 +2308,10 @@
 
 ### Optional arguments
 
-- `mode` (str)
-- `dry_run` (str)
+- `write_mode` (str)
+- `expected_headers` (str)
+- `source_ref` (str)
+- `dry_run` (bool)
 
 ---
 ## shipment/read
