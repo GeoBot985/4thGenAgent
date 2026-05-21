@@ -5,7 +5,11 @@ import subprocess
 import sys
 import textwrap
 
+import pytest
+
 import tools.run_release_candidate_verification as verifier
+
+pytestmark = pytest.mark.release
 
 
 def _run_check(active_override: bool) -> dict:

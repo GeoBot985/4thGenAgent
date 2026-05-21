@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from tools.run_release_candidate_verification import (
     _check_supplier_invoice_docs_exist,
     _check_supplier_invoice_dry_run_approval,
@@ -11,6 +13,8 @@ from tools.run_release_candidate_verification import (
     _check_supplier_invoice_scenarios_exist,
     _check_supplier_invoice_tools_registered,
 )
+
+pytestmark = pytest.mark.release
 
 
 def test_release_verifier_includes_supplier_invoice_checks():

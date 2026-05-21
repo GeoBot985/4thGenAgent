@@ -4,8 +4,11 @@ import importlib.util
 import inspect
 from pathlib import Path
 
+import pytest
+
 
 SCRIPT_PATH = Path("tools/run_release_candidate_verification.py")
+pytestmark = pytest.mark.release
 
 
 def _load_module():

@@ -24,6 +24,8 @@ REQUIRED_FILES = [
     "README.md",
 ]
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture(scope="module")
 def evidence_pack(tmp_path_factory):

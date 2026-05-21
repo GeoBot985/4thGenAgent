@@ -2,10 +2,26 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from src.manifest_regression_gallery import run_gallery, run_gallery_fixture
 
 
 GALLERY_DIR = Path("tests/fixtures/manifest_regression_gallery")
+pytestmark = [pytest.mark.gallery, pytest.mark.slow]
+
+
+@pytest.fixture(scope="module")
+def gallery_result(tmp_path_factory: pytest.TempPathFactory) -> dict:
+    runtime_dir = tmp_path_factory.mktemp("gallery_runtime")
+    return run_gallery(
+        gallery_dir=GALLERY_DIR,
+        runtime_data_dir=runtime_dir,
+        strict=True,
+        smoke=True,
+        repair_guidance=True,
+        autofix=True,
+    )
 
 
 def test_run_single_valid_fixture_passes_expectations() -> None:
@@ -45,29 +61,15 @@ def test_malformed_json_fixture_returns_parse_error() -> None:
     assert "json_parse_error" in result["actual"]["findings"]
 
 
-def test_gallery_runner_fails_on_expectation_mismatch() -> None:
-    result = run_gallery(
-        gallery_dir=GALLERY_DIR,
-        runtime_data_dir="runtime_data",
-        strict=True,
-        smoke=True,
-        repair_guidance=True,
-        autofix=True,
-    )
+def test_gallery_runner_fails_on_expectation_mismatch(gallery_result: dict) -> None:
+    result = gallery_result
     assert result["ok"]
     assert result["status"] == "PASS"
     assert result["failed"] == 0
 
 
-def test_gallery_runner_passes_full_gallery() -> None:
-    result = run_gallery(
-        gallery_dir=GALLERY_DIR,
-        runtime_data_dir="runtime_data",
-        strict=True,
-        smoke=True,
-        repair_guidance=True,
-        autofix=True,
-    )
+def test_gallery_runner_passes_full_gallery(gallery_result: dict) -> None:
+    result = gallery_result
     assert result["ok"]
     assert result["total_fixtures"] == 42
     assert result["passed"] == 42

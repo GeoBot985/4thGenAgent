@@ -3,7 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from src.portfolio_evidence_pack import build_portfolio_evidence_pack
+
+pytestmark = pytest.mark.slow
 
 
 def _seed_latest_story_pack(runtime_root: Path) -> None:

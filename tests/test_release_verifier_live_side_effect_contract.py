@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+import pytest
+
 from runtime.live_side_effect_contract import (
     ALL_ERROR_CODES,
     LIVE_SIDE_EFFECT_EXECUTION_POLICY,
@@ -17,6 +19,7 @@ from runtime.runtime_environment import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
+pytestmark = pytest.mark.release
 
 
 class TestContractFileExists(unittest.TestCase):

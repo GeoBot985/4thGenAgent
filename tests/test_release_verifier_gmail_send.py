@@ -3,8 +3,11 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
+pytestmark = pytest.mark.release
 
 
 class TestGmailSendToolModuleExists(unittest.TestCase):

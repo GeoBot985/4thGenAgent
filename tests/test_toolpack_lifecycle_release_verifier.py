@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.release
+
 
 def test_release_verifier_references_toolpack_lifecycle() -> None:
     path = Path("tools/run_release_candidate_verification.py")

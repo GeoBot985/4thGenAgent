@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 import tools.run_release_candidate_verification as verifier
+
+pytestmark = pytest.mark.release
 
 
 def test_release_verifier_references_google_workspace_readonly_pack() -> None:

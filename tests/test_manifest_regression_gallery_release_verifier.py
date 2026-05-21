@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
 from tools.run_release_candidate_verification import _check_manifest_regression_gallery
+
+pytestmark = pytest.mark.release
 
 
 def test_release_verifier_includes_manifest_regression_gallery_check() -> None:

@@ -14,6 +14,7 @@ from src.manifest_regression_gallery import (
 )
 
 _GALLERY_DIR = Path("tests/fixtures/broken_manifests")
+pytestmark = [pytest.mark.gallery, pytest.mark.slow]
 
 
 # ---------------------------------------------------------------------------

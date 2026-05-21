@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import platform
@@ -10,6 +11,7 @@ import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import threading
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -50,28 +52,96 @@ def _display_path(path: Path) -> str:
         return str(path)
 
 
+def _verification_output_paths(mode: str) -> tuple[Path, Path]:
+    if mode == "release":
+        return OUTPUT_JSON, OUTPUT_MD
+    out_dir = ROOT / "runtime_data" / "release_verification" / mode
+    return out_dir / "release_candidate_verification.json", out_dir / "release_candidate_verification.md"
+
+
+def _verification_log_dir() -> Path:
+    path = ROOT / "runtime_data" / "release_verification" / "logs"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _safe_log_name(name: str) -> str:
+    cleaned = [ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in name.strip()]
+    slug = "".join(cleaned).strip("_")
+    return slug or "command"
+
+
+def _stream_to_log(stream, log_path: Path, tail_limit: int) -> str:
+    tail = ""
+    with log_path.open("w", encoding="utf-8") as handle:
+        for line in iter(stream.readline, ""):
+            handle.write(line)
+            tail = (tail + line)[-tail_limit:]
+    return tail
+
+
 def run_command(name: str, command: list[str], timeout_seconds: int = 300) -> dict[str, Any]:
     started = time.time()
-    proc = subprocess.run(
+    log_dir = _verification_log_dir()
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    stem = f"{timestamp}_{_safe_log_name(name)}"
+    stdout_path = log_dir / f"{stem}.stdout.log"
+    stderr_path = log_dir / f"{stem}.stderr.log"
+    proc = subprocess.Popen(
         command,
         cwd=str(ROOT),
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=timeout_seconds,
+        bufsize=1,
     )
-    duration_ms = int((time.time() - started) * 1000)
-    stdout = proc.stdout or ""
-    stderr = proc.stderr or ""
+    stdout_tail = ""
+    stderr_tail = ""
+    timed_out = False
+
+    def _capture_stdout() -> None:
+        nonlocal stdout_tail
+        if proc.stdout is None:
+            return
+        stdout_tail = _stream_to_log(proc.stdout, stdout_path, 2500)
+
+    def _capture_stderr() -> None:
+        nonlocal stderr_tail
+        if proc.stderr is None:
+            return
+        stderr_tail = _stream_to_log(proc.stderr, stderr_path, 2500)
+
+    stdout_thread = threading.Thread(target=_capture_stdout, daemon=True)
+    stderr_thread = threading.Thread(target=_capture_stderr, daemon=True)
+    stdout_thread.start()
+    stderr_thread.start()
+    try:
+        returncode = proc.wait(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        proc.kill()
+        returncode = proc.wait()
+    finally:
+        stdout_thread.join()
+        stderr_thread.join()
+
+    duration_seconds = round(time.time() - started, 3)
+    if timed_out:
+        timeout_note = f"\n[command timed out after {timeout_seconds}s]"
+        try:
+            with stderr_path.open("a", encoding="utf-8") as handle:
+                handle.write(timeout_note)
+            stderr_tail = (stderr_tail + timeout_note)[-2500:]
+        except Exception:
+            pass
     return {
-        "name": name,
-        "command": command,
-        "returncode": proc.returncode,
-        "duration_ms": duration_ms,
-        "stdout": stdout,
-        "stderr": stderr,
-        "stdout_tail": _tail(stdout),
-        "stderr_tail": _tail(stderr),
-        "status": "PASS" if proc.returncode == 0 else "FAIL",
+        "returncode": returncode,
+        "duration_seconds": duration_seconds,
+        "stdout_log_path": _display_path(stdout_path),
+        "stderr_log_path": _display_path(stderr_path),
+        "stdout_tail": stdout_tail,
+        "stderr_tail": stderr_tail,
+        "status": "PASS" if returncode == 0 else "FAIL",
     }
 
 
@@ -92,7 +162,226 @@ def check_forbidden_terms(path: str, forbidden_terms: list[str]) -> dict[str, An
     }
 
 
-def build_verification_result() -> dict[str, Any]:
+def _build_mode_verification_result(mode: str) -> dict[str, Any]:
+    generated_at = utc_now()
+    if mode not in {"quick", "standard"}:
+        raise ValueError(f"Unsupported verifier mode: {mode}")
+
+    commands: list[dict[str, Any]] = []
+    static_checks: list[dict[str, Any]] = []
+    artifact_checks: list[dict[str, Any]] = []
+    known_limitations: list[str] = []
+    release_blockers: list[str] = []
+    evidence_paths: list[str] = []
+
+    command_groups: list[tuple[str, list[str], int]] = [
+        (
+            "clean_imports",
+            [
+                "python",
+                "-c",
+                "import sys; import runtime.business_context, runtime.tool_registry, runtime.tool_capability_registry, runtime.tool_health, src.operator_scenarios; assert 'playwright' not in sys.modules and 'playwright.async_api' not in sys.modules",
+            ],
+            120,
+        ),
+        ("clean_clone_rc_tests", ["python", "-m", "pytest", "tests/test_clean_clone_rc_verification.py"], 180),
+        ("core_retry_policy", ["python", "-m", "pytest", "tests/test_retry_policy.py"], 180),
+        ("core_retry_tool_failures", ["python", "-m", "pytest", "tests/test_retry_tool_failures.py"], 180),
+        ("core_run_ledger", ["python", "-m", "pytest", "tests/test_run_ledger.py"], 180),
+        ("toolpack_loader_tests", ["python", "-m", "pytest", "tests/test_toolpack_loader.py"], 180),
+        ("toolpack_registry_tests", ["python", "-m", "pytest", "tests/test_toolpack_registry_integration.py"], 180),
+    ]
+
+    if mode == "standard":
+        command_groups.extend([
+            ("smoke_external_event_intake", ["python", "-m", "pytest", "tests/test_external_event_intake.py"], 180),
+            ("smoke_inspection", ["python", "-m", "pytest", "tests/test_inspection.py"], 180),
+            ("smoke_inspection_commands", ["python", "-m", "pytest", "tests/test_inspection_commands.py"], 180),
+            ("customer_lane", ["python", "-m", "pytest", "tests/test_customer_workflow_tool_driven.py", "tests/test_runtime_mock_removal.py", "tests/test_negative_customer_status_scenarios.py"], 240),
+            ("procurement_lane", ["python", "-m", "pytest", "tests/test_procurement_low_stock_reorder.py", "tests/test_procurement_approval_dry_run.py", "tests/test_procurement_report_pack.py"], 240),
+            ("accounting_lane", ["python", "-m", "pytest", "tests/test_google_sheet_accounting_tools.py", "tests/test_accounting_reconciliation_tools.py", "tests/test_accounting_payment_reconciliation_workflow.py", "tests/test_accounting_approval_dry_run.py", "tests/test_accounting_report_pack.py"], 300),
+        ])
+
+    for name, command, timeout_seconds in command_groups:
+        raw = run_command(name, command, timeout_seconds=timeout_seconds)
+        result = {**raw, "name": name, "command": command}
+        commands.append(result)
+        if result["status"] != "PASS":
+            release_blockers.append(f"{name} failed")
+
+    static_checks.extend([
+        _check_python_imports(),
+        _check_packaging_cli(),
+        _check_manifest_health_cli_strict(),
+        _check_toolpack_contract(),
+        _check_toolpack_loader(),
+        _check_toolpack_registry_integration(),
+        _check_toolpack_cli(),
+        _check_external_toolpacks_default_safe(),
+        _check_builtin_toolpack_migration(),
+        _check_tool_registry_compatibility(),
+        _check_tool_inventory(),
+        _check_migrated_toolpack_health(),
+        _check_default_tool_registry(),
+        _check_tool_result_contract(),
+        _check_tool_capability_registry(),
+        _check_core_tool_health_safe_checks(),
+        _check_default_demo_boundary_doc(),
+        _check_known_limitations_doc(),
+        _check_adding_new_tools_doc(),
+        _check_tool_contract_checklist_doc(),
+        _check_orchestrator_pollution(),
+        _check_fake_llm_paths(),
+        _check_side_effect_registry(),
+        _check_optional_rpa_boundary(),
+        _check_optional_rpa_live_probes_excluded_from_rc(),
+        _check_manifest_catalog_health(),
+        _check_manifest_contract_strict(),
+        _check_manifest_regression_gallery_validation(),
+    ])
+
+    if mode == "standard":
+        static_checks.extend([
+            _check_runtime_profiles(),
+            _check_recovery(),
+            _check_public_quickstart_docs(),
+            _check_live_safety_docs(),
+            _check_live_execution_default_dry_run(),
+            _check_optional_rpa_isolation(),
+            _check_config_secrets_hygiene(),
+        ])
+
+    checks = {
+        "imports": _status_from_commands_mode(commands, "clean_imports"),
+        "packaging_cli": _status_from_static_mode(static_checks, "packaging_cli"),
+        "manifest_health_cli_strict": _status_from_static_mode(static_checks, "manifest_health_cli_strict"),
+        "toolpack_contract": _status_from_static_mode(static_checks, "toolpack_contract"),
+        "toolpack_loader": _status_from_static_mode(static_checks, "toolpack_loader"),
+        "toolpack_registry_integration": _status_from_static_mode(static_checks, "toolpack_registry_integration"),
+        "toolpack_cli": _status_from_static_mode(static_checks, "toolpack_cli"),
+        "external_toolpacks_default_safe": _status_from_static_mode(static_checks, "external_toolpacks_default_safe"),
+        "builtin_toolpack_migration": _status_from_static_mode(static_checks, "builtin_toolpack_migration"),
+        "tool_registry_compatibility": _status_from_static_mode(static_checks, "tool_registry_compatibility"),
+        "tool_inventory": _status_from_static_mode(static_checks, "tool_inventory"),
+        "migrated_toolpack_health": _status_from_static_mode(static_checks, "migrated_toolpack_health"),
+        "default_tool_registry": _status_from_static_mode(static_checks, "default_tool_registry"),
+        "tool_result_contract": _status_from_static_mode(static_checks, "tool_result_contract"),
+        "tool_capability_registry": _status_from_static_mode(static_checks, "TOOL_CAPABILITY_REGISTRY"),
+        "core_tool_health_safe_checks": _status_from_static_mode(static_checks, "CORE_TOOL_HEALTH_SAFE_CHECKS"),
+        "optional_rpa_excluded": _status_from_static_mode(static_checks, "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC"),
+        "optional_rpa_live_probes_excluded": _status_from_static_mode(static_checks, "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC"),
+        "runtime_profiles": _status_from_static_mode(static_checks, "runtime_profiles"),
+        "runtime_store": _status_from_static_mode(static_checks, "runtime_store"),
+        "operational_monitoring": _status_from_static_mode(static_checks, "operational_monitoring"),
+        "default_demo_boundary_doc": _status_from_static_mode(static_checks, "default_demo_boundary_doc"),
+        "golden_demo": "SKIPPED",
+        "manifest_catalog_health": _status_from_static_mode(static_checks, "manifest_catalog_health"),
+        "manifest_contract_strict": _status_from_static_mode(static_checks, "manifest_contract_strict"),
+        "manifest_regression_gallery": _status_from_static_mode(static_checks, "manifest_regression_gallery_validation"),
+        "public_quickstart_docs": _status_from_static_mode(static_checks, "public_quickstart_docs"),
+        "live_safety_docs": _status_from_static_mode(static_checks, "live_safety_docs"),
+        "live_execution_default_dry_run": _status_from_static_mode(static_checks, "live_execution_default_dry_run"),
+        "optional_rpa_isolation": _status_from_static_mode(static_checks, "optional_rpa_isolation"),
+        "config_secrets_hygiene": _status_from_static_mode(static_checks, "config_secrets_hygiene"),
+    }
+
+    if mode == "standard":
+        workflow_checks = {
+            "customer": _workflow_check("customer", commands, "customer_lane"),
+            "procurement": _workflow_check("procurement", commands, "procurement_lane"),
+            "accounting": _workflow_check("accounting", commands, "accounting_lane"),
+            "cross_workflow": {"status": "SKIPPED", "count": 0},
+        }
+    else:
+        workflow_checks = {
+            "customer": {"status": "SKIPPED", "count": 0},
+            "procurement": {"status": "SKIPPED", "count": 0},
+            "accounting": {"status": "SKIPPED", "count": 0},
+            "cross_workflow": {"status": "SKIPPED", "count": 0},
+        }
+
+    for check in static_checks:
+        if not isinstance(check, dict):
+            continue
+        if check["status"] != "PASS" and check["name"] in {
+            "python_imports",
+            "packaging_cli",
+            "manifest_health_cli_strict",
+            "toolpack_contract",
+            "toolpack_loader",
+            "toolpack_registry_integration",
+            "toolpack_cli",
+            "external_toolpacks_default_safe",
+            "builtin_toolpack_migration",
+            "tool_registry_compatibility",
+            "tool_inventory",
+            "migrated_toolpack_health",
+            "default_tool_registry",
+            "tool_result_contract",
+            "TOOL_CAPABILITY_REGISTRY",
+            "CORE_TOOL_HEALTH_SAFE_CHECKS",
+            "default_demo_boundary_doc",
+            "known_limitations_doc",
+            "adding_new_tools_doc",
+            "tool_contract_checklist_doc",
+            "orchestrator_pollution",
+            "fake_llm_paths",
+            "side_effect_registry",
+            "OPTIONAL_RPA_EXCLUDED_FROM_DEFAULT_RC",
+            "OPTIONAL_RPA_LIVE_PROBES_EXCLUDED_FROM_RC",
+            "manifest_catalog_health",
+            "manifest_contract_strict",
+            "manifest_regression_gallery_validation",
+            "runtime_profiles",
+            "runtime_store",
+            "operational_monitoring",
+            "recovery",
+            "public_quickstart_docs",
+            "live_safety_docs",
+            "live_execution_default_dry_run",
+            "optional_rpa_isolation",
+            "config_secrets_hygiene",
+        }:
+            release_blockers.append(f"{check['name']} failed")
+
+    summary = {
+        "command_count": len(commands),
+        "passed_commands": sum(1 for item in commands if item["status"] == "PASS"),
+        "failed_commands": sum(1 for item in commands if item["status"] == "FAIL"),
+        "skipped_checks": len([item for item in static_checks if item.get("status") == "SKIPPED"]) + len([item for item in commands if _looks_skipped(item)]),
+        "missing_artifacts": 0,
+        "limitations": len(known_limitations),
+    }
+    verdict = "NOT_READY" if release_blockers else ("READY_WITH_KNOWN_LIMITATIONS" if known_limitations else "READY")
+    result = {
+        "report_type": "release_candidate_verification",
+        "version": 1,
+        "mode": mode,
+        "generated_at": generated_at,
+        "verdict": verdict,
+        "summary": summary,
+        "environment": {
+            "python_version": sys.version,
+            "platform": platform.platform(),
+            "cwd": _display_path(ROOT),
+            "git_commit": _git("rev-parse", "HEAD"),
+            "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+        },
+        "commands": commands,
+        "static_checks": static_checks,
+        "artifact_checks": artifact_checks,
+        "checks": checks,
+        "workflow_checks": workflow_checks,
+        "known_limitations": _unique(known_limitations),
+        "release_blockers": _unique(release_blockers),
+        "evidence_paths": _unique(evidence_paths),
+    }
+    return result
+
+
+def build_verification_result(mode: str = "release") -> dict[str, Any]:
+    if mode != "release":
+        return _build_mode_verification_result(mode)
     generated_at = utc_now()
     bootstrap_result = {
         "report_type": "release_candidate_verification",
@@ -263,7 +552,7 @@ def build_verification_result() -> dict[str, Any]:
 
     for name, command in command_groups:
         result = run_command(name, command)
-        commands.append(result)
+        commands.append({**result, "name": name, "command": command})
         if result["status"] != "PASS":
             release_blockers.append(f"{name} failed")
 
@@ -280,9 +569,9 @@ def build_verification_result() -> dict[str, Any]:
 
     for name, command in optional_commands:
         result = run_command(name, command)
-        commands.append(result)
+        commands.append({**result, "name": name, "command": command})
         if result["status"] != "PASS":
-            if "skipped" in (result["stdout"] + result["stderr"]).lower():
+            if "skipped" in (result["stdout_tail"] + result["stderr_tail"]).lower():
                 known_limitations.append(f"{name}_skipped")
             else:
                 release_blockers.append(f"{name} failed")
@@ -1054,9 +1343,17 @@ def write_markdown_report(result: dict[str, Any], path: str) -> None:
 
 
 def main() -> int:
-    result = build_verification_result()
-    write_json_result(result, str(OUTPUT_JSON))
-    write_markdown_report(result, str(OUTPUT_MD))
+    parser = argparse.ArgumentParser(description="Run release verification in quick, standard, or release mode.")
+    parser.add_argument("--mode", choices=("quick", "standard", "release"), default="release")
+    args = parser.parse_args()
+    result = build_verification_result(mode=args.mode)
+    output_json, output_md = _verification_output_paths(args.mode)
+    output_json.parent.mkdir(parents=True, exist_ok=True)
+    output_md.parent.mkdir(parents=True, exist_ok=True)
+    write_json_result(result, str(output_json))
+    write_markdown_report(result, str(output_md))
+    if args.mode == "release":
+        _write_supporting_docs(result)
     return 0 if result.get("verdict") in {"READY", "READY_WITH_KNOWN_LIMITATIONS"} else 1
 
 
@@ -1402,12 +1699,16 @@ def _check_packaging_cli() -> dict[str, Any]:
     if not (ROOT / "docs" / "cli_reference.md").is_file():
         missing.append("docs:cli_reference")
 
-    command_results = [
-        run_command("packaging_cli_help", ["python", "-m", "src.taskframe_cli", "--help"], timeout_seconds=120),
-        run_command("packaging_cli_version", ["python", "-m", "src.taskframe_cli", "version"], timeout_seconds=120),
-        run_command("packaging_cli_manifest_health", ["python", "-m", "src.taskframe_cli", "manifest-health", "--no-smoke"], timeout_seconds=300),
-        run_command("packaging_cli_manifest_health_strict", ["python", "-m", "src.taskframe_cli", "manifest-health", "--strict", "--no-smoke"], timeout_seconds=300),
+    command_specs = [
+        ("packaging_cli_help", ["python", "-m", "src.taskframe_cli", "--help"], 120),
+        ("packaging_cli_version", ["python", "-m", "src.taskframe_cli", "version"], 120),
+        ("packaging_cli_manifest_health", ["python", "-m", "src.taskframe_cli", "manifest-health", "--no-smoke"], 300),
+        ("packaging_cli_manifest_health_strict", ["python", "-m", "src.taskframe_cli", "manifest-health", "--strict", "--no-smoke"], 300),
     ]
+    command_results = []
+    for name, command, timeout_seconds in command_specs:
+        result = run_command(name, command, timeout_seconds=timeout_seconds)
+        command_results.append({**result, "name": name, "command": command})
     command_failures = [item for item in command_results if item["status"] != "PASS"]
     return {
         "name": "packaging_cli",
@@ -1420,15 +1721,16 @@ def _check_packaging_cli() -> dict[str, Any]:
 
 
 def _check_manifest_health_cli_strict() -> dict[str, Any]:
+    command = ["python", "-m", "src.taskframe_cli", "manifest-health", "--strict", "--no-smoke"]
     result = run_command(
         "manifest_health_cli_strict",
-        ["python", "-m", "src.taskframe_cli", "manifest-health", "--strict", "--no-smoke"],
+        command,
         timeout_seconds=300,
     )
     return {
         "name": "manifest_health_cli_strict",
         "status": result["status"],
-        "command": result["command"],
+        "command": command,
         "returncode": result["returncode"],
         "stdout_tail": result["stdout_tail"],
         "stderr_tail": result["stderr_tail"],
@@ -1837,11 +2139,12 @@ def _check_google_workspace_readonly_pack() -> dict[str, Any]:
 
 
 def _check_toolpack_loader() -> dict[str, Any]:
-    result = run_command("toolpack_loader_tests", ["python", "-m", "pytest", "tests/test_toolpack_loader.py"], timeout_seconds=180)
+    command = ["python", "-m", "pytest", "tests/test_toolpack_loader.py"]
+    result = run_command("toolpack_loader_tests", command, timeout_seconds=180)
     return {
         "name": "toolpack_loader",
         "status": result["status"],
-        "command": result["command"],
+        "command": command,
         "returncode": result["returncode"],
         "stdout_tail": result["stdout_tail"],
         "stderr_tail": result["stderr_tail"],
@@ -1849,11 +2152,12 @@ def _check_toolpack_loader() -> dict[str, Any]:
 
 
 def _check_toolpack_registry_integration() -> dict[str, Any]:
-    result = run_command("toolpack_registry_tests", ["python", "-m", "pytest", "tests/test_toolpack_registry_integration.py"], timeout_seconds=180)
+    command = ["python", "-m", "pytest", "tests/test_toolpack_registry_integration.py"]
+    result = run_command("toolpack_registry_tests", command, timeout_seconds=180)
     return {
         "name": "toolpack_registry_integration",
         "status": result["status"],
-        "command": result["command"],
+        "command": command,
         "returncode": result["returncode"],
         "stdout_tail": result["stdout_tail"],
         "stderr_tail": result["stderr_tail"],
@@ -2179,6 +2483,40 @@ def _check_manifest_regression_gallery() -> dict[str, Any]:
     }
 
 
+def _check_manifest_regression_gallery_validation() -> dict[str, Any]:
+    try:
+        from src.manifest_regression_gallery import validate_gallery_index
+    except Exception as exc:
+        return {"name": "manifest_regression_gallery_validation", "status": "FAIL", "error": str(exc)}
+
+    gallery_dir = ROOT / "tests" / "fixtures" / "manifest_regression_gallery"
+    validation = validate_gallery_index(gallery_dir)
+    cli_command = [
+        "python",
+        "-m",
+        "src.taskframe_cli",
+        "manifests",
+        "gallery",
+        "validate",
+        "--gallery-dir",
+        str(gallery_dir),
+        "--no-smoke",
+        "--no-autofix",
+        "--no-repair-guidance",
+    ]
+    cli_result = run_command("manifest_regression_gallery_validate", cli_command, timeout_seconds=300)
+    return {
+        "name": "manifest_regression_gallery_validation",
+        "status": "PASS" if validation.get("ok", False) and cli_result.get("status") == "PASS" else "FAIL",
+        "gallery_dir": _display_path(gallery_dir),
+        "validation": validation,
+        "command": cli_command,
+        "cli_status": cli_result.get("status"),
+        "stdout_tail": cli_result.get("stdout_tail", ""),
+        "stderr_tail": cli_result.get("stderr_tail", ""),
+    }
+
+
 def _check_optional_rpa_isolation() -> dict[str, Any]:
     missing: list[str] = []
 
@@ -2209,7 +2547,7 @@ def _check_optional_rpa_isolation() -> dict[str, Any]:
     )
     if rpa_status["returncode"] != 0:
         missing.append("rpa_status_command_failed")
-    elif "Optional RPA tools" not in rpa_status["stdout"]:
+    elif "Optional RPA tools" not in _command_text(rpa_status):
         missing.append("rpa_status_missing_expected_output")
 
     rpa_health = run_command(
@@ -2362,7 +2700,7 @@ def _check_live_cli_guardrails() -> dict[str, Any]:
 
 def _check_live_execution_default_dry_run() -> dict[str, Any]:
     command = run_command("live_execution_default_dry_run", ["python", "-m", "src.taskframe_cli", "safety-status"], timeout_seconds=120)
-    text = (command.get("stdout", "") + command.get("stderr", "")).lower()
+    text = _command_text(command).lower()
     missing: list[str] = []
     if command["status"] != "PASS":
         missing.append("cli:safety-status")
@@ -2516,7 +2854,7 @@ def _check_safety_verification_pack() -> dict[str, Any]:
     else:
         try:
             import json as _json
-            data = _json.loads(result["stdout"])
+            data = _json.loads(_command_text(result))
             if not data.get("ok"):
                 missing.append("safety_pack_ok_not_true")
             if len(data.get("claims", [])) != 9:
@@ -2857,7 +3195,7 @@ def _check_runtime_profiles() -> dict[str, Any]:
             missing.append(f"{name}_failed")
         else:
             try:
-                payload = json.loads(result["stdout"] or "{}")
+                payload = json.loads(_command_text(result) or "{}")
             except Exception:
                 payload = {}
             if not payload:
@@ -3004,7 +3342,7 @@ def _check_runtime_store() -> dict[str, Any]:
                 missing.append(f"{name}_failed")
                 continue
             try:
-                payload = json.loads(result["stdout"] or "{}")
+                payload = json.loads(_command_text(result) or "{}")
             except Exception:
                 payload = {}
             if not payload:
@@ -3206,7 +3544,7 @@ def _check_operational_monitoring() -> dict[str, Any]:
                 missing.append(f"{name}_failed")
                 continue
             try:
-                payload = json.loads(result["stdout"] or "{}")
+                payload = json.loads(_command_text(result) or "{}")
             except Exception:
                 payload = {}
             if not payload:
@@ -3376,7 +3714,7 @@ def _check_recovery() -> dict[str, Any]:
                 missing.append(f"{name}_failed")
                 continue
             try:
-                payload = json.loads(result["stdout"] or "{}")
+                payload = json.loads(_command_text(result) or "{}")
             except Exception:
                 payload = {}
             if not payload:
@@ -3506,7 +3844,7 @@ def _check_toolpack_lifecycle() -> dict[str, Any]:
         cli_payload_ok = False
         if cli_ok:
             try:
-                payload = json.loads(cli_result["stdout"])
+                payload = json.loads(_command_text(cli_result))
                 cli_payload_ok = payload.get("ok", False) and payload.get("status") in {"READY", "READY_WITH_WARNINGS"}
             except Exception:
                 cli_payload_ok = False
@@ -4141,6 +4479,20 @@ def _status_from_static(static_checks: list[dict[str, Any]], name: str) -> str:
     return "PASS" if item and item.get("status") == "PASS" else "FAIL"
 
 
+def _status_from_static_mode(static_checks: list[dict[str, Any]], name: str) -> str:
+    item = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == name), None)
+    if item is None:
+        return "SKIPPED"
+    return "PASS" if item.get("status") == "PASS" else "FAIL"
+
+
+def _status_from_commands_mode(commands: list[dict[str, Any]], name: str) -> str:
+    item = next((command for command in commands if isinstance(command, dict) and command.get("name") == name), None)
+    if item is None:
+        return "SKIPPED"
+    return "PASS" if item.get("status") == "PASS" else "FAIL"
+
+
 def _status_from_artifacts(artifact_checks: list[dict[str, Any]], required_paths: list[str]) -> str:
     mapping = {item.get("path"): item.get("exists") for item in artifact_checks}
     return "PASS" if all(mapping.get(path, False) for path in required_paths) else "FAIL"
@@ -4210,6 +4562,23 @@ def _git(*args: str) -> str:
 
 def _looks_skipped(command_result: dict[str, Any]) -> bool:
     return "skipped" in (command_result.get("stdout_tail", "") + command_result.get("stderr_tail", "")).lower()
+
+
+def _command_text(command_result: dict[str, Any]) -> str:
+    parts: list[str] = []
+    for key in ("stdout_log_path", "stderr_log_path"):
+        value = command_result.get(key)
+        if not value:
+            continue
+        path = Path(str(value))
+        if path.is_file():
+            try:
+                parts.append(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+    if parts:
+        return "".join(parts)
+    return str(command_result.get("stdout_tail", "")) + str(command_result.get("stderr_tail", ""))
 
 
 def _unique(items: list[str]) -> list[str]:

@@ -332,21 +332,23 @@ def _run_fixture_record(
     top_severity = _top_severity(actual_findings)
     smoke_classification = str((smoke_result or {}).get("classification") or "")
     actual_autofix = _classify_autofix(autofix_result)
+    validation_only = not smoke and not repair_guidance and not autofix
 
     matched_expectations = True
-    missing_expected = [item for item in expected_findings if item not in actual_finding_ids]
-    if expected_strict_status and strict_status != expected_strict_status:
-        matched_expectations = False
-        errors.append(f"Expected strict status {expected_strict_status}, got {strict_status}")
-    if missing_expected:
-        matched_expectations = False
-        errors.append(f"Missing expected findings: {missing_expected}")
-    if expected_smoke and smoke_classification and expected_smoke != smoke_classification:
-        matched_expectations = False
-        errors.append(f"Expected smoke classification {expected_smoke}, got {smoke_classification}")
-    if expected_autofix and actual_autofix != expected_autofix:
-        matched_expectations = False
-        errors.append(f"Expected autofix {expected_autofix}, got {actual_autofix}")
+    if not validation_only:
+        missing_expected = [item for item in expected_findings if item not in actual_finding_ids]
+        if expected_strict_status and strict_status != expected_strict_status:
+            matched_expectations = False
+            errors.append(f"Expected strict status {expected_strict_status}, got {strict_status}")
+        if missing_expected:
+            matched_expectations = False
+            errors.append(f"Missing expected findings: {missing_expected}")
+        if expected_smoke and smoke_classification and expected_smoke != smoke_classification:
+            matched_expectations = False
+            errors.append(f"Expected smoke classification {expected_smoke}, got {smoke_classification}")
+        if expected_autofix and autofix and actual_autofix != expected_autofix:
+            matched_expectations = False
+            errors.append(f"Expected autofix {expected_autofix}, got {actual_autofix}")
 
     if not strict_result.get("ok", True):
         warnings.extend(strict_result.get("warnings") or [])

@@ -391,7 +391,19 @@ def _golden_checks(verifier: dict[str, Any], golden_demo: dict[str, Any]) -> dic
 def _command_output(verifier: dict[str, Any], name: str) -> str:
     for item in verifier.get("commands", []):
         if isinstance(item, dict) and item.get("name") == name:
-            return str(item.get("stdout", "")) + str(item.get("stderr", ""))
+            parts: list[str] = []
+            for key in ("stdout_log_path", "stderr_log_path"):
+                log_path = item.get(key)
+                if log_path:
+                    path = Path(str(log_path))
+                    if path.is_file():
+                        try:
+                            parts.append(path.read_text(encoding="utf-8"))
+                        except Exception:
+                            continue
+            if parts:
+                return "".join(parts)
+            return str(item.get("stdout_tail", "")) + str(item.get("stderr_tail", ""))
     return ""
 
 

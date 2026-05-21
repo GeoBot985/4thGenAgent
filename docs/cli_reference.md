@@ -84,8 +84,22 @@ Exit codes:
 
 Runs release verification.
 
-- `--full`
-- `--quick` placeholder; the current implementation runs the full verification set
+- `--mode quick`
+- `--mode standard`
+- `--mode release`
+
+Suggested test profiles:
+
+```powershell
+# Fast local / Claude Code default
+python -m pytest tests -m "not slow and not release and not integration and not live" -q
+
+# Standard local confidence run
+python -m pytest tests -m "not release and not live" -q
+
+# Full release verification
+python tools/run_release_candidate_verification.py --mode release
+```
 
 Exit codes:
 - `0` when release verification is `READY` or `READY_WITH_KNOWN_LIMITATIONS`
@@ -280,6 +294,12 @@ Runs the manifest regression gallery for curated bad, edge-case, and unsafe fixt
 - `--no-autofix`
 - `--no-repair-guidance`
 - `--json`
+
+For a cheap validation pass, use:
+
+```powershell
+taskframe manifests gallery validate --no-smoke --no-autofix --no-repair-guidance
+```
 
 Gallery reports are written to `runtime_data/manifest_regression_gallery/`.
 

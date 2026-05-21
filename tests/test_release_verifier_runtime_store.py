@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 import tools.run_release_candidate_verification as verifier
+
+pytestmark = pytest.mark.release
 
 
 def _write_doc(path: Path, text: str) -> None:

@@ -3,12 +3,15 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 
 SCRIPT_PATH = Path("tools/run_release_candidate_verification.py")
 REPORT_PATH = Path("docs/release_candidate_verification.md")
 JSON_PATH = Path("runtime_data/audit/release_candidate_verification.json")
 EVIDENCE_INDEX_PATH = Path("docs/release_candidate_evidence_index.md")
 KNOWN_LIMITATIONS_PATH = Path("docs/known_limitations.md")
+pytestmark = pytest.mark.release
 
 
 def _load_module():
@@ -26,11 +29,22 @@ def test_release_candidate_verification_script_exists():
 def test_release_candidate_report_exists_after_script_run():
     module = _load_module()
     result = {
+        "mode": "release",
         "verdict": "READY_WITH_KNOWN_LIMITATIONS",
         "generated_at": "2026-05-04T00:00:00Z",
         "summary": {"command_count": 1, "passed_commands": 1, "failed_commands": 0, "skipped_checks": 0},
         "environment": {"python_version": "test", "platform": "test", "cwd": "test", "git_commit": "abc", "git_branch": "main"},
-        "commands": [{"name": "full_pytest", "command": ["python", "-m", "pytest"], "returncode": 0, "duration_ms": 1, "stdout_tail": "ok", "stderr_tail": "", "status": "PASS"}],
+        "commands": [{
+            "name": "full_pytest",
+            "command": ["python", "-m", "pytest"],
+            "returncode": 0,
+            "duration_seconds": 0.001,
+            "stdout_log_path": "runtime_data/release_verification/logs/full_pytest.stdout.log",
+            "stderr_log_path": "runtime_data/release_verification/logs/full_pytest.stderr.log",
+            "stdout_tail": "ok",
+            "stderr_tail": "",
+            "status": "PASS",
+        }],
         "static_checks": [{"name": "orchestrator_pollution", "status": "PASS"}],
         "artifact_checks": [{"path": "README.md", "exists": True, "status": "PASS"}],
         "workflow_checks": {"customer": {"status": "PASS"}},

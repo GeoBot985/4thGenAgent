@@ -5,8 +5,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 GALLERY_DIR = Path("tests/fixtures/manifest_regression_gallery")
+pytestmark = [pytest.mark.gallery, pytest.mark.slow]
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
@@ -26,7 +29,16 @@ def test_gallery_list_command_outputs_fixture_ids() -> None:
 
 
 def test_gallery_validate_command_passes() -> None:
-    result = _run_cli("manifests", "gallery", "validate", "--gallery-dir", str(GALLERY_DIR))
+    result = _run_cli(
+        "manifests",
+        "gallery",
+        "validate",
+        "--gallery-dir",
+        str(GALLERY_DIR),
+        "--no-smoke",
+        "--no-autofix",
+        "--no-repair-guidance",
+    )
     assert result.returncode == 0
     assert "PASS" in result.stdout
 

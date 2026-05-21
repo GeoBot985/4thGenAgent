@@ -5,8 +5,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from src.operator_cross_workflow_demo import get_demo_pack, run_cross_workflow_demo_pack
 from tools.run_release_candidate_verification import _check_cross_workflow_story_v2
+
+pytestmark = pytest.mark.slow
 
 
 def _run_v2_demo(tmp_path: Path) -> dict:
