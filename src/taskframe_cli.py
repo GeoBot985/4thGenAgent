@@ -526,6 +526,44 @@ def build_parser() -> argparse.ArgumentParser:
     queue_recover.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     queue_recover.add_argument("--json", action="store_true")
 
+    # Spec 138 — Scheduler
+    sched = sub.add_parser("schedule", help="Manage and inspect the scheduler subsystem.")
+    sched_sub = sched.add_subparsers(dest="schedule_command", required=True)
+
+    sched_status = sched_sub.add_parser("status", help="Show scheduler panel summary.")
+    sched_status.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    sched_status.add_argument("--json", action="store_true")
+
+    sched_list = sched_sub.add_parser("list", help="List schedules.")
+    sched_list.add_argument("--enabled-only", action="store_true")
+    sched_list.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    sched_list.add_argument("--json", action="store_true")
+
+    sched_enable = sched_sub.add_parser("enable", help="Enable a schedule.")
+    sched_enable.add_argument("schedule_id")
+    sched_enable.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    sched_enable.add_argument("--json", action="store_true")
+
+    sched_disable = sched_sub.add_parser("disable", help="Disable a schedule.")
+    sched_disable.add_argument("schedule_id")
+    sched_disable.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    sched_disable.add_argument("--json", action="store_true")
+
+    sched_tick = sched_sub.add_parser("tick", help="Run one scheduler tick (always dry-run).")
+    sched_tick.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    sched_tick.add_argument("--json", action="store_true")
+
+    sched_load = sched_sub.add_parser("load-fixture", help="Load a schedule fixture JSON file.")
+    sched_load.add_argument("fixture_path", help="Path to the fixture JSON file.")
+    sched_load.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    sched_load.add_argument("--json", action="store_true")
+
+    sched_runs = sched_sub.add_parser("runs", help="List recent schedule run records.")
+    sched_runs.add_argument("--schedule-id", default="", help="Filter by schedule ID.")
+    sched_runs.add_argument("--limit", type=int, default=20)
+    sched_runs.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    sched_runs.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -590,6 +628,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_recover(args)
     if args.command == "queue":
         return _run_queue(args)
+    if args.command == "schedule":
+        return _run_schedule(args)
     parser.print_help()
     return 2
 
@@ -3509,6 +3549,134 @@ def _run_queue(args: Any) -> int:
         print(f"Stale recovery complete: {len(recovered)} item(s) recovered.")
         for item in recovered:
             print(f"  {item.get('queue_id', '')[:8]}..  {item.get('old_status', '')} → {item.get('new_status', '')}")
+        return 0
+
+    return 2
+
+
+def _run_schedule(args: Any) -> int:
+    from runtime.scheduler_store import (
+        enable_schedule,
+        disable_schedule,
+        list_schedules,
+        list_schedule_runs,
+        load_schedule_fixture,
+    )
+    from runtime.scheduler_engine import run_scheduler_tick
+    from src.operator_scheduler_panel import build_scheduler_panel
+
+    cmd = str(getattr(args, "schedule_command", "") or "")
+    rd = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    use_json = bool(getattr(args, "json", False))
+
+    if cmd == "status":
+        try:
+            result = build_scheduler_panel(runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        total = result.get("total_schedules", 0)
+        enabled = result.get("enabled_count", 0)
+        print(f"Scheduler: {total} schedule(s) total, {enabled} enabled, {result.get('disabled_count', 0)} disabled")
+        for s in result.get("schedules", []):
+            status_flag = "ON" if s.get("enabled") else "OFF"
+            print(f"  [{status_flag}] {s.get('schedule_id', '')}  {s.get('name', '')}  ({s.get('schedule_type', '')} {s.get('time_of_day', '') or str(s.get('interval_minutes', ''))}min)  last={s.get('last_scheduled_for', 'never')}")
+        return 0
+
+    if cmd == "list":
+        enabled_only = bool(getattr(args, "enabled_only", False))
+        try:
+            records = list_schedules(enabled_only=enabled_only, runtime_data_dir=rd)
+        except Exception as exc:
+            if use_json:
+                print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+                return 1
+            print(f"Error: {exc}")
+            return 1
+        if use_json:
+            print(json.dumps({"ok": True, "schedules": records, "count": len(records)}, indent=2, ensure_ascii=False))
+            return 0
+        print(f"{len(records)} schedule(s):")
+        for s in records:
+            status_flag = "ON" if s.get("enabled") else "OFF"
+            print(f"  [{status_flag}] {s.get('schedule_id', '')}  {s.get('name', '')}  event_type={s.get('event_type', '')}")
+        return 0
+
+    if cmd == "enable":
+        schedule_id = str(getattr(args, "schedule_id", "")).strip()
+        try:
+            result = enable_schedule(schedule_id, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if result.get("ok"):
+            print(f"Enabled: {schedule_id}")
+        else:
+            print(f"Error: {result.get('error', 'unknown')}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "disable":
+        schedule_id = str(getattr(args, "schedule_id", "")).strip()
+        try:
+            result = disable_schedule(schedule_id, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if result.get("ok"):
+            print(f"Disabled: {schedule_id}")
+        else:
+            print(f"Error: {result.get('error', 'unknown')}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "tick":
+        try:
+            result = run_scheduler_tick(runtime_data_dir=rd, dry_run=True)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        print(f"Scheduler tick (dry-run): checked={result.get('schedules_checked', 0)}  windows={result.get('windows_found', 0)}  enqueued={result.get('enqueued', 0)}  skipped={result.get('skipped', 0)}")
+        return 0
+
+    if cmd == "load-fixture":
+        fixture_path = str(getattr(args, "fixture_path", "")).strip()
+        try:
+            result = load_schedule_fixture(fixture_path, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if result.get("ok"):
+            print(f"Loaded fixture: {result.get('schedule_id', '')}")
+        else:
+            print(f"Error: {result.get('error', 'unknown')}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "runs":
+        schedule_id = str(getattr(args, "schedule_id", "") or "").strip()
+        limit = int(getattr(args, "limit", 20))
+        try:
+            runs = list_schedule_runs(schedule_id=schedule_id or None, limit=limit, runtime_data_dir=rd)
+        except Exception as exc:
+            if use_json:
+                print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+                return 1
+            print(f"Error: {exc}")
+            return 1
+        if use_json:
+            print(json.dumps({"ok": True, "runs": runs, "count": len(runs)}, indent=2, ensure_ascii=False))
+            return 0
+        print(f"{len(runs)} run record(s):")
+        for r in runs:
+            print(f"  {r.get('schedule_id', '')}  scheduled_for={r.get('scheduled_for', '')}  status={r.get('status', '')}  queue_id={r.get('queue_id', '')[:8] if r.get('queue_id') else ''}")
         return 0
 
     return 2

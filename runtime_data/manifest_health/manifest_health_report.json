@@ -1,7 +1,7 @@
 {
   "ok": true,
   "status": "HEALTHY",
-  "generated_at": "2026-05-21T10:35:09.510819Z",
+  "generated_at": "2026-05-21T12:22:06.783040Z",
   "manifest_dir": "manifests",
   "summary": {
     "total": 19,
@@ -43,15 +43,6 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
-            "example": "",
-            "source": "static_manifest_check"
-          },
-          {
-            "id": "input_declared_but_not_used",
-            "severity": "warning",
-            "location": "inputs",
             "message": "Input 'event_id' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
@@ -63,6 +54,15 @@
             "location": "inputs",
             "message": "Input 'channel' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -1538,15 +1538,6 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
-            "example": "",
-            "source": "static_manifest_check"
-          },
-          {
-            "id": "input_declared_but_not_used",
-            "severity": "warning",
-            "location": "inputs",
             "message": "Input 'event_id' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
@@ -1558,6 +1549,15 @@
             "location": "inputs",
             "message": "Input 'channel' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },

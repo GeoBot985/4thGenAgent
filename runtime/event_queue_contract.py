@@ -152,7 +152,11 @@ def build_dedupe_key(event: dict[str, Any]) -> str:
         )
     elif source == "schedule":
         schedule_id = str(payload.get("schedule_id", "") or "")
-        scheduled_time = str(payload.get("scheduled_time", "") or "")
+        scheduled_time = str(
+            payload.get("scheduled_for", "")
+            or payload.get("scheduled_time", "")
+            or ""
+        )
         identity = f"{schedule_id}:{scheduled_time}"
     elif source in ("file", "file_watch", "filesystem"):
         file_path = str(payload.get("file_path", "") or "")

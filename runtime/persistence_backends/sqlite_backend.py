@@ -7,7 +7,7 @@ from typing import Any
 
 from runtime.taskframe import json_safe, utc_now
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 DEFAULT_SQLITE_DB_PATH = Path("runtime_data") / "taskframe_runtime.db"
 
 REQUIRED_TABLES = [
@@ -16,6 +16,8 @@ REQUIRED_TABLES = [
     "events",
     "event_queue",
     "durable_event_queue",
+    "schedules",
+    "schedule_runs",
     "run_ledger",
     "audit_events",
     "pending_actions",
@@ -41,6 +43,8 @@ REQUIRED_INDEXES = [
     "idx_tool_calls_frame",
     "idx_llm_calls_frame",
     "idx_validations_frame",
+    "idx_schedules_enabled",
+    "idx_schedule_runs_schedule",
 ]
 
 _SECRET_KEY_PARTS = (
@@ -204,6 +208,35 @@ class SQLitePersistenceBackend:
                 CREATE INDEX IF NOT EXISTS idx_durable_queue_status ON durable_event_queue(status, priority, available_at);
                 CREATE INDEX IF NOT EXISTS idx_durable_queue_dedupe ON durable_event_queue(dedupe_key, status);
                 CREATE INDEX IF NOT EXISTS idx_durable_queue_event_id ON durable_event_queue(event_id);
+                CREATE TABLE IF NOT EXISTS schedules (
+                  schedule_id TEXT PRIMARY KEY,
+                  name TEXT,
+                  event_type TEXT,
+                  schedule_type TEXT,
+                  enabled INTEGER NOT NULL DEFAULT 1,
+                  misfire_mode TEXT,
+                  timezone TEXT,
+                  time_of_day TEXT,
+                  interval_minutes INTEGER NOT NULL DEFAULT 0,
+                  day_of_week TEXT,
+                  last_scheduled_for TEXT,
+                  last_run_at TEXT,
+                  last_run_status TEXT,
+                  created_at TEXT,
+                  updated_at TEXT,
+                  payload_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS schedule_runs (
+                  run_id TEXT PRIMARY KEY,
+                  schedule_id TEXT,
+                  scheduled_for TEXT,
+                  status TEXT,
+                  queue_id TEXT,
+                  failure_reason TEXT,
+                  created_at TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_schedules_enabled ON schedules(enabled, schedule_type);
+                CREATE INDEX IF NOT EXISTS idx_schedule_runs_schedule ON schedule_runs(schedule_id, scheduled_for);
                 CREATE INDEX IF NOT EXISTS idx_run_ledger_frame ON run_ledger(frame_id, recorded_at);
                 CREATE INDEX IF NOT EXISTS idx_pending_actions_status ON pending_actions(status, frame_id);
                 CREATE INDEX IF NOT EXISTS idx_executed_actions_frame ON executed_actions(frame_id);
@@ -455,6 +488,128 @@ class SQLitePersistenceBackend:
             rows = conn.execute(sql, params).fetchall()
         return [_from_json(row["payload_json"]) for row in rows]
 
+    def save_schedule_record(self, record: dict[str, Any]) -> None:
+        self.init_schema()
+        clean = _sanitize_payload(record)
+        schedule_id = str(clean.get("schedule_id", "") or "")
+        if not schedule_id:
+            return
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO schedules(
+                  schedule_id, name, event_type, schedule_type, enabled, misfire_mode,
+                  timezone, time_of_day, interval_minutes, day_of_week,
+                  last_scheduled_for, last_run_at, last_run_status,
+                  created_at, updated_at, payload_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(schedule_id) DO UPDATE SET
+                  name=excluded.name,
+                  event_type=excluded.event_type,
+                  schedule_type=excluded.schedule_type,
+                  enabled=excluded.enabled,
+                  misfire_mode=excluded.misfire_mode,
+                  timezone=excluded.timezone,
+                  time_of_day=excluded.time_of_day,
+                  interval_minutes=excluded.interval_minutes,
+                  day_of_week=excluded.day_of_week,
+                  last_scheduled_for=excluded.last_scheduled_for,
+                  last_run_at=excluded.last_run_at,
+                  last_run_status=excluded.last_run_status,
+                  updated_at=excluded.updated_at,
+                  payload_json=excluded.payload_json
+                """,
+                (
+                    schedule_id,
+                    str(clean.get("name", "") or ""),
+                    str(clean.get("event_type", "") or ""),
+                    str(clean.get("schedule_type", "") or ""),
+                    1 if clean.get("enabled") else 0,
+                    str(clean.get("misfire_mode", "") or ""),
+                    str(clean.get("timezone", "") or ""),
+                    str(clean.get("time_of_day", "") or ""),
+                    int(clean.get("interval_minutes", 0) or 0),
+                    str(clean.get("day_of_week", "") or ""),
+                    str(clean.get("last_scheduled_for", "") or ""),
+                    str(clean.get("last_run_at", "") or ""),
+                    str(clean.get("last_run_status", "") or ""),
+                    str(clean.get("created_at", "") or ""),
+                    str(clean.get("updated_at", "") or ""),
+                    _to_json(clean),
+                ),
+            )
+
+    def get_schedule_record(self, schedule_id: str) -> dict[str, Any] | None:
+        self.init_schema()
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT payload_json FROM schedules WHERE schedule_id = ?", (schedule_id,)
+            ).fetchone()
+        return _from_json(row["payload_json"]) if row else None
+
+    def list_schedule_records(self, limit: int = 200, **filters: Any) -> list[dict[str, Any]]:
+        self.init_schema()
+        where: list[str] = []
+        params: list[Any] = []
+        if filters.get("enabled") is True:
+            where.append("enabled = 1")
+        elif filters.get("enabled") is False:
+            where.append("enabled = 0")
+        if "schedule_type" in filters:
+            where.append("schedule_type = ?")
+            params.append(filters["schedule_type"])
+        sql = "SELECT payload_json FROM schedules"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY name ASC LIMIT ?"
+        params.append(int(limit))
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [_from_json(row["payload_json"]) for row in rows]
+
+    def save_schedule_run_record(self, record: dict[str, Any]) -> None:
+        self.init_schema()
+        clean = _sanitize_payload(record)
+        run_id = str(clean.get("run_id", "") or "")
+        if not run_id:
+            return
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO schedule_runs(
+                  run_id, schedule_id, scheduled_for, status, queue_id, failure_reason, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    str(clean.get("schedule_id", "") or ""),
+                    str(clean.get("scheduled_for", "") or ""),
+                    str(clean.get("status", "") or ""),
+                    str(clean.get("queue_id", "") or ""),
+                    str(clean.get("failure_reason", "") or ""),
+                    str(clean.get("created_at", "") or ""),
+                ),
+            )
+
+    def list_schedule_run_records(self, limit: int = 100, **filters: Any) -> list[dict[str, Any]]:
+        self.init_schema()
+        where: list[str] = []
+        params: list[Any] = []
+        if "schedule_id" in filters:
+            where.append("schedule_id = ?")
+            params.append(filters["schedule_id"])
+        if "status" in filters:
+            where.append("status = ?")
+            params.append(filters["status"])
+        sql = "SELECT run_id, schedule_id, scheduled_for, status, queue_id, failure_reason, created_at FROM schedule_runs"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        params.append(int(limit))
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [dict(row) for row in rows]
+
     def append_run_ledger_record(self, record: dict[str, Any]) -> None:
         self.init_schema()
         clean = _sanitize_payload(record)
@@ -534,7 +689,7 @@ class SQLitePersistenceBackend:
             indexes = {row["name"] for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'index'").fetchall()}
             version = conn.execute("SELECT value FROM schema_meta WHERE key = 'schema_version'").fetchone()
             malformed = 0
-            for table in ("taskframes", "events", "event_queue", "durable_event_queue", "run_ledger"):
+            for table in ("taskframes", "events", "event_queue", "durable_event_queue", "run_ledger", "schedules"):
                 for row in conn.execute(f"SELECT payload_json FROM {table}").fetchall():
                     try:
                         parsed = json.loads(row["payload_json"])

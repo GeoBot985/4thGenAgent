@@ -241,6 +241,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         _check_artifact_stability_gate(mode),
         _check_production_persistence_backend(),
         _check_durable_event_queue(),
+        _check_scheduler_runtime(),
     ])
 
     if mode == "standard":
@@ -276,6 +277,8 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         "runtime_profiles": _status_from_static_mode(static_checks, "runtime_profiles"),
         "runtime_store": _status_from_static_mode(static_checks, "runtime_store"),
         "production_persistence_backend": _status_from_static_mode(static_checks, "production_persistence_backend"),
+        "durable_event_queue": _status_from_static_mode(static_checks, "durable_event_queue"),
+        "scheduler_runtime": _status_from_static_mode(static_checks, "scheduler_runtime"),
         "operational_monitoring": _status_from_static_mode(static_checks, "operational_monitoring"),
         "default_demo_boundary_doc": _status_from_static_mode(static_checks, "default_demo_boundary_doc"),
         "golden_demo": "SKIPPED",
@@ -611,6 +614,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         _check_runtime_store(),
         _check_production_persistence_backend(),
         _check_durable_event_queue(),
+        _check_scheduler_runtime(),
         _check_operational_monitoring(),
         _check_recovery(),
         _check_default_demo_boundary_doc(),
@@ -3583,6 +3587,120 @@ def _check_durable_event_queue() -> dict[str, Any]:
 
     return {
         "name": "durable_event_queue",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_scheduler_runtime() -> dict[str, Any]:
+    missing: list[str] = []
+    try:
+        from runtime.scheduler_contract import (
+            TYPE_DAILY,
+            TYPE_INTERVAL,
+            MISFIRE_SKIP,
+            MISFIRE_ENQUEUE_LATEST,
+            MISFIRE_ENQUEUE_ALL,
+            build_schedule_record,
+            build_scheduled_event,
+            validate_schedule,
+        )
+        from runtime.scheduler_store import (
+            create_schedule,
+            get_schedule,
+            list_schedules,
+            enable_schedule,
+            disable_schedule,
+            record_schedule_run,
+            list_schedule_runs,
+            load_schedule_fixture,
+        )
+        from runtime.scheduler_engine import (
+            calculate_next_due,
+            find_due_schedules,
+            run_scheduler_tick,
+        )
+        from src.operator_scheduler_panel import build_scheduler_panel
+    except Exception as exc:
+        return {"name": "scheduler_runtime", "status": "FAIL", "error": str(exc)}
+
+    import tempfile
+    import datetime
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            rd = Path(tmp)
+
+            # Create + get smoke
+            result = create_schedule("verifier.daily", "Verifier Daily", "daily.check", TYPE_DAILY,
+                                     time_of_day="08:00", runtime_data_dir=rd)
+            if not result.get("ok"):
+                missing.append(f"create_schedule_failed: {result.get('error')}")
+
+            record = get_schedule("verifier.daily", runtime_data_dir=rd)
+            if not record:
+                missing.append("get_schedule_failed")
+
+            # List + enabled filter
+            create_schedule("verifier.interval", "Verifier Interval", "et", TYPE_INTERVAL,
+                            interval_minutes=30, enabled=False, runtime_data_dir=rd)
+            all_s = list_schedules(runtime_data_dir=rd)
+            if len(all_s) < 2:
+                missing.append("list_schedules_failed")
+            enabled_s = list_schedules(enabled_only=True, runtime_data_dir=rd)
+            if len(enabled_s) != 1:
+                missing.append(f"enabled_filter_failed: expected 1 got {len(enabled_s)}")
+
+            # Enable/disable
+            enable_schedule("verifier.interval", runtime_data_dir=rd)
+            if not get_schedule("verifier.interval", runtime_data_dir=rd).get("enabled"):
+                missing.append("enable_failed")
+            disable_schedule("verifier.daily", runtime_data_dir=rd)
+            if get_schedule("verifier.daily", runtime_data_dir=rd).get("enabled"):
+                missing.append("disable_failed")
+
+            # Schedule run record
+            record_schedule_run("verifier.daily", "2026-05-21T08:00:00Z", status="enqueued",
+                                 queue_id="q-test", runtime_data_dir=rd)
+            runs = list_schedule_runs("verifier.daily", runtime_data_dir=rd)
+            if not runs:
+                missing.append("schedule_run_record_failed")
+
+            # Due calculation smoke
+            sched = build_schedule_record("v1", "T", "et", TYPE_INTERVAL, interval_minutes=10)
+            after = datetime.datetime(2026, 5, 21, 10, 0, 0, tzinfo=datetime.timezone.utc)
+            next_due = calculate_next_due(sched, after)
+            if next_due is None:
+                missing.append("calculate_next_due_failed")
+
+            # Tick dry-run smoke
+            tick_result = run_scheduler_tick(runtime_data_dir=rd, dry_run=True)
+            if not tick_result.get("ok"):
+                missing.append("tick_failed")
+            if not tick_result.get("dry_run"):
+                missing.append("tick_not_dry_run")
+
+            # Operator panel smoke
+            panel = build_scheduler_panel(runtime_data_dir=rd)
+            if not panel.get("ok"):
+                missing.append("panel_failed")
+            if "schedules" not in panel:
+                missing.append("panel_missing_schedules")
+
+            # Fixture loader smoke
+            fixture_path = Path(__file__).resolve().parents[1] / "runtime_data" / "fixtures" / "schedules" / "daily_low_stock_check.json"
+            if fixture_path.is_file():
+                fixture_result = load_schedule_fixture(fixture_path, runtime_data_dir=rd)
+                if not fixture_result.get("ok"):
+                    missing.append(f"fixture_load_failed: {fixture_result.get('error')}")
+            else:
+                missing.append("fixture_file_missing")
+
+    except Exception as exc:
+        missing.append(str(exc))
+
+    return {
+        "name": "scheduler_runtime",
         "status": "PASS" if not missing else "FAIL",
         "missing": missing,
     }

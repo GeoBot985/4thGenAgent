@@ -175,6 +175,72 @@ class FilesystemPersistenceBackend:
         )
         return records[: int(limit)]
 
+    def save_schedule_record(self, record: dict[str, Any]) -> None:
+        sched_dir = self.runtime_data_dir / "scheduler"
+        sched_dir.mkdir(parents=True, exist_ok=True)
+        index_path = sched_dir / "schedules_index.json"
+        index: dict[str, Any] = {}
+        if index_path.is_file():
+            try:
+                raw = json.loads(index_path.read_text(encoding="utf-8"))
+                if isinstance(raw, dict):
+                    index = raw
+            except (json.JSONDecodeError, OSError):
+                pass
+        schedule_id = str(record.get("schedule_id", "") or "")
+        if schedule_id:
+            index[schedule_id] = json_safe(record)
+        index_path.write_text(
+            json.dumps(index, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+    def get_schedule_record(self, schedule_id: str) -> dict[str, Any] | None:
+        index_path = self.runtime_data_dir / "scheduler" / "schedules_index.json"
+        if not index_path.is_file():
+            return None
+        try:
+            raw = json.loads(index_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+        item = raw.get(schedule_id) if isinstance(raw, dict) else None
+        return dict(item) if isinstance(item, dict) else None
+
+    def list_schedule_records(self, limit: int = 200, **filters: Any) -> list[dict[str, Any]]:
+        index_path = self.runtime_data_dir / "scheduler" / "schedules_index.json"
+        if not index_path.is_file():
+            return []
+        try:
+            raw = json.loads(index_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return []
+        records = [dict(v) for v in raw.values()] if isinstance(raw, dict) else []
+        if filters.get("enabled") is True:
+            records = [r for r in records if r.get("enabled") is True]
+        elif filters.get("enabled") is False:
+            records = [r for r in records if r.get("enabled") is False]
+        if "schedule_type" in filters:
+            records = [r for r in records if r.get("schedule_type") == filters["schedule_type"]]
+        records = [r for r in records if not r.get("deleted_at")]
+        records.sort(key=lambda r: str(r.get("name") or r.get("schedule_id") or ""))
+        return records[: int(limit)]
+
+    def save_schedule_run_record(self, record: dict[str, Any]) -> None:
+        sched_dir = self.runtime_data_dir / "scheduler"
+        sched_dir.mkdir(parents=True, exist_ok=True)
+        with (sched_dir / "schedule_runs.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(json_safe(record), ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+
+    def list_schedule_run_records(self, limit: int = 100, **filters: Any) -> list[dict[str, Any]]:
+        path = self.runtime_data_dir / "scheduler" / "schedule_runs.jsonl"
+        records = _read_jsonl(path, 100_000)
+        if "schedule_id" in filters:
+            records = [r for r in records if r.get("schedule_id") == filters["schedule_id"]]
+        if "status" in filters:
+            records = [r for r in records if r.get("status") == filters["status"]]
+        return records[-int(limit):]
+
     def append_run_ledger_record(self, record: dict[str, Any]) -> None:
         runs_dir = self.runtime_data_dir / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
