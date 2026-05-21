@@ -308,7 +308,20 @@ For development:
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest
+```
+
+## Developer quick tests
+
+Use this during normal development:
+
+```bash
+python tools/run_dev_tests.py
+```
+
+This excludes slow, release, integration, and live tests.
+Use full release verification only when explicitly required.
+
+```bash
 python scripts/run_golden_demo.py
 python scripts/run_release_verification.py
 ```

@@ -2,6 +2,17 @@
 
 Do not run full release verification unless explicitly requested.
 
+## Developer quick tests
+
+Use this during normal development:
+
+```bash
+python tools/run_dev_tests.py
+```
+
+This excludes slow, release, integration, and live tests.
+Use full release verification only when explicitly required.
+
 Default test command:
 
 ```bash
