@@ -238,6 +238,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         _check_manifest_catalog_health(),
         _check_manifest_contract_strict(),
         _check_manifest_regression_gallery_validation(),
+        _check_artifact_stability_gate(mode),
     ])
 
     if mode == "standard":
@@ -3214,6 +3215,35 @@ def _check_runtime_profiles() -> dict[str, Any]:
         "live_profile": live_profile,
         "profile_matrix": profile_matrix,
         "missing": missing,
+    }
+
+
+def _check_artifact_stability_gate(mode: str) -> dict[str, Any]:
+    from runtime.artifact_retention import build_retention_plan, run_artifact_stability_gate
+    failures = []
+    
+    if mode == "quick":
+        # quick mode: run inventory only
+        try:
+            plan = build_retention_plan()
+            if not plan.get("ok"):
+                failures.append("Inventory plan failed: " + ", ".join(plan.get("errors", [])))
+        except Exception as e:
+             failures.append(str(e))
+    else:
+        # standard/release: run full gate
+        try:
+             res = run_artifact_stability_gate()
+             if not res.get("ok") or res.get("status") == "FAIL":
+                 for err in res.get("errors", []):
+                     failures.append(err)
+        except Exception as e:
+             failures.append(str(e))
+
+    return {
+        "name": "artifact_stability_gate",
+        "status": "FAIL" if failures else "PASS",
+        "failures": failures,
     }
 
 

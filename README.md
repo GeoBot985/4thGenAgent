@@ -127,6 +127,7 @@ The Spec 133 approved live Gmail send tool (`gmail/send`) is the first live side
 The Spec 134 approved live Google Sheets write tool (`sheet/write_rows`) is the second live side-effect tool built on this contract. Sheets writing is disabled by default, blocked in all non-`live` profiles, and requires all 10 preflight checks plus the `sheet_write_rows_guardrail`. Spreadsheet and range allowlists are mandatory. Append mode is the safe default; update mode is disabled by default. Row payloads are never written to reports. See [docs/live_google_sheets_write.md](docs/live_google_sheets_write.md).
 
 The persistent runtime store layout, backup workflow, and retention policy are documented in [docs/runtime_store.md](docs/runtime_store.md).
+The runtime artifact retention and operational stability gate are documented in [docs/runtime_artifact_retention.md](docs/runtime_artifact_retention.md).
 
 Operational monitoring and the run-health dashboard are documented in [docs/operational_monitoring.md](docs/operational_monitoring.md) and [docs/operator_ui.md](docs/operator_ui.md).
 

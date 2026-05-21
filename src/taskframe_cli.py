@@ -401,6 +401,22 @@ def build_parser() -> argparse.ArgumentParser:
     runtime_store_cleanup.add_argument("--dry-run", action="store_true", default=True)
     runtime_store_cleanup.add_argument("--json", action="store_true")
 
+    artifacts = sub.add_parser("artifacts", help="Manage runtime artifacts and retention policies.")
+    artifacts_sub = artifacts.add_subparsers(dest="artifacts_command", required=True)
+    
+    artifacts_status = artifacts_sub.add_parser("status", help="Show artifact inventory status.")
+    artifacts_status.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    artifacts_status.add_argument("--json", action="store_true")
+
+    artifacts_plan = artifacts_sub.add_parser("plan-cleanup", help="Generate a dry-run artifact retention plan.")
+    artifacts_plan.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    artifacts_plan.add_argument("--json", action="store_true")
+
+    artifacts_cleanup = artifacts_sub.add_parser("cleanup", help="Execute artifact cleanup.")
+    artifacts_cleanup.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    artifacts_cleanup.add_argument("--confirm", action="store_true", help="Confirm execution of cleanup.")
+    artifacts_cleanup.add_argument("--json", action="store_true")
+
     monitor = sub.add_parser("monitor", help="Inspect operational monitoring and run health.")
     monitor_sub = monitor.add_subparsers(dest="monitor_command", required=True)
     for name, help_text in (
@@ -501,6 +517,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_profile(args)
     if args.command == "runtime-store":
         return _run_runtime_store(args)
+    if args.command == "artifacts":
+        return _run_artifacts(args)
     if args.command == "monitor":
         return _run_monitor(args)
     if args.command == "recover":
@@ -3064,6 +3082,109 @@ def _run_controlled_live_status(args: argparse.Namespace) -> int:
         for tool in status.get("blocked_side_effect_tools", []):
             print(f"  {tool}")
     return 0 if status.get("ok") else 1
+
+
+def _run_artifacts(args: argparse.Namespace) -> int:
+    command = str(getattr(args, "artifacts_command", "") or "")
+    if command == "status":
+        return _run_artifacts_status(args)
+    if command == "plan-cleanup":
+        return _run_artifacts_plan_cleanup(args)
+    if command == "cleanup":
+        return _run_artifacts_cleanup(args)
+    print("Unknown artifacts command.", file=sys.stderr)
+    return 2
+
+
+def _run_artifacts_status(args: argparse.Namespace) -> int:
+    from runtime.artifact_retention import build_retention_plan
+    try:
+        plan = build_retention_plan(args.runtime_data_dir)
+    except Exception as exc:
+        plan = {"ok": False, "errors": [str(exc)]}
+        
+    if bool(args.json):
+        print(json.dumps(plan, indent=2, ensure_ascii=False))
+        return 0 if plan.get("ok") else 1
+        
+    if not plan.get("ok"):
+        print("Artifact Status: FAIL")
+        for err in plan.get("errors", []):
+             print(f"- {err}")
+        return 1
+        
+    summary = plan.get("summary", {})
+    print("Runtime Artifact Status")
+    print(f"Directory: {plan.get('runtime_data_dir')}")
+    print(f"Total items: {summary.get('total_items', 0)}")
+    print(f"Total size: {summary.get('total_size_bytes', 0) / (1024*1024):.2f} MB")
+    print(f"Protected items: {summary.get('protected_items', 0)}")
+    print(f"Delete candidates: {summary.get('delete_candidates', 0)}")
+    print("\nLargest groups:")
+    for k, v in list(summary.get("top_groups_by_size", {}).items())[:5]:
+        print(f"  {k}: {v / (1024*1024):.2f} MB")
+        
+    if plan.get("warnings"):
+        print("\nWarnings:")
+        for w in plan["warnings"]:
+            print(f"- {w}")
+    return 0
+
+
+def _run_artifacts_plan_cleanup(args: argparse.Namespace) -> int:
+    from runtime.artifact_retention import build_retention_plan
+    try:
+        plan = build_retention_plan(args.runtime_data_dir)
+    except Exception as exc:
+        plan = {"ok": False, "errors": [str(exc)]}
+        
+    if bool(args.json):
+        print(json.dumps(plan, indent=2, ensure_ascii=False))
+        return 0 if plan.get("ok") else 1
+        
+    if not plan.get("ok"):
+        print("Cleanup Plan: FAIL")
+        for err in plan.get("errors", []):
+             print(f"- {err}")
+        return 1
+        
+    summary = plan.get("summary", {})
+    print("Artifact Cleanup Plan (Dry Run)")
+    print(f"Directory: {plan.get('runtime_data_dir')}")
+    print(f"Delete candidates: {summary.get('delete_candidates', 0)}")
+    print(f"Reclaimable size: {summary.get('delete_candidate_size_bytes', 0) / (1024*1024):.2f} MB")
+    if plan.get("warnings"):
+        print("\nWarnings:")
+        for w in plan["warnings"]:
+            print(f"- {w}")
+    return 0
+
+
+def _run_artifacts_cleanup(args: argparse.Namespace) -> int:
+    from runtime.artifact_retention import build_retention_plan, execute_retention_cleanup
+    try:
+        plan = build_retention_plan(args.runtime_data_dir)
+        res = execute_retention_cleanup(plan, confirm=bool(args.confirm))
+    except Exception as exc:
+        res = {"ok": False, "errors": [str(exc)]}
+        
+    if bool(args.json):
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+        return 0 if res.get("ok") else 1
+        
+    if not res.get("ok"):
+        print("Artifact Cleanup: FAIL")
+        for err in res.get("errors", []):
+             print(f"- {err}")
+        if not bool(args.confirm):
+             print("\nHint: You must provide --confirm to execute cleanup.")
+        return 1
+        
+    print("Artifact Cleanup: SUCCESS")
+    print(f"Items deleted: {res.get('deleted_count', 0)}")
+    print(f"Space reclaimed: {res.get('reclaimed_bytes', 0) / (1024*1024):.2f} MB")
+    print(f"Items skipped: {res.get('skipped_count', 0)}")
+    return 0
 
 
 def _is_tk_failure(exc: Exception) -> bool:
