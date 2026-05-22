@@ -147,10 +147,10 @@ Required for: browser-backed automation (Google Messages, WhatsApp Web). Require
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest
+python tools/run_bounded_validation.py local
 ```
 
-Installs test dependencies and runs the full test suite.
+Installs test dependencies and runs bounded local validation.
 
 ---
 

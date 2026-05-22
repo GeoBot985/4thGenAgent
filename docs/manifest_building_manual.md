@@ -703,7 +703,7 @@ A permanent gallery of intentionally broken manifests lives at `tests/fixtures/b
 ### Running the regression pack
 
 ```text
-python -m pytest tests/test_manifest_authoring_regression_gallery.py
+python tools/run_bounded_validation.py manifest
 ```
 
 ### Gallery index

@@ -63,8 +63,17 @@ def build_current_release_status_doc(
 ) -> str:
     summary = verifier.get("summary", {}) if isinstance(verifier.get("summary"), dict) else {}
     commands = verifier.get("commands", []) if isinstance(verifier.get("commands"), list) else []
-    full_pytest = next((item for item in commands if isinstance(item, dict) and item.get("name") == "full_pytest"), {})
-    pytest_counts = _extract_pytest_counts(str(full_pytest.get("stdout", "")) + str(full_pytest.get("stderr", "")))
+    full_pytest = next(
+        (
+            item
+            for item in commands
+            if isinstance(item, dict) and item.get("name") in {"bounded_validation_ci", "full_pytest"}
+        ),
+        {},
+    )
+    pytest_counts = _extract_pytest_counts(
+        str(full_pytest.get("stdout", "")) + str(full_pytest.get("stderr", "")) + str(full_pytest.get("stdout_tail", "")) + str(full_pytest.get("stderr_tail", ""))
+    )
     golden_checks = _golden_checks(verifier, golden_demo)
     checks = verifier.get("checks", {}) if isinstance(verifier.get("checks"), dict) else {}
     evidence_paths = _evidence_paths(verifier, runtime_data_dir, docs_dir)
@@ -82,7 +91,7 @@ def build_current_release_status_doc(
         "",
         "## Commands Run",
         "",
-        "- pytest",
+        "- bounded validation runner (split pytest subprocesses)",
         "- python scripts/run_golden_demo.py",
         "- python scripts/run_release_verification.py",
         "",
@@ -182,7 +191,7 @@ def build_release_evidence_pack_doc(
         "## How To Reproduce",
         "",
         "```powershell",
-        "pytest",
+        "python tools/run_bounded_validation.py ci",
         "python scripts/run_golden_demo.py",
         "python scripts/run_release_verification.py",
         "```",
@@ -268,7 +277,7 @@ def build_current_release_status_json(
             "failed_commands": summary.get("failed_commands", 0),
             "skipped_checks": summary.get("skipped_checks", 0),
             "pytest_counts": _extract_pytest_counts(
-                _command_output(verifier, "full_pytest")
+                _command_output(verifier, "bounded_validation_ci") or _command_output(verifier, "full_pytest")
             ),
         },
         "golden_demo_summary": golden_checks,

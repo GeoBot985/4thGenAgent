@@ -42,7 +42,7 @@ The following are **not** required for or included in the default demo:
 - `taskframe demo` — does not use RPA tools
 - `taskframe ui` — shows RPA capability status as `disabled_optional`, does not run live probes
 - `taskframe verify` — does not run RPA live probes
-- `python -m pytest` — default tests do not require Playwright
+- `python tools/run_bounded_validation.py local` — bounded local validation does not require Playwright
 - `taskframe golden-demo` — does not include RPA scenarios
 
 ---
@@ -107,7 +107,7 @@ Live probes are **never** run automatically during:
 
 - `taskframe demo`
 - `taskframe verify`
-- `python -m pytest`
+- `python tools/run_bounded_validation.py local`
 - `taskframe golden-demo`
 
 ---

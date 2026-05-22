@@ -502,7 +502,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
             ],
         ),
         ("clean_clone_rc_tests", ["python", "-m", "pytest", "tests/test_clean_clone_rc_verification.py"]),
-        ("full_pytest", ["python", "-m", "pytest"]),
+        ("bounded_validation_ci", ["python", "tools/run_bounded_validation.py", "ci"]),
         ("smoke_external_event_intake", ["python", "-m", "pytest", "tests/test_external_event_intake.py"]),
         ("smoke_inspection", ["python", "-m", "pytest", "tests/test_inspection.py"]),
         ("smoke_inspection_commands", ["python", "-m", "pytest", "tests/test_inspection_commands.py"]),

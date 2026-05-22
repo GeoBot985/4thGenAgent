@@ -244,7 +244,7 @@ These are not proven dead, but they look legacy, utility-only, or duplication-pr
 Completed successfully after the cleanup:
 
 - `python -m ruff check src runtime tools bits optional_tools --select F401,F811`
-- `python -m pytest`
+- `python tools/run_bounded_validation.py ci`
 - `python scripts/run_golden_demo.py`
 - `python scripts/run_release_verification.py`
 

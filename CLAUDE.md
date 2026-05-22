@@ -1,34 +1,38 @@
 # Claude Code Test Policy
 
-Do not run full release verification unless explicitly requested.
+Do not run the full test suite locally.
+
+Do not use:
+
+```bash
+python -m pytest
+```
+
+Use bounded validation instead:
+
+```bash
+python tools/run_bounded_validation.py quick
+python tools/run_bounded_validation.py local
+```
+
+Full pytest is reserved for overnight/full CI only.
 
 ## Developer quick tests
 
 Use this during normal development:
 
 ```bash
-python tools/run_dev_tests.py
+python tools/run_bounded_validation.py quick
 ```
 
-This excludes slow, release, integration, and live tests.
-Use full release verification only when explicitly required.
-
-Default test command:
+Use this for staged local validation:
 
 ```bash
-python -m pytest tests -m "not slow and not release and not integration and not live" -q
+python tools/run_bounded_validation.py local
 ```
 
-For focused changes, run only the directly relevant test file:
+Use full release verification only when explicitly required:
 
 ```bash
-python -m pytest tests/<test_file>.py -q
-```
-
-Do not run these unless explicitly requested:
-
-```bash
-python -m pytest
-python tools/run_release_candidate_verification.py
-python tools/run_release_candidate_verification.py --mode release
+python scripts/run_release_verification.py
 ```

@@ -8,14 +8,12 @@ def test_dev_test_helper_content():
     with open("tools/run_dev_tests.py", "r", encoding="utf-8") as f:
         content = f.read()
     
-    assert "not slow and not release and not integration and not live" in content
+    assert "run_bounded_validation.py" in content
+    assert "local" in content
     assert "run_release_candidate_verification.py" not in content
-    
-    # Check that it doesn't run bare unbounded pytest
-    # Ensure that it runs `pytest tests -m ...`
+    assert "python -m pytest" not in content
     assert 'subprocess.run' in content
-    assert 'pytest' in content
-    assert 'tests' in content
+    assert 'bounded local validation' in content
 
 def test_docs_mention_dev_tests():
     doc_files = ["README.md", "docs/cli_reference.md", "docs/quickstart.md", "CLAUDE.md"]
@@ -24,7 +22,7 @@ def test_docs_mention_dev_tests():
         if os.path.exists(doc):
             with open(doc, "r", encoding="utf-8") as f:
                 content = f.read()
-                if "python tools/run_dev_tests.py" in content:
+                if "python tools/run_bounded_validation.py local" in content or "python tools/run_bounded_validation.py quick" in content:
                     found = True
                     break
-    assert found, "Documentation does not mention 'python tools/run_dev_tests.py'"
+    assert found, "Documentation does not mention bounded validation runner"

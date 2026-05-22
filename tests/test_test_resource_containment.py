@@ -20,16 +20,17 @@ def test_pytest_configuration_constrains_default_collection() -> None:
         "build",
     ):
         assert term in text
-    for marker in ("slow:", "release:", "gallery:", "integration:", "live:"):
+    for marker in ("unit:", "backend:", "manifest:", "toolpack:", "runtime:", "reports:", "smoke:", "integration:", "slow:", "live:", "full_ci:"):
         assert marker in text
 
 
 def test_claude_code_policy_blocks_full_verifier_by_default() -> None:
     text = Path("CLAUDE.md").read_text(encoding="utf-8")
-    assert "Default test command:" in text
-    assert 'python -m pytest tests -m "not slow and not release and not integration and not live" -q' in text
-    assert "Do not run full release verification unless explicitly requested." in text
-    assert "python tools/run_release_candidate_verification.py --mode release" in text
+    assert "Do not run the full test suite locally." in text
+    assert "python tools/run_bounded_validation.py quick" in text
+    assert "python tools/run_bounded_validation.py local" in text
+    assert "python -m pytest" in text
+    assert "Full pytest is reserved for overnight/full CI only." in text
 
 
 def test_release_verifier_modes_and_log_streaming_exist() -> None:
@@ -42,6 +43,7 @@ def test_release_verifier_modes_and_log_streaming_exist() -> None:
     assert "stdout_log_path" in text
     assert "stderr_log_path" in text
     assert "duration_seconds" in text
+    assert "tools/run_bounded_validation.py" in text
 
 
 def test_run_command_streams_output_to_logs_without_retaining_full_stdout(tmp_path) -> None:

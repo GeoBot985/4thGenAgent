@@ -284,7 +284,7 @@ playwright install
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest
+python tools/run_bounded_validation.py local
 ```
 
 Optional RPA tools are excluded from the default portfolio path. They require local browser setup and manual authentication. Live integrations require local configuration and are not needed for the default demo.
@@ -316,11 +316,16 @@ pip install -e ".[dev]"
 Use this during normal development:
 
 ```bash
-python tools/run_dev_tests.py
+python tools/run_bounded_validation.py quick
 ```
 
-This excludes slow, release, integration, and live tests.
-Use full release verification only when explicitly required.
+Use the bounded runner for staged local validation:
+
+```bash
+python tools/run_bounded_validation.py local
+```
+
+Plain `python -m pytest` is reserved for overnight or explicit full-CI runs.
 
 ```bash
 python scripts/run_golden_demo.py
@@ -329,6 +334,7 @@ python scripts/run_release_verification.py
 
 Useful docs:
 
+- [docs/testing_strategy.md](docs/testing_strategy.md)
 - [docs/cli_reference.md](docs/cli_reference.md)
 - [docs/architecture_overview.md](docs/architecture_overview.md)
 - [docs/manifest_building_manual.md](docs/manifest_building_manual.md)
@@ -339,6 +345,8 @@ Useful docs:
 - [docs/toolpack_contract_testing.md](docs/toolpack_contract_testing.md)
 
 Developers can generate a new external tool pack with `taskframe tools scaffold`, validate it with `taskframe tools validate`, and run its contract tests with `taskframe tools test`.
+
+Use `taskframe validate quick` or `taskframe validate local` for bounded validation through the CLI.
 
 ---
 

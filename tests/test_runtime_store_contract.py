@@ -18,6 +18,7 @@ def test_runtime_store_contract_exposes_expected_folders(tmp_path: Path) -> None
         "indexes",
         "backups",
         "cleanup",
+        "recovery",
         "migrations",
     }
 

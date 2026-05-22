@@ -37,7 +37,7 @@
 ## How To Reproduce
 
 ```powershell
-pytest
+python tools/run_bounded_validation.py ci
 python scripts/run_golden_demo.py
 python scripts/run_release_verification.py
 ```
@@ -54,4 +54,4 @@ python scripts/run_release_verification.py
 ## Notes
 
 - Golden demo verdict: READY
-- Known limitations count: 2
+- Known limitations count: 1

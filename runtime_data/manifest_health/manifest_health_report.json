@@ -1,7 +1,7 @@
 {
   "ok": true,
   "status": "HEALTHY",
-  "generated_at": "2026-05-22T11:39:00.346831Z",
+  "generated_at": "2026-05-22T14:04:42.852204Z",
   "manifest_dir": "manifests",
   "summary": {
     "total": 19,
@@ -17,7 +17,7 @@
     "manual_fix_required": 0,
     "critical": 0,
     "strict_failed": 0,
-    "strict_warnings": 0
+    "strict_warnings": 18
   },
   "manifests": [
     {
@@ -43,6 +43,15 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
+            "message": "Input 'channel' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
             "message": "Input 'received_at' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
@@ -54,15 +63,6 @@
             "location": "inputs",
             "message": "Input 'event_id' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
-            "example": "",
-            "source": "static_manifest_check"
-          },
-          {
-            "id": "input_declared_but_not_used",
-            "severity": "warning",
-            "location": "inputs",
-            "message": "Input 'channel' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -85,10 +85,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "customer.status_llm_e2e",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 4,
@@ -258,6 +293,7 @@
       "strict_contract": {
         "ok": true,
         "status": "PASS",
+        "manifest_id": "invoiceops.process_supplier_invoice_v1",
         "errors": [],
         "warnings": [],
         "findings": []
@@ -299,10 +335,21 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "llm.classify_customer_message",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Manifest is missing side_effect_policy."
+        ],
+        "findings": [
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 0,
@@ -339,8 +386,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'channel' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -348,8 +395,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
+            "message": "Input 'channel' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
             "example": "",
             "source": "static_manifest_check"
           }
@@ -363,10 +410,37 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "llm.customer_status_reply",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Manifest is missing side_effect_policy.",
+          "Required input 'channel' is declared but not used.",
+          "Required input 'received_at' is declared but not used."
+        ],
+        "findings": [
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "required_input_not_used",
+            "severity": "warning",
+            "location": "inputs.required",
+            "message": "Required input 'channel' is declared but not used.",
+            "suggested_fix": "Use the input in at least one step or mark it audit_only."
+          },
+          {
+            "id": "required_input_not_used",
+            "severity": "warning",
+            "location": "inputs.required",
+            "message": "Required input 'received_at' is declared but not used.",
+            "suggested_fix": "Use the input in at least one step or mark it audit_only."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 2,
@@ -479,10 +553,21 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "llm.extract_order_ref",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Manifest is missing side_effect_policy."
+        ],
+        "findings": [
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 0,
@@ -521,10 +606,21 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "maintenance.cleanup_dry_run",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Manifest is missing side_effect_policy."
+        ],
+        "findings": [
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 0,
@@ -563,10 +659,21 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "maintenance.artifact_index_rebuild",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Manifest is missing side_effect_policy."
+        ],
+        "findings": [
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 0,
@@ -605,10 +712,21 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "maintenance.report_failed_runs",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Manifest is missing side_effect_policy."
+        ],
+        "findings": [
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 0,
@@ -647,10 +765,21 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "maintenance.report_live_packs",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Manifest is missing side_effect_policy."
+        ],
+        "findings": [
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 0,
@@ -689,10 +818,21 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "maintenance.report_pending_runs",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Manifest is missing side_effect_policy."
+        ],
+        "findings": [
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 0,
@@ -753,10 +893,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "order.detect_delayed",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 2,
@@ -875,10 +1050,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "order.release_paid",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 2,
@@ -997,10 +1207,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "order.reserve_stock",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 2,
@@ -1119,10 +1364,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "order.update_shipment_status",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 2,
@@ -1241,10 +1521,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "order.validate_new",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 2,
@@ -1363,10 +1678,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "supplier_invoice.match_to_po_receipt",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 2,
@@ -1475,10 +1825,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "accounting.payment_reconciliation",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 1,
@@ -1538,6 +1923,15 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
+            "message": "Input 'channel' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
             "message": "Input 'received_at' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
@@ -1549,15 +1943,6 @@
             "location": "inputs",
             "message": "Input 'event_id' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
-            "example": "",
-            "source": "static_manifest_check"
-          },
-          {
-            "id": "input_declared_but_not_used",
-            "severity": "warning",
-            "location": "inputs",
-            "message": "Input 'channel' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -1580,10 +1965,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "customer.message_status_check",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 4,
@@ -1764,10 +2184,45 @@
       },
       "strict_contract": {
         "ok": true,
-        "status": "PASS",
+        "status": "WARN",
+        "manifest_id": "procurement.low_stock_reorder",
         "errors": [],
-        "warnings": [],
-        "findings": []
+        "warnings": [
+          "Legacy field 'id' normalised to manifest_id.",
+          "Legacy field 'trigger_type' normalised to trigger.type.",
+          "Manifest is missing side_effect_policy.",
+          "Legacy manifest is missing version."
+        ],
+        "findings": [
+          {
+            "id": "legacy_manifest_id",
+            "severity": "warning",
+            "location": "manifest.id",
+            "message": "Legacy field 'id' was normalised to manifest_id.",
+            "suggested_fix": "Use manifest_id in active manifests."
+          },
+          {
+            "id": "legacy_trigger_type",
+            "severity": "warning",
+            "location": "trigger_type",
+            "message": "Legacy field 'trigger_type' was normalised to trigger.type.",
+            "suggested_fix": "Use trigger.type in active manifests."
+          },
+          {
+            "id": "missing_side_effect_policy",
+            "severity": "warning",
+            "location": "side_effect_policy",
+            "message": "Manifest is missing side_effect_policy.",
+            "suggested_fix": "Add side_effect_policy to the manifest."
+          },
+          {
+            "id": "legacy_missing_version",
+            "severity": "warning",
+            "location": "version",
+            "message": "Legacy manifest is missing version.",
+            "suggested_fix": "Add version to the manifest."
+          }
+        ]
       },
       "autofix": {
         "proposal_count": 1,

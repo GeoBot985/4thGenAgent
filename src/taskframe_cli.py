@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 import os
+import subprocess
 import sys
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
@@ -66,6 +67,11 @@ def build_parser() -> argparse.ArgumentParser:
     verify = sub.add_parser("verify", help="Run release verification.")
     verify.add_argument("--full", action="store_true", help="Run the full verification set.")
     verify.add_argument("--quick", action="store_true", help="Placeholder for a future quick verification mode.")
+
+    validate = sub.add_parser("validate", help="Run bounded validation profiles.")
+    validate.add_argument("mode", choices=["quick", "backend", "manifest", "toolpack", "runtime", "reports", "local", "ci"])
+    validate.add_argument("--timeout-scale", type=float, default=1.0)
+    validate.add_argument("--continue-on-failure", action="store_true")
 
     config = sub.add_parser("config", help="Inspect or initialize configuration profiles.")
     config_sub = config.add_subparsers(dest="config_command", required=True)
@@ -674,6 +680,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_golden_demo()
     if args.command == "verify":
         return _run_verify(args)
+    if args.command == "validate":
+        return _run_validate(args)
     if args.command == "config":
         return _run_config(args)
     if args.command == "runtime":
@@ -870,6 +878,20 @@ def _run_verify(args: argparse.Namespace) -> int:
     print(f"Report: {report_path}")
     print(f"JSON: {json_path}")
     return 0 if verdict in {"READY", "READY_WITH_KNOWN_LIMITATIONS"} else 1
+
+
+def _run_validate(args: argparse.Namespace) -> int:
+    command = [
+        sys.executable,
+        str(ROOT / "tools" / "run_bounded_validation.py"),
+        str(args.mode),
+        "--timeout-scale",
+        str(float(args.timeout_scale)),
+    ]
+    if bool(args.continue_on_failure):
+        command.append("--continue-on-failure")
+    result = subprocess.run(command, cwd=str(ROOT))
+    return int(result.returncode)
 
 
 def _run_config(args: argparse.Namespace) -> int:

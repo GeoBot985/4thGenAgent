@@ -80,6 +80,29 @@ Exit codes:
 - `0` when the golden demo passes
 - non-zero when it fails
 
+### `taskframe validate`
+
+Runs bounded validation groups through the local runner.
+
+- `quick`
+- `backend`
+- `manifest`
+- `toolpack`
+- `runtime`
+- `reports`
+- `local`
+- `ci`
+
+Examples:
+
+```powershell
+taskframe validate quick
+taskframe validate local
+taskframe validate ci
+```
+
+Use `taskframe validate local` for routine developer validation. Full pytest remains reserved for overnight or explicit full-CI runs.
+
 ### `taskframe verify`
 
 Runs release verification.
@@ -88,17 +111,18 @@ Runs release verification.
 - `--mode standard`
 - `--mode release`
 
-Suggested test profiles:
+Suggested bounded validation profiles:
 
 ```powershell
-# Fast local / Claude Code default
-python -m pytest tests -m "not slow and not release and not integration and not live" -q
+# Fast local sanity check
+python tools/run_bounded_validation.py quick
 
 # Standard local confidence run
-python -m pytest tests -m "not release and not live" -q
+python tools/run_bounded_validation.py local
 
-# Full release verification
-python tools/run_release_candidate_verification.py --mode release
+# Full CI / overnight validation
+python tools/run_bounded_validation.py ci
+python -m pytest
 ```
 
 Exit codes:

@@ -1,29 +1,26 @@
 #!/usr/bin/env python
 """
 Developer quick tests.
-Runs a lightweight profile of pytest that excludes slow, release, integration, and live tests.
+
+Compatibility wrapper around the bounded validation runner.
 """
 
-import sys
 import subprocess
+import sys
+from pathlib import Path
 
-def main():
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def main() -> int:
     print("Running TaskFrame developer quick tests...")
-    print("Profile: not slow and not release and not integration and not live")
-    print('Command: python -m pytest tests -m "not slow and not release and not integration and not live" -q')
+    print("Profile: bounded local validation")
+    print("Command: python tools/run_bounded_validation.py local")
     print("")
+    result = subprocess.run([sys.executable, "tools/run_bounded_validation.py", "local"], cwd=str(ROOT))
+    return result.returncode
 
-    result = subprocess.run([
-        sys.executable,
-        "-m",
-        "pytest",
-        "tests",
-        "-m",
-        "not slow and not release and not integration and not live",
-        "-q"
-    ])
-    
-    sys.exit(result.returncode)
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
