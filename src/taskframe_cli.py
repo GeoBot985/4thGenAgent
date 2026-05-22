@@ -283,6 +283,14 @@ def build_parser() -> argparse.ArgumentParser:
     tools_gov_report = tools_sub.add_parser("governance-report", help="Generate a tool pack governance report.")
     tools_gov_report.add_argument("--json", action="store_true")
 
+    readiness_gate = sub.add_parser("readiness-gate", help="Evaluate the 90%+ controlled demo readiness evidence gate.")
+    readiness_gate.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    readiness_gate.add_argument("--threshold", type=int, default=90)
+    readiness_gate.add_argument("--strict", action="store_true", help="Fail if release verifier evidence is missing.")
+    readiness_gate.add_argument("--write-report", action="store_true", help="Write JSON, Markdown, and HTML reports.")
+    readiness_gate.add_argument("--since", default="", help="ISO8601 timestamp; all evidence must be newer than this.")
+    readiness_gate.add_argument("--json", action="store_true")
+
     sp = sub.add_parser("safety-pack", help="Build the safety verification pack and live-blocked evidence report.")
     sp.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     sp.add_argument("--manifest-dir", default="manifests")
@@ -704,6 +712,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_live_preflight(args)
     if args.command == "execute-approved":
         return _run_execute_approved(args)
+    if args.command == "readiness-gate":
+        return _run_readiness_gate(args)
     if args.command == "safety-pack":
         return _run_safety_pack(args)
     if args.command == "tools":
@@ -1618,6 +1628,55 @@ def _resolve_tool_health_snapshot(tool_key: str) -> dict | None:
 def _runtime_live_mode_enabled() -> bool:
     value = os.environ.get("TASKFRAME_ENABLE_LIVE_EXECUTION", "").strip().lower()
     return value in {"1", "true", "yes", "on"}
+
+
+def _run_readiness_gate(args: argparse.Namespace) -> int:
+    from src.readiness_evidence_gate import build_readiness_gate, write_gate_report
+
+    since = str(getattr(args, "since", "") or "").strip() or None
+    result = build_readiness_gate(
+        runtime_data_dir=str(args.runtime_data_dir),
+        threshold=int(getattr(args, "threshold", 90) or 90),
+        strict=bool(args.strict),
+        since=since,
+    )
+
+    report_paths: dict = {}
+    if bool(args.write_report):
+        report_paths = write_gate_report(result, runtime_data_dir=str(args.runtime_data_dir))
+
+    if bool(args.json):
+        payload = dict(result)
+        if report_paths:
+            payload["report_paths"] = report_paths
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("Readiness Evidence Gate")
+        print(f"Claim:          {result.get('claim', '')}")
+        print(f"Verdict:        {result.get('status', '')}")
+        print(f"Classification: {result.get('classification', '')}")
+        print(f"Overall Score:  {result.get('overall_score', 0):.1f} (threshold: {result.get('threshold', 90)})")
+        print(f"Claim Allowed:  {'Yes' if result.get('claim_allowed') else 'No'}")
+        blocking = result.get("blocking_failures", [])
+        if blocking:
+            print(f"Blocking Failures ({len(blocking)}):")
+            for bf in blocking:
+                print(f"  - {bf}")
+        else:
+            print("Blocking Failures: none")
+        warnings_list = result.get("warnings", [])
+        if warnings_list:
+            print(f"Warnings ({len(warnings_list)}):")
+            for w in warnings_list:
+                print(f"  {w}")
+        if report_paths:
+            print(f"Report JSON:     {report_paths.get('json_path', '')}")
+            print(f"Report Markdown: {report_paths.get('markdown_path', '')}")
+            print(f"Report HTML:     {report_paths.get('html_path', '')}")
+        print()
+        print(result.get("disclaimer", ""))
+
+    return 0 if result.get("ok", False) else 1
 
 
 def _run_safety_pack(args: argparse.Namespace) -> int:
