@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.backend.audit import write_route_audit
 from src.backend.auth import require_backend_role
+from src.backend.hardening import clamp_limit, require_json_body
+from src.backend.rate_limit import require_rate_limit
 from src.backend.schemas import EventIntakeRequest
 
 router = APIRouter()
@@ -74,7 +76,14 @@ def _load_linked_frame(linked_frame_id: str, runtime_data_dir: str) -> dict[str,
     }
 
 
-@router.post("", dependencies=[Depends(require_backend_role("operator"))])
+@router.post(
+    "",
+    dependencies=[
+        Depends(require_backend_role("operator")),
+        Depends(require_rate_limit("events_submit")),
+        Depends(require_json_body),
+    ],
+)
 async def create_event(body: EventIntakeRequest, request: Request) -> dict[str, Any]:
     """Intake an event into the TaskFrame runtime."""
     source = body.source.strip()
@@ -194,7 +203,7 @@ async def create_event(body: EventIntakeRequest, request: Request) -> dict[str, 
         )
 
 
-@router.get("", dependencies=[Depends(require_backend_role("viewer"))])
+@router.get("", dependencies=[Depends(require_backend_role("viewer")), Depends(require_rate_limit("events_read"))])
 async def list_events(
     request: Request,
     limit: int = 50,
@@ -203,6 +212,9 @@ async def list_events(
     status: str | None = None,
 ) -> dict[str, Any]:
     """List recent events."""
+    hardening = getattr(request.app.state, "backend_hardening_config", None)
+    safe_limit = clamp_limit(limit, hardening) if hardening else min(max(1, limit), 500)
+
     rd = request.app.state.runtime_data_dir
     try:
         from runtime.event_store import list_events as _list_events
@@ -220,7 +232,7 @@ async def list_events(
             filtered.append(e)
 
         filtered.reverse()
-        result_events = filtered[:max(1, limit)]
+        result_events = filtered[:safe_limit]
 
         out_events = []
         for ev in result_events:
@@ -248,7 +260,7 @@ async def list_events(
         return {"ok": False, "events": [], "count": 0, "error": str(exc)}
 
 
-@router.get("/{event_id}", dependencies=[Depends(require_backend_role("viewer"))])
+@router.get("/{event_id}", dependencies=[Depends(require_backend_role("viewer")), Depends(require_rate_limit("events_read"))])
 async def get_event(event_id: str, request: Request) -> dict[str, Any]:
     """Get a single event and its linked frame metadata."""
     from src.production_backend import _validate_id

@@ -5,7 +5,7 @@ It is intended to be shared with an LLM as a single reference document.
 
 ## Inventory
 
-- Text files included: 67
+- Text files included: 85
 - Binary assets listed: 24
 - Source directory: `D:/Projects/4thGenAgent/docs`
 
@@ -599,6 +599,14 @@ Browser-backed RPA tools are treated as optional, high-risk, live-environment-de
 ## Boundary Summary
 
 - `runtime/` owns execution, persistence, validation, tool routing, and reporting
+- `runtime/persistence_backends/` owns the persistence backend contract plus filesystem and SQLite implementations
+- `runtime/event_queue_contract.py` defines the Spec 137 durable queue record shape and status constants
+- `runtime/event_queue_runner.py` processes PENDING queue items into TaskFrames (always dry-run)
+- `runtime/operator_queue_panel.py` provides read-only queue data for the operator UI
+- `runtime/event_sources/` owns the Spec 139 external event source polling framework (adapters, polling engine, state, contract)
+- `src/operator_event_sources_panel.py` provides read-only event source data for the operator UI
+- `runtime/worker/` owns the Spec 140 local worker supervisor (worker_contract, worker_lock, worker_engine)
+- `src/operator_worker_panel.py` provides read-only worker status and cycle history for the operator UI
 - `src/` owns UI presentation and view-model construction
 - `tools/` owns CLI utilities and release verification
 - `optional_tools/` owns optional integration surfaces
@@ -749,6 +757,19 @@ Exit codes:
 - `0` when the portfolio evidence pack is generated successfully
 - non-zero when pack generation fails
 
+### `taskframe pilot-readiness`
+
+Runs the controlled pilot readiness gate and scorecard.
+
+- `--runtime-data-dir runtime_data`
+- `--write-pack` — write the full pilot evidence pack to disk
+- `--strict` — exit non-zero if the scorecard fails
+- `--json`
+
+Exit codes:
+- `0` when the gate passes or when strict mode is off
+- non-zero when strict mode fails or gate is blocked
+
 ### `taskframe golden-demo`
 
 Runs the golden demo verification.
@@ -757,12 +778,49 @@ Exit codes:
 - `0` when the golden demo passes
 - non-zero when it fails
 
+### `taskframe validate`
+
+Runs bounded validation groups through the local runner.
+
+- `quick`
+- `backend`
+- `manifest`
+- `toolpack`
+- `runtime`
+- `reports`
+- `local`
+- `ci`
+
+Examples:
+
+```powershell
+taskframe validate quick
+taskframe validate local
+taskframe validate ci
+```
+
+Use `taskframe validate local` for routine developer validation. Plain `python -m pytest` is reserved for overnight or explicit full-CI runs; use the bounded runner instead.
+
 ### `taskframe verify`
 
 Runs release verification.
 
-- `--full`
-- `--quick` placeholder; the current implementation runs the full verification set
+- `--mode quick`
+- `--mode standard`
+- `--mode release`
+
+Suggested bounded validation profiles:
+
+```powershell
+# Fast local sanity check
+python tools/run_bounded_validation.py quick
+
+# Standard local confidence run
+python tools/run_bounded_validation.py local
+
+# Full CI / overnight validation
+python tools/run_bounded_validation.py ci
+```
 
 Exit codes:
 - `0` when release verification is `READY` or `READY_WITH_KNOWN_LIMITATIONS`
@@ -823,6 +881,87 @@ Exit codes:
 - non-zero when live execution is blocked or the dry-run path fails
 
 Live execution requires `TASKFRAME_ENABLE_LIVE_EXECUTION=1` and a typed confirmation phrase. `--live` alone is insufficient.
+
+**Spec 132 typed confirmation:** The `--confirm` argument must be the literal string `LIVE-EXECUTE`. Any other value (including the frame-scoped phrase) fails with `TYPED_CONFIRMATION_REQUIRED`.
+
+```bash
+# Dry-run (default and safe)
+taskframe execute-approved --frame-id <frame_id> --action-id <action_id> --dry-run
+
+# Live execution (all gates must pass)
+taskframe execute-approved \
+  --frame-id <frame_id> \
+  --action-id <action_id> \
+  --live \
+  --i-understand-live-side-effects \
+  --confirm "LIVE-EXECUTE"
+```
+
+### `taskframe gmail-send dry-run`
+
+Validates a pending Gmail send action without calling the Gmail API.
+
+```bash
+taskframe gmail-send dry-run --frame-id <frame_id> --action-id <action_id>
+```
+
+Exit codes:
+- `0` on valid payload
+- non-zero when payload validation fails
+
+### `taskframe gmail-send preflight`
+
+Runs the full Spec 132 preflight gate plus the `gmail_send` guardrail for a pending Gmail send.
+
+```bash
+taskframe gmail-send preflight --frame-id <frame_id> --action-id <action_id>
+```
+
+**Live Gmail send** requires all preflight checks and guardrail checks to pass, plus the `LIVE-EXECUTE` typed confirmation:
+
+```bash
+taskframe execute-approved \
+  --frame-id <frame_id> \
+  --action-id <action_id> \
+  --live \
+  --i-understand-live-side-effects \
+  --confirm "LIVE-EXECUTE"
+```
+
+Gmail live send is blocked in `demo`, `pilot`, `release`, `test`, and `dev` profiles. Only the `live` profile with explicit manifest opt-in may execute a live Gmail send.
+
+### `taskframe sheet-write dry-run`
+
+Validates a pending Sheets write action without calling Google Sheets API.
+
+```bash
+taskframe sheet-write dry-run --frame-id <frame_id> --action-id <action_id>
+```
+
+Exit codes:
+- `0` on valid payload
+- non-zero when payload validation fails
+
+### `taskframe sheet-write preflight`
+
+Runs the full Spec 132 preflight gate plus the `sheet_write_rows_guardrail` for a pending Sheets write.
+
+```bash
+taskframe sheet-write preflight --frame-id <frame_id> --action-id <action_id>
+```
+
+**Live Sheets write** requires all preflight checks and guardrail checks to pass, plus the `LIVE-EXECUTE` typed confirmation:
+
+```bash
+taskframe execute-approved \
+  --frame-id <frame_id> \
+  --action-id <action_id> \
+  --live \
+  --i-understand-live-side-effects \
+  --confirm "LIVE-EXECUTE"
+```
+
+Sheets live write is blocked in `demo`, `pilot`, `release`, `test`, and `dev` profiles. Only the `live` profile with explicit manifest opt-in and a configured allowlist may execute a live Sheets write.
 
 ### `taskframe config show`
 
@@ -909,6 +1048,12 @@ Runs the manifest regression gallery for curated bad, edge-case, and unsafe fixt
 - `--no-autofix`
 - `--no-repair-guidance`
 - `--json`
+
+For a cheap validation pass, use:
+
+```powershell
+taskframe manifests gallery validate --no-smoke --no-autofix --no-repair-guidance
+```
 
 Gallery reports are written to `runtime_data/manifest_regression_gallery/`.
 
@@ -1092,9 +1237,161 @@ Exit codes:
 - `0` when no violations are found
 - non-zero when policy violations exist
 
+### `taskframe profile show`
+
+Shows the active runtime profile, its source, and the safety posture used by the tool runner.
+
+- `--profile <name>` - explicit override for inspection
+- `--config-dir <path>` - directory containing `runtime_profile.json`
+- `--runtime-data-dir <path>`
+- `--json`
+
+### `taskframe profile list`
+
+Lists the built-in runtime profiles and their safety characteristics.
+
+- `--json`
+
+### `taskframe profile check`
+
+Checks the active runtime profile for policy blockers and release-safety boundaries.
+
+- `--profile <name>` - explicit override for inspection
+- `--config-dir <path>` - directory containing `runtime_profile.json`
+- `--runtime-data-dir <path>`
+- `--json`
+
+### `taskframe runtime-store check`
+
+Validates the runtime store layout and reports corrupted or orphaned artifacts without deleting anything.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store index`
+
+Rebuilds the runtime store index from the current artifacts.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store backup`
+
+Creates a zip backup under `runtime_data/backups/` with a backup manifest.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store restore`
+
+Validates and extracts a backup into a separate target folder. It never overwrites active `runtime_data`.
+
+- `--backup <path>`
+- `--target <path>`
+- `--validate-only`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store retention-plan`
+
+Builds a dry-run retention plan for derived runtime-store artifacts.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store cleanup`
+
+Runs the retention workflow in dry-run mode only. Destructive cleanup is not enabled here.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--dry-run`
+- `--json`
+
+### `taskframe monitor summary`
+
+Shows the operational health summary for indexed runs.
+
+- `--runtime-data-dir <path>`
+- `--profile <name>`
+- `--limit <n>`
+- `--rebuild`
+- `--json`
+
+### `taskframe monitor failed`
+
+Lists failed runs from the monitoring index.
+
+- `--runtime-data-dir <path>`
+- `--profile <name>`
+- `--limit <n>`
+- `--rebuild`
+- `--json`
+
+### `taskframe monitor pending`
+
+Lists pending approval and waiting runs from the monitoring index.
+
+### `taskframe monitor stuck`
+
+Lists stale `RUNNING` frames from the monitoring index.
+
+### `taskframe monitor blocked`
+
+Lists blocked runs caused by external auth, dependency, or profile-policy issues.
+
+### `taskframe monitor tools`
+
+Shows aggregated tool-health status without live side effects.
+
+### `taskframe monitor report`
+
+Writes JSON, Markdown, and HTML operational-health reports under `runtime_data/monitoring/`.
+
+- `--runtime-data-dir <path>`
+- `--profile <name>`
+- `--limit <n>`
+- `--rebuild`
+- `--json`
+
+### `taskframe recover assess`
+
+Assesses whether a failed, interrupted, or stale TaskFrame is retryable or resumable.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--profile <name>`
+- `--dry-run`
+- `--json`
+
+### `taskframe recover retry-step`
+
+Assesses a single failed step for safe retry. This command stays dry-run by default.
+
+- `--step <step_id>`
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--profile <name>`
+- `--dry-run`
+- `--json`
+
+### `taskframe recover resume`
+
+Assesses whether a TaskFrame can resume from the last safe point. This command stays dry-run by default.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--profile <name>`
+- `--dry-run`
+- `--json`
+
 ### `taskframe runtime profile`
 
-Shows the resolved runtime environment and governance profile used by the tool runner.
+Legacy alias for profile inspection. Prefer `taskframe profile show`.
 
 - `--json`
 
@@ -1102,7 +1399,7 @@ Shows the resolved runtime environment and governance profile used by the tool r
 
 Evaluates runtime governance for a tool key such as `customer/read` or `gmail/search`.
 
-- `--env <demo|dev|test|release|live>`
+- `--env <demo|dev|test|release|pilot|live>`
 - `--dry-run`
 - `--live-requested`
 - `--operation <name>`
@@ -1178,6 +1475,90 @@ Exit codes:
 - `0`
 
 
+## Durable Event Queue (`taskframe queue`)
+
+Manage and inspect the Spec 137 durable event queue.
+
+### `taskframe queue status`
+
+Show queue health: backend, counts by status, oldest pending item.
+
+```bash
+taskframe queue status
+taskframe queue status --json
+```
+
+### `taskframe queue list`
+
+List durable queue records, optionally filtered by status.
+
+```bash
+taskframe queue list
+taskframe queue list --status PENDING
+taskframe queue list --status FAILED_RETRYABLE --limit 20 --json
+```
+
+### `taskframe queue enqueue-fixture <fixture_name>`
+
+Enqueue a safe local fixture event. Available fixtures: `customer_status`, `order_status`, `system_health`.
+
+```bash
+taskframe queue enqueue-fixture customer_status
+```
+
+### `taskframe queue process-next`
+
+Claim and process one PENDING item into a TaskFrame (dry-run only).
+
+```bash
+taskframe queue process-next
+taskframe queue process-next --worker-id my-worker --json
+```
+
+### `taskframe queue process-batch`
+
+Process up to `--limit` PENDING items.
+
+```bash
+taskframe queue process-batch --limit 10
+```
+
+### `taskframe queue retry <queue_id>`
+
+Re-queue a `FAILED_RETRYABLE` item back to `PENDING`.
+
+```bash
+taskframe queue retry abc123...
+```
+
+### `taskframe queue cancel <queue_id>`
+
+Cancel a non-terminal queue item.
+
+```bash
+taskframe queue cancel abc123... --reason "Stale test fixture"
+```
+
+### `taskframe queue dead-letter`
+
+List all `DEAD_LETTER` items.
+
+```bash
+taskframe queue dead-letter
+taskframe queue dead-letter --json
+```
+
+### `taskframe queue recover-stale`
+
+Recover stale `CLAIMED`/`PROCESSING` items (older than `--stale-timeout-minutes`, default 15).
+
+```bash
+taskframe queue recover-stale
+taskframe queue recover-stale --stale-timeout-minutes 30
+```
+
+---
+
 ## Google Workspace tool pack
 
 - `taskframe tools discover`
@@ -1189,6 +1570,25 @@ Exit codes:
 - `taskframe tools lifecycle tool_packs/demo_echo/toolpack.json --env dev`
 
 The tool pack is optional and read-only. Default demo paths do not require Google credentials.
+
+---
+
+## Event Source Polling (Spec 139)
+
+```bash
+taskframe event-sources status
+taskframe event-sources list-sources
+taskframe event-sources show-source <source_id>
+taskframe event-sources health-check <source_id>
+taskframe event-sources create-fixture <source_id>
+taskframe event-sources poll <source_id>
+taskframe event-sources poll-enabled --limit 10
+taskframe event-sources enable <source_id>
+taskframe event-sources disable <source_id>
+taskframe event-sources history --limit 20
+```
+
+See [docs/external_event_source_polling.md](external_event_source_polling.md) for the full guide.
 
 
 ### docs/codebase_containment_review.md
@@ -1439,7 +1839,7 @@ These are not proven dead, but they look legacy, utility-only, or duplication-pr
 Completed successfully after the cleanup:
 
 - `python -m ruff check src runtime tools bits optional_tools --select F401,F811`
-- `python -m pytest`
+- `python tools/run_bounded_validation.py ci`
 - `python scripts/run_golden_demo.py`
 - `python scripts/run_release_verification.py`
 
@@ -1772,6 +2172,30 @@ TaskFrame uses a safe default configuration for the demo path. You can run the p
 
 Configuration is profile-based. Profiles change where settings are read from; they do not automatically enable live side effects.
 
+Runtime profiles are separate from config profiles. The runtime profile controls execution safety and tool access, and it defaults to the safe `demo` profile.
+
+Runtime profile resolution order:
+
+1. explicit CLI argument
+2. environment variable
+3. user config file
+4. safe internal default (`demo`)
+
+## Persistence Backends
+
+TaskFrame uses filesystem JSON persistence by default. This keeps portfolio/demo runs easy to inspect and preserves evidence artifacts under `runtime_data/runs/<frame_id>/`.
+
+SQLite can be enabled for production-shaped operational state:
+
+```powershell
+$env:TASKFRAME_PERSISTENCE_BACKEND="sqlite"
+$env:TASKFRAME_SQLITE_DB_PATH="runtime_data/taskframe_runtime.db"
+```
+
+In SQLite mode the runtime dual-writes: SQLite stores operational state, while JSON artifacts, reports, screenshots, evidence bundles, and exported markdown/html files remain file-based. Do not store credentials, OAuth tokens, raw secrets, private local config contents, live confirmation phrases, or raw browser profile paths in SQLite.
+
+See `config/examples/taskframe.sqlite.example.json` and `docs/production_persistence_backend.md`.
+
 ## Safe default configuration
 
 The default profile uses:
@@ -1783,6 +2207,21 @@ The default profile uses:
 - local runtime data paths
 
 This is the right choice for first-time setup and public demos.
+
+## Runtime profiles
+
+Available runtime profiles:
+
+- `demo` - safe portfolio/demo mode using fixtures and dry-run behavior
+- `dev` - local development with relaxed diagnostics and no live side effects by default
+- `test` - deterministic fixture-backed automated test mode
+- `release` - strict release-verification mode
+- `pilot` - controlled live-read mode with explicit allowlists
+- `live` - reserved future profile, blocked unless explicitly enabled by a future override
+
+The runtime profile does not enable live side effects by default. `pilot` may allow governed live reads for allowlisted read-only tools only.
+
+Use `taskframe profile show`, `taskframe profile list`, and `taskframe profile check` to inspect the active runtime profile.
 
 ## Config profiles
 
@@ -1807,20 +2246,70 @@ Lookup order:
 
 Runtime data defaults to `runtime_data/` unless `TASKFRAME_RUNTIME_DIR` or a CLI override is supplied.
 
+The runtime store is organized as a documented artifact layout under `runtime_data/`:
+
+- `taskframes/`
+- `reports/`
+- `approval_packs/`
+- `evidence/`
+- `tool_health/`
+- `indexes/`
+- `backups/`
+- `cleanup/`
+- `migrations/`
+
+`taskframe runtime-store check` validates that layout and reports corrupted or orphaned artifacts. `taskframe runtime-store backup` writes a zip archive into `runtime_data/backups/`, and `taskframe runtime-store restore` only extracts into a separate target directory.
+
+Operational monitoring is layered on top of the runtime store and is read-only. Use `taskframe monitor summary`, `taskframe monitor failed`, `taskframe monitor pending`, `taskframe monitor stuck`, `taskframe monitor blocked`, `taskframe monitor tools`, and `taskframe monitor report` to inspect run health without changing execution state.
+
+Pending actions and live-related artifacts are protected by default so demo and pilot runs cannot be cleaned away accidentally.
+
 ## Environment variables
 
 Supported variables:
 
 - `TASKFRAME_CONFIG_DIR`
 - `TASKFRAME_PROFILE`
+- `TASKFRAME_ENV` - legacy alias for runtime profile resolution
 - `TASKFRAME_RUNTIME_DIR`
 - `TASKFRAME_LLM_PROVIDER`
 - `TASKFRAME_OLLAMA_MODEL`
 - `TASKFRAME_OLLAMA_BASE_URL`
 - `TASKFRAME_ACCOUNTING_SHEET_CONFIG`
 - `ENABLE_OPTIONAL_RPA_TOOLS`
+- `TASKFRAME_BACKEND_AUTH_CONFIG_PATH`
+- `TASKFRAME_BACKEND_AUTH_ENABLED`
+- `TASKFRAME_BACKEND_ALLOW_DEV_BYPASS`
+- `TASKFRAME_BACKEND_ADMIN_TOKEN`
+- `TASKFRAME_BACKEND_OPERATOR_TOKEN`
+- `TASKFRAME_BACKEND_VIEWER_TOKEN`
 
 CLI arguments win over environment variables.
+If `taskframe profile show` reports the wrong runtime profile, check `TASKFRAME_PROFILE`, `TASKFRAME_ENV`, and `config/runtime_profile.json`.
+
+## Production backend auth
+
+The production backend uses static bearer tokens loaded from environment variables or a JSON config file. Keep the token values out of source control.
+
+Example:
+
+```powershell
+$env:TASKFRAME_BACKEND_AUTH_ENABLED="true"
+$env:TASKFRAME_BACKEND_ALLOW_DEV_BYPASS="false"
+$env:TASKFRAME_BACKEND_ADMIN_TOKEN="..."
+$env:TASKFRAME_BACKEND_OPERATOR_TOKEN="..."
+$env:TASKFRAME_BACKEND_VIEWER_TOKEN="..."
+```
+
+You can also point the app at a config file with `TASKFRAME_BACKEND_AUTH_CONFIG_PATH` or pass `backend_auth_config_path` to `create_app()`. The example config is `config/examples/taskframe.backend.example.json`.
+
+Roles:
+
+- `viewer` for read-only inspection
+- `operator` for event intake and pending-action approval/rejection
+- `admin` for all backend routes, still subject to runtime live-execution guardrails
+
+Dev bypass is unsafe outside local development. It should only be used when auth is explicitly disabled and bypass is explicitly enabled.
 
 ## Google integration config
 
@@ -2006,7 +2495,7 @@ Release verification is the clean-clone check that confirms the repo still runs 
 
 ## Commands Run
 
-- pytest
+- bounded validation runner (split pytest subprocesses)
 - python scripts/run_golden_demo.py
 - python scripts/run_release_verification.py
 
@@ -2427,6 +2916,204 @@ Explain that completion is validation-based, not model-certified.
 - Live Google Sheets and Ollama availability depend on the local environment.
 
 
+### docs/durable_event_queue.md
+
+# Durable Event Queue
+
+Spec 137 — Production-ready event intake queue with persistence, dedupe, retry, dead-letter, and recovery.
+
+## Purpose
+
+The durable event queue makes event intake resilient by persisting each incoming event as a **queue record** before processing. This ensures:
+
+- Events survive process restarts
+- Duplicate events are blocked by deterministic dedupe keys
+- Transient failures are retried automatically
+- Permanent failures and exhausted retries are moved to a dead-letter queue
+- Stale processing items can be recovered safely
+
+The queue coexists with the existing Spec 108 event pipeline. It adds a buffered, claim-based processing layer between event ingestion and TaskFrame creation.
+
+## Queue States
+
+Each queue record moves through a defined state machine:
+
+```
+PENDING
+  ↓ claim_next_event()
+CLAIMED
+  ↓ mark_event_processing()
+PROCESSING
+  ↓ success: mark_event_completed()   ─→ COMPLETED          (terminal)
+  ↓ failure: mark_event_failed()
+      ├── non-retryable category      ─→ FAILED_PERMANENT    (terminal)
+      ├── retryable + below max       ─→ FAILED_RETRYABLE
+      │       ↓ retry_event()
+      │     PENDING
+      └── retryable + at max          ─→ DEAD_LETTER         (terminal)
+
+PENDING / CLAIMED / PROCESSING
+  ↓ cancel_event()                   ─→ CANCELLED           (terminal)
+```
+
+**Terminal states**: `COMPLETED`, `FAILED_PERMANENT`, `DEAD_LETTER`, `CANCELLED`
+
+## Event Dedupe Rules
+
+Every queue record carries a `dedupe_key` derived from source + event_type + stable payload identity:
+
+| Event Source        | Dedupe Identity                             |
+|---------------------|---------------------------------------------|
+| Manual / command    | `event_id`                                  |
+| Gmail / email       | `message_id` from payload                   |
+| Call-centre         | `message_id` or `call_id` from payload      |
+| Schedule            | `schedule_id` + `scheduled_time`            |
+| File event          | `file_path` + `content_hash`                |
+| Database event      | `source_table` + `source_key` + `version`   |
+| Other sources       | `event_id` (fallback)                       |
+
+If an event with the same dedupe key already exists in a **non-terminal** state, `enqueue_event()` returns `ok=False` with `duplicate=True`. Terminal events may be re-enqueued by passing a new event with a different dedupe identity.
+
+## Retry Rules
+
+```json
+{
+  "max_attempts": 3,
+  "retry_delay_seconds": 0,
+  "retryable_categories": [
+    "transient_tool_failure",
+    "llm_transient_failure",
+    "runtime_exception"
+  ]
+}
+```
+
+**Non-retryable categories** (always → `FAILED_PERMANENT`):
+- `route_not_found`
+- `manifest_not_found`
+- `input_mapping_failed`
+- `validation_failed`
+- `policy_blocked`
+
+**Retryable categories** (→ `FAILED_RETRYABLE`, or `DEAD_LETTER` after max attempts):
+- `transient_tool_failure`
+- `llm_transient_failure`
+- `runtime_exception`
+
+## Dead-Letter Handling
+
+A queue item moves to `DEAD_LETTER` when:
+- A retryable failure occurs AND `attempt_count >= max_attempts`
+
+Dead-letter items remain in the queue index and are inspectable via:
+
+```bash
+taskframe queue dead-letter
+taskframe queue dead-letter --json
+```
+
+Dead-letter items cannot be retried via `retry_event()`. Re-queuing requires explicit operator action (enqueue a new event).
+
+## Recovery Command
+
+Stale `CLAIMED` or `PROCESSING` items (no progress after 15 minutes) are recoverable:
+
+```bash
+taskframe queue recover-stale
+taskframe queue recover-stale --stale-timeout-minutes 30
+```
+
+Recovery rules:
+- `attempt_count < max_attempts` → move to `FAILED_RETRYABLE`
+- `attempt_count >= max_attempts` → move to `DEAD_LETTER`
+- `last_error` is updated with the recovery reason
+- No new queue record is created
+
+## Filesystem vs SQLite Behaviour
+
+### Filesystem (default)
+- Queue records stored in `runtime_data/queue/durable_queue.jsonl` (append-only log)
+- Index stored in `runtime_data/queue/durable_queue_index.json` (keyed by `queue_id`)
+- Persists across process restarts
+- Thread-safe for single-process use
+
+### SQLite (production)
+- Queue records stored in `durable_event_queue` table (schema version 2)
+- Indexed by `queue_id`, `dedupe_key`, and `event_id`
+- Ordered by `priority ASC, available_at ASC` for `claim_next_event()`
+- Enable with: `TASKFRAME_PERSISTENCE_BACKEND=sqlite TASKFRAME_SQLITE_DB_PATH=path/to/db`
+
+## CLI Examples
+
+```bash
+# Show queue health summary
+taskframe queue status
+taskframe queue status --json
+
+# List queue records
+taskframe queue list
+taskframe queue list --status PENDING
+taskframe queue list --status FAILED_RETRYABLE --limit 20 --json
+
+# Enqueue a safe local fixture event
+taskframe queue enqueue-fixture customer_status
+taskframe queue enqueue-fixture order_status
+
+# Process one item
+taskframe queue process-next
+taskframe queue process-next --worker-id my-worker --json
+
+# Process a batch
+taskframe queue process-batch --limit 10
+
+# Retry a failed item
+taskframe queue retry <queue_id>
+
+# Cancel an item
+taskframe queue cancel <queue_id> --reason "Stale fixture"
+
+# Inspect dead-letter queue
+taskframe queue dead-letter
+taskframe queue dead-letter --json
+
+# Recover stale processing items
+taskframe queue recover-stale
+taskframe queue recover-stale --stale-timeout-minutes 30
+```
+
+## Queue Record Fields
+
+| Field              | Type    | Description                                   |
+|--------------------|---------|-----------------------------------------------|
+| `queue_id`         | string  | UUID, primary key                             |
+| `event_id`         | string  | Source event ID                               |
+| `source`           | string  | Event source (e.g. `operator_ui`, `gmail`)    |
+| `event_type`       | string  | Event type slug                               |
+| `status`           | string  | Current queue status                          |
+| `priority`         | int     | Lower = higher priority (default: 100)        |
+| `attempt_count`    | int     | Number of processing attempts so far          |
+| `max_attempts`     | int     | Maximum attempts before dead-letter           |
+| `available_at`     | ISO ts  | Earliest time the item can be claimed         |
+| `claimed_at`       | ISO ts  | When the item was claimed                     |
+| `claimed_by`       | string  | Worker ID that claimed the item               |
+| `completed_at`     | ISO ts  | When the item was completed                   |
+| `linked_frame_id`  | string  | TaskFrame ID created during processing        |
+| `dedupe_key`       | string  | SHA-256 of source + event_type + identity     |
+| `payload_json`     | object  | Original event payload                        |
+| `last_error`       | string  | Last failure message                          |
+| `failure_category` | string  | Classified failure category                   |
+| `created_at`       | ISO ts  | Record creation time                          |
+| `updated_at`       | ISO ts  | Last modification time                        |
+
+## Known Limitations
+
+- **No parallel workers**: `claim_next_event()` is not concurrency-safe without external locking. Use a single worker process per queue.
+- **No scheduled execution**: The queue runner does not auto-poll. Call `process-next` or `process-batch` explicitly.
+- **No email/webhook polling**: External event sources use the Spec 139 polling framework (`runtime/event_sources/`) which calls `enqueue_event()`. See [docs/external_event_source_polling.md](external_event_source_polling.md).
+- **Retry delay is 0**: Items become available immediately after `retry_event()`. Back-off is not yet implemented.
+- **Dead-letter replay**: Dead-letter items cannot be automatically re-queued. Operator must explicitly enqueue a new event.
+
+
 ### docs/event_workflow_demo.md
 
 # Event Workflow Demo
@@ -2455,6 +3142,335 @@ Workflow ends at WAITING_FOR_EXECUTE with one pending send_customer_message acti
 - It does not use a real database.
 - It does not use an LLM.
 - It does not run a listener or webhook.
+
+
+### docs/external_event_source_polling.md
+
+# External Event Source Polling — Spec 139
+
+## Purpose
+
+The external event source polling framework provides a structured, safe way to ingest events from external sources into the TaskFrame durable queue. It is:
+
+- **Read-only by default** — adapters may only read from external sources
+- **Deduplicated** — repeated polls never enqueue the same event twice
+- **Stateful** — cursor/watermark state persists across polls
+- **Auditable** — every poll run is recorded in polling history
+- **Bounded** — no polling daemon; polling is triggered explicitly via CLI or schedule
+
+The canonical flow is:
+
+```
+External Source
+  → Read-only Poll (Adapter)
+  → Normalized RuntimeEvent
+  → Durable Queue (deduplication)
+  → Queue Runner
+  → TaskFrame Runtime
+```
+
+---
+
+## Source Config Contract
+
+Every event source has a canonical config record:
+
+```json
+{
+  "source_id": "fixture_customer_messages",
+  "name": "Fixture Customer Messages",
+  "enabled": true,
+  "adapter": "fixture_json",
+  "mode": "fixture",
+  "event_source": "fixture_customer_inbox",
+  "event_type": "customer_message_received",
+  "route_hint": "customer.status.from_email",
+  "poll": {
+    "fixture_path": "tests/fixtures/event_sources/customer_messages.json",
+    "max_events_per_poll": 10
+  },
+  "dedupe": {
+    "key_template": "fixture:{message_id}"
+  },
+  "cursor": {},
+  "auth": {},
+  "created_at": "2026-05-21T08:00:00Z",
+  "updated_at": "2026-05-21T08:00:00Z"
+}
+```
+
+| Field | Description |
+|---|---|
+| `source_id` | Unique identifier for this source |
+| `name` | Human-readable name |
+| `enabled` | Whether this source is active for polling |
+| `adapter` | Adapter ID: `fixture_json` or `gmail_readonly` |
+| `mode` | `fixture` (local) or `live_read` (external) |
+| `event_source` | Runtime event source label |
+| `event_type` | Runtime event type |
+| `poll` | Adapter-specific poll settings |
+| `dedupe` | Dedupe key template |
+| `cursor` | Cursor type and watermark field |
+| `auth` | Auth profile (Gmail only) |
+
+---
+
+## Adapter Contract
+
+Adapters implement three methods:
+
+```python
+class EventSourceAdapter:
+    adapter_id: str
+
+    def health(self, config, runtime_data_dir) -> dict: ...
+    def poll(self, config, state, runtime_data_dir) -> dict: ...
+    def normalize(self, raw_record, config) -> dict: ...
+```
+
+All adapters are **read-only**. Adapters must never send, archive, delete, label, or otherwise mutate external sources.
+
+Poll result shape:
+
+```json
+{
+  "ok": true,
+  "source_id": "...",
+  "adapter": "fixture_json",
+  "mode": "fixture",
+  "raw_count": 3,
+  "event_count": 3,
+  "events": [...],
+  "cursor_update": {"seen_ids": ["fixture:msg-001"]},
+  "evidence": {},
+  "error": "",
+  "error_category": "",
+  "warnings": []
+}
+```
+
+---
+
+## Fixture Event Source
+
+The `fixture_json` adapter reads from a local JSON file. It is the safe default for tests and demos.
+
+Config:
+
+```json
+{
+  "source_id": "fixture_customer_messages",
+  "adapter": "fixture_json",
+  "mode": "fixture",
+  "enabled": true,
+  "poll": {
+    "fixture_path": "tests/fixtures/event_sources/customer_messages.json",
+    "max_events_per_poll": 10
+  },
+  "dedupe": {"key_template": "fixture:{message_id}"}
+}
+```
+
+Fixture records look like:
+
+```json
+{
+  "message_id": "msg-fixture-001",
+  "customer_id": "CUST-1001",
+  "from": "alex@example.com",
+  "subject": "Where is my order?",
+  "body": "Hi, where is order ORD-10042?",
+  "received_at": "2026-05-21T08:00:00+02:00"
+}
+```
+
+Normalized event:
+
+```json
+{
+  "event_id": "evt_fixture_msg_fixture_001",
+  "source": "fixture_customer_inbox",
+  "event_type": "customer_message_received",
+  "received_at": "2026-05-21T08:00:00+02:00",
+  "payload": {
+    "message_id": "msg-fixture-001",
+    "customer_id": "CUST-1001",
+    "from": "alex@example.com",
+    "subject": "Where is my order?",
+    "message": "Hi, where is order ORD-10042?",
+    "channel": "email"
+  }
+}
+```
+
+---
+
+## Gmail Read-Only Event Source
+
+The `gmail_readonly` adapter reads from Gmail. It is **disabled by default** and requires explicit configuration.
+
+Config:
+
+```json
+{
+  "source_id": "gmail_customer_support",
+  "adapter": "gmail_readonly",
+  "mode": "live_read",
+  "enabled": false,
+  "poll": {
+    "query": "label:inbox newer_than:7d",
+    "max_events_per_poll": 20,
+    "include_body": true
+  },
+  "auth": {
+    "profile": "google_readonly",
+    "requires_credentials": true,
+    "token_path": "~/.taskframe/gmail_token.json"
+  }
+}
+```
+
+**Allowed operations:** search, list, read (messages.list, messages.get)
+
+**Forbidden operations:** send, draft, archive, delete, label, mark-read, mark-unread, move, forward, insert, modify, trash
+
+If credentials are missing, the adapter returns:
+
+```json
+{"ok": false, "status": "needs_auth", "error_category": "credentials_missing"}
+```
+
+---
+
+## Dedupe Rules
+
+The durable queue is the final dedupe authority. The event source layer provides stable dedupe keys:
+
+| Source | Dedupe Key |
+|---|---|
+| Fixture message | `fixture:{message_id}` |
+| Gmail message | `gmail:{message_id}` |
+| Future Calendar event | `calendar:{calendar_id}:{event_id}:{updated}` |
+| Future Sheet row | `sheet:{spreadsheet_id}:{range}:{row_hash}` |
+| Future file event | `file:{path}:{content_hash}` |
+
+Repeated polls with the same message IDs will not enqueue duplicates. The adapter's cursor/seen-id state also prevents re-polling already-processed records.
+
+---
+
+## Cursor / Watermark Handling
+
+Each source has persistent cursor state:
+
+```json
+{
+  "cursor": {
+    "watermark": "",
+    "seen_ids": ["fixture:msg-001", "fixture:msg-002"]
+  }
+}
+```
+
+- `seen_ids` — list of dedupe keys for already-processed records (capped at 500)
+- `watermark` — ISO timestamp for watermark-based sources
+
+Cursor state is updated automatically after each successful poll.
+
+---
+
+## Queue Integration
+
+Polled events flow into the durable queue via `enqueue_event()` from `runtime/event_queue.py`. The queue assigns a `queue_id` and `dedupe_key`. Duplicate events (same dedupe key with a non-terminal status) are rejected silently.
+
+The queue runner (`runtime/event_queue_runner.py`) picks up PENDING events and routes them to the appropriate manifest via `event_router.py`.
+
+---
+
+## Safety Rules
+
+- Fixture sources are enabled by default only in test/demo profiles.
+- Gmail live-read source is **disabled by default**.
+- Gmail live-read requires explicit config and valid OAuth credentials.
+- **No Gmail mutations are allowed** — ever.
+- Polling never executes manifests directly.
+- Polling only enqueues events into the durable queue.
+- The queue runner handles TaskFrame creation.
+- OAuth tokens are never stored in event source state or history.
+- Polling history redacts message bodies by default.
+
+---
+
+## CLI Examples
+
+```bash
+# Show subsystem status
+python -m src.taskframe_cli event-sources status
+
+# List all configured sources
+python -m src.taskframe_cli event-sources list-sources
+
+# Create a default fixture source
+python -m src.taskframe_cli event-sources create-fixture fixture_customer_messages
+
+# Health check
+python -m src.taskframe_cli event-sources health-check fixture_customer_messages
+
+# Poll a single source
+python -m src.taskframe_cli event-sources poll fixture_customer_messages
+
+# Poll all enabled sources (bounded)
+python -m src.taskframe_cli event-sources poll-enabled --limit 10
+
+# Enable / disable
+python -m src.taskframe_cli event-sources enable fixture_customer_messages
+python -m src.taskframe_cli event-sources disable gmail_customer_support
+
+# View polling history
+python -m src.taskframe_cli event-sources history --limit 20
+
+# JSON output
+python -m src.taskframe_cli event-sources poll fixture_customer_messages --json
+```
+
+---
+
+## Filesystem vs SQLite Persistence
+
+### Filesystem (default)
+
+```
+runtime_data/event_sources/sources.json        — source configs (keyed by source_id)
+runtime_data/event_sources/state.json          — per-source state (keyed by source_id)
+runtime_data/event_sources/history.jsonl       — polling history (append-only)
+```
+
+### SQLite
+
+When `TASKFRAME_PERSISTENCE_BACKEND=sqlite`, event sources use three tables:
+
+- `event_sources` — source config records
+- `event_source_state` — per-source polling state
+- `event_source_history` — polling history
+
+---
+
+## Known Limitations
+
+- No long-running polling daemon yet (explicit CLI trigger only).
+- No push webhooks yet.
+- Gmail live-read requires manual OAuth token setup.
+- Calendar and Sheets polling not yet implemented.
+- Polling history bodies are redacted; full payload stored in queue only.
+
+See `docs/known_limitations.md` for the full list.
+
+---
+
+## Future Webhook / Daemon Path
+
+A future polling daemon would wrap `poll_enabled_event_sources()` in a loop with configurable intervals. This is not implemented in Spec 139 — use the scheduler subsystem (Spec 138) with a `poll-enabled` command wrapper for now.
+
+Webhooks would bypass the polling engine entirely and write directly to the durable queue.
 
 
 ### docs/final_portfolio_walkthrough.md
@@ -3155,7 +4171,7 @@ It is not presented as production-ready for unsupervised live operations.
 
 **PASS**
 
-Generated: 2026-05-19T18:39:28.815335Z
+Generated: 2026-05-22T11:38:03.342816Z
 
 ## What Was Tested
 
@@ -3208,6 +4224,13 @@ The default portfolio demo does not perform live side effects.
 
 Dry-run is the normal path for both the operator UI and the CLI.
 Optional RPA remains outside the default path and is governed by its own explicit safety checks.
+Runtime profile separation is part of that default safety boundary:
+
+- `demo` stays fixture-backed and dry-run by default
+- `pilot` is the controlled live-read profile, with allowlisted read-only tools only
+- `live` remains reserved and does not enable live side effects
+
+Recovery stays dry-run by default as well. Retry and resume assessments are operator-reviewed controls, not automatic self-healing paths.
 
 ## CLI guardrails
 
@@ -3274,6 +4297,1055 @@ taskframe execute-approved --frame-id frame_123 --action-id pa_456 --dry-run
 ## Why this matters
 
 The live boundary is the controlled side-effect edge. It must remain visible, auditable, and difficult to bypass.
+
+## Spec 132 — Live side-effect execution contract
+
+Spec 132 formalises the common execution rules that all future live-write tools must obey. It does not add specific live tools yet.
+
+The contract adds:
+
+- A formal `live_side_effect_execution` policy object (disabled by default)
+- Ten explicit preflight checks with named error codes
+- Extended manifest live allowlist fields (`allowed_actions`, `max_live_actions`, `requires_operator_confirmation`)
+- Pending action live fields (`live_capable`, `live_executed`, `live_executed_at`, `dry_run_executed`, `guardrail_result`)
+- `LIVE-EXECUTE` typed confirmation requirement for the CLI
+- Idempotency key presence and duplicate-key checks
+- Audit events `LIVE_SIDE_EFFECT_EXECUTED` / `LIVE_SIDE_EFFECT_BLOCKED`
+- JSON and Markdown execution reports under `runtime_data/live_execution/`
+
+See [live_side_effect_execution_contract.md](live_side_effect_execution_contract.md) for full details.
+
+## Spec 133 — Approved live Gmail send tool
+
+Spec 133 implements the first narrow live side-effect tool: `gmail/send`. It builds on Spec 132.
+
+Key constraints:
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles never allow live Gmail sends.
+- Gmail sending is disabled by default (`enabled: false` in the config).
+- The email body is never written to reports or audit logs.
+- All Spec 132 preflight checks plus the `gmail_send` guardrail must pass before any email is sent.
+- No automatic sending, no unapproved sends, no attachments unless config explicitly allows them.
+
+See [live_gmail_send.md](live_gmail_send.md) for the full Spec 133 documentation.
+
+## Spec 134 — Approved live Google Sheets write tool
+
+Spec 134 implements the second narrow live side-effect tool: `sheet/write_rows`. It follows the same safety pattern as Spec 133.
+
+Key constraints:
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles never allow live Sheets writes.
+- Sheets writing is disabled by default (`enabled: false` in the config).
+- Row payloads are never written to summary reports or audit logs.
+- All Spec 132 preflight checks plus the `sheet_write_rows_guardrail` must pass before any write is made.
+- Spreadsheet ID and range/tab allowlists are mandatory.
+- `append` mode is the preferred safe mode. `update` mode is disabled by default.
+- No automatic writes, no unapproved writes, no spreadsheet mutations without an explicit allowlist.
+
+See [live_google_sheets_write.md](live_google_sheets_write.md) for the full Spec 134 documentation.
+
+
+### docs/live_gmail_send.md
+
+# Approved Live Gmail Send Tool (Spec 133)
+
+## Purpose
+
+Spec 133 implements the first narrow live side-effect tool: `gmail/send`. It builds on the Spec 132 live side-effect execution contract and may only send a real email when all contract checks pass.
+
+---
+
+## Safety constraints
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles **never** allow live Gmail sends.
+- The `live` profile may allow sends only when the manifest explicitly opts in.
+- Gmail sending is **disabled by default** (`enabled: false`).
+- No automatic sending. No unapproved sends. No attachments unless the config explicitly enables them.
+- Full email body is **never written** to reports or audit logs.
+
+---
+
+## Tool key
+
+`gmail/send`
+
+---
+
+## Tool registry entry
+
+```python
+{
+    "side_effect": True,
+    "requires_approval": True,
+    "allow_live": True,
+    "allow_live_side_effect": True,
+    "live_guardrail": "gmail_send",
+}
+```
+
+---
+
+## Pending action payload
+
+```json
+{
+  "action_id": "string",
+  "tool": "gmail/send",
+  "operation": "side_effect",
+  "status": "PENDING_APPROVAL",
+  "business_ref": "string",
+  "idempotency_key": "string",
+  "live_capable": true,
+  "payload": {
+    "to": ["recipient@example.com"],
+    "cc": [],
+    "bcc": [],
+    "subject": "string",
+    "body": "string",
+    "attachments": []
+  }
+}
+```
+
+---
+
+## Gmail send config
+
+```json
+{
+  "gmail_send": {
+    "enabled": false,
+    "allowed_sender": "",
+    "allowed_recipient_domains": [],
+    "blocked_recipient_domains": [],
+    "max_recipients": 5,
+    "allow_attachments": false
+  }
+}
+```
+
+- `enabled` defaults to `false`.
+- `allowed_recipient_domains`: only these domains may receive emails. Empty = no restriction.
+- `blocked_recipient_domains`: these domains are always rejected.
+- `max_recipients`: hard cap on total recipients (to + cc + bcc). Default: 5.
+- `allow_attachments`: attachments are disabled by default.
+
+---
+
+## Dry-run execution
+
+Dry-run validates the payload without calling the Gmail API and without sending any email.
+
+```bash
+taskframe execute-approved \
+  --frame-id <frame_id> \
+  --action-id <action_id> \
+  --dry-run
+```
+
+Returns:
+
+```json
+{
+  "ok": true,
+  "type": "gmail_send_result",
+  "data": {
+    "dry_run": true,
+    "sent": false,
+    "to": ["recipient@example.com"],
+    "subject": "Your subject",
+    "message_id": ""
+  }
+}
+```
+
+---
+
+## Live execution
+
+All ten Spec 132 preflight checks must pass, plus all gmail_send guardrail checks.
+
+```bash
+taskframe execute-approved \
+  --frame-id <frame_id> \
+  --action-id <action_id> \
+  --live \
+  --i-understand-live-side-effects \
+  --confirm "LIVE-EXECUTE"
+```
+
+Returns on success:
+
+```json
+{
+  "ok": true,
+  "type": "gmail_send_result",
+  "data": {
+    "dry_run": false,
+    "sent": true,
+    "to": ["recipient@example.com"],
+    "subject": "Your subject",
+    "message_id": "msg_abc123"
+  }
+}
+```
+
+---
+
+## Gmail send guardrail checks
+
+The `gmail_send` guardrail verifies:
+
+| Check | Description |
+|---|---|
+| `action_approved` | Pending action status is `APPROVED` |
+| `tool_is_gmail_send` | Tool key is `gmail/send` |
+| `tool_allows_live_side_effect` | Tool registry allows live side effects |
+| `recipients_not_empty` | `to` list has at least one address |
+| `subject_not_empty` | Subject is not blank |
+| `body_not_empty` | Body is not blank |
+| `business_ref_exists` | Business ref is present |
+| `idempotency_key_present` | Idempotency key is present |
+| `no_blocked_domains` | No recipient is in the blocked domain list |
+| `recipient_domain_allowlist` | All recipients are in the allowed domain list (if configured) |
+| `max_recipients` | Total recipients ≤ max_recipients (default 5) |
+| `attachments_allowed` | No attachments unless config enables them |
+
+---
+
+## Audit events
+
+| Event | When |
+|---|---|
+| `LIVE_EMAIL_SENT` | Email was successfully sent |
+| `LIVE_EMAIL_SEND_BLOCKED` | Send was blocked at preflight or guardrail |
+
+Audit events are appended to `runtime_data/audit/live_side_effect_audit.jsonl`.
+
+---
+
+## Execution reports
+
+Reports are written to `runtime_data/live_execution/` with the pattern:
+
+```
+email_send_<frame_id>_<action_id>_<timestamp>.json
+email_send_<frame_id>_<action_id>_<timestamp>.md
+```
+
+**The email body is never included in reports.** Reports include: recipients (`to`), subject, message ID, sent status, guardrail result, and idempotency key.
+
+---
+
+## Manifest allowlist
+
+A manifest must explicitly opt in:
+
+```json
+{
+  "live_execution": {
+    "enabled": true,
+    "allowed_tools": ["gmail/send"],
+    "allowed_actions": ["send_customer_reply"],
+    "max_live_actions": 1,
+    "requires_operator_confirmation": true
+  }
+}
+```
+
+---
+
+## Out of scope (Spec 133)
+
+- Live Sheets writes
+- Live database writes
+- Live RPA sending
+- Attachments (disabled by default)
+- Automatic sending
+- Unapproved sends
+- Enabling Gmail live send in demo, release, or pilot profiles
+
+---
+
+## Related docs
+
+- [live_side_effect_execution_contract.md](live_side_effect_execution_contract.md) — Spec 132 contract
+- [live_execution_safety.md](live_execution_safety.md) — Safety overview
+- [runtime_profiles.md](runtime_profiles.md) — Profile restrictions
+
+
+### docs/live_google_sheets_write.md
+
+# Approved Live Google Sheets Write Tool (Spec 134)
+
+## Purpose
+
+Spec 134 implements the second narrow live side-effect tool: `sheet/write_rows`. It builds on the Spec 132 live side-effect execution contract and follows the same safety pattern as Spec 133 (Gmail live send).
+
+Live Google Sheets writing may only execute when all contract checks pass. **Default behaviour remains dry-run and safe.**
+
+---
+
+## Safety constraints
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles **never** allow live Sheets writes.
+- The `live` profile may allow writes only when the manifest explicitly opts in.
+- Google Sheets writing is **disabled by default** (`enabled: false`).
+- No automatic writes. No unapproved writes. No spreadsheet mutations without an explicit allowlist.
+- Full row payloads are **never written** to summary reports or audit logs. Reports include row count, headers, target range, and evidence references only.
+- `update` mode is **disabled by default**. Only `append` mode is enabled.
+
+---
+
+## Tool key
+
+`sheet/write_rows`
+
+---
+
+## Tool registry entry
+
+```python
+{
+    "namespace": "sheet",
+    "action": "write_rows",
+    "side_effect": True,
+    "requires_approval": True,
+    "allow_live": True,
+    "allow_live_side_effect": True,
+    "live_guardrail": "sheet_write_rows_guardrail",
+    "output_type": "sheet_write_result",
+}
+```
+
+---
+
+## Pending action payload
+
+```json
+{
+  "action_id": "string",
+  "tool": "sheet/write_rows",
+  "operation": "side_effect",
+  "status": "PENDING_APPROVAL",
+  "business_ref": "string",
+  "idempotency_key": "string",
+  "live_capable": true,
+  "payload": {
+    "spreadsheet_id": "string",
+    "range_name": "ExceptionRegister!A:H",
+    "rows": [],
+    "write_mode": "append",
+    "expected_headers": [],
+    "source_ref": "string"
+  }
+}
+```
+
+### Required payload fields
+
+| Field | Description |
+|---|---|
+| `spreadsheet_id` | Google Sheets spreadsheet ID |
+| `range_name` | Target range or tab (e.g. `ExceptionRegister!A:H`) |
+| `rows` | 2D list of values to write |
+| `write_mode` | `append` or `update` (see supported modes) |
+| `business_ref` | Business entity reference (e.g. invoice ref) |
+| `idempotency_key` | Unique key to prevent duplicate writes |
+
+---
+
+## Supported write modes
+
+| Mode | Meaning | Default enabled |
+|---|---|---|
+| `append` | Append rows to an approved range/table | Yes |
+| `update` | Update an explicitly approved range | No (disabled by default) |
+
+**Preferred mode: `append`.** Use `append` for low-risk operational writes such as register entries.
+
+`update` mode must be explicitly enabled in the `sheet_write` config. It is not enabled in demo, release, or pilot profiles.
+
+---
+
+## Configuration defaults
+
+```json
+{
+  "sheet_write": {
+    "enabled": false,
+    "allowed_spreadsheets": [],
+    "allowed_ranges": [],
+    "blocked_ranges": [],
+    "max_rows_per_action": 50,
+    "allow_update_mode": false,
+    "allow_append_mode": true
+  }
+}
+```
+
+No demo, release, or pilot profile may enable live Sheets writing by default.
+
+To enable for an approved `live` profile:
+
+```json
+{
+  "sheet_write": {
+    "enabled": true,
+    "allowed_spreadsheets": ["<your-spreadsheet-id>"],
+    "allowed_ranges": ["ExceptionRegister!A:H"],
+    "max_rows_per_action": 50,
+    "allow_append_mode": true,
+    "allow_update_mode": false
+  }
+}
+```
+
+---
+
+## Guardrail: `sheet_write_rows_guardrail`
+
+The Sheets write guardrail is executed after preflight and before the API call. It re-validates the operation in the context of the specific tool's constraints.
+
+| Check | Description |
+|---|---|
+| `action_approved` | Pending action status must be `APPROVED` |
+| `tool_is_sheet_write_rows` | Tool must be `sheet/write_rows` |
+| `tool_allows_live_side_effect` | Tool spec must set `allow_live_side_effect: true` |
+| `sheet_write_config_enabled` | Config must have `sheet_write.enabled: true` |
+| `spreadsheet_id_present` | Spreadsheet ID must not be empty |
+| `spreadsheet_id_allowlisted` | Spreadsheet ID must be in `allowed_spreadsheets` (if configured) |
+| `range_allowlisted` | Range must be in `allowed_ranges` (if configured) |
+| `range_not_blocked` | Range must not be in `blocked_ranges` |
+| `write_mode_supported` | Write mode must be enabled in config |
+| `rows_not_empty` | Row list must not be empty |
+| `row_count_within_limit` | Row count must not exceed `max_rows_per_action` |
+| `column_count_matches_headers` | Column count must match `expected_headers` (if supplied) |
+| `business_ref_exists` | `business_ref` must be present |
+| `idempotency_key_present` | `idempotency_key` must be present |
+
+---
+
+## Dry-run behaviour
+
+Dry-run is the **default**. A dry-run validates the write request without calling Google Sheets.
+
+```json
+{
+  "ok": true,
+  "type": "sheet_write_result",
+  "data": {
+    "dry_run": true,
+    "written": false,
+    "spreadsheet_id": "string",
+    "range_name": "string",
+    "write_mode": "append",
+    "row_count": 3,
+    "updated_range": ""
+  },
+  "evidence": {},
+  "error": ""
+}
+```
+
+Dry-run:
+- validates payload shape
+- validates row count against `max_rows_per_action`
+- does not call Google Sheets API
+- marks action as `dry_run_executed`
+- preserves existing fixture/demo behaviour
+
+---
+
+## Live write execution
+
+Live write may only execute via the Spec 132 CLI command:
+
+```
+taskframe execute-approved <frame_id> --action <action_id> --live --confirm LIVE-EXECUTE
+```
+
+A successful live write result:
+
+```json
+{
+  "ok": true,
+  "type": "sheet_write_result",
+  "data": {
+    "dry_run": false,
+    "written": true,
+    "spreadsheet_id": "string",
+    "range_name": "ExceptionRegister!A:H",
+    "write_mode": "append",
+    "row_count": 3,
+    "updated_range": "ExceptionRegister!A42:H44"
+  },
+  "evidence": {},
+  "error": ""
+}
+```
+
+---
+
+## Idempotency
+
+Before writing, the system checks:
+
+- No executed action has the same `idempotency_key`
+- No Sheets write report has the same `idempotency_key`
+- The current pending action has not already been live-executed
+- The same `business_ref` has not been written to the same target range by the same action type
+
+Duplicate writes are blocked with error code `DUPLICATE_SIDE_EFFECT_BLOCKED`. No write is made.
+
+---
+
+## Audit events
+
+### On successful write
+
+```json
+{
+  "event_type": "LIVE_SHEET_ROWS_WRITTEN",
+  "frame_id": "string",
+  "action_id": "string",
+  "tool": "sheet/write_rows",
+  "idempotency_key": "string",
+  "business_ref": "string",
+  "spreadsheet_id": "string",
+  "range_name": "string",
+  "updated_range": "string",
+  "row_count": 0,
+  "approved_by": "string",
+  "executed_at": "timestamp"
+}
+```
+
+### On blocked write
+
+```json
+{
+  "event_type": "LIVE_SHEET_WRITE_BLOCKED",
+  "error_code": "string",
+  "reason": "string"
+}
+```
+
+---
+
+## Reports
+
+Reports are written to:
+
+```
+runtime_data/live_execution/sheet_write_<frame_id>_<action_id>_<timestamp>.json
+runtime_data/live_execution/sheet_write_<frame_id>_<action_id>_<timestamp>.md
+```
+
+Reports include:
+
+- Frame ID, manifest ID, profile
+- Action ID, spreadsheet ID, range name, write mode
+- Row count, updated range, business reference, idempotency key
+- Approval record and guardrail result
+- Blocked/executed status
+
+**Row payloads are not included in reports.** Reports reference row count, expected headers, and target range only.
+
+---
+
+## Inspecting evidence and reports
+
+After a live write, inspect:
+
+```
+runtime_data/live_execution/sheet_write_*.json   # Full JSON evidence
+runtime_data/live_execution/sheet_write_*.md     # Human-readable summary
+runtime_data/audit/live_side_effect_audit.jsonl  # Audit event stream
+```
+
+---
+
+## First supported business use case
+
+**Invoice exception register append**
+
+Append an exception row for an invoice with a PO mismatch:
+
+```python
+action = build_sheet_write_pending_action(
+    action_id="pa-inv-001",
+    business_ref="INV-10042",
+    idempotency_key="inv-10042-exception-append-001",
+    spreadsheet_id="<your-spreadsheet-id>",
+    range_name="ExceptionRegister!A:H",
+    rows=[
+        ["INV-10042", "PO mismatch", "Supplier invoice total differs from PO", "open"]
+    ],
+    write_mode="append",
+)
+```
+
+This use case is appropriate for low-risk operational writes. Irreversible accounting ledger posting is **out of scope** for Spec 134 and requires a separately approved spec.
+
+---
+
+## Out of scope
+
+- Live database writes
+- Live RPA writes
+- Irreversible ledger posting
+- Update mode enabled by default
+- Row deletion or range clearing
+- Broad spreadsheet mutation
+- Unapproved writes
+- Live Sheets write in demo, release, or pilot profiles
+
+---
+
+## Reference
+
+- Spec 132: `docs/live_side_effect_execution_contract.md` — base contract and preflight gate
+- Spec 133: `docs/live_gmail_send.md` — first live side-effect tool (pattern reference)
+- Tool registry: `runtime/tool_registry.py`
+- Guardrail: `runtime/live_guardrails.py` — `guardrail_sheet_write_rows`
+- Implementation: `runtime/sheet_write_tool.py`
+
+
+### docs/live_side_effect_execution_contract.md
+
+# Live Side-Effect Execution Contract (Spec 132)
+
+## Purpose
+
+This document defines the first safe, narrow contract for executing approved live side effects in TaskFrame.
+
+**This spec does not add live email, Sheets, database, or RPA writes.** It creates the common execution rules that later live-write tools must obey.
+
+---
+
+## Default: disabled
+
+Live side effects are **disabled by default**.
+
+```json
+{
+  "live_side_effect_execution": {
+    "enabled": false,
+    "default_dry_run": true
+  }
+}
+```
+
+No existing demo, release, pilot, or portfolio workflow performs live side effects because of this spec.
+
+---
+
+## Execution preflight gate
+
+Before any live side effect executes, all ten checks must pass:
+
+| Check | Error code |
+|---|---|
+| `dry_run == false` explicitly supplied | `LIVE_SIDE_EFFECTS_DISABLED` |
+| Active profile allows live side effects | `LIVE_PROFILE_NOT_ALLOWED` |
+| Manifest allowlist enables the tool | `LIVE_MANIFEST_NOT_ALLOWED` |
+| Tool registry allows live side effects | `LIVE_TOOL_NOT_ALLOWED` |
+| Pending action status is `APPROVED` | `PENDING_ACTION_NOT_APPROVED` |
+| Approval record (`approved_by` + `approved_at`) exists | `PENDING_ACTION_NOT_APPROVED` |
+| Idempotency key is present | `IDEMPOTENCY_KEY_REQUIRED` |
+| Idempotency key has not been used before | `DUPLICATE_SIDE_EFFECT_BLOCKED` |
+| Tool-specific guardrail is specified (not `blocked`) | `LIVE_GUARDRAIL_FAILED` |
+| Typed confirmation `LIVE-EXECUTE` provided (when required) | `TYPED_CONFIRMATION_REQUIRED` |
+
+If any check fails, execution is blocked and a `LIVE_SIDE_EFFECT_BLOCKED` audit event is written.
+
+---
+
+## Profile restrictions
+
+Live side effects are unconditionally blocked in these profiles:
+
+| Profile | Side effects allowed |
+|---|---|
+| `demo` | No |
+| `dev` | No |
+| `test` | No |
+| `release` | No |
+| `pilot` | No (read-only) |
+| `live` | Only with explicit allowlists + guardrail + approval |
+
+---
+
+## Manifest live allowlist
+
+Manifests must explicitly opt in:
+
+```json
+{
+  "live_execution": {
+    "enabled": false,
+    "allowed_tools": ["gmail/send"],
+    "allowed_actions": ["send_customer_reply"],
+    "max_live_actions": 1,
+    "requires_operator_confirmation": true
+  }
+}
+```
+
+- `enabled` defaults to `false` — must be explicitly set to `true`
+- Only tools listed in `allowed_tools` may execute live
+- Only actions listed in `allowed_actions` are permitted (empty list = no restriction)
+- `max_live_actions` caps the number of live side effects per run
+- Approval-state completion still works even when live execution is disabled
+
+---
+
+## Tool registry requirements
+
+A tool may execute live side effects only when its registry entry explicitly sets:
+
+```json
+{
+  "side_effect": true,
+  "requires_approval": true,
+  "allow_live": true,
+  "allow_live_side_effect": true,
+  "live_guardrail": "specific_guardrail_name"
+}
+```
+
+A tool with `allow_live_side_effect: false` is blocked even if the manifest allows it.
+
+---
+
+## Pending action live fields
+
+Every live-capable pending action must carry:
+
+```json
+{
+  "action_id": "string",
+  "tool": "gmail/send",
+  "operation": "side_effect",
+  "status": "PENDING_APPROVAL",
+  "approval_required": true,
+  "approved_by": "",
+  "approved_at": "",
+  "idempotency_key": "string",
+  "business_ref": "string",
+  "live_capable": true,
+  "live_executed": false,
+  "live_executed_at": "",
+  "dry_run_executed": false,
+  "guardrail_result": null
+}
+```
+
+Pending actions without `live_capable: true` remain dry-run only.
+
+---
+
+## Guardrail interface
+
+Every live-capable tool must declare a guardrail function:
+
+```python
+def check_live_side_effect_guardrail(action, frame, profile, tool_spec) -> dict:
+    return {
+        "ok": True,
+        "guardrail": "gmail_send_guardrail",
+        "reason": "",
+        "checks": []
+    }
+```
+
+The guardrail result is recorded in the pending action before execution proceeds.
+
+---
+
+## CLI usage
+
+### Dry-run (default and safe)
+
+```bash
+taskframe execute-approved --frame-id <frame_id> --action-id <action_id> --dry-run
+```
+
+### Live execution (requires all gates)
+
+```bash
+taskframe execute-approved \
+  --frame-id <frame_id> \
+  --action-id <action_id> \
+  --live \
+  --i-understand-live-side-effects \
+  --confirm "LIVE-EXECUTE"
+```
+
+Without `--confirm LIVE-EXECUTE` the command fails with `TYPED_CONFIRMATION_REQUIRED`.
+
+---
+
+## Audit records
+
+**Executed:**
+```json
+{
+  "event_type": "LIVE_SIDE_EFFECT_EXECUTED",
+  "frame_id": "string",
+  "action_id": "string",
+  "tool": "string",
+  "idempotency_key": "string",
+  "approved_by": "string",
+  "executed_at": "timestamp",
+  "guardrail_result": {},
+  "result_ref": "string"
+}
+```
+
+**Blocked:**
+```json
+{
+  "event_type": "LIVE_SIDE_EFFECT_BLOCKED",
+  "reason": "string",
+  "error_code": "string"
+}
+```
+
+Audit events are appended to `runtime_data/audit/live_side_effect_audit.jsonl`.
+
+---
+
+## Execution reports
+
+Every live execution attempt (blocked or executed) produces:
+
+```
+runtime_data/live_execution/<frame_id>_<action_id>_<timestamp>.json
+runtime_data/live_execution/<frame_id>_<action_id>_<timestamp>.md
+```
+
+---
+
+## What this spec does NOT do
+
+- Does not implement live Sheets write
+- Does not implement live database writes
+- Does not enable live RPA mutation
+- Does not add background live execution
+- Does not add automatic approval
+- Does not allow live side effects in pilot mode
+- Does not claim full production readiness
+
+## Spec 133 — First live tool: gmail/send
+
+Spec 133 implements `gmail/send` as the first live side-effect tool built on this contract.
+
+- `gmail/send` requires all 10 preflight checks from this contract to pass.
+- Additional `gmail_send` guardrail checks run after preflight.
+- Gmail sending is disabled by default and blocked in all non-`live` profiles.
+- Email body is never included in reports.
+
+See [live_gmail_send.md](live_gmail_send.md) for the full Spec 133 documentation.
+
+## Spec 134 — Second live tool: sheet/write_rows
+
+Spec 134 implements `sheet/write_rows` as the second narrow live side-effect tool built on this contract.
+
+- `sheet/write_rows` requires all 10 preflight checks from this contract to pass.
+- Additional `sheet_write_rows_guardrail` checks run after preflight, including spreadsheet/range allowlist enforcement.
+- Sheets live writing is disabled by default (`enabled: false`) and blocked in all non-`live` profiles.
+- Row payloads are never written to summary reports or audit logs.
+- `append` mode is the default safe write mode. `update` mode is disabled by default.
+- Spreadsheet ID and range/tab allowlists are mandatory for live writes.
+
+See [live_google_sheets_write.md](live_google_sheets_write.md) for the full Spec 134 documentation.
+
+
+### docs/local_worker_supervisor.md
+
+# Local Worker Supervisor
+
+**Spec 140 — Local Worker Supervisor + Bounded Runtime Loop v1**
+
+## Purpose
+
+The local worker supervisor coordinates the production runtime surfaces introduced in Specs 136–139:
+
+- Persistence backend (Spec 136)
+- Durable event queue (Spec 137)
+- Scheduler (Spec 138)
+- External event-source polling (Spec 139)
+
+It provides a controlled, bounded runtime cycle that recovers stale queue items, runs the scheduler tick, polls enabled event sources, and processes queued events — all without installing a background service.
+
+## Worker Cycle
+
+Each cycle executes in this exact order:
+
+1. **Load worker config** — resolve worker ID, features, limits, safety settings
+2. **Acquire worker lock** — prevent duplicate workers in the same `runtime_data_dir`
+3. **Write heartbeat: STARTING** — persist initial state to `runtime_data/worker/state.json`
+4. **Recover stale queue items** — re-queue any CLAIMED/PROCESSING items that timed out
+5. **Run scheduler tick** — enqueue events for due schedules (always dry-run)
+6. **Poll enabled event sources** — call adapters for all enabled sources (bounded by `max_sources_per_cycle`)
+7. **Process queue batch** — process up to `max_queue_items_per_cycle` PENDING queue items into TaskFrames
+8. **Write cycle summary** — persist structured summary to `runtime_data/worker/cycles.jsonl`
+9. **Write heartbeat: IDLE or FAILED** — update `runtime_data/worker/state.json`
+10. **Release lock** — remove `runtime_data/worker/worker.lock.json`
+
+## Lock and Heartbeat Model
+
+The worker uses a filesystem lock file to prevent duplicate local workers:
+
+```
+runtime_data/worker/worker.lock.json
+```
+
+Lock fields: `worker_id`, `pid`, `lock_id`, `acquired_at`, `last_heartbeat_at`.
+
+A lock is considered **stale** if:
+- The heartbeat is older than 120 seconds **and**
+- The recorded PID is no longer running
+
+A stale lock can be cleared explicitly with `taskframe worker clear-stale-lock`. The worker will never force-clear a live lock.
+
+## Run-Once vs Bounded Loop
+
+### Run-Once
+
+Executes exactly one cycle and exits. The default mode for operator-triggered runs.
+
+```bash
+taskframe worker run-once
+taskframe worker run-once --no-scheduler
+taskframe worker run-once --no-event-sources
+taskframe worker run-once --queue-limit 5
+taskframe worker run-once --json
+```
+
+### Bounded Loop
+
+Executes a fixed number of cycles separated by a configurable sleep interval. Always bounded — no indefinite loops.
+
+```bash
+taskframe worker run-loop --max-cycles 3 --sleep-seconds 5
+taskframe worker run-loop --max-cycles 10 --sleep-seconds 30 --max-runtime-seconds 600
+```
+
+The loop respects:
+- `max_cycles` — hard upper bound on cycle count
+- `sleep_seconds` — delay between cycles
+- `max_runtime_seconds` — wall-clock budget
+- Stop request file — graceful shutdown between cycles
+
+## Scheduler Integration
+
+The worker calls `run_scheduler_tick()` with `dry_run=True`. The scheduler enqueues events for due schedules but does not execute them directly. All events flow through the durable queue.
+
+## Event-Source Integration
+
+The worker calls `poll_enabled_event_sources()` for all enabled sources. Each adapter produces normalized events that are deduplicated and enqueued via the durable queue. The worker limits the number of sources polled per cycle via `max_sources_per_cycle`.
+
+## Queue Integration
+
+The worker calls `process_queued_events()` with `dry_run=True`. Processing always runs in dry-run mode — live side effects are never executed by the worker. Pending actions are left pending for operator approval.
+
+## Stop Request Model
+
+A stop request is written to `runtime_data/worker/stop.request.json`:
+
+```json
+{
+  "worker_id": "local-worker-1",
+  "requested_at": "2026-05-22T08:00:00Z",
+  "requested_by": "operator",
+  "reason": "manual_stop"
+}
+```
+
+The running loop checks for this file before each cycle. When found:
+1. The worker completes the current cycle (if in progress)
+2. The stop request file is deleted
+3. Worker state is set to `STOPPED`
+4. No further cycles are started
+
+## Filesystem vs SQLite Persistence
+
+The worker's own operational state (lock, heartbeat, cycle history) is always stored on the filesystem under `runtime_data/worker/`. The underlying queue, scheduler, and event-source data flows through the configured persistence backend (filesystem or SQLite).
+
+| File | Purpose |
+|------|---------|
+| `runtime_data/worker/worker.lock.json` | Exclusive lock |
+| `runtime_data/worker/state.json` | Worker status and last cycle |
+| `runtime_data/worker/cycles.jsonl` | Append-only cycle history |
+| `runtime_data/worker/stop.request.json` | Graceful stop signal |
+
+## Safety Guarantees
+
+The worker enforces these safety invariants:
+
+- `dry_run_only = true` always — live side effects are never triggered
+- `allow_live_side_effects = false` — blocked at config validation
+- All execution goes through the queue runner (no direct manifest execution)
+- Pending actions remain pending (approval required)
+- Dead-letter records are never silently cleared
+- No credentials or tokens appear in worker state or cycle history
+- One subsystem failure does not abort the entire cycle (failures are recorded, not propagated)
+
+## CLI Commands
+
+```bash
+taskframe worker status              # Show worker ID, status, lock, last cycle
+taskframe worker health              # Check all dependency availability
+taskframe worker run-once            # Execute one cycle
+taskframe worker run-loop            # Execute bounded loop
+taskframe worker stop                # Request graceful stop
+taskframe worker cycles              # Show recent cycle history
+taskframe worker clear-stale-lock    # Clear a stale lock (explicit)
+```
+
+## Cycle Summary Shape
+
+```json
+{
+  "ok": true,
+  "worker_id": "local-worker-1",
+  "cycle_id": "cycle_20260522T080000_1",
+  "started_at": "2026-05-22T08:00:00Z",
+  "completed_at": "2026-05-22T08:00:01Z",
+  "duration_ms": 1200,
+  "stale_queue_recovered": 0,
+  "schedule_events_enqueued": 0,
+  "event_sources_polled": 1,
+  "source_events_enqueued": 3,
+  "queue_items_processed": 3,
+  "queue_items_completed": 2,
+  "queue_items_failed": 1,
+  "dead_letter_count": 0,
+  "warnings": [],
+  "errors": []
+}
+```
+
+## Known Limitations
+
+- No Windows service or Linux systemd integration (planned for a future spec)
+- No parallel workers — single-threaded, single-process
+- No distributed locking — one `runtime_data_dir` per local worker
+- No live side-effect execution — always dry-run
+- Indefinite loop mode is not available in v1
+- Worker state on the filesystem; SQLite tables for worker operational data are planned
+
+## Future Path
+
+- Windows service via `sc.exe` / NSSM
+- Linux systemd unit file
+- Container sidecar pattern
+- Distributed lock via SQLite WAL or Redis
+- Live side-effect execution (separate spec with additional safety gates)
 
 
 ### docs/manifest_building_manual.md
@@ -3983,7 +6055,7 @@ A permanent gallery of intentionally broken manifests lives at `tests/fixtures/b
 ### Running the regression pack
 
 ```text
-python -m pytest tests/test_manifest_authoring_regression_gallery.py
+python tools/run_bounded_validation.py manifest
 ```
 
 ### Gallery index
@@ -5221,6 +7293,38 @@ The release verifier runs the full gallery and blocks release if fixture expecta
 - `slowmo` (int)
 
 ---
+## gmail/send
+
+| Field | Value |
+|---|---|
+| Namespace | gmail |
+| Action | send |
+| Side effect | true |
+| Requires approval | true |
+| Output type | `gmail_send_result` |
+
+> **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
+
+### Command form
+
+```text
+[t:gmail/send -> output_name] to=$inputs.to subject=$inputs.subject body=$inputs.body
+```
+
+### Required arguments
+
+- `to` (str)
+- `subject` (str)
+- `body` (str)
+
+### Optional arguments
+
+- `cc` (str)
+- `bcc` (str)
+- `attachments` (str)
+- `dry_run` (bool)
+
+---
 ## inventory/filter_reorder_candidates
 
 | Field | Value |
@@ -5278,6 +7382,688 @@ The release verifier runs the full gallery and blocks release if fixture expecta
 ```text
 [t:inventory/search_low_stock -> output_name]
 ```
+
+---
+## invoiceops/build_evidence_bundle
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_evidence_bundle |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_evidence_bundle -> output_name] invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `invoice` (str)
+
+### Optional arguments
+
+- `match_result` (str)
+- `exceptions` (str)
+- `prepared_writes` (str)
+
+---
+## invoiceops/build_exception_action_plan
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_exception_action_plan |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_exception_action_plan` |
+
+### Command form
+
+```text
+[t:invoiceops/build_exception_action_plan -> output_name] invoice=$inputs.invoice exceptions=$inputs.exceptions
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `exceptions` (str)
+
+### Optional arguments
+
+- `fallback_results` (str)
+
+---
+## invoiceops/build_exception_report
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_exception_report |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_exception_report -> output_name] invoice=$inputs.invoice exceptions=$inputs.exceptions
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `exceptions` (str)
+
+### Optional arguments
+
+- `action_plan` (str)
+
+---
+## invoiceops/build_ledger_posting_summary
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_ledger_posting_summary |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_ledger_posting_summary -> output_name] invoice=$inputs.invoice ledger_rows=$inputs.ledger_rows
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `ledger_rows` (str)
+
+---
+## invoiceops/build_match_report
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_match_report |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_match_report -> output_name] invoice=$inputs.invoice match_result=$inputs.match_result
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `match_result` (str)
+
+---
+## invoiceops/build_rollback_summary
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_rollback_summary |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/build_rollback_summary -> output_name] prepared_writes=$inputs.prepared_writes
+```
+
+### Required arguments
+
+- `prepared_writes` (str)
+
+---
+## invoiceops/check_duplicate_invoice
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | check_duplicate_invoice |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/check_duplicate_invoice -> output_name] invoice=$inputs.invoice invoice_register=$inputs.invoice_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `invoice_register` (str)
+
+---
+## invoiceops/check_tax
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | check_tax |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/check_tax -> output_name] invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `invoice` (str)
+
+---
+## invoiceops/check_totals
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | check_totals |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/check_totals -> output_name] invoice=$inputs.invoice purchase_order=$inputs.purchase_order
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `purchase_order` (str)
+
+---
+## invoiceops/classify_exceptions
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | classify_exceptions |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_exception_classification` |
+
+### Command form
+
+```text
+[t:invoiceops/classify_exceptions -> output_name] match_result=$inputs.match_result invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `match_result` (str)
+- `invoice` (str)
+
+---
+## invoiceops/extract_invoice_fields
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | extract_invoice_fields |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_invoice` |
+
+### Command form
+
+```text
+[t:invoiceops/extract_invoice_fields -> output_name] raw_text=$inputs.raw_text
+```
+
+### Required arguments
+
+- `raw_text` (str)
+
+### Optional arguments
+
+- `source_ref` (str)
+
+---
+## invoiceops/lookup_goods_receipt
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | lookup_goods_receipt |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/lookup_goods_receipt -> output_name] invoice=$inputs.invoice receipt_register=$inputs.receipt_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `receipt_register` (str)
+
+---
+## invoiceops/lookup_purchase_order
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | lookup_purchase_order |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_check` |
+
+### Command form
+
+```text
+[t:invoiceops/lookup_purchase_order -> output_name] invoice=$inputs.invoice po_register=$inputs.po_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `po_register` (str)
+
+---
+## invoiceops/match_three_way
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | match_three_way |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_match_result` |
+
+### Command form
+
+```text
+[t:invoiceops/match_three_way -> output_name] invoice=$inputs.invoice purchase_order=$inputs.purchase_order goods_receipt=$inputs.goods_receipt
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `purchase_order` (str)
+- `goods_receipt` (str)
+
+### Optional arguments
+
+- `invoice_register` (str)
+
+---
+## invoiceops/prepare_exception_register_write
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_exception_register_write |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_prepared_write` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_exception_register_write -> output_name] exceptions=$inputs.exceptions
+```
+
+### Required arguments
+
+- `exceptions` (str)
+
+---
+## invoiceops/prepare_invoice_register_write
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_invoice_register_write |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_prepared_write` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_invoice_register_write -> output_name] invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `invoice` (str)
+
+---
+## invoiceops/prepare_ledger_write
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_ledger_write |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_prepared_write` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_ledger_write -> output_name] ledger_rows=$inputs.ledger_rows
+```
+
+### Required arguments
+
+- `ledger_rows` (str)
+
+---
+## invoiceops/prepare_match_register_write
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_match_register_write |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_prepared_write` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_match_register_write -> output_name] match_result=$inputs.match_result
+```
+
+### Required arguments
+
+- `match_result` (str)
+
+---
+## invoiceops/prepare_rollback_plan
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | prepare_rollback_plan |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_rollback_plan` |
+
+### Command form
+
+```text
+[t:invoiceops/prepare_rollback_plan -> output_name] prepared_write=$inputs.prepared_write
+```
+
+### Required arguments
+
+- `prepared_write` (str)
+
+---
+## invoiceops/read_exception_register
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_exception_register |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_exception_register -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_invoice_file
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_invoice_file |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_raw_invoice_text` |
+
+### Command form
+
+```text
+[t:invoiceops/read_invoice_file -> output_name] path=$inputs.path
+```
+
+### Required arguments
+
+- `path` (str)
+
+### Optional arguments
+
+- `runtime_root` (str)
+
+---
+## invoiceops/read_invoice_register
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_invoice_register |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_invoice_register -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_ledger
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_ledger |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_ledger -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_po_register
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_po_register |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_po_register -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_receipt_register
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_receipt_register |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_receipt_register -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/read_supplier_master
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | read_supplier_master |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_sheet_rows` |
+
+### Command form
+
+```text
+[t:invoiceops/read_supplier_master -> output_name]
+```
+
+### Optional arguments
+
+- `spreadsheet_id` (str)
+- `fixture_mode` (str)
+- `_fixture_dir` (str)
+
+---
+## invoiceops/search_po_fallback
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | search_po_fallback |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_fallback_result` |
+
+### Command form
+
+```text
+[t:invoiceops/search_po_fallback -> output_name] invoice=$inputs.invoice po_register=$inputs.po_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `po_register` (str)
+
+---
+## invoiceops/search_receipt_fallback
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | search_receipt_fallback |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_fallback_result` |
+
+### Command form
+
+```text
+[t:invoiceops/search_receipt_fallback -> output_name] invoice=$inputs.invoice receipt_register=$inputs.receipt_register
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `receipt_register` (str)
+
+---
+## invoiceops/search_supplier_fallback
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | search_supplier_fallback |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_fallback_result` |
+
+### Command form
+
+```text
+[t:invoiceops/search_supplier_fallback -> output_name] invoice=$inputs.invoice supplier_master=$inputs.supplier_master
+```
+
+### Required arguments
+
+- `invoice` (str)
+- `supplier_master` (str)
+
+---
+## invoiceops/validate_invoice_fields
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | validate_invoice_fields |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_invoice_validation` |
+
+### Command form
+
+```text
+[t:invoiceops/validate_invoice_fields -> output_name] invoice=$inputs.invoice
+```
+
+### Required arguments
+
+- `invoice` (str)
 
 ---
 ## memory/set
@@ -6120,7 +8906,7 @@ The release verifier runs the full gallery and blocks release if fixture expecta
 | Action | write_rows |
 | Side effect | true |
 | Requires approval | true |
-| Output type | `sheet_write_rows_result` |
+| Output type | `sheet_write_result` |
 
 > **Safety note:** This tool stages or performs a side effect and must be approval-gated before execution.
 
@@ -6138,8 +8924,10 @@ The release verifier runs the full gallery and blocks release if fixture expecta
 
 ### Optional arguments
 
-- `mode` (str)
-- `dry_run` (str)
+- `write_mode` (str)
+- `expected_headers` (str)
+- `source_ref` (str)
+- `dry_run` (bool)
 
 ---
 ## shipment/read
@@ -6571,6 +9359,106 @@ The release verifier runs the full gallery and blocks release if fixture expecta
 ---
 
 
+### docs/operational_monitoring.md
+
+# Operational Monitoring
+
+Operational monitoring is the read-only inspection layer on top of runtime artifacts, TaskFrames, approvals, evidence, tool health, and runtime-store validation. It is meant to help a controlled pilot operator quickly see what is healthy, failed, pending, stuck, or blocked.
+
+## Run Health Classifications
+
+The canonical run-health model uses these classifications:
+
+- `healthy` - completed successfully or no operator action is needed
+- `pending` - waiting for approval or input
+- `warning` - completed with non-blocking issues
+- `failed` - runtime, validation, tool, or completion failure
+- `stuck` - the run has not advanced within the stale threshold
+- `blocked` - external auth, dependency, or profile-policy problems prevent progress
+
+## Commands
+
+Use:
+
+```bash
+taskframe monitor summary
+taskframe monitor failed
+taskframe monitor pending
+taskframe monitor stuck
+taskframe monitor blocked
+taskframe monitor tools
+taskframe monitor report
+```
+
+All commands support `--runtime-data-dir`, `--profile`, `--limit`, `--rebuild`, and `--json`.
+
+## Stuck-Run Detection
+
+Stale detection is threshold-based and does not auto-recover anything.
+
+- `RUNNING` older than the configured threshold becomes `stuck`
+- `WAITING_FOR_INPUT` older than the configured threshold stays `pending` but gets a stale warning
+- `WAITING_FOR_EXECUTE` older than the configured threshold stays `pending` but gets a stale approval warning
+- repeated external auth or dependency failures are surfaced as `blocked`
+
+The thresholds are:
+
+```json
+{
+  "running_stale_minutes": 10,
+  "waiting_for_input_stale_hours": 24,
+  "waiting_for_execute_stale_days": 7,
+  "external_dependency_retry_window_minutes": 30
+}
+```
+
+## Tool Health
+
+Monitoring reuses the existing safe tool-health snapshot and does not introduce live side effects. The aggregated tool-health status is interpreted as:
+
+- `ready`
+- `needs_auth`
+- `missing_dependency`
+- `misconfigured`
+- `failing`
+- `disabled_optional`
+- `unknown`
+
+For pilot readiness, live reads are only meaningful when the active profile allows them and the relevant read tools are healthy.
+
+## What Monitoring Does Not Do
+
+Monitoring does not do automatically:
+
+- retry failed runs automatically
+- recover stuck runs automatically
+- send alerts or email notifications
+- run background daemons
+- perform destructive cleanup
+- enable live writes, sends, or deletes
+
+## Controlled Pilot Readiness
+
+This layer supports controlled pilot readiness by making failure visibility and runtime discipline explicit. It is not full production monitoring and it does not claim production-grade incident response.
+
+## Pilot Readiness Integration
+
+Operational monitoring is validated as part of the pilot readiness gate. The gate checks:
+
+- Monitoring report can be generated without error
+- Monitoring documentation is present
+
+See [pilot_readiness.md](pilot_readiness.md) for the full pilot readiness gate documentation.
+
+## Recovery Cross-Reference
+
+Monitoring and recovery work together:
+
+- monitoring tells the operator which runs are healthy, failed, pending, stuck, or blocked
+- recovery tells the operator whether a specific run is retryable or resumable
+- both remain dry-run and operator-controlled
+
+
 ### docs/operator_console.md
 
 # Operator Console
@@ -6615,6 +9503,38 @@ Inspector Mode exposes the technical runtime details:
 - pending actions
 - reports
 - tool health
+
+
+### docs/operator_ui.md
+
+# Operator UI
+
+The operator UI is a control surface for demo, inspect, and controlled pilot workflows. It shows runtime state, approval flows, evidence, tool health, and operational health without inventing its own execution model.
+
+## Operational Health Panel
+
+The **Operational Health** section surfaces the monitoring index built from runtime artifacts.
+
+It shows:
+
+- run health summary
+- failed runs
+- pending approvals
+- stuck runs
+- tool health
+- external dependency issues
+- runtime store status
+- recommended operator actions
+
+The panel reuses runtime-store and tool-health data. It does not trigger live side effects, automatic retries, or destructive cleanup.
+
+## Safety Boundary
+
+The operator UI remains a controlled demo and pilot workspace.
+
+- It does not claim full production monitoring.
+- It does not enable live writes, sends, deletes, or automatic recovery.
+- It is intended to help an operator inspect failure visibility and readiness before any future production automation work.
 
 
 ### docs/optional_rpa.md
@@ -6663,7 +9583,7 @@ The following are **not** required for or included in the default demo:
 - `taskframe demo` — does not use RPA tools
 - `taskframe ui` — shows RPA capability status as `disabled_optional`, does not run live probes
 - `taskframe verify` — does not run RPA live probes
-- `python -m pytest` — default tests do not require Playwright
+- `python tools/run_bounded_validation.py local` — bounded local validation does not require Playwright
 - `taskframe golden-demo` — does not include RPA scenarios
 
 ---
@@ -6728,7 +9648,7 @@ Live probes are **never** run automatically during:
 
 - `taskframe demo`
 - `taskframe verify`
-- `python -m pytest`
+- `python tools/run_bounded_validation.py local`
 - `taskframe golden-demo`
 
 ---
@@ -6905,6 +9825,182 @@ pytest -q
   tool registry; `dry_run=True` default in every execute function.
 - Pending actions follow the standard approval contract defined in
   `docs/runtime_contracts.md`.
+
+
+### docs/pilot_readiness.md
+
+# Pilot Readiness
+
+> **Controlled pilot readiness only.**
+> No full production readiness is claimed.
+> No unsupervised live side effects are enabled.
+
+This document describes the controlled pilot readiness gate, what it checks, what evidence it produces, and what remains blocked.
+
+## What Is Pilot Readiness?
+
+The pilot readiness gate determines whether the TaskFrame runtime is suitable for a **controlled, supervised, live-read pilot**. It is not a production readiness claim.
+
+There are three distinct readiness levels:
+
+| Level | What it means |
+|---|---|
+| **Demo/portfolio readiness** | Safe, fixture-backed demonstrations. No live data. |
+| **Controlled pilot readiness** | Limited, supervised, live-read pilots. No live side effects. |
+| **Production readiness** | Full production automation. Not yet claimed or enabled. |
+
+## How to Run the Pilot Readiness Gate
+
+```bash
+# Show the scorecard
+taskframe pilot-readiness
+
+# Show as JSON
+taskframe pilot-readiness --json
+
+# Write the full evidence pack to disk
+taskframe pilot-readiness --write-pack
+
+# Fail with non-zero exit if gate fails
+taskframe pilot-readiness --strict
+```
+
+## Scorecard Areas
+
+The pilot readiness scorecard evaluates nine areas with a weighted score:
+
+| Area | Weight |
+|---|---|
+| Runtime profile safety | 15% |
+| Live-read control | 15% |
+| Side-effect blocking | 15% |
+| Tool governance | 10% |
+| Runtime-store integrity | 10% |
+| Backup/restore validation | 10% |
+| Monitoring visibility | 10% |
+| Recovery/idempotency controls | 10% |
+| Documentation/evidence | 5% |
+
+**Minimum pass threshold: 80%**
+
+The gate also enforces mandatory checks that can block the gate regardless of the weighted score.
+
+## Mandatory Safety Checks
+
+The gate fails immediately if any of these are true:
+
+- Active/default profile allows live side effects
+- Pilot profile allows live side effects
+- Live side-effect tools can execute without approval
+- Unknown toolpacks can run in pilot mode
+- Runtime-store validation fails
+- Monitoring report cannot be generated
+- Recovery assessment cannot be generated
+- Duplicate side-effect protection is missing
+- Pilot documentation is missing
+- Evidence pack claims production readiness
+
+## What the Evidence Pack Contains
+
+Running `taskframe pilot-readiness --write-pack` writes:
+
+```
+runtime_data/pilot_readiness/<timestamp>/
+  pilot_readiness_scorecard.json      — weighted scorecard with area scores
+  pilot_readiness_report.md           — human-readable report
+  pilot_readiness_report.html         — reviewer-facing HTML
+  runtime_profile_summary.json        — active and pilot profile configuration
+  live_read_preflight.json            — live-read preflight check results
+  side_effect_blocking_evidence.json  — proof that blocked actions remain blocked
+  tool_governance_report.json         — toolpack governance policy report
+  runtime_store_validation.json       — store structure and integrity
+  backup_restore_validation.json      — backup command and restore readiness
+  monitoring_summary.json             — operational monitoring report
+  recovery_idempotency_summary.json   — recovery assessment and idempotency controls
+  limitations.md                      — known limitations (human-readable)
+  README.md                           — reviewer-facing overview
+```
+
+The pack clearly states:
+- Controlled pilot readiness only
+- No full production readiness claimed
+- No unsupervised live side effects enabled
+
+## Live-Read Pilot Mode
+
+In `pilot` mode, the runtime:
+
+- Allows live reads via allowlisted read-only toolpacks (`google_workspace_readonly`)
+- Disables all live side effects (sends, writes, deletes, mutations)
+- Requires tool governance for every toolpack execution
+- Requires explicit credentials (no service account bypass)
+- Blocks unknown toolpacks
+
+### Live-Read Preflight
+
+Before a live-read pilot session, run:
+
+```bash
+taskframe pilot-readiness --json | python -m json.tool
+```
+
+The `live_read_preflight` section reports one of:
+
+| Status | Meaning |
+|---|---|
+| `ready` | All preflight checks pass |
+| `needs_auth` | Credentials or tool health snapshot missing |
+| `missing_config` | Required configuration absent |
+| `blocked` | Profile not in pilot mode or side effects enabled |
+
+## What Remains Blocked
+
+The following actions are blocked and cannot execute in pilot mode:
+
+- Gmail: send email
+- Google Sheets: write range
+- Google Calendar: delete or update events
+- External systems: create record
+- RPA: any live mutation
+- Any unknown side-effect tool
+
+Evidence of this blocking is captured in `side_effect_blocking_evidence.json`.
+
+## Known Limitations
+
+See [known_limitations.md](known_limitations.md) for the full list. Pilot-specific limitations include:
+
+| Limitation | Impact |
+|---|---|
+| No unsupervised production automation | All automation requires operator approval |
+| No live writes/sends/deletes | Read-only pilot only |
+| No autonomous recovery daemon | Recovery is operator-initiated |
+| No production database backend | File-based store; not for concurrent production load |
+| No enterprise authentication | Service account only; no SSO or RBAC |
+| No multi-user access control | Single-operator model |
+| No formal deployment hardening | Local/dev environment only |
+| No SLA or alerting system | Manual health monitoring |
+
+## Release Verifier Integration
+
+The release verifier (`taskframe verify`) includes the pilot readiness gate. It:
+
+- Runs the pilot readiness scorecard
+- Writes the pilot evidence pack
+- Fails if the scorecard output is malformed
+- Fails if production readiness is claimed in the evidence pack
+- Includes a `pilot_readiness_gate` entry in the release checks output
+
+## Future Production Readiness Work
+
+Pilot readiness is not production readiness. To reach production readiness, future specs would need to address:
+
+- Enterprise authentication and RBAC
+- Production database backend
+- Formal deployment hardening and environment isolation
+- SLA monitoring and automated alerting
+- Autonomous recovery with supervised escalation paths
+- Multi-user access control and audit separation
 
 
 ### docs/portfolio_evidence_pack.md
@@ -7188,6 +10284,386 @@ The design shows how AI-assisted workers can operate inside business controls:
 That is the product boundary this repository is meant to communicate.
 
 
+### docs/production_backend.md
+
+# Production Backend Run Operations API
+
+**Spec 141 — Production Backend Run Operations API v1**
+
+## Purpose
+
+The production backend exposes a controlled FastAPI HTTP API for inspecting TaskFrame runs and triggering supported run operations. It wraps existing runtime functions — it does not add new business logic.
+
+## API Boundary
+
+The backend API:
+
+- Reads from persisted run artifacts via existing runtime functions
+- Approves/rejects pending actions through `runtime.approval` only
+- Generates run reports through `runtime.run_report` only
+- Receives events via POST `/api/events` but routes them using the existing `event_routes.json` registry
+- Accepts only registered event sources and event types; the API never selects a manifest directly
+- Does not execute tools directly
+- Does not read arbitrary files
+- Does not bypass pending-action approval state
+- Preserves dry-run defaults (live event execution is rejected)
+
+## Routes
+
+### POST /api/events
+
+Submits an external event into the TaskFrame runtime (Controlled Event Intake API). 
+
+**Request body:**
+```json
+{
+  "source": "api",
+  "event_type": "customer.message.received",
+  "payload": {},
+  "idempotency_key": "optional-string",
+  "dry_run": true
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "event_id": "string",
+  "source": "api",
+  "event_type": "customer.message.received",
+  "route_id": "string",
+  "manifest_id": "string",
+  "linked_frame_id": "string",
+  "frame_state": "WAITING_FOR_EXECUTE",
+  "summary": {},
+  "pending_action_count": 1,
+  "executed_action_count": 0,
+  "error": ""
+}
+```
+
+### GET /api/events
+
+Returns recent event ledger entries.
+
+**Query parameters:**
+- `limit` (int, default 50)
+- `source` (string, optional)
+- `event_type` (string, optional)
+- `status` (string, optional)
+
+**Response:**
+```json
+{
+  "ok": true,
+  "events": [
+    {
+      "event_id": "string",
+      "source": "string",
+      "event_type": "string",
+      "received_at": "string",
+      "status": "string",
+      "route_id": "string",
+      "manifest_id": "string",
+      "linked_frame_id": "string",
+      "error": ""
+    }
+  ],
+  "count": 0,
+  "error": ""
+}
+```
+
+### GET /api/events/{event_id}
+
+Returns one event plus linked run metadata.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "event": {},
+  "linked_frame": {
+    "frame_id": "string",
+    "manifest_id": "string",
+    "state": "string",
+    "summary": {},
+    "pending_action_count": 0,
+    "executed_action_count": 0,
+    "error_count": 0
+  },
+  "error": ""
+}
+```
+
+### GET /api/runs
+
+Returns recent run ledger records (most recent first).
+
+**Query parameters:**
+- `limit` (int, default 50) — max records to return
+
+**Response:**
+```json
+{
+  "ok": true,
+  "runs": [
+    {
+      "frame_id": "string",
+      "manifest_id": "string",
+      "state": "string",
+      "created_at": "string",
+      "updated_at": "string",
+      "pending_action_count": 0,
+      "executed_action_count": 0,
+      "error_count": 0,
+      "artifact_dir": "string"
+    }
+  ],
+  "count": 0,
+  "error": ""
+}
+```
+
+### GET /api/runs/{frame_id}
+
+Returns the normalized TaskFrame summary and core metadata for one run.
+
+Large raw outputs are not returned by default. The `outputs_preview` field contains up to 10 output keys.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "manifest_id": "string",
+  "state": "string",
+  "summary": {},
+  "outputs_preview": {},
+  "pending_actions": [],
+  "errors": [],
+  "validations": [],
+  "artifact_paths": {"artifact_dir": "string"},
+  "error": ""
+}
+```
+
+### GET /api/runs/{frame_id}/evidence
+
+Returns the full evidence bundle generated from persisted run artifacts. Evidence is built from `runtime/evidence_bundle.py` — not from live UI state.
+
+### GET /api/runs/{frame_id}/approval-pack
+
+Returns the approval pack view for the run.
+
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "approval_pack": {},
+  "pending_action_count": 0,
+  "error": ""
+}
+```
+
+### GET /api/runs/{frame_id}/failure-summary
+
+Returns the failure summary for the run (works for both failed and completed frames).
+
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "failure_summary": {},
+  "error": ""
+}
+```
+
+### POST /api/runs/{frame_id}/report
+
+Generates or rebuilds the operator run report.
+
+**Request body:**
+```json
+{"rebuild": false}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "markdown_path": "string",
+  "html_path": "string",
+  "evidence_bundle_path": "string",
+  "error": ""
+}
+```
+
+### POST /api/runs/{frame_id}/pending-actions/{action_id}/approve
+
+Approves a pending action. Calls `runtime.approval.approve_action` — no direct mutation.
+
+### POST /api/runs/{frame_id}/pending-actions/{action_id}/reject
+
+Rejects a pending action. Calls `runtime.approval.reject_action` — no direct mutation.
+
+**Approval/rejection response:**
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "action_id": "string",
+  "operation": "approve|reject",
+  "state": "string",
+  "pending_actions": [],
+  "executed_actions": [],
+  "error": ""
+}
+```
+
+## Safety Rules
+
+| Rule | Enforcement |
+|------|-------------|
+| frame_id must match `[A-Za-z0-9_-]{1,128}` | Validated at route entry; 400 if invalid |
+| action_id must match `[A-Za-z0-9_-]{1,128}` | Validated at route entry; 400 if invalid |
+| event_id must match `[A-Za-z0-9_-]{1,128}` | Validated at route entry; 400 if invalid |
+| No path traversal | ID regex blocks `/`, `..`, `\` |
+| No arbitrary file reads | Only approved runtime functions called |
+| No direct tool execution | No tool runner invoked from API |
+| Event Intake payload | Must be JSON object. Event route logic resolves manifest. |
+| Event routing | Strict routing boundary. API cannot bypass and select arbitrary tools or manifests directly. |
+| Registered sources | `source` must be a registered contract entry such as `api` for the controlled intake route |
+| Approval must go through existing approval functions | `runtime.approval.approve_action` / `reject_action` only |
+| Live side effects | Controlled by existing live execution guardrails (unchanged). Event intake `dry_run=false` is rejected. |
+| Dry-run default | Report generation and queue operations default to dry-run |
+
+## Authentication and roles
+
+Production backend routes are protected by static bearer tokens.
+
+Set up local auth with environment variables:
+
+```powershell
+$env:TASKFRAME_BACKEND_AUTH_ENABLED="true"
+$env:TASKFRAME_BACKEND_ALLOW_DEV_BYPASS="false"
+$env:TASKFRAME_BACKEND_ADMIN_TOKEN="<secret>"
+$env:TASKFRAME_BACKEND_OPERATOR_TOKEN="<secret>"
+$env:TASKFRAME_BACKEND_VIEWER_TOKEN="<secret>"
+```
+
+You can also point the backend at a JSON config file with `TASKFRAME_BACKEND_AUTH_CONFIG_PATH` or pass `backend_auth_config_path` to `create_app()`. The example config lives at `config/examples/taskframe.backend.example.json`.
+
+Role access:
+
+- `viewer`: read-only inspection routes
+- `operator`: inspection plus event intake and approval/rejection
+- `admin`: all backend routes, still subject to runtime live-execution guardrails
+
+The dev bypass is only for local development. It is only active when auth is explicitly disabled and `TASKFRAME_BACKEND_ALLOW_DEV_BYPASS=true`. Do not use it outside local dev.
+
+Backend auth does not replace the runtime live-execution safety model.
+
+## Usage
+
+```python
+from src.production_backend import create_app
+
+app = create_app(runtime_data_dir="runtime_data")
+# Serve with: uvicorn src.production_backend:app
+```
+
+Or in tests:
+
+```python
+from fastapi.testclient import TestClient
+from src.production_backend import create_app
+
+client = TestClient(
+    create_app(runtime_data_dir=str(tmp_path)),
+    headers={"Authorization": "Bearer <viewer-token>"},
+)
+response = client.get("/api/runs")
+```
+
+If you are using the dev bypass locally, keep it explicit in your config and do not rely on unauthenticated calls in production-shaped tests.
+
+## Known Limitations
+
+- No user-management UI or OAuth flow
+- No pagination cursor (limit parameter only)
+- Evidence bundle may be large for long-running frames
+- Approval/rejection does not trigger automatic task continuation
+- Report generation is synchronous; large frames may be slow
+
+## Related
+
+- [production_persistence_backend.md](production_persistence_backend.md)
+- [durable_event_queue.md](durable_event_queue.md)
+- [local_worker_supervisor.md](local_worker_supervisor.md)
+
+
+### docs/production_persistence_backend.md
+
+# Production Persistence Backend
+
+Spec 136 introduces a persistence boundary behind the TaskFrame runtime. Filesystem JSON remains the default because it is transparent, easy to inspect, and still ideal for portfolio demos, evidence packs, screenshots, and exported reports.
+
+SQLite is the first production-shaped backend. It gives the runtime transactional operational state without changing manifest execution, orchestrator state transitions, approval rules, or live side-effect guardrails.
+
+## Backend Selection
+
+Default mode:
+
+```powershell
+$env:TASKFRAME_PERSISTENCE_BACKEND="filesystem"
+```
+
+SQLite mode:
+
+```powershell
+$env:TASKFRAME_PERSISTENCE_BACKEND="sqlite"
+$env:TASKFRAME_SQLITE_DB_PATH="runtime_data/taskframe_runtime.db"
+```
+
+If `TASKFRAME_SQLITE_DB_PATH` is not set, SQLite uses `runtime_data/taskframe_runtime.db`.
+
+## Dual Write
+
+When SQLite is active, operational records are written to SQLite and JSON artifacts are still written under `runtime_data/runs/<frame_id>/`. Existing reports, evidence bundles, summaries, and operator inspection flows can continue to read file artifacts.
+
+## CLI
+
+```powershell
+python -m src.taskframe_cli persistence status
+python -m src.taskframe_cli persistence init
+python -m src.taskframe_cli persistence migrate-json
+python -m src.taskframe_cli persistence verify
+```
+
+`migrate-json` backfills readable JSON artifacts into SQLite and skips malformed artifacts with warnings. It is idempotent for TaskFrames, events, queue records, and migrated run ledger rows.
+
+## Schema Summary
+
+SQLite stores JSON payloads plus indexed fields in these tables: `taskframes`, `events`, `event_queue`, `durable_event_queue`, `run_ledger`, `audit_events`, `pending_actions`, `executed_actions`, `tool_calls`, `llm_calls`, `validations`, `event_sources`, `event_source_state`, and `event_source_history`. The `event_sources` tables (Spec 139) store event source configs, per-source polling state, and polling history.
+
+Schema version 2 adds the `durable_event_queue` table (Spec 137) with columns `queue_id`, `event_id`, `source`, `event_type`, `status`, `priority`, `attempt_count`, `max_attempts`, `available_at`, `claimed_at`, `claimed_by`, `completed_at`, `linked_frame_id`, `dedupe_key`, `last_error`, `failure_category`, `created_at`, `updated_at`, and `payload_json`. Indexes cover status + priority ordering, dedupe lookups, and event_id joins.
+
+## Safety Boundary
+
+The SQLite backend must not store credentials, OAuth tokens, raw secret values, private local config contents, live confirmation phrases, or raw browser profile paths. Sensitive keys are redacted before SQLite writes. Reports and generated markdown/html artifacts remain file-based.
+
+## Limitations
+
+This is not a PostgreSQL backend and does not migrate business fixture data. Generated reports, screenshots, exported evidence bundles, and markdown/html artifacts remain on disk.
+
+## Future PostgreSQL Path
+
+The backend contract is intentionally narrow: TaskFrames, events, queue records, run ledger records, actions, calls, validations, and health. PostgreSQL can later implement the same contract with stronger concurrency and deployment options.
+
+
 ### docs/quickstart.md
 
 # Quickstart Guide
@@ -7339,10 +10815,10 @@ Required for: browser-backed automation (Google Messages, WhatsApp Web). Require
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest
+python tools/run_bounded_validation.py local
 ```
 
-Installs test dependencies and runs the full test suite.
+Installs test dependencies and runs bounded local validation.
 
 ---
 
@@ -7362,6 +10838,10 @@ Installs test dependencies and runs the full test suite.
 ### docs/readiness_scorecard.md
 
 # 90% Readiness Scorecard
+
+## Persistence Readiness
+
+Production persistence now has a v1 backend boundary. Filesystem mode remains valid for demos and evidence packs; SQLite is available as an opt-in transactional backend for operational state with JSON dual-write compatibility.
 
 ## Purpose
 
@@ -7407,6 +10887,114 @@ python -m src.taskframe_cli readiness --strict --open-report
 ## Known Limitations
 
 This scorecard measures controlled demo and portfolio readiness. It does not certify production deployment readiness.
+
+
+### docs/recovery_and_idempotency.md
+
+# Recovery And Idempotency
+
+TaskFrame recovery is controlled and dry-run by default.
+
+It is designed for:
+
+- failed TaskFrames
+- interrupted or stale TaskFrames
+- retryable read failures
+- operator-reviewed resume decisions
+- duplicate side-effect prevention
+
+It is not designed for autonomous self-healing, live retry, or automatic rollback.
+
+## Recovery States
+
+The recovery assessment classifies a run as one of:
+
+- `retryable`
+- `resumable`
+- `manual_review_required`
+- `blocked`
+- `not_recoverable`
+
+### When a run is retryable
+
+A run is retryable when the failed step is safe to retry, no side effect has already been executed, and the retry policy allows the failure class. Read-only external timeouts and dependency failures can be retryable when the manifest policy allows them.
+
+### When a run requires manual review
+
+A run requires manual review when the failure is a validation issue, the runtime store is unhealthy, the manifest cannot be loaded, a side-effect status is unknown, or the retry/resume path cannot be proven safe.
+
+## Idempotency Keys
+
+Every pending action gets a deterministic idempotency key:
+
+```text
+<manifest_id>:<frame_id>:<step_id>:<action_type>:<business_ref>
+```
+
+That key prevents duplicate side effects when a pending action is retried or resumed.
+
+If the same action was already executed, the runtime blocks the second execution with `DUPLICATE_SIDE_EFFECT_BLOCKED`.
+
+## CLI Commands
+
+Use these commands to inspect and plan recovery:
+
+```bash
+taskframe recover assess <frame_id>
+taskframe recover retry-step <frame_id> --step <step_id>
+taskframe recover resume <frame_id>
+```
+
+All three commands default to dry-run behavior. No live retry or live resume is enabled in this spec.
+
+## Why Validation Is Not Auto-Retried
+
+Validation failures indicate the manifest, input data, or business rule set is not acceptable yet. Retrying the same state is usually unhelpful and can hide a real data issue, so validation failures are routed to manual review instead.
+
+## Safety Boundary
+
+Recovery uses the runtime store, monitoring summary, profile safety checks, and idempotency records to decide whether a run is retryable or resumable. That supports controlled pilot readiness, not full production readiness.
+
+## Pilot Readiness Integration
+
+Recovery and idempotency are validated as part of the pilot readiness gate. The gate checks:
+
+- Recovery assessment stub can be generated
+- `DUPLICATE_SIDE_EFFECT_BLOCKED` constant is present (idempotency protection)
+- Recovery documentation is present
+
+See [pilot_readiness.md](pilot_readiness.md) for the full pilot readiness gate documentation.
+
+## Spec 132 — Live side-effect idempotency contract
+
+Spec 132 extends idempotency enforcement to the live side-effect execution path. Before any live side effect runs, the preflight gate checks:
+
+1. The pending action carries an `idempotency_key` (fails with `IDEMPOTENCY_KEY_REQUIRED` if absent)
+2. The same key has not already been used by a different executed action (`DUPLICATE_SIDE_EFFECT_BLOCKED`)
+3. The pending action has not already been marked `live_executed: true` (`DUPLICATE_SIDE_EFFECT_BLOCKED`)
+
+These checks run as part of `run_live_side_effect_preflight()` in `runtime/live_side_effect_contract.py`. Recovery dry-run paths are unaffected — they remain dry-run only with the same idempotency key tracking as before.
+
+## Spec 133 — Gmail send idempotency
+
+Spec 133 extends idempotency enforcement to `gmail/send`. Before any live Gmail is sent:
+
+1. The pending action carries an `idempotency_key` — absent key fails with `IDEMPOTENCY_KEY_REQUIRED`
+2. The key has not been used by another executed action — duplicate blocked with `DUPLICATE_SIDE_EFFECT_BLOCKED`
+3. The pending action has not already been marked `live_executed: true`
+
+These are enforced by the Spec 132 preflight gate in `run_live_side_effect_preflight()`. No Gmail-specific idempotency code is needed — the contract handles it generically.
+
+## Spec 134 — Google Sheets write idempotency
+
+Spec 134 extends idempotency enforcement to `sheet/write_rows`. Before any live Sheets write executes:
+
+1. The pending action carries an `idempotency_key` — absent key fails with `IDEMPOTENCY_KEY_REQUIRED`
+2. The key has not been used by another executed action — duplicate blocked with `DUPLICATE_SIDE_EFFECT_BLOCKED`
+3. The pending action has not already been marked `live_executed: true`
+4. The same `business_ref` has not already been written to the same target range by the same action type
+
+These checks prevent duplicate rows from being appended to a Sheets register. If any check fails, no write is made and the block is recorded in the audit log. The Spec 132 preflight gate handles checks 1–3 generically; check 4 is enforced in the `sheet_write_rows_guardrail`.
 
 
 ### docs/release_artifacts.md
@@ -7548,7 +11136,7 @@ The portfolio demo v2 now produces a consolidated story pack under `runtime_data
 
 ## Test Results
 
-- full_pytest: PASS (0)
+- bounded_validation_ci: PASS (0)
 
 ## Workflow Verification
 
@@ -7639,7 +11227,7 @@ The project is READY_WITH_KNOWN_LIMITATIONS.
 ## How To Reproduce
 
 ```powershell
-pytest
+python tools/run_bounded_validation.py ci
 python scripts/run_golden_demo.py
 python scripts/run_release_verification.py
 ```
@@ -7657,6 +11245,183 @@ python scripts/run_release_verification.py
 
 - Golden demo verdict: READY
 - Known limitations count: 1
+
+
+### docs/release_verification.md
+
+# Release Verification
+
+`taskframe verify` runs the repository release-verification script and writes JSON and Markdown evidence under `runtime_data/audit/` and `docs/`.
+
+The verification gate checks the default safety posture, runtime profiles, runtime store discipline, operational monitoring, demo workflows, documentation coverage, and the release artifacts required for the controlled portfolio path.
+
+Runtime store checks include:
+
+- runtime store docs
+- runtime-store CLI commands
+- validation on a seeded demo runtime
+- backup archive creation
+- restore `--validate-only`
+- corrupted artifact detection
+- dry-run retention planning
+
+Production persistence checks include:
+
+- filesystem persistence remains the default compatibility mode
+- SQLite initializes in a temporary runtime directory
+- required tables and indexes exist at the current schema version
+- sample TaskFrame, event, queue, and run-ledger records roundtrip
+- JSON dual-write artifacts remain available for evidence and reports
+
+Operational monitoring checks include:
+
+- monitoring docs
+- monitoring CLI commands
+- failed, pending, stuck, and blocked run classification
+- tool-health aggregation
+- JSON, Markdown, and HTML report generation
+
+Recovery and idempotency checks include:
+
+- recovery docs
+- recovery CLI commands
+- retryable versus manual-review classification
+- duplicate side-effect blocking
+- recovery report generation
+- dry-run-only recovery commands
+
+Pilot readiness checks include:
+
+- pilot readiness scorecard (80% threshold)
+- mandatory safety checks (profile, side-effect blocking, store, monitoring, recovery, docs)
+- pilot evidence pack generation (all required files)
+- live-read preflight results
+- side-effect blocking evidence
+- known limitations register
+
+Verification is not a claim of production readiness. It is a controlled release-readiness gate for the current demo and pilot posture.
+
+See [pilot_readiness.md](pilot_readiness.md) for the difference between demo readiness, pilot readiness, and production readiness.
+
+
+## Spec 132 — Live side-effect contract checks
+
+Release verification (Spec 132) confirms:
+
+- `runtime/live_side_effect_contract.py` exists and defines all 10 error codes
+- `runtime/live_execution_reports.py` exists with report and audit event writers
+- `docs/live_side_effect_execution_contract.md` exists
+- Live side effects are disabled by default (policy `enabled: false`)
+- `demo`, `release`, and `pilot` profiles block live side effects
+- Only the `live` profile can potentially allow live side effects
+- Live execution requires `dry_run=False` explicitly
+- Live execution requires manifest allowlist
+- Live execution requires tool registry allowlist (`allow_live_side_effect`)
+- Live execution requires an approved pending action with valid approval record
+- Live execution requires a non-empty idempotency key
+- Duplicate idempotency key is blocked with `DUPLICATE_SIDE_EFFECT_BLOCKED`
+- Guardrail is required (tool with `live_guardrail: blocked` is blocked)
+- Typed confirmation `LIVE-EXECUTE` is required
+- Live execution attempts produce JSON and Markdown reports
+- No default demo workflow performs live side effects
+
+## Spec 133 — Gmail send tool checks
+
+Release verification (Spec 133) confirms:
+
+- `runtime/gmail_send_tool.py` exists with all required symbols
+- `docs/live_gmail_send.md` exists
+- `gmail/send` is registered in the tool registry with `side_effect=true`, `requires_approval=true`, `allow_live_side_effect=true`, `live_guardrail="gmail_send"`
+- Gmail send config defaults: `enabled=false`, `allow_attachments=false`, `max_recipients=5`
+- `gmail_send` guardrail is importable from `runtime.live_guardrails`
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles block live Gmail sends
+- Audit event constants `LIVE_EMAIL_SENT` and `LIVE_EMAIL_SEND_BLOCKED` are defined
+- Email body is never included in reports
+- Gmail send report files use the `email_send_` prefix
+
+## Spec 134 — Google Sheets write tool checks
+
+Release verification (Spec 134) confirms:
+
+- `runtime/sheet_write_tool.py` exists with all required symbols
+- `docs/live_google_sheets_write.md` exists
+- `sheet/write_rows` is registered in the tool registry with `side_effect=true`, `requires_approval=true`, `allow_live_side_effect=true`, `live_guardrail="sheet_write_rows_guardrail"`
+- Sheets write config defaults: `enabled=false`, `allow_update_mode=false`, `allow_append_mode=true`, `max_rows_per_action=50`
+- `guardrail_sheet_write_rows` is importable from `runtime.live_guardrails`
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles block live Sheets writes
+- Audit event constants `LIVE_SHEET_ROWS_WRITTEN` and `LIVE_SHEET_WRITE_BLOCKED` are defined
+- Row payloads are never included in summary reports
+- Sheets write report files use the `sheet_write_` prefix
+- Spreadsheet ID and range allowlists are enforced
+- Row count limit (`max_rows_per_action`) is enforced
+- Missing idempotency key blocks write
+- Duplicate idempotency key blocks write
+- Dry-run write does not call Google Sheets API
+- Mocked live write produces audit event and report
+- Default demo workflows still do not live-write
+
+
+### docs/runtime_artifact_retention.md
+
+# Runtime Artifact Retention
+
+This document explains the runtime artifact management layer.
+
+## What Are Runtime Artifacts?
+
+The system generates significant state during operation:
+- `runs/`: Execution traces and summaries for individual frames.
+- `reports/`: Approvals, execution packs, evidence bundles.
+- `release_verification/`: Release checks.
+- `manifest_health_reports/` / `tool_health/`: Health validations.
+- `workbench/`: Sandbox previews.
+- `tmp/` / `.cache/`: Temporary processing files.
+
+## Why Are They Retained?
+
+Artifacts are essential for:
+- Auditing live side-effects.
+- Idempotency when recovering failed steps.
+- Approval workflow resumption.
+- Regression gallery reporting.
+
+## What is Protected?
+
+By default, the cleanup process is non-destructive and highly protective. The following artifacts are **never** deleted during normal cleanup:
+- Any artifact modified within the last 14 days.
+- Any failed runs.
+- Runs containing executed or pending actions.
+- Runs containing a live side-effect execution.
+- Any file with an unrecognized or `unknown` artifact group.
+- Core operational release logs (unless older than 30 days).
+
+## Inspecting Artifact Status
+
+You can review the artifact storage at any time:
+
+```bash
+python src/taskframe_cli.py artifacts status
+```
+
+This returns total items, sizes, delete candidates, and largest groups.
+
+## Dry-Run Cleanup
+
+You can generate a retention plan without deleting anything:
+
+```bash
+python src/taskframe_cli.py artifacts plan-cleanup
+```
+
+## Executing Cleanup
+
+Artifacts are never deleted automatically on startup. Deletion must be executed manually and explicitly.
+
+```bash
+python src/taskframe_cli.py artifacts cleanup --confirm
+```
+
+If `--confirm` is missing, the cleanup command will refuse to execute and exit with code 1.
 
 
 ### docs/runtime_contracts.md
@@ -7818,6 +11583,309 @@ Live execution requires all of the following:
 - the audit trail must record policy and guardrail checks
 
 Default RC must not execute live side effects.
+
+
+### docs/runtime_profiles.md
+
+# Runtime Profiles
+
+TaskFrame separates execution safety from config loading. Runtime profiles decide whether the runtime can use fixtures, run dry-run by default, read live data, or stage and execute live side effects.
+
+The safe default profile is `demo`.
+
+## Resolution Order
+
+Runtime profile selection uses this order:
+
+1. explicit CLI argument
+2. environment variable
+3. user config file
+4. safe internal default (`demo`)
+
+The environment variable is `TASKFRAME_PROFILE`. `TASKFRAME_ENV` is kept as a legacy alias.
+
+## Canonical Profile Contract
+
+Each runtime profile exposes an inspectable contract with fields such as:
+
+- `profile`
+- `environment`
+- `fixture_mode`
+- `dry_run_default`
+- `allow_live_reads`
+- `allow_live_side_effects`
+- `require_tool_governance`
+- `allowed_toolpacks`
+- `blocked_tool_classes`
+- `llm_provider`
+- `requires_credentials`
+- `evidence_required`
+
+The runtime also records whether the profile is reserved or blocked.
+
+## Profiles
+
+| Profile | Purpose | Fixture Mode | Live Reads | Live Side Effects | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `demo` | Safe portfolio/demo mode | Yes | No | No | Default runtime profile |
+| `dev` | Local development | Yes | Optional | No | Diagnostics can be relaxed, but live writes stay blocked |
+| `test` | Deterministic test mode | Yes | No | No | Fixture-backed automated runs |
+| `release` | Release verification | Yes | No | No | Strict gates, no live execution |
+| `pilot` | Controlled live-read mode | No | Yes | No | Pilot mode allows allowlisted read-only toolpacks only |
+| `live` | Reserved future production profile | No | Yes | No | Blocked unless a future override explicitly enables it |
+
+## Safety Boundaries
+
+- Default execution remains safe and dry-run by default.
+- `pilot` allows controlled live reads only.
+- Live side effects are not production-enabled.
+- Unknown toolpacks stay blocked outside the narrow dev workflow.
+- Tool governance and evidence remain required across all active profiles.
+
+## CLI
+
+Use these commands to inspect the active profile:
+
+```bash
+taskframe profile show
+taskframe profile list
+taskframe profile check
+```
+
+JSON output is available for all three commands.
+
+## Operator Guidance
+
+- Use `demo` for portfolio demos and default local runs.
+- Use `pilot` only when the toolpack and credential boundary have been deliberately allowlisted.
+- Treat `live` as reserved until a later spec explicitly enables it.
+
+## Pilot Readiness Gate
+
+The `pilot` profile is validated by the pilot readiness gate:
+
+```bash
+taskframe pilot-readiness
+taskframe pilot-readiness --write-pack
+```
+
+The gate checks:
+- Profile safety (no live side effects in default or pilot profile)
+- Live-read control (explicit enable, no unknown toolpacks)
+- Side-effect blocking evidence
+- Tool governance, store integrity, monitoring, and recovery
+
+See [pilot_readiness.md](pilot_readiness.md) for full documentation of the pilot readiness gate.
+
+## Live side-effect execution contract (Spec 132)
+
+Spec 132 adds a formal contract for live side-effect execution. The `live` profile remains the only profile that could ever allow live side effects, and only when every check in the preflight gate passes.
+
+Key points:
+
+- Live side effects are disabled by default (`enabled: false` in the policy)
+- The `live` profile still blocks live side effects unless `allow_live_side_effects: true` is explicitly set in the profile data
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles are unconditionally blocked
+- `pilot` mode remains live-read only — it does not allow live writes
+
+See [live_side_effect_execution_contract.md](live_side_effect_execution_contract.md) for the full contract.
+
+## Spec 133 — Gmail send profile restrictions
+
+`gmail/send` is the first live side-effect tool. Its profile restrictions follow the same rules as Spec 132:
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles are unconditionally blocked from live Gmail sends.
+- `live` profile may allow sending only when manifest explicitly opts in and all preflight checks pass.
+- Gmail sending is disabled by default (`enabled: false` in config).
+
+See [live_gmail_send.md](live_gmail_send.md) for the Gmail send tool documentation.
+
+## Spec 134 — Google Sheets write profile restrictions
+
+`sheet/write_rows` is the second live side-effect tool. Its profile restrictions follow the same rules as Spec 132:
+
+- `demo`, `dev`, `test`, `release`, and `pilot` profiles are unconditionally blocked from live Sheets writes.
+- `live` profile may allow writes only when manifest explicitly opts in and all preflight checks pass.
+- Sheets writing is disabled by default (`enabled: false` in config).
+- No demo or pilot profile may enable live Sheets writing by default.
+- `pilot` mode remains live-read only — it does not allow live writes to Sheets.
+
+See [live_google_sheets_write.md](live_google_sheets_write.md) for the Sheets write tool documentation.
+
+
+### docs/runtime_store.md
+
+# Runtime Store
+
+The runtime store is the durable file-based record of TaskFrame execution, evidence, and operational metadata. It is designed to be inspectable and recoverable without adding a database yet.
+
+## Layout
+
+The canonical runtime store layout is:
+
+```text
+runtime_data/
+  taskframes/
+  reports/
+  approval_packs/
+  evidence/
+  tool_health/
+  indexes/
+  backups/
+  cleanup/
+  migrations/
+```
+
+The store also continues to carry legacy run folders under `runtime_data/runs/` while the migration path is still in progress.
+
+## Artifact Types
+
+- `taskframes/` holds TaskFrame JSON records.
+- `reports/` holds run reports and related summaries.
+- `approval_packs/` holds approval pack records.
+- `evidence/` holds evidence bundles and evidence pack records.
+- `tool_health/` holds the latest tool health snapshots.
+- `indexes/` holds rebuildable indexes.
+- `backups/` holds exported zip backups and backup manifests.
+- `cleanup/` holds cleanup and retention-plan reports.
+- `migrations/` holds migration markers or audit trails.
+
+Each major artifact type should carry a stable path, a schema or version field where practical, created/updated timestamps, and a source frame or run reference.
+
+## Validation
+
+Use:
+
+```bash
+taskframe runtime-store check
+taskframe runtime-store index
+```
+
+Validation checks for:
+
+- required folders
+- loadable TaskFrame JSON
+- valid manifest references
+- valid TaskFrame state
+- approval packs that reference real TaskFrames
+- evidence bundles whose referenced files exist
+- reports that point at real runs
+- rebuildable indexes
+- corrupted JSON files
+
+Validation reports corrupted paths and orphaned artifacts instead of crashing the full scan.
+
+## Backup And Restore
+
+Back up the runtime store with:
+
+```bash
+taskframe runtime-store backup
+```
+
+The backup is written under `runtime_data/backups/taskframe_backup_<timestamp>.zip` and includes the backup manifest, TaskFrames, reports, approval packs, evidence, indexes, tool health snapshots, and related runtime metadata.
+
+Restore validation is safe by default:
+
+```bash
+taskframe runtime-store restore --backup <path> --target <path> --validate-only
+```
+
+Restore validation:
+
+- rejects path traversal
+- rejects malformed archives
+- validates the restored runtime store
+- writes a restore report into the target folder
+
+It never overwrites active `runtime_data`.
+
+## Retention
+
+Retention is dry-run only in this spec:
+
+```bash
+taskframe runtime-store retention-plan
+taskframe runtime-store cleanup --dry-run
+```
+
+Default retention policy:
+
+```json
+{
+  "keep_completed_days": 30,
+  "keep_failed_days": 90,
+  "keep_pending_days": 365,
+  "keep_approval_packs_days": 365,
+  "keep_evidence_packs_days": 365,
+  "delete_only_derived_artifacts": true,
+  "protect_live_data": true,
+  "protect_pending_actions": true
+}
+```
+
+Only derived artifacts are candidates for cleanup. Pending actions and live data records are protected so audit evidence is not removed accidentally.
+
+## Demo Versus Pilot Records
+
+Demo artifacts are safe, deterministic evidence for portfolio and development work. Pilot operational records may include controlled live reads and more sensitive evidence, but still do not allow live writes, sends, deletes, or other side effects in this spec.
+
+That separation is deliberate:
+
+- demo data is for portfolio and smoke workflows
+- pilot data is for controlled live-read verification
+- live side effects remain disabled
+
+## Safe To Delete
+
+Usually safe to delete:
+
+- derived reports that can be regenerated
+- rebuildable indexes
+- temporary cleanup metadata
+- stale backup archives after review
+
+Do not delete without review:
+
+- pending actions
+- live-related evidence
+- approval packs still awaiting execution or confirmation
+- anything referenced by an evidence bundle
+
+If a file cannot be loaded, it should be reported as a validation issue rather than deleted automatically.
+
+## Monitoring Integration
+
+The runtime store feeds the operational monitoring index and dashboard. Monitoring reuses the runtime-store validation summary, so corrupted artifacts, orphaned records, and rebuildability issues are visible without changing task execution.
+
+Operational monitoring is read-only. It does not add automatic retry, recovery, or destructive cleanup.
+
+## Recovery Integration
+
+Recovery assessments and reports are written under `runtime_data/recovery/`.
+
+Those reports record:
+
+- the TaskFrame state
+- the failed or current step
+- pending actions
+- executed actions
+- retry attempts
+- side-effect risk
+- idempotency keys
+
+Recovery is dry-run by default and does not overwrite active runtime data. It exists to support controlled recovery review, not automatic repair.
+
+## Pilot Readiness Integration
+
+The runtime store is validated as part of the pilot readiness gate. The gate checks:
+
+- Required folder layout is present
+- JSON artifacts are loadable
+- Backup directory is resolvable
+- Backup manifest is present in the store contract
+
+See [pilot_readiness.md](pilot_readiness.md) for the full pilot readiness gate documentation.
 
 
 ### docs/runtime_tool_governance.md
@@ -8023,7 +12091,7 @@ See [docs/live_execution_safety.md](live_execution_safety.md) for the full live-
 
 **PASS**
 
-Generated: 2026-05-19T18:39:28.718331Z
+Generated: 2026-05-22T11:38:03.236757Z
 
 ## Summary
 
@@ -8036,12 +12104,12 @@ Generated: 2026-05-19T18:39:28.718331Z
 | Claim | Status | Evidence |
 |---|---|---|
 | default_demo_no_live_side_effects | PASS | Runtime default_mode='dry_run', live_execution_env_enabled=False. Default demo cannot perform live side effects. |
-| side_effects_stage_pending_actions | PASS | Tool registry has 24 side-effect tool(s), 24 require approval. Side effects must be staged as pending actions. |
+| side_effects_stage_pending_actions | PASS | Tool registry has 25 side-effect tool(s), 25 require approval. Side effects must be staged as pending actions. |
 | approval_required_before_execution | PASS | Pending action state machine: PENDING_APPROVAL → APPROVED → EXECUTING → EXECUTED. Live execution blocked unless action i |
 | dry_run_execution_auditable | PASS | Golden demo audit exists with verdict='READY'. Dry-run execution is auditable. |
 | live_execution_blocked_by_default | PASS | TASKFRAME_ENABLE_LIVE_EXECUTION not set. default_mode='dry_run'. Live execution is blocked by default. |
-| manifest_policy_blocks_live_execution | PASS | All 60 manifest(s) have live_execution.enabled=false or unset. Manifest policy blocks live execution. |
-| tool_policy_blocks_live_side_effects | PASS | 24 side-effect tool(s) all have live side-effects blocked or require approval. Tool policy enforces the safety boundary. |
+| manifest_policy_blocks_live_execution | PASS | All 61 manifest(s) have live_execution.enabled=false or unset. Manifest policy blocks live execution. |
+| tool_policy_blocks_live_side_effects | PASS | 25 side-effect tool(s) all have live side-effects blocked or require approval. Tool policy enforces the safety boundary. |
 | cli_live_guardrails_enforced | PASS | TASKFRAME_ENABLE_LIVE_EXECUTION not set. CLI has live guardrails (--i-understand-live-side-effects, --confirm): True. |
 | optional_rpa_excluded_from_default_path | PASS | rpa_google_messages: core_or_optional=optional, excluded_from_default_release=True, rpa_live_probe_required=True. Option |
 
@@ -8052,6 +12120,93 @@ and proves that live execution is blocked unless explicit runtime, manifest, too
 approval, guardrail, and confirmation checks pass.
 
 No live side effects were performed.
+
+
+### docs/scheduler_runtime.md
+
+# Scheduler Runtime (Spec 138)
+
+The scheduler subsystem creates standard events from time-based or interval-based schedules and feeds them into the Spec 137 durable event queue.
+
+## Overview
+
+- Schedules are stored as canonical records in `runtime_data/scheduler/schedules_index.json` (filesystem) or in the `schedules` SQLite table.
+- On each tick, the engine finds enabled schedules whose next fire time has passed, generates a standard event, and enqueues it via `enqueue_event`.
+- All ticks are **dry-run by default** — no live side effects.
+
+## Schedule Types
+
+| Type | Description | Required Fields |
+|---|---|---|
+| `daily` | Fires once per day at `time_of_day` | `time_of_day` (HH:MM or HH:MM:SS) |
+| `interval` | Fires every N minutes | `interval_minutes` > 0 |
+| `weekly` | Fires on a specific weekday at `time_of_day` | `time_of_day`, `day_of_week` |
+| `cron` | Reserved for future use | — |
+
+## Misfire Policies
+
+| Policy | Behaviour when behind |
+|---|---|
+| `skip` | Fire only the latest missed window; discard the rest |
+| `enqueue_latest` | Enqueue only the most recent missed window |
+| `enqueue_all` | Enqueue all missed windows, up to `max_catchup_windows` |
+
+## CLI
+
+```bash
+taskframe schedule status           # Show scheduler panel
+taskframe schedule list             # List all schedules
+taskframe schedule list --enabled-only
+taskframe schedule enable <id>
+taskframe schedule disable <id>
+taskframe schedule tick             # Run one tick (always dry-run)
+taskframe schedule load-fixture <path>
+taskframe schedule runs             # List recent run records
+taskframe schedule runs --schedule-id <id>
+```
+
+## Fixture Files
+
+Three sample fixtures are provided under `runtime_data/fixtures/schedules/`:
+
+- `daily_low_stock_check.json` — daily stock check at 06:00 UTC (enabled)
+- `daily_accounting_summary.json` — daily accounting summary at 17:30 UTC (disabled)
+- `delayed_order_detection.json` — 60-minute interval order scan (enabled)
+
+Load a fixture with:
+```bash
+taskframe schedule load-fixture runtime_data/fixtures/schedules/daily_low_stock_check.json
+```
+
+## Persistence
+
+Schedules and run records are stored in:
+
+- **Filesystem**: `runtime_data/scheduler/schedules_index.json` and `runtime_data/scheduler/schedule_runs.jsonl`
+- **SQLite**: `schedules` and `schedule_runs` tables (schema v3)
+
+## Key Modules
+
+| Module | Purpose |
+|---|---|
+| `runtime/scheduler_contract.py` | Constants, record builders, validation |
+| `runtime/scheduler_store.py` | CRUD: create, get, list, enable, disable, delete |
+| `runtime/scheduler_engine.py` | Due calculation, missed windows, tick execution |
+| `src/operator_scheduler_panel.py` | Read-only operator summary |
+
+## Deduplification
+
+Each scheduled event has a deterministic `event_id` of the form `evt_sched_{schedule_id}_{yyyymmddTHHMMSS}`. The durable queue's `build_dedupe_key` uses `source=schedule`, `event_type`, and `payload.scheduled_for` to produce a stable SHA-256 dedupe key — so re-enqueuing the same window is idempotent.
+
+## Integration with Event Source Polling (Spec 139)
+
+To trigger bounded event source polling on a schedule, use the CLI wrapper command in a schedule payload:
+
+```bash
+taskframe event-sources poll-enabled --limit 10
+```
+
+This may be called from a schedule's command target. See [docs/external_event_source_polling.md](external_event_source_polling.md) for the full event source polling guide.
 
 
 ### docs/screenshots/.gitkeep
@@ -8229,6 +12384,46 @@ The report bundle should include:
 This workflow is intentionally dry-run only. It does not post to a live ledger.
 
 
+### docs/testing_strategy.md
+
+# Testing Strategy
+
+TaskFrame uses bounded validation groups for local work. Plain `python -m pytest` is reserved for overnight or explicit full-CI runs.
+
+The CLI mirrors the same boundary:
+
+```powershell
+taskframe validate quick
+taskframe validate local
+```
+
+## Local Commands
+
+```powershell
+python tools/run_bounded_validation.py quick
+python tools/run_bounded_validation.py backend
+python tools/run_bounded_validation.py manifest
+python tools/run_bounded_validation.py toolpack
+python tools/run_bounded_validation.py runtime
+python tools/run_bounded_validation.py reports
+python tools/run_bounded_validation.py local
+```
+
+## CI / Overnight
+
+```powershell
+python tools/run_bounded_validation.py ci
+python tools/run_bounded_validation.py local
+```
+
+## Policy
+
+- Use the bounded runner for local validation.
+- Keep groups separated into subprocesses.
+- Keep per-group timeouts in place.
+- Reserve full-suite pytest for explicit CI or overnight validation only.
+
+
 ### docs/tool_contract_checklist.md
 
 # Tool Contract Checklist
@@ -8341,22 +12536,22 @@ This workflow is intentionally dry-run only. It does not post to a live ledger.
 
 # Tool Inventory Report
 
-Generated: 2026-05-19T18:59:39Z
+Generated: 2026-05-22T16:22:13Z
 
-Report JSON: runtime_data/tool_inventory/tool_inventory.json
-Report Markdown: runtime_data/tool_inventory/tool_inventory.md
+Report JSON: D:/Temp/pytest-of-GeorgeC/pytest-2159/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.json
+Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2159/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.md
 
 ## Summary
 
 | Metric | Count |
 |---|---:|
-| Total tools | 113 |
+| Total tools | 114 |
 | Migrated tool-pack tools | 4 |
-| Legacy fallback tools | 109 |
+| Legacy fallback tools | 110 |
 | External enabled tools | 0 |
 | Total tool packs | 2 |
 | Optional disabled tools | 10 |
-| Side-effect tools | 24 |
+| Side-effect tools | 25 |
 | Live side-effect allowed | 0 |
 
 ## Tools
@@ -8391,6 +12586,7 @@ Report Markdown: runtime_data/tool_inventory/tool_inventory.md
 | gb/cancel | legacy_fallback |  | yes | yes | no | gobook_cancel_result |
 | gb/list | legacy_fallback |  | no | no | no | gobook_booking_list |
 | gb/open_courts | legacy_fallback |  | no | no | no | gobook_open_court_list |
+| gmail/send | legacy_fallback |  | yes | yes | yes | gmail_send_result |
 | inventory/filter_reorder_candidates | legacy_fallback |  | no | no | no | reorder_candidates |
 | inventory/read | legacy_fallback |  | no | no | no | inventory_record |
 | inventory/search_low_stock | legacy_fallback |  | no | no | no | low_stock_result |
@@ -8458,7 +12654,7 @@ Report Markdown: runtime_data/tool_inventory/tool_inventory.md
 | sheet/read | legacy_fallback |  | no | no | no | sheet_rows |
 | sheet/read_range | legacy_fallback |  | no | no | no | sheet_read_range_result |
 | sheet/write | legacy_fallback |  | yes | yes | yes | sheet_write_result |
-| sheet/write_rows | legacy_fallback |  | yes | yes | yes | sheet_write_rows_result |
+| sheet/write_rows | legacy_fallback |  | yes | yes | yes | sheet_write_result |
 | shipment/read | legacy_fallback |  | no | no | no | shipment_read_result |
 | supplier/prepare_message_action | legacy_fallback |  | yes | yes | no | supplier_message_pending_action |
 | supplier/read | legacy_fallback |  | no | no | no | supplier_record |
@@ -8481,8 +12677,8 @@ Report Markdown: runtime_data/tool_inventory/tool_inventory.md
 
 | Tool Pack | Status | Environments | Classification | Tool Count | Last Check | Lifecycle Report |
 |---|---|---|---|---:|---|---|
-| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-19T18:59:39Z | runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
-| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-19T18:59:39Z | runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |
+| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-22T16:22:13Z | D:/Temp/pytest-of-GeorgeC/pytest-2159/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
+| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-22T16:22:13Z | D:/Temp/pytest-of-GeorgeC/pytest-2159/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |
 
 
 ### docs/tool_result_contract.md

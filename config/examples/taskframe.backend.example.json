@@ -19,5 +19,22 @@
         "role": "viewer"
       }
     ]
+  },
+  "backend_hardening": {
+    "enabled": true,
+    "max_body_bytes": 262144,
+    "max_id_length": 120,
+    "default_list_limit": 50,
+    "max_list_limit": 500,
+    "rate_limits": {
+      "health": {"requests": 120, "window_seconds": 60},
+      "runs_read": {"requests": 60, "window_seconds": 60},
+      "events_read": {"requests": 60, "window_seconds": 60},
+      "events_submit": {"requests": 20, "window_seconds": 60},
+      "report_generate": {"requests": 10, "window_seconds": 60},
+      "pending_action_write": {"requests": 20, "window_seconds": 60},
+      "audit_read": {"requests": 30, "window_seconds": 60},
+      "auth_failure": {"requests": 20, "window_seconds": 60}
+    }
   }
 }

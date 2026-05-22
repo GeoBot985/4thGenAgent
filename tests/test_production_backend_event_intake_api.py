@@ -245,4 +245,5 @@ def test_malformed_event_id_is_rejected(tmp_path: Path) -> None:
 
     assert response.status_code == 400
     data = response.json()
-    assert data["detail"]["ok"] is False
+    assert data["ok"] is False
+    assert data["error_code"] == "INVALID_ID"
