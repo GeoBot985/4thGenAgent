@@ -13,12 +13,101 @@ The backend API:
 - Reads from persisted run artifacts via existing runtime functions
 - Approves/rejects pending actions through `runtime.approval` only
 - Generates run reports through `runtime.run_report` only
+- Receives events via POST `/api/events` but routes them using the existing `event_routes.json` registry
+- Accepts only registered event sources and event types; the API never selects a manifest directly
 - Does not execute tools directly
 - Does not read arbitrary files
 - Does not bypass pending-action approval state
-- Preserves dry-run defaults
+- Preserves dry-run defaults (live event execution is rejected)
 
 ## Routes
+
+### POST /api/events
+
+Submits an external event into the TaskFrame runtime (Controlled Event Intake API). 
+
+**Request body:**
+```json
+{
+  "source": "api",
+  "event_type": "customer.message.received",
+  "payload": {},
+  "idempotency_key": "optional-string",
+  "dry_run": true
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "event_id": "string",
+  "source": "api",
+  "event_type": "customer.message.received",
+  "route_id": "string",
+  "manifest_id": "string",
+  "linked_frame_id": "string",
+  "frame_state": "WAITING_FOR_EXECUTE",
+  "summary": {},
+  "pending_action_count": 1,
+  "executed_action_count": 0,
+  "error": ""
+}
+```
+
+### GET /api/events
+
+Returns recent event ledger entries.
+
+**Query parameters:**
+- `limit` (int, default 50)
+- `source` (string, optional)
+- `event_type` (string, optional)
+- `status` (string, optional)
+
+**Response:**
+```json
+{
+  "ok": true,
+  "events": [
+    {
+      "event_id": "string",
+      "source": "string",
+      "event_type": "string",
+      "received_at": "string",
+      "status": "string",
+      "route_id": "string",
+      "manifest_id": "string",
+      "linked_frame_id": "string",
+      "error": ""
+    }
+  ],
+  "count": 0,
+  "error": ""
+}
+```
+
+### GET /api/events/{event_id}
+
+Returns one event plus linked run metadata.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "event": {},
+  "linked_frame": {
+    "frame_id": "string",
+    "manifest_id": "string",
+    "state": "string",
+    "summary": {},
+    "pending_action_count": 0,
+    "executed_action_count": 0,
+    "error_count": 0
+  },
+  "error": ""
+}
+```
 
 ### GET /api/runs
 
@@ -152,11 +241,15 @@ Rejects a pending action. Calls `runtime.approval.reject_action` — no direct m
 |------|-------------|
 | frame_id must match `[A-Za-z0-9_-]{1,128}` | Validated at route entry; 400 if invalid |
 | action_id must match `[A-Za-z0-9_-]{1,128}` | Validated at route entry; 400 if invalid |
+| event_id must match `[A-Za-z0-9_-]{1,128}` | Validated at route entry; 400 if invalid |
 | No path traversal | ID regex blocks `/`, `..`, `\` |
 | No arbitrary file reads | Only approved runtime functions called |
 | No direct tool execution | No tool runner invoked from API |
+| Event Intake payload | Must be JSON object. Event route logic resolves manifest. |
+| Event routing | Strict routing boundary. API cannot bypass and select arbitrary tools or manifests directly. |
+| Registered sources | `source` must be a registered contract entry such as `api` for the controlled intake route |
 | Approval must go through existing approval functions | `runtime.approval.approve_action` / `reject_action` only |
-| Live side effects | Controlled by existing live execution guardrails (unchanged) |
+| Live side effects | Controlled by existing live execution guardrails (unchanged). Event intake `dry_run=false` is rejected. |
 | Dry-run default | Report generation and queue operations default to dry-run |
 
 ## Usage

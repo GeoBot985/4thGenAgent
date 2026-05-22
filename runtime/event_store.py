@@ -175,6 +175,7 @@ def intake_event(
     manifest_dir: str | Path = "manifests",
     routes_path: str = "config/event_routes.json",
     strict_source_contracts: bool = False,
+    strict_manifest_preflight: bool = False,
 ) -> dict[str, Any]:
     timestamp = utc_now()
     event_record = _normalize_event_record(event_data, timestamp)
@@ -187,6 +188,9 @@ def intake_event(
     if not ok:
         event_record["status"] = "INVALID_EVENT"
         event_record["duplicate"] = False
+        event_record["route_id"] = None
+        event_record["manifest_id"] = None
+        event_record["linked_frame_id"] = None
         event_record["ledger_recorded_at"] = utc_now()
         event_record["errors"] = list(errors)
         append_event(event_record, runtime_data_dir)
@@ -196,10 +200,25 @@ def intake_event(
 
     # Source contract validation (non-blocking by default; blocking when strict_source_contracts=True)
     _contract_result = validate_event_against_source_contract(event_record)
-    if not _contract_result.get("ok") and strict_source_contracts:
+    if strict_source_contracts and not bool(_contract_result.get("contract_found", False)):
+        _contract_errors = [f"No source contract registered for source '{event_record.get('source', '')}'."]
+        event_record["status"] = "SOURCE_CONTRACT_MISSING"
+        event_record["duplicate"] = False
+        event_record["route_id"] = None
+        event_record["manifest_id"] = None
+        event_record["linked_frame_id"] = None
+        event_record["ledger_recorded_at"] = utc_now()
+        event_record["errors"] = _contract_errors
+        append_event(event_record, runtime_data_dir)
+        write_queue_record(update_queue_record(_q, status=STATUS_FAILED_EXECUTION, errors=_contract_errors, failure_code="EVENT_VALIDATION_FAILED", failure_reason="Event source contract is missing."), runtime_data_dir)
+        return _result(False, "SOURCE_CONTRACT_MISSING", event_record.get("event_id"), None, None, None, {}, _contract_errors)
+    if strict_source_contracts and bool(_contract_result.get("contract_found", False)) and not _contract_result.get("ok"):
         _contract_errors = _contract_result.get("errors", [])
         event_record["status"] = "SOURCE_CONTRACT_VIOLATION"
         event_record["duplicate"] = False
+        event_record["route_id"] = None
+        event_record["manifest_id"] = None
+        event_record["linked_frame_id"] = None
         event_record["ledger_recorded_at"] = utc_now()
         event_record["errors"] = _contract_errors
         append_event(event_record, runtime_data_dir)
@@ -212,6 +231,8 @@ def intake_event(
         indexed = get_indexed_event(event_id, runtime_data_dir) or {}
         event_record["status"] = "DUPLICATE_EVENT"
         event_record["duplicate"] = True
+        event_record["route_id"] = indexed.get("route_id")
+        event_record["manifest_id"] = indexed.get("manifest_id")
         event_record["linked_frame_id"] = indexed.get("linked_frame_id")
         event_record["ledger_recorded_at"] = utc_now()
         append_event(event_record, runtime_data_dir)
@@ -247,6 +268,9 @@ def intake_event(
     if route is None:
         event_record["status"] = "NO_ROUTE"
         event_record["duplicate"] = False
+        event_record["route_id"] = None
+        event_record["manifest_id"] = None
+        event_record["linked_frame_id"] = None
         event_record["ledger_recorded_at"] = utc_now()
         append_event(event_record, runtime_data_dir)
         upsert_event_index(
@@ -263,12 +287,15 @@ def intake_event(
         return _result(False, "NO_ROUTE", event_record.get("event_id"), None, None, None, {}, [])
 
     write_queue_record(update_queue_record(_q, status=STATUS_ROUTE_RESOLVED, route_id=route.get("route_id"), manifest_id=route.get("manifest_id")), runtime_data_dir)
+    event_record["route_id"] = route.get("route_id")
+    event_record["manifest_id"] = route.get("manifest_id")
 
     mapped_inputs, mapping_errors = map_event_inputs(event_record, route)
     if mapping_errors:
         event_record["status"] = "ROUTE_MAPPING_FAILED"
         event_record["errors"] = list(mapping_errors)
         event_record["duplicate"] = False
+        event_record["linked_frame_id"] = None
         event_record["ledger_recorded_at"] = utc_now()
         append_event(event_record, runtime_data_dir)
         upsert_event_index(
@@ -299,6 +326,7 @@ def intake_event(
         event_record["status"] = "MANIFEST_NOT_FOUND"
         event_record["errors"] = [f"Manifest not found: {manifest_id}"]
         event_record["duplicate"] = False
+        event_record["linked_frame_id"] = None
         event_record["ledger_recorded_at"] = utc_now()
         append_event(event_record, runtime_data_dir)
         upsert_event_index(
@@ -325,6 +353,44 @@ def intake_event(
 
     try:
         manifest = load_manifest_by_id(manifest_id, manifest_dir)
+        if strict_manifest_preflight:
+            from src.manifest_contract_strict import validate_manifest_strict
+
+            manifest_validation = validate_manifest_strict(
+                getattr(manifest, "raw", manifest if isinstance(manifest, dict) else {}),
+                manifest_path=str(getattr(manifest, "manifest_path", "")),
+                active_catalog=True,
+                event_routes={"routes": routes},
+            )
+            if not manifest_validation.get("ok", False):
+                manifest_errors = list(manifest_validation.get("errors", []))
+                event_record["status"] = "MANIFEST_PREFLIGHT_FAILED"
+                event_record["errors"] = manifest_errors
+                event_record["duplicate"] = False
+                event_record["linked_frame_id"] = None
+                event_record["ledger_recorded_at"] = utc_now()
+                append_event(event_record, runtime_data_dir)
+                upsert_event_index(
+                    {
+                        "event_id": event_id,
+                        "status": "MANIFEST_PREFLIGHT_FAILED",
+                        "linked_frame_id": None,
+                        "route_id": route.get("route_id"),
+                        "manifest_id": manifest_id,
+                    },
+                    runtime_data_dir,
+                )
+                write_queue_record(update_queue_record(_q, status=STATUS_FAILED_EXECUTION, errors=manifest_errors, failure_code="MANIFEST_PREFLIGHT_FAILED", failure_reason="Manifest preflight validation failed.", route_id=route.get("route_id"), manifest_id=manifest_id), runtime_data_dir)
+                return _result(
+                    False,
+                    "MANIFEST_PREFLIGHT_FAILED",
+                    event_record.get("event_id"),
+                    route.get("route_id"),
+                    manifest_id,
+                    None,
+                    mapped_inputs,
+                    manifest_errors,
+                )
         orchestrator = Orchestrator(runtime_data_dir=runtime_data_dir, manifest_dir=manifest_dir)
         trigger = {
             "kind": "event",
@@ -382,12 +448,16 @@ def intake_and_run_event(
     runtime_data_dir: str | Path = "runtime_data",
     manifest_dir: str | Path = "manifests",
     routes_path: str = "config/event_routes.json",
+    strict_source_contracts: bool = False,
+    strict_manifest_preflight: bool = False,
 ) -> dict[str, Any]:
     intake_result = intake_event(
         event_data,
         runtime_data_dir=runtime_data_dir,
         manifest_dir=manifest_dir,
         routes_path=routes_path,
+        strict_source_contracts=strict_source_contracts,
+        strict_manifest_preflight=strict_manifest_preflight,
     )
     if intake_result.get("status") != "FRAME_CREATED" or not intake_result.get("frame_id"):
         frame_id = intake_result.get("frame_id")
@@ -462,6 +532,8 @@ def _normalize_event_record(event_data: dict[str, Any], received_at: str) -> dic
     event.setdefault("payload", {})
     event.setdefault("received_at", received_at)
     event.setdefault("status", "RECEIVED")
+    event.setdefault("route_id", None)
+    event.setdefault("manifest_id", None)
     event.setdefault("linked_frame_id", None)
     event.setdefault("duplicate", False)
     event.setdefault("ledger_recorded_at", "")

@@ -57,6 +57,9 @@ def create_app(runtime_data_dir: str = "runtime_data") -> FastAPI:
     # Attach runtime_data_dir to app state so routes can read it
     app.state.runtime_data_dir = runtime_data_dir
 
+    from src.backend.routes.events import router as events_router
+    app.include_router(events_router, prefix="/api/events")
+
     # ── GET /api/runs ─────────────────────────────────────────────────────
 
     @app.get("/api/runs")

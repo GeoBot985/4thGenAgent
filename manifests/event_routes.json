@@ -28,6 +28,20 @@
       "enabled": true
     },
     {
+      "route_id": "api.customer_message_received",
+      "source": "api",
+      "event_type": "customer.message.received",
+      "manifest_id": "customer.message_status_check",
+      "enabled": true,
+      "input_map": {
+        "event_id": "event_id",
+        "customer_id": "payload.customer_id",
+        "message": "payload.message",
+        "channel": "payload.channel",
+        "received_at": "received_at"
+      }
+    },
+    {
       "event_type": "manual.live_gmail_check",
       "manifest_id": "live.gmail_check",
       "enabled": true

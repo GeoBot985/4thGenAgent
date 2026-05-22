@@ -13,6 +13,28 @@
       "metadata": {"builtin": true}
     },
     {
+      "source_type": "external",
+      "display_name": "External API Events",
+      "description": "External events submitted through the controlled backend intake API or fixture ingress.",
+      "delivery_mode": "push",
+      "side_effect_level": "none",
+      "required_payload_fields": [],
+      "optional_payload_fields": ["message", "customer_id", "channel", "received_at"],
+      "allowed_event_types": ["stub", "mock_ping"],
+      "metadata": {"builtin": false, "ingress": "controlled_backend_api"}
+    },
+    {
+      "source_type": "api",
+      "display_name": "Production Backend API",
+      "description": "Controlled backend event intake surface for starting registered TaskFrame workflows.",
+      "delivery_mode": "push",
+      "side_effect_level": "none",
+      "required_payload_fields": ["customer_id", "message", "channel"],
+      "optional_payload_fields": ["received_at"],
+      "allowed_event_types": ["customer.message.received"],
+      "metadata": {"builtin": false, "ingress": "production_backend"}
+    },
+    {
       "source_type": "schedule",
       "display_name": "Scheduled Trigger",
       "description": "Events emitted by the internal scheduler on a cron or interval basis.",
