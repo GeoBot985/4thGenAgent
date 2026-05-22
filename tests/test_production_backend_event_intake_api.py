@@ -5,11 +5,12 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from src.production_backend import create_app
+from tests.backend_auth_support import auth_headers
 
 
 def _client(runtime_dir: Path) -> TestClient:
     app = create_app(runtime_data_dir=str(runtime_dir))
-    return TestClient(app)
+    return TestClient(app, headers=auth_headers("admin"))
 
 
 def _valid_event() -> dict[str, object]:
@@ -245,4 +246,3 @@ def test_malformed_event_id_is_rejected(tmp_path: Path) -> None:
     assert response.status_code == 400
     data = response.json()
     assert data["detail"]["ok"] is False
-

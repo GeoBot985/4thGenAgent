@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.production_backend import create_app
+from tests.backend_auth_support import auth_headers
 
 
 # ---------------------------------------------------------------------------
@@ -53,7 +54,7 @@ def frame_with_pending(runtime_root):
 def client_with_pending(frame_with_pending):
     frame, action_id, runtime_root = frame_with_pending
     app = create_app(runtime_data_dir=str(runtime_root))
-    return TestClient(app), frame, action_id, runtime_root
+    return TestClient(app, headers=auth_headers("admin")), frame, action_id, runtime_root
 
 
 # ---------------------------------------------------------------------------
@@ -248,7 +249,7 @@ class TestMultiplePendingActions:
         append_ledger_record(frame, runtime_data_dir=runtime_root)
 
         app = create_app(runtime_data_dir=str(runtime_root))
-        c = TestClient(app)
+        c = TestClient(app, headers=auth_headers("admin"))
         resp = c.post(f"/api/runs/{frame.frame_id}/pending-actions/action-A/approve")
         assert resp.status_code == 200
 

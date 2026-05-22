@@ -252,6 +252,32 @@ Rejects a pending action. Calls `runtime.approval.reject_action` — no direct m
 | Live side effects | Controlled by existing live execution guardrails (unchanged). Event intake `dry_run=false` is rejected. |
 | Dry-run default | Report generation and queue operations default to dry-run |
 
+## Authentication and roles
+
+Production backend routes are protected by static bearer tokens.
+
+Set up local auth with environment variables:
+
+```powershell
+$env:TASKFRAME_BACKEND_AUTH_ENABLED="true"
+$env:TASKFRAME_BACKEND_ALLOW_DEV_BYPASS="false"
+$env:TASKFRAME_BACKEND_ADMIN_TOKEN="<secret>"
+$env:TASKFRAME_BACKEND_OPERATOR_TOKEN="<secret>"
+$env:TASKFRAME_BACKEND_VIEWER_TOKEN="<secret>"
+```
+
+You can also point the backend at a JSON config file with `TASKFRAME_BACKEND_AUTH_CONFIG_PATH` or pass `backend_auth_config_path` to `create_app()`. The example config lives at `config/examples/taskframe.backend.example.json`.
+
+Role access:
+
+- `viewer`: read-only inspection routes
+- `operator`: inspection plus event intake and approval/rejection
+- `admin`: all backend routes, still subject to runtime live-execution guardrails
+
+The dev bypass is only for local development. It is only active when auth is explicitly disabled and `TASKFRAME_BACKEND_ALLOW_DEV_BYPASS=true`. Do not use it outside local dev.
+
+Backend auth does not replace the runtime live-execution safety model.
+
 ## Usage
 
 ```python
@@ -267,13 +293,18 @@ Or in tests:
 from fastapi.testclient import TestClient
 from src.production_backend import create_app
 
-client = TestClient(create_app(runtime_data_dir=str(tmp_path)))
+client = TestClient(
+    create_app(runtime_data_dir=str(tmp_path)),
+    headers={"Authorization": "Bearer <viewer-token>"},
+)
 response = client.get("/api/runs")
 ```
 
+If you are using the dev bypass locally, keep it explicit in your config and do not rely on unauthenticated calls in production-shaped tests.
+
 ## Known Limitations
 
-- No authentication or authorization layer (v1 is local-only)
+- No user-management UI or OAuth flow
 - No pagination cursor (limit parameter only)
 - Evidence bundle may be large for long-running frames
 - Approval/rejection does not trigger automatic task continuation

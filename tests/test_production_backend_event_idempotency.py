@@ -5,11 +5,12 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from src.production_backend import create_app
+from tests.backend_auth_support import auth_headers
 
 
 def _client(runtime_dir: Path) -> TestClient:
     app = create_app(runtime_data_dir=str(runtime_dir))
-    return TestClient(app)
+    return TestClient(app, headers=auth_headers("admin"))
 
 
 def test_event_idempotency_same_key_returns_existing_result(tmp_path: Path) -> None:
@@ -50,4 +51,3 @@ def test_event_idempotency_same_key_returns_existing_result(tmp_path: Path) -> N
     assert rows[0]["event_id"] == data2["event_id"]
     assert rows[0]["status"] == "DUPLICATE_EVENT"
     assert rows[1]["event_id"] == data1["event_id"]
-

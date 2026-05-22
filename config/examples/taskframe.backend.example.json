@@ -1,0 +1,23 @@
+{
+  "backend_auth": {
+    "enabled": true,
+    "allow_dev_bypass": false,
+    "tokens": [
+      {
+        "name": "local-admin",
+        "token_env": "TASKFRAME_BACKEND_ADMIN_TOKEN",
+        "role": "admin"
+      },
+      {
+        "name": "operator",
+        "token_env": "TASKFRAME_BACKEND_OPERATOR_TOKEN",
+        "role": "operator"
+      },
+      {
+        "name": "viewer",
+        "token_env": "TASKFRAME_BACKEND_VIEWER_TOKEN",
+        "role": "viewer"
+      }
+    ]
+  }
+}

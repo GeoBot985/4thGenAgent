@@ -4,8 +4,10 @@ import hashlib
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from src.backend.audit import write_route_audit
+from src.backend.auth import require_backend_role
 from src.backend.schemas import EventIntakeRequest
 
 router = APIRouter()
@@ -72,7 +74,7 @@ def _load_linked_frame(linked_frame_id: str, runtime_data_dir: str) -> dict[str,
     }
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_backend_role("operator"))])
 async def create_event(body: EventIntakeRequest, request: Request) -> dict[str, Any]:
     """Intake an event into the TaskFrame runtime."""
     source = body.source.strip()
@@ -99,6 +101,7 @@ async def create_event(body: EventIntakeRequest, request: Request) -> dict[str, 
         event_data["metadata"]["idempotency_key"] = body.idempotency_key
 
     rd = request.app.state.runtime_data_dir
+    _target = {"frame_id": "", "event_id": event_id, "action_id": "", "manifest_id": ""}
 
     try:
         from runtime.event_store import intake_and_run_event
@@ -113,8 +116,15 @@ async def create_event(body: EventIntakeRequest, request: Request) -> dict[str, 
         status = result.get("status")
         is_duplicate = status == "DUPLICATE_EVENT"
         frame_id = result.get("frame_id")
+        _target["frame_id"] = str(frame_id or "")
+        _target["manifest_id"] = str(result.get("manifest_id") or "")
 
         if is_duplicate:
+            write_route_audit(
+                request, "events.submit", "duplicate", 200,
+                target=_target,
+                summary="Duplicate event submission — idempotency key matched existing event.",
+            )
             return {
                 "ok": True,
                 "duplicate": True,
@@ -126,6 +136,12 @@ async def create_event(body: EventIntakeRequest, request: Request) -> dict[str, 
         if not result.get("ok"):
             errors = result.get("errors") or []
             error_msg = errors[0] if errors else "Event intake failed."
+            write_route_audit(
+                request, "events.submit", "failure", 200,
+                target=_target,
+                summary="Event submission failed.",
+                error=error_msg,
+            )
             return {
                 "ok": False,
                 "event_id": result.get("event_id"),
@@ -147,6 +163,11 @@ async def create_event(body: EventIntakeRequest, request: Request) -> dict[str, 
             pending_count = int(linked_frame.get("pending_action_count", 0) or 0)
             executed_count = int(linked_frame.get("executed_action_count", 0) or 0)
 
+        write_route_audit(
+            request, "events.submit", "success", 200,
+            target=_target,
+            summary=f"Event submitted: {source}.{event_type}",
+        )
         return {
             "ok": True,
             "event_id": result.get("event_id"),
@@ -162,13 +183,18 @@ async def create_event(body: EventIntakeRequest, request: Request) -> dict[str, 
             "error": "",
         }
     except Exception as exc:
+        write_route_audit(
+            request, "events.submit", "error", 500,
+            target=_target,
+            error=str(exc),
+        )
         raise HTTPException(
             status_code=500,
             detail={"ok": False, "error": str(exc)},
         )
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_backend_role("viewer"))])
 async def list_events(
     request: Request,
     limit: int = 50,
@@ -212,12 +238,17 @@ async def list_events(
                 }
             )
 
+        write_route_audit(
+            request, "events.list", "success", 200,
+            summary=f"Listed {len(out_events)} events.",
+        )
         return {"ok": True, "events": out_events, "count": len(out_events), "error": ""}
     except Exception as exc:
+        write_route_audit(request, "events.list", "error", 500, error=str(exc))
         return {"ok": False, "events": [], "count": 0, "error": str(exc)}
 
 
-@router.get("/{event_id}")
+@router.get("/{event_id}", dependencies=[Depends(require_backend_role("viewer"))])
 async def get_event(event_id: str, request: Request) -> dict[str, Any]:
     """Get a single event and its linked frame metadata."""
     from src.production_backend import _validate_id
@@ -225,15 +256,28 @@ async def get_event(event_id: str, request: Request) -> dict[str, Any]:
     _validate_id(event_id, "event_id")
 
     rd = request.app.state.runtime_data_dir
+    _target = {"frame_id": "", "event_id": event_id, "action_id": "", "manifest_id": ""}
     try:
         from runtime.event_store import get_event as _get_event
 
         event = _enrich_event_record(_get_event(event_id, runtime_data_dir=rd) or {}, rd)
         if not event:
+            write_route_audit(
+                request, "events.read", "failure", 404,
+                target=_target,
+                error=f"Event not found: {event_id}",
+            )
             return {"ok": False, "error": f"Event not found: {event_id}"}
 
+        _target["frame_id"] = str(event.get("linked_frame_id") or "")
+        _target["manifest_id"] = str(event.get("manifest_id") or "")
         linked_frame = _load_linked_frame(str(event.get("linked_frame_id") or ""), rd)
 
+        write_route_audit(
+            request, "events.read", "success", 200,
+            target=_target,
+            summary=f"Read event {event_id}.",
+        )
         return {
             "ok": True,
             "event": event,
@@ -241,4 +285,5 @@ async def get_event(event_id: str, request: Request) -> dict[str, Any]:
             "error": "",
         }
     except Exception as exc:
+        write_route_audit(request, "events.read", "error", 500, target=_target, error=str(exc))
         return {"ok": False, "error": str(exc)}

@@ -112,6 +112,8 @@ The default demo uses a safe default configuration and does not require secrets.
 
 Live integrations should use user-local config under `~/.taskframe/` or a directory specified by `TASKFRAME_CONFIG_DIR`.
 
+The production backend uses static bearer tokens for read and operator access. See [docs/production_backend.md](docs/production_backend.md) and [docs/configuration.md](docs/configuration.md) for the auth boundary, token environment variables, role matrix, and dev-bypass warning.
+
 Do not commit credentials, tokens, browser profiles, or local config files.
 
 See [docs/configuration.md](docs/configuration.md).
@@ -325,7 +327,12 @@ Use the bounded runner for staged local validation:
 python tools/run_bounded_validation.py local
 ```
 
-Plain `python -m pytest` is reserved for overnight or explicit full-CI runs.
+Plain `python -m pytest` is reserved for overnight or explicit full-CI runs. Use the bounded runner instead:
+
+```bash
+python tools/run_bounded_validation.py quick
+python tools/run_bounded_validation.py local
+```
 
 ```bash
 python scripts/run_golden_demo.py

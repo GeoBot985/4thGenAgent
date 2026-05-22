@@ -111,9 +111,39 @@ Supported variables:
 - `TASKFRAME_OLLAMA_BASE_URL`
 - `TASKFRAME_ACCOUNTING_SHEET_CONFIG`
 - `ENABLE_OPTIONAL_RPA_TOOLS`
+- `TASKFRAME_BACKEND_AUTH_CONFIG_PATH`
+- `TASKFRAME_BACKEND_AUTH_ENABLED`
+- `TASKFRAME_BACKEND_ALLOW_DEV_BYPASS`
+- `TASKFRAME_BACKEND_ADMIN_TOKEN`
+- `TASKFRAME_BACKEND_OPERATOR_TOKEN`
+- `TASKFRAME_BACKEND_VIEWER_TOKEN`
 
 CLI arguments win over environment variables.
 If `taskframe profile show` reports the wrong runtime profile, check `TASKFRAME_PROFILE`, `TASKFRAME_ENV`, and `config/runtime_profile.json`.
+
+## Production backend auth
+
+The production backend uses static bearer tokens loaded from environment variables or a JSON config file. Keep the token values out of source control.
+
+Example:
+
+```powershell
+$env:TASKFRAME_BACKEND_AUTH_ENABLED="true"
+$env:TASKFRAME_BACKEND_ALLOW_DEV_BYPASS="false"
+$env:TASKFRAME_BACKEND_ADMIN_TOKEN="..."
+$env:TASKFRAME_BACKEND_OPERATOR_TOKEN="..."
+$env:TASKFRAME_BACKEND_VIEWER_TOKEN="..."
+```
+
+You can also point the app at a config file with `TASKFRAME_BACKEND_AUTH_CONFIG_PATH` or pass `backend_auth_config_path` to `create_app()`. The example config is `config/examples/taskframe.backend.example.json`.
+
+Roles:
+
+- `viewer` for read-only inspection
+- `operator` for event intake and pending-action approval/rejection
+- `admin` for all backend routes, still subject to runtime live-execution guardrails
+
+Dev bypass is unsafe outside local development. It should only be used when auth is explicitly disabled and bypass is explicitly enabled.
 
 ## Google integration config
 

@@ -101,7 +101,7 @@ taskframe validate local
 taskframe validate ci
 ```
 
-Use `taskframe validate local` for routine developer validation. Full pytest remains reserved for overnight or explicit full-CI runs.
+Use `taskframe validate local` for routine developer validation. Plain `python -m pytest` is reserved for overnight or explicit full-CI runs; use the bounded runner instead.
 
 ### `taskframe verify`
 
@@ -122,7 +122,6 @@ python tools/run_bounded_validation.py local
 
 # Full CI / overnight validation
 python tools/run_bounded_validation.py ci
-python -m pytest
 ```
 
 Exit codes:

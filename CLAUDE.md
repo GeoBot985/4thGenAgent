@@ -17,6 +17,8 @@ python tools/run_bounded_validation.py local
 
 Full pytest is reserved for overnight/full CI only.
 
+For backend work, remember that the production API now has an auth boundary. Use bearer tokens or the explicit dev bypass only in local development, and do not treat backend auth as a replacement for runtime live-execution guardrails.
+
 ## Developer quick tests
 
 Use this during normal development:

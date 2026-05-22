@@ -25,7 +25,7 @@ python tools/run_bounded_validation.py local
 
 ```powershell
 python tools/run_bounded_validation.py ci
-python -m pytest
+python tools/run_bounded_validation.py local
 ```
 
 ## Policy

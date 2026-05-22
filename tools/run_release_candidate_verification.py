@@ -52,6 +52,33 @@ def _display_path(path: Path) -> str:
         return str(path)
 
 
+def _bounded_validation_command_for_pytest(command: list[str]) -> list[str] | None:
+    if len(command) < 3:
+        return None
+    if command[0] != "python" or command[1] != "-m" or command[2] != "pytest":
+        return None
+
+    test_args = [part for part in command[3:] if not str(part).startswith("-")]
+    joined = " ".join(test_args).lower()
+
+    if any(token in joined for token in ("test_test_resource_containment.py", "test_dev_test_helper.py")):
+        mode = "quick"
+    elif any(token in joined for token in ("production_backend", "backend")):
+        mode = "backend"
+    elif any(token in joined for token in ("manifest", "event_router", "event_to_manifest_routing", "external_event_intake", "event_idempotency", "generated_manifest_smoke_runner", "event_source")):
+        mode = "manifest"
+    elif any(token in joined for token in ("toolpack", "tool_inventory", "tool_registry_compat", "tool_result_contract", "tool_health", "tool_capabilities", "google_workspace")):
+        mode = "toolpack"
+    elif any(token in joined for token in ("runtime", "taskframe", "orchestrator", "retry", "run_ledger", "live_execution_safety", "event_queue", "scheduler", "conditions", "completion_gate")):
+        mode = "runtime"
+    elif any(token in joined for token in ("report", "evidence", "portfolio", "pilot", "readiness", "safety_verification", "customer", "procurement", "accounting", "demo", "scenario", "clean_clone_rc_verification")):
+        mode = "reports"
+    else:
+        mode = "ci"
+
+    return [sys.executable, str(ROOT / "tools" / "run_bounded_validation.py"), mode]
+
+
 def _verification_output_paths(mode: str) -> tuple[Path, Path]:
     if mode == "release":
         return OUTPUT_JSON, OUTPUT_MD
@@ -81,6 +108,9 @@ def _stream_to_log(stream, log_path: Path, tail_limit: int) -> str:
 
 
 def run_command(name: str, command: list[str], timeout_seconds: int = 300) -> dict[str, Any]:
+    bounded_command = _bounded_validation_command_for_pytest(command)
+    if bounded_command is not None:
+        command = bounded_command
     started = time.time()
     log_dir = _verification_log_dir()
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")

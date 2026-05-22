@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.production_backend import create_app
+from tests.backend_auth_support import auth_headers
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +59,7 @@ def seeded_runtime(runtime_root):
 def client(seeded_runtime):
     _, runtime_root = seeded_runtime
     app = create_app(runtime_data_dir=str(runtime_root))
-    return TestClient(app), seeded_runtime
+    return TestClient(app, headers=auth_headers("admin")), seeded_runtime
 
 
 # ---------------------------------------------------------------------------
@@ -100,14 +101,14 @@ class TestListRuns:
     def test_limit_parameter(self, seeded_runtime):
         _, runtime_root = seeded_runtime
         app = create_app(runtime_data_dir=str(runtime_root))
-        c = TestClient(app)
+        c = TestClient(app, headers=auth_headers("admin"))
         resp = c.get("/api/runs?limit=1")
         data = resp.json()
         assert data["count"] == 1
 
     def test_empty_runtime_returns_empty_list(self, runtime_root):
         app = create_app(runtime_data_dir=str(runtime_root))
-        c = TestClient(app)
+        c = TestClient(app, headers=auth_headers("admin"))
         resp = c.get("/api/runs")
         data = resp.json()
         assert data["ok"] is True
