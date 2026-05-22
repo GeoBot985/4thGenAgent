@@ -1,0 +1,26 @@
+[
+  {
+    "message_id": "msg-fixture-001",
+    "customer_id": "CUST-1001",
+    "from": "alex@example.com",
+    "subject": "Where is my order?",
+    "body": "Hi, where is order ORD-10042?",
+    "received_at": "2026-05-21T08:00:00+02:00"
+  },
+  {
+    "message_id": "msg-fixture-002",
+    "customer_id": "CUST-1002",
+    "from": "sam@example.com",
+    "subject": "Refund request for ORD-10039",
+    "body": "I would like a refund for order ORD-10039.",
+    "received_at": "2026-05-21T09:15:00+02:00"
+  },
+  {
+    "message_id": "msg-fixture-003",
+    "customer_id": "CUST-1003",
+    "from": "jamie@example.com",
+    "subject": "Wrong item received",
+    "body": "I received the wrong item in my order ORD-10051.",
+    "received_at": "2026-05-21T10:30:00+02:00"
+  }
+]

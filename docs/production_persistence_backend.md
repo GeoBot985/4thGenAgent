@@ -38,7 +38,7 @@ python -m src.taskframe_cli persistence verify
 
 ## Schema Summary
 
-SQLite stores JSON payloads plus indexed fields in these tables: `taskframes`, `events`, `event_queue`, `durable_event_queue`, `run_ledger`, `audit_events`, `pending_actions`, `executed_actions`, `tool_calls`, `llm_calls`, and `validations`.
+SQLite stores JSON payloads plus indexed fields in these tables: `taskframes`, `events`, `event_queue`, `durable_event_queue`, `run_ledger`, `audit_events`, `pending_actions`, `executed_actions`, `tool_calls`, `llm_calls`, `validations`, `event_sources`, `event_source_state`, and `event_source_history`. The `event_sources` tables (Spec 139) store event source configs, per-source polling state, and polling history.
 
 Schema version 2 adds the `durable_event_queue` table (Spec 137) with columns `queue_id`, `event_id`, `source`, `event_type`, `status`, `priority`, `attempt_count`, `max_attempts`, `available_at`, `claimed_at`, `claimed_by`, `completed_at`, `linked_frame_id`, `dedupe_key`, `last_error`, `failure_category`, `created_at`, `updated_at`, and `payload_json`. Indexes cover status + priority ordering, dedupe lookups, and event_id joins.
 

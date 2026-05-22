@@ -1,0 +1,193 @@
+# Production Backend Run Operations API
+
+**Spec 141 — Production Backend Run Operations API v1**
+
+## Purpose
+
+The production backend exposes a controlled FastAPI HTTP API for inspecting TaskFrame runs and triggering supported run operations. It wraps existing runtime functions — it does not add new business logic.
+
+## API Boundary
+
+The backend API:
+
+- Reads from persisted run artifacts via existing runtime functions
+- Approves/rejects pending actions through `runtime.approval` only
+- Generates run reports through `runtime.run_report` only
+- Does not execute tools directly
+- Does not read arbitrary files
+- Does not bypass pending-action approval state
+- Preserves dry-run defaults
+
+## Routes
+
+### GET /api/runs
+
+Returns recent run ledger records (most recent first).
+
+**Query parameters:**
+- `limit` (int, default 50) — max records to return
+
+**Response:**
+```json
+{
+  "ok": true,
+  "runs": [
+    {
+      "frame_id": "string",
+      "manifest_id": "string",
+      "state": "string",
+      "created_at": "string",
+      "updated_at": "string",
+      "pending_action_count": 0,
+      "executed_action_count": 0,
+      "error_count": 0,
+      "artifact_dir": "string"
+    }
+  ],
+  "count": 0,
+  "error": ""
+}
+```
+
+### GET /api/runs/{frame_id}
+
+Returns the normalized TaskFrame summary and core metadata for one run.
+
+Large raw outputs are not returned by default. The `outputs_preview` field contains up to 10 output keys.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "manifest_id": "string",
+  "state": "string",
+  "summary": {},
+  "outputs_preview": {},
+  "pending_actions": [],
+  "errors": [],
+  "validations": [],
+  "artifact_paths": {"artifact_dir": "string"},
+  "error": ""
+}
+```
+
+### GET /api/runs/{frame_id}/evidence
+
+Returns the full evidence bundle generated from persisted run artifacts. Evidence is built from `runtime/evidence_bundle.py` — not from live UI state.
+
+### GET /api/runs/{frame_id}/approval-pack
+
+Returns the approval pack view for the run.
+
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "approval_pack": {},
+  "pending_action_count": 0,
+  "error": ""
+}
+```
+
+### GET /api/runs/{frame_id}/failure-summary
+
+Returns the failure summary for the run (works for both failed and completed frames).
+
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "failure_summary": {},
+  "error": ""
+}
+```
+
+### POST /api/runs/{frame_id}/report
+
+Generates or rebuilds the operator run report.
+
+**Request body:**
+```json
+{"rebuild": false}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "markdown_path": "string",
+  "html_path": "string",
+  "evidence_bundle_path": "string",
+  "error": ""
+}
+```
+
+### POST /api/runs/{frame_id}/pending-actions/{action_id}/approve
+
+Approves a pending action. Calls `runtime.approval.approve_action` — no direct mutation.
+
+### POST /api/runs/{frame_id}/pending-actions/{action_id}/reject
+
+Rejects a pending action. Calls `runtime.approval.reject_action` — no direct mutation.
+
+**Approval/rejection response:**
+```json
+{
+  "ok": true,
+  "frame_id": "string",
+  "action_id": "string",
+  "operation": "approve|reject",
+  "state": "string",
+  "pending_actions": [],
+  "executed_actions": [],
+  "error": ""
+}
+```
+
+## Safety Rules
+
+| Rule | Enforcement |
+|------|-------------|
+| frame_id must match `[A-Za-z0-9_-]{1,128}` | Validated at route entry; 400 if invalid |
+| action_id must match `[A-Za-z0-9_-]{1,128}` | Validated at route entry; 400 if invalid |
+| No path traversal | ID regex blocks `/`, `..`, `\` |
+| No arbitrary file reads | Only approved runtime functions called |
+| No direct tool execution | No tool runner invoked from API |
+| Approval must go through existing approval functions | `runtime.approval.approve_action` / `reject_action` only |
+| Live side effects | Controlled by existing live execution guardrails (unchanged) |
+| Dry-run default | Report generation and queue operations default to dry-run |
+
+## Usage
+
+```python
+from src.production_backend import create_app
+
+app = create_app(runtime_data_dir="runtime_data")
+# Serve with: uvicorn src.production_backend:app
+```
+
+Or in tests:
+
+```python
+from fastapi.testclient import TestClient
+from src.production_backend import create_app
+
+client = TestClient(create_app(runtime_data_dir=str(tmp_path)))
+response = client.get("/api/runs")
+```
+
+## Known Limitations
+
+- No authentication or authorization layer (v1 is local-only)
+- No pagination cursor (limit parameter only)
+- Evidence bundle may be large for long-running frames
+- Approval/rejection does not trigger automatic task continuation
+- Report generation is synchronous; large frames may be slow
+
+## Related
+
+- [production_persistence_backend.md](production_persistence_backend.md)
+- [durable_event_queue.md](durable_event_queue.md)
+- [local_worker_supervisor.md](local_worker_supervisor.md)

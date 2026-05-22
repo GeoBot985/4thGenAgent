@@ -385,6 +385,7 @@
 
 - Verification JSON: `runtime_data\audit\release_candidate_verification.json`
 - Verification Report: `docs\release_candidate_verification.md`
+- External Event Source Polling: `docs\external_event_source_polling.md`
 - Evidence Index: `docs\release_candidate_evidence_index.md`
 - Current Release Status: `docs\current_release_status.md`
 - Release Evidence Pack: `docs\release_evidence_pack.md`

@@ -71,3 +71,13 @@ Schedules and run records are stored in:
 ## Deduplification
 
 Each scheduled event has a deterministic `event_id` of the form `evt_sched_{schedule_id}_{yyyymmddTHHMMSS}`. The durable queue's `build_dedupe_key` uses `source=schedule`, `event_type`, and `payload.scheduled_for` to produce a stable SHA-256 dedupe key — so re-enqueuing the same window is idempotent.
+
+## Integration with Event Source Polling (Spec 139)
+
+To trigger bounded event source polling on a schedule, use the CLI wrapper command in a schedule payload:
+
+```bash
+taskframe event-sources poll-enabled --limit 10
+```
+
+This may be called from a schedule's command target. See [docs/external_event_source_polling.md](external_event_source_polling.md) for the full event source polling guide.

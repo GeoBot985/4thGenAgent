@@ -849,3 +849,22 @@ taskframe queue recover-stale --stale-timeout-minutes 30
 - `taskframe tools lifecycle tool_packs/demo_echo/toolpack.json --env dev`
 
 The tool pack is optional and read-only. Default demo paths do not require Google credentials.
+
+---
+
+## Event Source Polling (Spec 139)
+
+```bash
+taskframe event-sources status
+taskframe event-sources list-sources
+taskframe event-sources show-source <source_id>
+taskframe event-sources health-check <source_id>
+taskframe event-sources create-fixture <source_id>
+taskframe event-sources poll <source_id>
+taskframe event-sources poll-enabled --limit 10
+taskframe event-sources enable <source_id>
+taskframe event-sources disable <source_id>
+taskframe event-sources history --limit 20
+```
+
+See [docs/external_event_source_polling.md](external_event_source_polling.md) for the full guide.

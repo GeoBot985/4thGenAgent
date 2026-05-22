@@ -251,6 +251,79 @@ class FilesystemPersistenceBackend:
     def list_run_ledger_records(self, limit: int = 100) -> list[dict[str, Any]]:
         return _read_jsonl(self.runtime_data_dir / "runs" / "index.jsonl", limit)
 
+    # -----------------------------------------------------------------------
+    # Spec 139 — Event source persistence
+    # -----------------------------------------------------------------------
+
+    def save_event_source(self, record: dict[str, Any]) -> None:
+        src_dir = self.runtime_data_dir / "event_sources"
+        src_dir.mkdir(parents=True, exist_ok=True)
+        index_path = src_dir / "sources.json"
+        index = _read_json_index(index_path)
+        source_id = str(record.get("source_id") or "")
+        if source_id:
+            index[source_id] = json_safe(record)
+        index_path.write_text(
+            json.dumps(index, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+    def get_event_source(self, source_id: str) -> dict[str, Any] | None:
+        index_path = self.runtime_data_dir / "event_sources" / "sources.json"
+        index = _read_json_index(index_path)
+        item = index.get(source_id)
+        return dict(item) if isinstance(item, dict) else None
+
+    def list_event_sources(self, limit: int = 200, **filters: Any) -> list[dict[str, Any]]:
+        index_path = self.runtime_data_dir / "event_sources" / "sources.json"
+        index = _read_json_index(index_path)
+        records = [dict(v) for v in index.values() if isinstance(v, dict)]
+        if filters.get("enabled") is True:
+            records = [r for r in records if r.get("enabled") is True]
+        elif filters.get("enabled") is False:
+            records = [r for r in records if not r.get("enabled")]
+        records.sort(key=lambda r: str(r.get("name") or r.get("source_id") or ""))
+        return records[:int(limit)]
+
+    def save_event_source_state(self, state: dict[str, Any]) -> None:
+        src_dir = self.runtime_data_dir / "event_sources"
+        src_dir.mkdir(parents=True, exist_ok=True)
+        index_path = src_dir / "state.json"
+        index = _read_json_index(index_path)
+        source_id = str(state.get("source_id") or "")
+        if source_id:
+            index[source_id] = json_safe(state)
+        index_path.write_text(
+            json.dumps(index, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+    def get_event_source_state(self, source_id: str) -> dict[str, Any] | None:
+        index_path = self.runtime_data_dir / "event_sources" / "state.json"
+        index = _read_json_index(index_path)
+        item = index.get(source_id)
+        return dict(item) if isinstance(item, dict) else None
+
+    def list_event_source_states(self, limit: int = 200) -> list[dict[str, Any]]:
+        index_path = self.runtime_data_dir / "event_sources" / "state.json"
+        index = _read_json_index(index_path)
+        records = [dict(v) for v in index.values() if isinstance(v, dict)]
+        return records[:int(limit)]
+
+    def append_event_source_history(self, record: dict[str, Any]) -> None:
+        src_dir = self.runtime_data_dir / "event_sources"
+        src_dir.mkdir(parents=True, exist_ok=True)
+        with (src_dir / "history.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(json_safe(record), ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+
+    def list_event_source_history(self, limit: int = 100, **filters: Any) -> list[dict[str, Any]]:
+        path = self.runtime_data_dir / "event_sources" / "history.jsonl"
+        records = _read_jsonl(path, 100_000)
+        if "source_id" in filters:
+            records = [r for r in records if r.get("source_id") == filters["source_id"]]
+        return records[-int(limit):]
+
     def health(self) -> dict[str, Any]:
         return {
             "ok": True,
@@ -260,6 +333,16 @@ class FilesystemPersistenceBackend:
             "event_count": _count_lines(self.runtime_data_dir / "events" / "events.jsonl"),
             "run_ledger_count": _count_lines(self.runtime_data_dir / "runs" / "index.jsonl"),
         }
+
+
+def _read_json_index(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        return dict(raw) if isinstance(raw, dict) else {}
+    except (json.JSONDecodeError, OSError):
+        return {}
 
 
 def _read_jsonl(path: Path, limit: int) -> list[dict[str, Any]]:

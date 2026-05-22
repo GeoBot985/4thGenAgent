@@ -1,0 +1,19 @@
+{
+  "source_id": "fixture_customer_messages",
+  "name": "Fixture Customer Messages",
+  "enabled": true,
+  "adapter": "fixture_json",
+  "mode": "fixture",
+  "event_source": "fixture_customer_inbox",
+  "event_type": "customer_message_received",
+  "route_hint": "customer.status.from_email",
+  "poll": {
+    "fixture_path": "tests/fixtures/event_sources/customer_messages.json",
+    "max_events_per_poll": 10
+  },
+  "dedupe": {
+    "key_template": "fixture:{message_id}"
+  },
+  "cursor": {},
+  "auth": {}
+}

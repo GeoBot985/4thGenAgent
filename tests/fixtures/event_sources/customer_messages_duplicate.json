@@ -1,0 +1,10 @@
+[
+  {
+    "message_id": "msg-fixture-001",
+    "customer_id": "CUST-1001",
+    "from": "alex@example.com",
+    "subject": "Where is my order?",
+    "body": "Hi, where is order ORD-10042?",
+    "received_at": "2026-05-21T08:00:00+02:00"
+  }
+]

@@ -189,6 +189,6 @@ taskframe queue recover-stale --stale-timeout-minutes 30
 
 - **No parallel workers**: `claim_next_event()` is not concurrency-safe without external locking. Use a single worker process per queue.
 - **No scheduled execution**: The queue runner does not auto-poll. Call `process-next` or `process-batch` explicitly.
-- **No email/webhook polling**: External event sources must explicitly call `enqueue_event()`.
+- **No email/webhook polling**: External event sources use the Spec 139 polling framework (`runtime/event_sources/`) which calls `enqueue_event()`. See [docs/external_event_source_polling.md](external_event_source_polling.md).
 - **Retry delay is 0**: Items become available immediately after `retry_event()`. Back-off is not yet implemented.
 - **Dead-letter replay**: Dead-letter items cannot be automatically re-queued. Operator must explicitly enqueue a new event.

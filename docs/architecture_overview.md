@@ -78,6 +78,10 @@ Browser-backed RPA tools are treated as optional, high-risk, live-environment-de
 - `runtime/event_queue_contract.py` defines the Spec 137 durable queue record shape and status constants
 - `runtime/event_queue_runner.py` processes PENDING queue items into TaskFrames (always dry-run)
 - `runtime/operator_queue_panel.py` provides read-only queue data for the operator UI
+- `runtime/event_sources/` owns the Spec 139 external event source polling framework (adapters, polling engine, state, contract)
+- `src/operator_event_sources_panel.py` provides read-only event source data for the operator UI
+- `runtime/worker/` owns the Spec 140 local worker supervisor (worker_contract, worker_lock, worker_engine)
+- `src/operator_worker_panel.py` provides read-only worker status and cycle history for the operator UI
 - `src/` owns UI presentation and view-model construction
 - `tools/` owns CLI utilities and release verification
 - `optional_tools/` owns optional integration surfaces

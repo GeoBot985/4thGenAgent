@@ -25,6 +25,9 @@ REQUIRED_TABLES = [
     "tool_calls",
     "llm_calls",
     "validations",
+    "event_sources",
+    "event_source_state",
+    "event_source_history",
 ]
 
 REQUIRED_INDEXES = [
@@ -45,6 +48,8 @@ REQUIRED_INDEXES = [
     "idx_validations_frame",
     "idx_schedules_enabled",
     "idx_schedule_runs_schedule",
+    "idx_event_sources_enabled",
+    "idx_event_source_history_source",
 ]
 
 _SECRET_KEY_PARTS = (
@@ -238,6 +243,47 @@ class SQLitePersistenceBackend:
                 CREATE INDEX IF NOT EXISTS idx_schedules_enabled ON schedules(enabled, schedule_type);
                 CREATE INDEX IF NOT EXISTS idx_schedule_runs_schedule ON schedule_runs(schedule_id, scheduled_for);
                 CREATE INDEX IF NOT EXISTS idx_run_ledger_frame ON run_ledger(frame_id, recorded_at);
+                CREATE TABLE IF NOT EXISTS event_sources (
+                  source_id TEXT PRIMARY KEY,
+                  name TEXT,
+                  adapter TEXT,
+                  mode TEXT,
+                  enabled INTEGER NOT NULL DEFAULT 0,
+                  event_source TEXT,
+                  event_type TEXT,
+                  created_at TEXT,
+                  updated_at TEXT,
+                  payload_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS event_source_state (
+                  source_id TEXT PRIMARY KEY,
+                  last_poll_started_at TEXT,
+                  last_poll_completed_at TEXT,
+                  last_success_at TEXT,
+                  last_error TEXT,
+                  last_error_category TEXT,
+                  poll_count INTEGER NOT NULL DEFAULT 0,
+                  event_count INTEGER NOT NULL DEFAULT 0,
+                  duplicate_count INTEGER NOT NULL DEFAULT 0,
+                  updated_at TEXT,
+                  payload_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS event_source_history (
+                  history_id TEXT PRIMARY KEY,
+                  source_id TEXT,
+                  ok INTEGER NOT NULL DEFAULT 1,
+                  adapter TEXT,
+                  raw_count INTEGER NOT NULL DEFAULT 0,
+                  event_count INTEGER NOT NULL DEFAULT 0,
+                  duplicate_count INTEGER NOT NULL DEFAULT 0,
+                  enqueued_count INTEGER NOT NULL DEFAULT 0,
+                  error TEXT,
+                  error_category TEXT,
+                  created_at TEXT,
+                  payload_json TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_event_sources_enabled ON event_sources(enabled, adapter);
+                CREATE INDEX IF NOT EXISTS idx_event_source_history_source ON event_source_history(source_id, created_at);
                 CREATE INDEX IF NOT EXISTS idx_pending_actions_status ON pending_actions(status, frame_id);
                 CREATE INDEX IF NOT EXISTS idx_executed_actions_frame ON executed_actions(frame_id);
                 CREATE INDEX IF NOT EXISTS idx_audit_events_frame ON audit_events(frame_id, created_at);
@@ -640,6 +686,168 @@ class SQLitePersistenceBackend:
         records = [_from_json(row["payload_json"]) for row in rows]
         records.reverse()
         return records
+
+    # -----------------------------------------------------------------------
+    # Spec 139 — Event source persistence
+    # -----------------------------------------------------------------------
+
+    def save_event_source(self, record: dict[str, Any]) -> None:
+        self.init_schema()
+        clean = _sanitize_payload(record)
+        source_id = str(clean.get("source_id") or "")
+        if not source_id:
+            raise ValueError("source_id is required.")
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO event_sources(source_id, name, adapter, mode, enabled, event_source, event_type, created_at, updated_at, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(source_id) DO UPDATE SET
+                  name=excluded.name, adapter=excluded.adapter, mode=excluded.mode,
+                  enabled=excluded.enabled, event_source=excluded.event_source, event_type=excluded.event_type,
+                  created_at=excluded.created_at, updated_at=excluded.updated_at, payload_json=excluded.payload_json
+                """,
+                (
+                    source_id,
+                    str(clean.get("name") or ""),
+                    str(clean.get("adapter") or ""),
+                    str(clean.get("mode") or ""),
+                    1 if clean.get("enabled") else 0,
+                    str(clean.get("event_source") or ""),
+                    str(clean.get("event_type") or ""),
+                    str(clean.get("created_at") or ""),
+                    str(clean.get("updated_at") or ""),
+                    _to_json(clean),
+                ),
+            )
+
+    def get_event_source(self, source_id: str) -> dict[str, Any] | None:
+        self.init_schema()
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT payload_json FROM event_sources WHERE source_id = ?", (source_id,)
+            ).fetchone()
+        return _from_json(row["payload_json"]) if row else None
+
+    def list_event_sources(self, limit: int = 200, **filters: Any) -> list[dict[str, Any]]:
+        self.init_schema()
+        clauses: list[str] = []
+        params: list[Any] = []
+        if filters.get("enabled") is True:
+            clauses.append("enabled = 1")
+        elif filters.get("enabled") is False:
+            clauses.append("enabled = 0")
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"SELECT payload_json FROM event_sources {where} ORDER BY name ASC LIMIT ?",
+                (*params, int(limit)),
+            ).fetchall()
+        return [_from_json(r["payload_json"]) for r in rows]
+
+    def save_event_source_state(self, state: dict[str, Any]) -> None:
+        self.init_schema()
+        clean = _sanitize_payload(state)
+        source_id = str(clean.get("source_id") or "")
+        if not source_id:
+            raise ValueError("source_id is required for event_source_state.")
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO event_source_state(
+                  source_id, last_poll_started_at, last_poll_completed_at, last_success_at,
+                  last_error, last_error_category, poll_count, event_count, duplicate_count,
+                  updated_at, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(source_id) DO UPDATE SET
+                  last_poll_started_at=excluded.last_poll_started_at,
+                  last_poll_completed_at=excluded.last_poll_completed_at,
+                  last_success_at=excluded.last_success_at,
+                  last_error=excluded.last_error,
+                  last_error_category=excluded.last_error_category,
+                  poll_count=excluded.poll_count,
+                  event_count=excluded.event_count,
+                  duplicate_count=excluded.duplicate_count,
+                  updated_at=excluded.updated_at,
+                  payload_json=excluded.payload_json
+                """,
+                (
+                    source_id,
+                    str(clean.get("last_poll_started_at") or ""),
+                    str(clean.get("last_poll_completed_at") or ""),
+                    str(clean.get("last_success_at") or ""),
+                    str(clean.get("last_error") or ""),
+                    str(clean.get("last_error_category") or ""),
+                    int(clean.get("poll_count") or 0),
+                    int(clean.get("event_count") or 0),
+                    int(clean.get("duplicate_count") or 0),
+                    str(clean.get("updated_at") or ""),
+                    _to_json(clean),
+                ),
+            )
+
+    def get_event_source_state(self, source_id: str) -> dict[str, Any] | None:
+        self.init_schema()
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT payload_json FROM event_source_state WHERE source_id = ?", (source_id,)
+            ).fetchone()
+        return _from_json(row["payload_json"]) if row else None
+
+    def list_event_source_states(self, limit: int = 200) -> list[dict[str, Any]]:
+        self.init_schema()
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT payload_json FROM event_source_state ORDER BY updated_at DESC LIMIT ?",
+                (int(limit),),
+            ).fetchall()
+        return [_from_json(r["payload_json"]) for r in rows]
+
+    def append_event_source_history(self, record: dict[str, Any]) -> None:
+        self.init_schema()
+        clean = _sanitize_payload(record)
+        history_id = str(clean.get("history_id") or "")
+        if not history_id:
+            import uuid
+            history_id = str(uuid.uuid4())
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO event_source_history(
+                  history_id, source_id, ok, adapter, raw_count, event_count,
+                  duplicate_count, enqueued_count, error, error_category, created_at, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    history_id,
+                    str(clean.get("source_id") or ""),
+                    1 if clean.get("ok") else 0,
+                    str(clean.get("adapter") or ""),
+                    int(clean.get("raw_count") or 0),
+                    int(clean.get("event_count") or 0),
+                    int(clean.get("duplicate_count") or 0),
+                    int(clean.get("enqueued_count") or 0),
+                    str(clean.get("error") or ""),
+                    str(clean.get("error_category") or ""),
+                    str(clean.get("created_at") or ""),
+                    _to_json(clean),
+                ),
+            )
+
+    def list_event_source_history(self, limit: int = 100, **filters: Any) -> list[dict[str, Any]]:
+        self.init_schema()
+        clauses: list[str] = []
+        params: list[Any] = []
+        if "source_id" in filters:
+            clauses.append("source_id = ?")
+            params.append(filters["source_id"])
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"SELECT payload_json FROM event_source_history {where} ORDER BY created_at DESC LIMIT ?",
+                (*params, int(limit)),
+            ).fetchall()
+        return [_from_json(r["payload_json"]) for r in rows]
 
     def health(self) -> dict[str, Any]:
         exists = self.db_path.is_file()

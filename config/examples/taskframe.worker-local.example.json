@@ -1,0 +1,29 @@
+{
+  "profile": "worker-local",
+  "worker": {
+    "worker_id": "local-worker-1",
+    "enabled": true,
+    "mode": "run_once",
+    "cycle": {
+      "max_cycles": 1,
+      "sleep_seconds": 5,
+      "max_runtime_seconds": 300
+    },
+    "features": {
+      "recover_stale_queue": true,
+      "run_scheduler_tick": true,
+      "poll_event_sources": true,
+      "process_queue": true
+    },
+    "limits": {
+      "max_sources_per_cycle": 10,
+      "max_queue_items_per_cycle": 10,
+      "max_schedule_events_per_tick": 10
+    },
+    "safety": {
+      "dry_run_only": true,
+      "allow_live_side_effects": false,
+      "require_queue_for_execution": true
+    }
+  }
+}

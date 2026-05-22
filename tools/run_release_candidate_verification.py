@@ -242,6 +242,8 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         _check_production_persistence_backend(),
         _check_durable_event_queue(),
         _check_scheduler_runtime(),
+        _check_external_event_source_polling(),
+        _check_local_worker_supervisor(),
     ])
 
     if mode == "standard":
@@ -279,6 +281,8 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         "production_persistence_backend": _status_from_static_mode(static_checks, "production_persistence_backend"),
         "durable_event_queue": _status_from_static_mode(static_checks, "durable_event_queue"),
         "scheduler_runtime": _status_from_static_mode(static_checks, "scheduler_runtime"),
+        "external_event_source_polling": _status_from_static_mode(static_checks, "external_event_source_polling"),
+        "local_worker_supervisor": _status_from_static_mode(static_checks, "local_worker_supervisor"),
         "operational_monitoring": _status_from_static_mode(static_checks, "operational_monitoring"),
         "default_demo_boundary_doc": _status_from_static_mode(static_checks, "default_demo_boundary_doc"),
         "golden_demo": "SKIPPED",
@@ -615,6 +619,8 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         _check_production_persistence_backend(),
         _check_durable_event_queue(),
         _check_scheduler_runtime(),
+        _check_external_event_source_polling(),
+        _check_local_worker_supervisor(),
         _check_operational_monitoring(),
         _check_recovery(),
         _check_default_demo_boundary_doc(),
@@ -850,6 +856,8 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
                 release_blockers.append("live side-effect execution contract check failed")
             elif check["name"] == "gmail_send_tool":
                 release_blockers.append("gmail send tool check failed")
+            elif check["name"] == "local_worker_supervisor":
+                release_blockers.append("local worker supervisor validation failed")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -1027,6 +1035,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         "supplier_invoice_dry_run_approval": _status_from_static(static_checks, "supplier_invoice_dry_run_approval"),
         "supplier_invoice_report_generation": _status_from_static(static_checks, "supplier_invoice_report_generation"),
         "supplier_invoice_docs_exist": _status_from_static(static_checks, "supplier_invoice_docs_exist"),
+        "local_worker_supervisor": _status_from_static(static_checks, "local_worker_supervisor"),
     }
 
     if release_blockers:
@@ -3701,6 +3710,258 @@ def _check_scheduler_runtime() -> dict[str, Any]:
 
     return {
         "name": "scheduler_runtime",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_external_event_source_polling() -> dict[str, Any]:
+    missing: list[str] = []
+    try:
+        from runtime.event_sources.event_source_contract import (
+            build_event_source_config,
+            build_fixture_source_config,
+            validate_event_source_config,
+            ADAPTER_FIXTURE_JSON,
+            ADAPTER_GMAIL_READONLY,
+            MODE_FIXTURE,
+            MODE_LIVE_READ,
+        )
+        from runtime.event_sources.event_source_state import (
+            save_event_source,
+            get_event_source,
+            list_event_sources,
+            save_event_source_state,
+            get_event_source_state,
+            append_event_source_history,
+            list_event_source_history,
+            build_history_record,
+            create_event_source,
+        )
+        from runtime.event_sources.adapters.base import EventSourceAdapter, build_poll_result
+        from runtime.event_sources.adapters.fixture_json import FixtureJsonAdapter
+        from runtime.event_sources.adapters.gmail_readonly import GmailReadonlyAdapter
+        from runtime.event_sources.polling_engine import (
+            poll_event_source,
+            poll_enabled_event_sources,
+            normalize_polled_events,
+            enqueue_polled_events,
+        )
+        from src.operator_event_sources_panel import build_event_sources_panel
+    except Exception as exc:
+        return {"name": "external_event_source_polling", "status": "FAIL", "error": str(exc)}
+
+    import tempfile
+    import os
+
+    rd = tempfile.mkdtemp(prefix="esrc_rc_")
+    try:
+        # 1. Validate contract
+        config = build_fixture_source_config(
+            source_id="rc_fixture_001",
+            name="RC Fixture Test Source",
+            event_source="fixture_customer_inbox",
+            event_type="customer_message_received",
+            fixture_path=str(ROOT / "tests" / "fixtures" / "event_sources" / "customer_messages.json"),
+            enabled=True,
+        )
+        ok, errors = validate_event_source_config(config)
+        if not ok:
+            missing.append(f"config_validation_failed: {errors}")
+
+        # 2. Create and retrieve source config
+        result = create_event_source(config, rd)
+        if not result.get("ok"):
+            missing.append(f"create_event_source_failed: {result.get('error')}")
+
+        retrieved = get_event_source("rc_fixture_001", rd)
+        if retrieved is None:
+            missing.append("get_event_source_returned_none")
+
+        # 3. Fixture adapter health
+        adapter = FixtureJsonAdapter()
+        health = adapter.health(config, rd)
+        if not health.get("ok"):
+            missing.append(f"fixture_adapter_health_failed: {health.get('error')}")
+
+        # 4. Fixture adapter poll enqueues events
+        state = get_event_source_state("rc_fixture_001", rd)
+        poll_result = adapter.poll(config, state, rd)
+        if not poll_result.get("ok"):
+            missing.append(f"fixture_adapter_poll_failed: {poll_result.get('error')}")
+        elif poll_result.get("event_count", 0) == 0:
+            missing.append("fixture_poll_returned_no_events")
+
+        # 5. Polling engine end-to-end
+        engine_result = poll_event_source("rc_fixture_001", rd)
+        if not engine_result.get("ok"):
+            missing.append(f"poll_event_source_failed: {engine_result.get('error')}")
+
+        # 6. Duplicate poll skips duplicates
+        engine_result2 = poll_event_source("rc_fixture_001", rd)
+        if engine_result2.get("ok"):
+            if engine_result2.get("duplicate_count", 0) == 0 and engine_result2.get("enqueued_count", 0) > 0:
+                missing.append("duplicate_poll_did_not_skip_duplicates")
+
+        # 7. Polling history was written
+        history = list_event_source_history(rd, source_id="rc_fixture_001")
+        if len(history) == 0:
+            missing.append("polling_history_empty_after_poll")
+
+        # 8. Gmail adapter safely returns needs_auth when not configured
+        gmail_config = {
+            "source_id": "rc_gmail_test",
+            "name": "RC Gmail Test",
+            "adapter": ADAPTER_GMAIL_READONLY,
+            "mode": MODE_LIVE_READ,
+            "event_source": "gmail",
+            "event_type": "customer_message_received",
+            "enabled": False,
+            "auth": {"requires_credentials": True},
+            "poll": {},
+            "dedupe": {},
+            "cursor": {},
+        }
+        gmail_adapter = GmailReadonlyAdapter()
+        gmail_health = gmail_adapter.health(gmail_config, rd)
+        if gmail_health.get("ok"):
+            missing.append("gmail_adapter_should_report_needs_auth_without_credentials")
+        if gmail_health.get("error_category") != "credentials_missing":
+            missing.append(f"gmail_health_error_category_unexpected: {gmail_health.get('error_category')}")
+
+        # 9. Operator panel returns panel shape
+        panel = build_event_sources_panel(runtime_data_dir=rd)
+        if not panel.get("ok"):
+            missing.append(f"operator_panel_failed: {panel.get('error')}")
+        if "summary" not in panel:
+            missing.append("operator_panel_missing_summary")
+
+    except Exception as exc:
+        missing.append(str(exc))
+    finally:
+        import shutil
+        shutil.rmtree(rd, ignore_errors=True)
+
+    return {
+        "name": "external_event_source_polling",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_local_worker_supervisor() -> dict[str, Any]:
+    """Bounded release verifier: local_worker_supervisor (Spec 140)."""
+    missing: list[str] = []
+    import tempfile, shutil
+
+    rd = tempfile.mkdtemp(prefix="rc_worker_")
+    try:
+        # 1. Worker modules import
+        from runtime.worker.worker_contract import (
+            DEFAULT_WORKER_CONFIG,
+            validate_worker_config,
+            build_empty_worker_state,
+            build_empty_cycle_summary,
+        )
+        from runtime.worker.worker_lock import (
+            acquire_worker_lock,
+            release_worker_lock,
+            detect_stale_lock,
+            clear_stale_lock,
+        )
+        from runtime.worker.worker_engine import (
+            run_worker_once,
+            run_worker_loop,
+            build_worker_status,
+            build_worker_health,
+            request_worker_stop,
+            clear_stale_worker_lock,
+            _read_recent_cycles,
+        )
+        from src.operator_worker_panel import build_worker_panel
+
+        # 2. Worker config validates
+        val = validate_worker_config(DEFAULT_WORKER_CONFIG)
+        if not val.get("ok"):
+            missing.append(f"default_config_invalid: {val['errors']}")
+
+        # 3. Run-once executes against fixture-only runtime data
+        result = run_worker_once(DEFAULT_WORKER_CONFIG, rd)
+        if "cycle_id" not in result:
+            missing.append("run_once_missing_cycle_id")
+        if result.get("duration_ms", -1) < 0:
+            missing.append("run_once_negative_duration")
+
+        # 4. Scheduler tick invoked through worker
+        if "schedule_events_enqueued" not in result:
+            missing.append("run_once_missing_schedule_events_enqueued")
+
+        # 5. Fixture event-source poll invoked through worker
+        if "event_sources_polled" not in result:
+            missing.append("run_once_missing_event_sources_polled")
+
+        # 6. Queue processing invoked through worker
+        if "queue_items_processed" not in result:
+            missing.append("run_once_missing_queue_items_processed")
+
+        # 7. Lock prevents duplicate worker
+        lock_result = acquire_worker_lock("blocking-worker", rd)
+        if not lock_result.get("ok"):
+            missing.append("lock_acquire_failed")
+        else:
+            blocked = run_worker_once(DEFAULT_WORKER_CONFIG, rd)
+            if blocked.get("ok"):
+                missing.append("duplicate_worker_not_blocked")
+            release_worker_lock(lock_result["lock_id"], rd)
+
+        # 8. Run second cycle — cycle history is written
+        run_worker_once(DEFAULT_WORKER_CONFIG, rd)
+        recent = _read_recent_cycles(rd, limit=5)
+        if len(recent) < 1:
+            missing.append("cycle_history_not_written")
+
+        # 9. No live side effects
+        if DEFAULT_WORKER_CONFIG["safety"].get("allow_live_side_effects"):
+            missing.append("live_side_effects_should_be_false")
+        live_errors = [e for e in result.get("errors", []) if "live" in str(e).lower()]
+        if live_errors:
+            missing.append(f"live_side_effect_errors: {live_errors}")
+
+        # 10. Bounded loop respects max_cycles
+        loop_cfg = {
+            **DEFAULT_WORKER_CONFIG,
+            "mode": "bounded_loop",
+            "cycle": {"max_cycles": 2, "sleep_seconds": 0, "max_runtime_seconds": 30},
+        }
+        loop_result = run_worker_loop(loop_cfg, rd)
+        if loop_result.get("cycles_run") != 2:
+            missing.append(f"bounded_loop_wrong_cycles: {loop_result.get('cycles_run')}")
+
+        # 11. Worker status readable
+        status = build_worker_status(rd)
+        if not status.get("ok"):
+            missing.append("worker_status_failed")
+
+        # 12. Operator panel returns panel shape
+        panel = build_worker_panel(rd)
+        if not panel.get("ok"):
+            missing.append(f"worker_panel_failed: {panel.get('error')}")
+        for key in ("summary", "worker_state", "last_cycle", "recent_cycles", "health"):
+            if key not in panel:
+                missing.append(f"worker_panel_missing_{key}")
+
+        # 13. Doc exists
+        doc_path = ROOT / "docs" / "local_worker_supervisor.md"
+        if not doc_path.is_file():
+            missing.append("local_worker_supervisor_doc_missing")
+
+    except Exception as exc:
+        missing.append(str(exc))
+    finally:
+        shutil.rmtree(rd, ignore_errors=True)
+
+    return {
+        "name": "local_worker_supervisor",
         "status": "PASS" if not missing else "FAIL",
         "missing": missing,
     }

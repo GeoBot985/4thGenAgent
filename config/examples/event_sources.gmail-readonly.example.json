@@ -1,0 +1,28 @@
+{
+  "source_id": "gmail_customer_support",
+  "name": "Gmail Customer Support Inbox",
+  "enabled": false,
+  "adapter": "gmail_readonly",
+  "mode": "live_read",
+  "event_source": "gmail",
+  "event_type": "customer_message_received",
+  "route_hint": "customer.status.from_email",
+  "poll": {
+    "max_events_per_poll": 20,
+    "lookback_minutes": 1440,
+    "query": "label:inbox newer_than:7d",
+    "include_body": true
+  },
+  "dedupe": {
+    "key_template": "gmail:{message_id}"
+  },
+  "cursor": {
+    "type": "seen_ids",
+    "watermark_field": "received_at"
+  },
+  "auth": {
+    "profile": "google_readonly",
+    "requires_credentials": true,
+    "token_path": "~/.taskframe/gmail_token.json"
+  }
+}

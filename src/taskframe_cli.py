@@ -317,6 +317,56 @@ def build_parser() -> argparse.ArgumentParser:
     esrc_route_alignment.add_argument("--routes-path", default="config/event_routes.json")
     esrc_route_alignment.add_argument("--json", action="store_true")
 
+    # Spec 139 — External event source polling
+    esrc_status = esrc_sub.add_parser("status", help="Show event source subsystem status.")
+    esrc_status.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_status.add_argument("--json", action="store_true")
+
+    esrc_list2 = esrc_sub.add_parser("list-sources", help="List configured event sources.")
+    esrc_list2.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_list2.add_argument("--json", action="store_true")
+
+    esrc_show2 = esrc_sub.add_parser("show-source", help="Show config and state for a specific event source.")
+    esrc_show2.add_argument("source_id", help="Source ID to inspect.")
+    esrc_show2.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_show2.add_argument("--json", action="store_true")
+
+    esrc_health2 = esrc_sub.add_parser("health-check", help="Run preflight health check for an event source.")
+    esrc_health2.add_argument("source_id", help="Source ID to health-check.")
+    esrc_health2.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_health2.add_argument("--json", action="store_true")
+
+    esrc_poll = esrc_sub.add_parser("poll", help="Poll a single event source.")
+    esrc_poll.add_argument("source_id", help="Source ID to poll.")
+    esrc_poll.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_poll.add_argument("--json", action="store_true")
+
+    esrc_poll_enabled = esrc_sub.add_parser("poll-enabled", help="Poll all enabled event sources.")
+    esrc_poll_enabled.add_argument("--limit", type=int, default=10, help="Max sources to poll.")
+    esrc_poll_enabled.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_poll_enabled.add_argument("--json", action="store_true")
+
+    esrc_create_fixture = esrc_sub.add_parser("create-fixture", help="Create a default fixture event source config.")
+    esrc_create_fixture.add_argument("source_id", help="Source ID for the new fixture source.")
+    esrc_create_fixture.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_create_fixture.add_argument("--json", action="store_true")
+
+    esrc_enable = esrc_sub.add_parser("enable", help="Enable an event source.")
+    esrc_enable.add_argument("source_id", help="Source ID to enable.")
+    esrc_enable.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_enable.add_argument("--json", action="store_true")
+
+    esrc_disable = esrc_sub.add_parser("disable", help="Disable an event source.")
+    esrc_disable.add_argument("source_id", help="Source ID to disable.")
+    esrc_disable.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_disable.add_argument("--json", action="store_true")
+
+    esrc_history = esrc_sub.add_parser("history", help="Show recent polling history.")
+    esrc_history.add_argument("--source-id", default="", help="Filter by source ID.")
+    esrc_history.add_argument("--limit", type=int, default=20)
+    esrc_history.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    esrc_history.add_argument("--json", action="store_true")
+
     # Spec 108 — Event queue inspection and replay
     events = sub.add_parser("events", help="Inspect and replay events from the event queue.")
     events_sub = events.add_subparsers(dest="events_command", required=True)
@@ -564,6 +614,48 @@ def build_parser() -> argparse.ArgumentParser:
     sched_runs.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     sched_runs.add_argument("--json", action="store_true")
 
+    # Spec 140 — Local worker supervisor
+    wkr = sub.add_parser("worker", help="Manage and inspect the local worker supervisor.")
+    wkr_sub = wkr.add_subparsers(dest="worker_command", required=True)
+
+    wkr_status = wkr_sub.add_parser("status", help="Show worker status, lock, and last cycle.")
+    wkr_status.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    wkr_status.add_argument("--json", action="store_true")
+
+    wkr_health = wkr_sub.add_parser("health", help="Check worker dependency health.")
+    wkr_health.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    wkr_health.add_argument("--json", action="store_true")
+
+    wkr_run_once = wkr_sub.add_parser("run-once", help="Run one bounded worker cycle.")
+    wkr_run_once.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    wkr_run_once.add_argument("--worker-id", default="local-worker-1")
+    wkr_run_once.add_argument("--no-scheduler", action="store_true", help="Disable scheduler tick.")
+    wkr_run_once.add_argument("--no-event-sources", action="store_true", help="Disable event-source polling.")
+    wkr_run_once.add_argument("--queue-limit", type=int, default=10, help="Max queue items to process.")
+    wkr_run_once.add_argument("--json", action="store_true")
+
+    wkr_loop = wkr_sub.add_parser("run-loop", help="Run a bounded worker loop.")
+    wkr_loop.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    wkr_loop.add_argument("--worker-id", default="local-worker-1")
+    wkr_loop.add_argument("--max-cycles", type=int, default=3)
+    wkr_loop.add_argument("--sleep-seconds", type=float, default=5.0)
+    wkr_loop.add_argument("--max-runtime-seconds", type=float, default=300.0)
+    wkr_loop.add_argument("--json", action="store_true")
+
+    wkr_stop = wkr_sub.add_parser("stop", help="Request graceful worker stop.")
+    wkr_stop.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    wkr_stop.add_argument("--worker-id", default="local-worker-1")
+    wkr_stop.add_argument("--json", action="store_true")
+
+    wkr_cycles = wkr_sub.add_parser("cycles", help="Show recent worker cycle history.")
+    wkr_cycles.add_argument("--limit", type=int, default=10)
+    wkr_cycles.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    wkr_cycles.add_argument("--json", action="store_true")
+
+    wkr_clear_lock = wkr_sub.add_parser("clear-stale-lock", help="Clear a stale worker lock.")
+    wkr_clear_lock.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    wkr_clear_lock.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -630,6 +722,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_queue(args)
     if args.command == "schedule":
         return _run_schedule(args)
+    if args.command == "worker":
+        return _run_worker(args)
     parser.print_help()
     return 2
 
@@ -2396,8 +2490,257 @@ def _run_event_sources(args: argparse.Namespace) -> int:
         return _run_esrc_validate_event(args)
     if cmd == "route-alignment":
         return _run_esrc_route_alignment(args)
+    # Spec 139 commands
+    if cmd == "status":
+        return _run_esrc_status(args)
+    if cmd == "list-sources":
+        return _run_esrc_list_sources(args)
+    if cmd == "show-source":
+        return _run_esrc_show_source(args)
+    if cmd == "health-check":
+        return _run_esrc_health_check(args)
+    if cmd == "poll":
+        return _run_esrc_poll(args)
+    if cmd == "poll-enabled":
+        return _run_esrc_poll_enabled(args)
+    if cmd == "create-fixture":
+        return _run_esrc_create_fixture(args)
+    if cmd == "enable":
+        return _run_esrc_enable(args)
+    if cmd == "disable":
+        return _run_esrc_disable(args)
+    if cmd == "history":
+        return _run_esrc_history(args)
     print(f"Unknown event-sources command: {cmd}", file=sys.stderr)
     return 2
+
+
+# ---------------------------------------------------------------------------
+# Spec 139 — Event source polling CLI handlers
+# ---------------------------------------------------------------------------
+
+def _run_esrc_status(args: argparse.Namespace) -> int:
+    from src.operator_event_sources_panel import build_event_sources_panel
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    panel = build_event_sources_panel(runtime_data_dir=rdd)
+    if args.json:
+        print(json.dumps(panel, indent=2, ensure_ascii=False))
+        return 0 if panel.get("ok") else 1
+    summary = panel.get("summary") or {}
+    print("Event Source Status")
+    print(f"  Sources configured : {summary.get('source_count', 0)}")
+    print(f"  Sources enabled    : {summary.get('enabled_count', 0)}")
+    print(f"  Needs auth         : {summary.get('needs_auth_count', 0)}")
+    print(f"  Last poll at       : {summary.get('last_poll_at', '-')}")
+    if panel.get("warnings"):
+        for w in panel["warnings"]:
+            print(f"  WARNING: {w}")
+    return 0 if panel.get("ok") else 1
+
+
+def _run_esrc_list_sources(args: argparse.Namespace) -> int:
+    from runtime.event_sources.event_source_state import list_event_sources
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    sources = list_event_sources(rdd)
+    payload = {"ok": True, "count": len(sources), "sources": sources}
+    if args.json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print(f"Event Sources — {len(sources)} source(s)")
+    print("")
+    for s in sources:
+        enabled_str = "enabled" if s.get("enabled") else "disabled"
+        print(f"  {s.get('source_id', ''):<30} [{enabled_str:<8}] {s.get('adapter', ''):<15} {s.get('name', '')}")
+    return 0
+
+
+def _run_esrc_show_source(args: argparse.Namespace) -> int:
+    from runtime.event_sources.event_source_state import get_event_source, get_event_source_state
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    source_id = str(args.source_id or "").strip()
+    config = get_event_source(source_id, rdd)
+    if config is None:
+        msg = {"ok": False, "error": f"Source not found: {source_id!r}"}
+        if args.json:
+            print(json.dumps(msg, indent=2))
+        else:
+            print(f"Error: {msg['error']}", file=sys.stderr)
+        return 1
+    state = get_event_source_state(source_id, rdd)
+    payload = {"ok": True, "config": config, "state": state}
+    if args.json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print(f"Source: {source_id}")
+    for key, val in config.items():
+        print(f"  {key}: {val}")
+    print("State:")
+    for key, val in state.items():
+        print(f"  {key}: {val}")
+    return 0
+
+
+def _run_esrc_health_check(args: argparse.Namespace) -> int:
+    from runtime.event_sources.event_source_state import get_event_source
+    from runtime.event_sources.polling_engine import _get_adapter
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    source_id = str(args.source_id or "").strip()
+    config = get_event_source(source_id, rdd)
+    if config is None:
+        msg = {"ok": False, "error": f"Source not found: {source_id!r}"}
+        if args.json:
+            print(json.dumps(msg, indent=2))
+        else:
+            print(f"Error: {msg['error']}", file=sys.stderr)
+        return 1
+    adapter_id = str(config.get("adapter") or "")
+    try:
+        adapter = _get_adapter(adapter_id)
+    except ValueError as exc:
+        msg = {"ok": False, "error": str(exc)}
+        if args.json:
+            print(json.dumps(msg, indent=2))
+        else:
+            print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    result = adapter.health(config, str(rdd))
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    status = result.get("status", "unknown")
+    print(f"Health check for {source_id}: {status}")
+    if not result.get("ok"):
+        print(f"  Error: {result.get('error', '')}")
+    return 0 if result.get("ok") else 1
+
+
+def _run_esrc_poll(args: argparse.Namespace) -> int:
+    from runtime.event_sources.polling_engine import poll_event_source
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    source_id = str(args.source_id or "").strip()
+    result = poll_event_source(source_id, rdd)
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    ok_str = "OK" if result.get("ok") else "FAILED"
+    print(f"Poll {source_id}: {ok_str}")
+    if result.get("ok"):
+        print(f"  raw_count       : {result.get('raw_count', 0)}")
+        print(f"  event_count     : {result.get('event_count', 0)}")
+        print(f"  enqueued_count  : {result.get('enqueued_count', 0)}")
+        print(f"  duplicate_count : {result.get('duplicate_count', 0)}")
+        if result.get("warnings"):
+            for w in result["warnings"]:
+                print(f"  WARNING: {w}")
+    else:
+        print(f"  Error: {result.get('error', '')}")
+    return 0 if result.get("ok") else 1
+
+
+def _run_esrc_poll_enabled(args: argparse.Namespace) -> int:
+    from runtime.event_sources.polling_engine import poll_enabled_event_sources
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    limit = int(getattr(args, "limit", 10) or 10)
+    result = poll_enabled_event_sources(rdd, limit=limit)
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    print(f"Polled {result.get('sources_polled', 0)} enabled source(s)")
+    print(f"  Enqueued   : {result.get('total_enqueued', 0)}")
+    print(f"  Duplicates : {result.get('total_duplicates', 0)}")
+    if result.get("failed_sources"):
+        print(f"  Failed     : {', '.join(result['failed_sources'])}")
+    return 0 if result.get("ok") else 1
+
+
+def _run_esrc_create_fixture(args: argparse.Namespace) -> int:
+    from runtime.event_sources.event_source_contract import build_fixture_source_config
+    from runtime.event_sources.event_source_state import create_event_source
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    source_id = str(args.source_id or "").strip()
+    config = build_fixture_source_config(
+        source_id=source_id,
+        name=f"Fixture: {source_id}",
+        event_source="fixture_customer_inbox",
+        event_type="customer_message_received",
+        fixture_path="tests/fixtures/event_sources/customer_messages.json",
+        enabled=True,
+    )
+    result = create_event_source(config, rdd)
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    if result.get("ok"):
+        print(f"Created fixture event source: {source_id}")
+    else:
+        print(f"Error: {result.get('error', '')}", file=sys.stderr)
+    return 0 if result.get("ok") else 1
+
+
+def _run_esrc_enable(args: argparse.Namespace) -> int:
+    from runtime.event_sources.event_source_state import enable_event_source
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    source_id = str(args.source_id or "").strip()
+    result = enable_event_source(source_id, rdd)
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    if result.get("ok"):
+        print(f"Enabled: {source_id}")
+    else:
+        print(f"Error: {result.get('error', '')}", file=sys.stderr)
+    return 0 if result.get("ok") else 1
+
+
+def _run_esrc_disable(args: argparse.Namespace) -> int:
+    from runtime.event_sources.event_source_state import disable_event_source
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    source_id = str(args.source_id or "").strip()
+    result = disable_event_source(source_id, rdd)
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    if result.get("ok"):
+        print(f"Disabled: {source_id}")
+    else:
+        print(f"Error: {result.get('error', '')}", file=sys.stderr)
+    return 0 if result.get("ok") else 1
+
+
+def _run_esrc_history(args: argparse.Namespace) -> int:
+    from runtime.event_sources.event_source_state import list_event_source_history
+
+    rdd = getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR)
+    source_id = str(getattr(args, "source_id", "") or "").strip()
+    limit = int(getattr(args, "limit", 20) or 20)
+    kwargs = {}
+    if source_id:
+        kwargs["source_id"] = source_id
+    history = list_event_source_history(rdd, limit=limit, **kwargs)
+    payload = {"ok": True, "count": len(history), "history": history}
+    if args.json:
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print(f"Event Source History — {len(history)} record(s)")
+    print("")
+    for h in history:
+        ok_str = "OK" if h.get("ok") else "FAIL"
+        print(
+            f"  [{ok_str}] {h.get('source_id', ''):<30} "
+            f"raw={h.get('raw_count', 0)} evt={h.get('event_count', 0)} "
+            f"enq={h.get('enqueued_count', 0)} dup={h.get('duplicate_count', 0)} "
+            f"  {h.get('created_at', '')}"
+        )
+    return 0
 
 
 def _run_esrc_list(args: argparse.Namespace) -> int:
@@ -3678,6 +4021,201 @@ def _run_schedule(args: Any) -> int:
         for r in runs:
             print(f"  {r.get('schedule_id', '')}  scheduled_for={r.get('scheduled_for', '')}  status={r.get('status', '')}  queue_id={r.get('queue_id', '')[:8] if r.get('queue_id') else ''}")
         return 0
+
+    return 2
+
+
+def _run_worker(args: Any) -> int:
+    from runtime.worker.worker_engine import (
+        build_worker_health,
+        build_worker_status,
+        clear_stale_worker_lock,
+        request_worker_stop,
+        run_worker_loop,
+        run_worker_once,
+        _read_recent_cycles,
+    )
+    from runtime.worker.worker_contract import DEFAULT_WORKER_CONFIG
+
+    cmd = str(getattr(args, "worker_command", "") or "")
+    rd = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    use_json = bool(getattr(args, "json", False))
+
+    if cmd == "status":
+        try:
+            result = build_worker_status(rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0
+        print(f"Worker Status")
+        print(f"  Worker ID:            {result.get('worker_id', '')}")
+        print(f"  Status:               {result.get('status', 'STOPPED')}")
+        print(f"  PID:                  {result.get('pid', 0)}")
+        print(f"  Locked:               {result.get('locked', False)}")
+        print(f"  Lock ID:              {result.get('lock_id', '')[:16] or 'none'}")
+        print(f"  Last heartbeat:       {result.get('last_heartbeat_at', 'never')}")
+        print(f"  Cycle count:          {result.get('cycle_count', 0)}")
+        print(f"  Last cycle started:   {result.get('last_cycle_started_at', 'never')}")
+        print(f"  Last cycle completed: {result.get('last_cycle_completed_at', 'never')}")
+        last = result.get("last_cycle_summary") or {}
+        if last:
+            print(f"  Last cycle OK:        {last.get('ok', True)}")
+            print(f"  Queue processed:      {last.get('queue_items_processed', 0)}")
+        if result.get("last_error"):
+            print(f"  Last error:           {result['last_error']}")
+        return 0
+
+    if cmd == "health":
+        try:
+            result = build_worker_health(rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc), "checks": {}, "warnings": []}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        print("Worker Health")
+        for k, v in sorted((result.get("checks") or {}).items()):
+            flag = "OK" if v else "FAIL"
+            print(f"  [{flag}] {k}")
+        for w in result.get("warnings") or []:
+            print(f"  WARN: {w}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "run-once":
+        worker_id = str(getattr(args, "worker_id", "local-worker-1") or "local-worker-1")
+        no_scheduler = bool(getattr(args, "no_scheduler", False))
+        no_event_sources = bool(getattr(args, "no_event_sources", False))
+        queue_limit = int(getattr(args, "queue_limit", 10))
+
+        config = {
+            **DEFAULT_WORKER_CONFIG,
+            "worker_id": worker_id,
+            "mode": "run_once",
+            "features": {
+                "recover_stale_queue": True,
+                "run_scheduler_tick": not no_scheduler,
+                "poll_event_sources": not no_event_sources,
+                "process_queue": True,
+            },
+            "limits": {
+                **DEFAULT_WORKER_CONFIG.get("limits", {}),
+                "max_queue_items_per_cycle": queue_limit,
+            },
+        }
+        try:
+            result = run_worker_once(config, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        ok_flag = "OK" if result.get("ok") else "FAIL"
+        print(f"Worker run-once: {ok_flag}")
+        print(f"  Cycle ID:              {result.get('cycle_id', '')}")
+        print(f"  Duration:              {result.get('duration_ms', 0)}ms")
+        print(f"  Stale recovered:       {result.get('stale_queue_recovered', 0)}")
+        print(f"  Schedule events:       {result.get('schedule_events_enqueued', 0)}")
+        print(f"  Sources polled:        {result.get('event_sources_polled', 0)}")
+        print(f"  Queue processed:       {result.get('queue_items_processed', 0)}")
+        print(f"  Queue completed:       {result.get('queue_items_completed', 0)}")
+        print(f"  Queue failed:          {result.get('queue_items_failed', 0)}")
+        if result.get("warnings"):
+            for w in result["warnings"]:
+                print(f"  WARN: {w}")
+        if result.get("errors"):
+            for e in result["errors"]:
+                print(f"  ERROR: {e}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "run-loop":
+        worker_id = str(getattr(args, "worker_id", "local-worker-1") or "local-worker-1")
+        max_cycles = int(getattr(args, "max_cycles", 3))
+        sleep_seconds = float(getattr(args, "sleep_seconds", 5.0))
+        max_runtime_seconds = float(getattr(args, "max_runtime_seconds", 300.0))
+
+        config = {
+            **DEFAULT_WORKER_CONFIG,
+            "worker_id": worker_id,
+            "mode": "bounded_loop",
+            "cycle": {
+                "max_cycles": max_cycles,
+                "sleep_seconds": sleep_seconds,
+                "max_runtime_seconds": max_runtime_seconds,
+            },
+        }
+        try:
+            result = run_worker_loop(config, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        ok_flag = "OK" if result.get("ok") else "FAIL"
+        print(f"Worker run-loop: {ok_flag}")
+        print(f"  Cycles run:     {result.get('cycles_run', 0)} / {result.get('max_cycles', max_cycles)}")
+        print(f"  Stopped early:  {result.get('stopped_early', False)}")
+        if result.get("stop_reason"):
+            print(f"  Stop reason:    {result['stop_reason']}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "stop":
+        worker_id = str(getattr(args, "worker_id", "local-worker-1") or "local-worker-1")
+        try:
+            result = request_worker_stop(worker_id, runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if result.get("ok"):
+            print(f"Stop request written for worker {worker_id!r}.")
+        else:
+            print(f"Stop request failed: {result.get('error', 'unknown')}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "cycles":
+        limit = int(getattr(args, "limit", 10))
+        try:
+            cycles = _read_recent_cycles(rd, limit=limit)
+        except Exception as exc:
+            if use_json:
+                print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+                return 1
+            print(f"Error: {exc}")
+            return 1
+        if use_json:
+            print(json.dumps({"ok": True, "cycles": cycles, "count": len(cycles)}, indent=2, ensure_ascii=False))
+            return 0
+        print(f"Recent cycles ({len(cycles)}):")
+        for c in cycles:
+            ok_flag = "OK" if c.get("ok") else "FAIL"
+            print(
+                f"  [{ok_flag}] {c.get('cycle_id', '')}  "
+                f"dur={c.get('duration_ms', 0)}ms  "
+                f"q={c.get('queue_items_processed', 0)}/{c.get('queue_items_completed', 0)}  "
+                f"src={c.get('event_sources_polled', 0)}"
+            )
+        return 0
+
+    if cmd == "clear-stale-lock":
+        try:
+            result = clear_stale_worker_lock(runtime_data_dir=rd)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        if result.get("ok"):
+            cleared = result.get("cleared")
+            if cleared:
+                print(f"Cleared stale lock: worker={cleared.get('worker_id')!r} pid={cleared.get('pid')}")
+            else:
+                print(result.get("message", "No stale lock to clear."))
+        else:
+            print(f"Could not clear lock: {result.get('message') or result.get('error', 'unknown')}")
+        return 0 if result.get("ok") else 1
 
     return 2
 

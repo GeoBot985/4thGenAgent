@@ -124,3 +124,98 @@ class TestCliEventSourcesRouteAlignment(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# Spec 139 — External event source polling CLI tests
+# ---------------------------------------------------------------------------
+
+import sys
+import tempfile
+from io import StringIO as _StringIO
+from unittest.mock import patch as _patch
+
+
+def _run_esrc_cli(*args: str, rdd: str = "") -> tuple[int, str]:
+    from src.taskframe_cli import main as cli_main
+
+    argv = ["taskframe"] + list(args)
+    if rdd:
+        argv += ["--runtime-data-dir", rdd]
+    buf = _StringIO()
+    with _patch("sys.stdout", buf), _patch("sys.argv", argv):
+        try:
+            rc = cli_main()
+        except SystemExit as exc:
+            rc = int(exc.code) if exc.code is not None else 0
+    return rc, buf.getvalue()
+
+
+class TestSpec139EventSourcesStatus(unittest.TestCase):
+
+    def setUp(self):
+        import tempfile as _tmp
+        self._tmp = _tmp.TemporaryDirectory()
+        self.rdd = self._tmp.name
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_status_exits_zero(self):
+        rc, _ = _run_esrc_cli("event-sources", "status", rdd=self.rdd)
+        self.assertEqual(rc, 0)
+
+    def test_status_json_has_summary(self):
+        rc, out = _run_esrc_cli("event-sources", "status", "--json", rdd=self.rdd)
+        self.assertEqual(rc, 0)
+        data = json.loads(out)
+        self.assertIn("summary", data)
+
+    def test_list_sources_empty_json(self):
+        rc, out = _run_esrc_cli("event-sources", "list-sources", "--json", rdd=self.rdd)
+        self.assertEqual(rc, 0)
+        data = json.loads(out)
+        self.assertEqual(data["count"], 0)
+
+    def test_create_fixture_json(self):
+        rc, out = _run_esrc_cli("event-sources", "create-fixture", "cli139_src", "--json", rdd=self.rdd)
+        self.assertEqual(rc, 0)
+        data = json.loads(out)
+        self.assertTrue(data["ok"])
+
+    def test_poll_fixture_json(self):
+        _run_esrc_cli("event-sources", "create-fixture", "cli139_poll", rdd=self.rdd)
+        rc, out = _run_esrc_cli("event-sources", "poll", "cli139_poll", "--json", rdd=self.rdd)
+        self.assertEqual(rc, 0)
+        data = json.loads(out)
+        self.assertTrue(data["ok"])
+
+    def test_poll_enabled_json(self):
+        _run_esrc_cli("event-sources", "create-fixture", "cli139_enabled", rdd=self.rdd)
+        rc, out = _run_esrc_cli("event-sources", "poll-enabled", "--json", rdd=self.rdd)
+        self.assertEqual(rc, 0)
+
+    def test_history_json_empty(self):
+        rc, out = _run_esrc_cli("event-sources", "history", "--json", rdd=self.rdd)
+        self.assertEqual(rc, 0)
+        data = json.loads(out)
+        self.assertEqual(data["count"], 0)
+
+    def test_history_json_after_poll(self):
+        _run_esrc_cli("event-sources", "create-fixture", "cli139_hist", rdd=self.rdd)
+        _run_esrc_cli("event-sources", "poll", "cli139_hist", rdd=self.rdd)
+        rc, out = _run_esrc_cli("event-sources", "history", "--json", rdd=self.rdd)
+        self.assertEqual(rc, 0)
+        data = json.loads(out)
+        self.assertGreater(data["count"], 0)
+
+    def test_enable_and_disable(self):
+        _run_esrc_cli("event-sources", "create-fixture", "cli139_tgl", rdd=self.rdd)
+        rc_dis, _ = _run_esrc_cli("event-sources", "disable", "cli139_tgl", rdd=self.rdd)
+        self.assertEqual(rc_dis, 0)
+        rc_en, _ = _run_esrc_cli("event-sources", "enable", "cli139_tgl", rdd=self.rdd)
+        self.assertEqual(rc_en, 0)
+
+    def test_poll_nonexistent_returns_nonzero(self):
+        rc, _ = _run_esrc_cli("event-sources", "poll", "nonexistent_src_xyz", rdd=self.rdd)
+        self.assertNotEqual(rc, 0)
