@@ -291,6 +291,10 @@ def build_parser() -> argparse.ArgumentParser:
     readiness_gate.add_argument("--since", default="", help="ISO8601 timestamp; all evidence must be newer than this.")
     readiness_gate.add_argument("--json", action="store_true")
 
+    backend_security = sub.add_parser("backend-security", help="Show backend security posture status.")
+    backend_security.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    backend_security.add_argument("--json", action="store_true")
+
     sp = sub.add_parser("safety-pack", help="Build the safety verification pack and live-blocked evidence report.")
     sp.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     sp.add_argument("--manifest-dir", default="manifests")
@@ -714,6 +718,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_execute_approved(args)
     if args.command == "readiness-gate":
         return _run_readiness_gate(args)
+    if args.command == "backend-security":
+        return _run_backend_security(args)
     if args.command == "safety-pack":
         return _run_safety_pack(args)
     if args.command == "tools":
@@ -1677,6 +1683,43 @@ def _run_readiness_gate(args: argparse.Namespace) -> int:
         print(result.get("disclaimer", ""))
 
     return 0 if result.get("ok", False) else 1
+
+
+def _run_backend_security(args: argparse.Namespace) -> int:
+    from src.backend_security import BackendSecurityConfig, get_security_status, load_security_config
+
+    config: BackendSecurityConfig = load_security_config()
+    status = get_security_status(config, runtime_data_dir=str(args.runtime_data_dir))
+
+    if bool(args.json):
+        print(json.dumps(status, indent=2, ensure_ascii=False))
+    else:
+        ok_str = "PASS" if status.get("ok") else "FAIL"
+        print(f"Backend Security Status: {ok_str}")
+        print(f"Security Headers:        {'enabled' if status.get('security_headers_enabled') else 'disabled'}")
+        print(f"CORS:                    {'enabled' if status.get('cors_enabled') else 'disabled'}")
+        print(f"Allowed Origin Count:    {status.get('allowed_origin_count', 0)}")
+        print(f"Auth Required:           {'yes' if status.get('auth_required') else 'no'}")
+        print(f"Token Hash Count:        {status.get('token_hash_count', 0)}")
+        print(f"Token Record Count:      {status.get('token_record_count', 0)}")
+        print(f"Plaintext Dev Token:     {'allowed' if status.get('plaintext_dev_token_allowed') else 'blocked'}")
+        print(f"Expired Token Count:     {status.get('expired_token_count', 0)}")
+        print(f"Auth Scopes:             {status.get('known_scope_count', 0)} known, {status.get('mapped_route_count', 0)} mapped routes")
+        tokens_unknown = status.get("tokens_with_unknown_scopes", 0)
+        if tokens_unknown:
+            print(f"Tokens w/ Unknown Scope: {tokens_unknown}")
+        errors = status.get("errors", [])
+        warnings_list = status.get("warnings", [])
+        if errors:
+            print(f"Errors ({len(errors)}):")
+            for e in errors:
+                print(f"  - {e}")
+        if warnings_list:
+            print(f"Warnings ({len(warnings_list)}):")
+            for w in warnings_list:
+                print(f"  - {w}")
+
+    return 0 if status.get("ok", False) else 1
 
 
 def _run_safety_pack(args: argparse.Namespace) -> int:

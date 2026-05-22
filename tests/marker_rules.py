@@ -12,7 +12,10 @@ def markers_for_path(path: str | Path) -> set[str]:
     if "integration" in parts:
         markers.update({"integration", "live", "full_ci"})
 
-    if name.startswith("test_production_backend_"):
+    if (
+        name.startswith("test_production_backend_")
+        or name in {"test_backend_security.py", "test_backend_authz.py"}
+    ):
         markers.add("backend")
 
     if (

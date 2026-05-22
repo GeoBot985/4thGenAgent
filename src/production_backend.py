@@ -42,6 +42,13 @@ from src.backend.rate_limit import (
     make_auth_failure_key,
     require_rate_limit,
 )
+from src.backend_security import (
+    BackendSecurityConfig,
+    install_cors_middleware,
+    install_security_headers_middleware,
+    load_security_config,
+)
+from src.backend_authz import install_authz_middleware
 
 
 class ReportRequest(BaseModel):
@@ -68,6 +75,7 @@ def create_app(
     *,
     backend_auth_config_path: str | None = None,
     backend_hardening_config_path: str | None = None,
+    backend_security_config_path: str | None = None,
 ) -> FastAPI:
     """Create and return the production backend FastAPI application."""
     app = FastAPI(
@@ -79,15 +87,23 @@ def create_app(
     app.state.runtime_data_dir = runtime_data_dir
     app.state.backend_auth_config = load_backend_auth_config(backend_auth_config_path)
     app.state.backend_hardening_config = load_hardening_config(backend_hardening_config_path)
+    app.state.backend_security_config = load_security_config(backend_security_config_path)
     app.state.rate_limiter = FixedWindowRateLimiter()
 
     # Middleware order (last registered = outermost = runs first on requests):
-    #   1. body_size middleware  (outermost: runs first, rejects early)
-    #   2. request_id middleware (middle: generates request_id for audit)
-    #   3. auth middleware       (inner: resolves auth context)
+    #   1. authz middleware             (innermost: enforces token scopes after auth)
+    #   2. auth middleware              (resolves auth context, always calls call_next)
+    #   3. request_id middleware        (generates request_id for audit)
+    #   4. body_size middleware         (rejects oversized requests early)
+    #   5. cors middleware              (enforces CORS allowlist, handles OPTIONS)
+    #   6. security_headers middleware  (outermost: adds headers to ALL responses,
+    #                                   enforces token expiry before inner chain)
+    install_authz_middleware(app)
     install_backend_auth_middleware(app)
     install_audit_request_id_middleware(app)
     install_body_size_middleware(app)
+    install_cors_middleware(app)
+    install_security_headers_middleware(app)
 
     # ── Exception handlers ────────────────────────────────────────────────
 
@@ -187,9 +203,11 @@ def create_app(
     from src.backend.routes.audit import router as audit_router
     from src.backend.routes.events import router as events_router
     from src.backend.routes.health import router as health_router
+    from src.backend.routes.security import router as security_router
     app.include_router(health_router, prefix="/api/health")
     app.include_router(events_router, prefix="/api/events")
     app.include_router(audit_router, prefix="/api/audit")
+    app.include_router(security_router, prefix="/api/security/status")
 
     # ── GET /api/runs ─────────────────────────────────────────────────────
 

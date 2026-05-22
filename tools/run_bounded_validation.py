@@ -45,7 +45,7 @@ COMMANDS: tuple[ValidationCommand, ...] = (
     ValidationCommand(
         name="backend",
         description="Production backend API tests.",
-        paths=("tests/test_production_backend_*.py",),
+        paths=("tests/test_production_backend_*.py", "tests/test_backend_security.py", "tests/test_backend_authz.py"),
         local_marker="backend and not slow and not live and not full_ci",
         ci_marker="backend and not live and not full_ci",
         timeout_seconds=180,

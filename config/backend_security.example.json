@@ -1,0 +1,48 @@
+{
+  "backend_security": {
+    "enabled": true,
+
+    "cors": {
+      "enabled": true,
+      "allowed_origins": [
+        "http://127.0.0.1:7860",
+        "http://localhost:7860"
+      ],
+      "allow_credentials": false,
+      "allowed_methods": ["GET", "POST", "OPTIONS"],
+      "allowed_headers": [
+        "Authorization",
+        "Content-Type",
+        "X-TaskFrame-Request-ID"
+      ]
+    },
+
+    "security_headers": {
+      "enabled": true,
+      "content_security_policy": "default-src 'self'; frame-ancestors 'none'; object-src 'none'",
+      "x_content_type_options": "nosniff",
+      "x_frame_options": "DENY",
+      "referrer_policy": "no-referrer",
+      "permissions_policy": "camera=(), microphone=(), geolocation=()",
+      "cache_control": "no-store"
+    },
+
+    "auth": {
+      "token_required": true,
+      "token_hashes": [],
+      "allow_plaintext_dev_token": true,
+      "token_expiry_required": false
+    },
+
+    "token_records": [
+      {
+        "_comment": "Remove this example record and add your own hashed tokens.",
+        "token_hash": "sha256:REPLACE_WITH_OUTPUT_OF_hash_token_HELPER",
+        "label": "example-ci-token",
+        "created_at": "2026-01-01T00:00:00Z",
+        "expires_at": "2026-12-31T23:59:59Z",
+        "scopes": ["read"]
+      }
+    ]
+  }
+}
