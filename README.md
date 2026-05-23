@@ -252,6 +252,8 @@ See [docs/architecture_overview.md](docs/architecture_overview.md) for the detai
 | `taskframe golden-demo` | Run the full golden demo pack. |
 | `taskframe verify` | Run release verification. |
 | `taskframe runtime-store check` | Validate the runtime store layout and artifacts. |
+| `taskframe runtime-store status` | Show runtime-store health, locks, and versioned-artifact counts. |
+| `taskframe runtime-store cleanup-locks` | Remove expired runtime-store locks only. |
 | `taskframe runtime-store backup` | Export a safe runtime store backup archive. |
 | `taskframe monitor summary` | Inspect run health and operational monitoring status. |
 | `taskframe monitor report` | Write an operational health report. |

@@ -571,6 +571,28 @@ Validates the runtime store layout and reports corrupted or orphaned artifacts w
 - `--manifest-dir <path>`
 - `--json`
 
+### `taskframe runtime-store status`
+
+Shows runtime-store health, lock counts, and versioned-artifact summary.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store locks`
+
+Lists active and expired runtime store locks.
+
+- `--runtime-data-dir <path>`
+- `--json`
+
+### `taskframe runtime-store cleanup-locks`
+
+Removes expired runtime store locks only.
+
+- `--runtime-data-dir <path>`
+- `--json`
+
 ### `taskframe runtime-store index`
 
 Rebuilds the runtime store index from the current artifacts.

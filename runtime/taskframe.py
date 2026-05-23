@@ -147,6 +147,8 @@ def create_taskframe(
         audit=[],
         created_at=timestamp,
         updated_at=timestamp,
+        schema_version=1,
+        runtime_version=1,
     )
     add_audit_event(
         frame,
@@ -225,6 +227,8 @@ def to_dict(frame: TaskFrame) -> dict[str, Any]:
         "frame_id": frame.frame_id,
         "manifest_id": frame.manifest_id,
         "state": frame.state,
+        "schema_version": int(getattr(frame, "schema_version", 1) or 1),
+        "runtime_version": int(getattr(frame, "runtime_version", 1) or 1),
         "trigger": dict(frame.trigger),
         "raw_input": frame.raw_input,
         "inputs": dict(frame.inputs),

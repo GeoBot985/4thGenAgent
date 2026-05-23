@@ -436,6 +436,19 @@ def build_parser() -> argparse.ArgumentParser:
     runtime_store = sub.add_parser("runtime-store", help="Inspect, validate, back up, and assess the runtime store.")
     runtime_store_sub = runtime_store.add_subparsers(dest="runtime_store_command", required=True)
 
+    runtime_store_status = runtime_store_sub.add_parser("status", help="Show runtime store health, version, and lock summary.")
+    runtime_store_status.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    runtime_store_status.add_argument("--manifest-dir", default="manifests")
+    runtime_store_status.add_argument("--json", action="store_true")
+
+    runtime_store_locks = runtime_store_sub.add_parser("locks", help="List runtime store locks.")
+    runtime_store_locks.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    runtime_store_locks.add_argument("--json", action="store_true")
+
+    runtime_store_cleanup_locks = runtime_store_sub.add_parser("cleanup-locks", help="Remove expired runtime store locks.")
+    runtime_store_cleanup_locks.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    runtime_store_cleanup_locks.add_argument("--json", action="store_true")
+
     runtime_store_check = runtime_store_sub.add_parser("check", help="Validate the runtime store layout and artifacts.")
     runtime_store_check.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     runtime_store_check.add_argument("--manifest-dir", default="manifests")
@@ -3251,6 +3264,12 @@ def _run_profile_check(args: argparse.Namespace) -> int:
 
 def _run_runtime_store(args: argparse.Namespace) -> int:
     command = str(getattr(args, "runtime_store_command", "") or "")
+    if command == "status":
+        return _run_runtime_store_status(args)
+    if command == "locks":
+        return _run_runtime_store_locks(args)
+    if command == "cleanup-locks":
+        return _run_runtime_store_cleanup_locks(args)
     if command == "check":
         return _run_runtime_store_check(args)
     if command == "index":
@@ -3275,6 +3294,73 @@ def _runtime_store_profile_name() -> str:
         return str(profile.get("profile", "") or "demo")
     except Exception:
         return "demo"
+
+
+def _run_runtime_store_status(args: argparse.Namespace) -> int:
+    from runtime.runtime_store import load_runtime_store_index, validate_runtime_store
+
+    payload = validate_runtime_store(args.runtime_data_dir, manifest_dir=args.manifest_dir)
+    index = load_runtime_store_index(args.runtime_data_dir)
+    active_locks = payload.get("active_locks", [])
+    expired_locks = payload.get("expired_locks", [])
+    output = {
+        "ok": bool(payload.get("ok", False)),
+        "runtime_data_dir": str(args.runtime_data_dir),
+        "artifact_counts": payload.get("artifact_counts", {}),
+        "index_runtime_version": int(index.get("runtime_version", 1) or 1),
+        "taskframes_indexed": len(payload.get("taskframes", [])),
+        "locks_active": len(active_locks),
+        "locks_expired": len(expired_locks),
+        "versioned_artifacts": int(payload.get("versioned_artifacts", 0) or 0),
+        "warnings": [issue.get("message", "") for issue in payload.get("issues", []) if issue.get("severity") == "warning"],
+    }
+    if bool(args.json):
+        print(json.dumps(output, indent=2, ensure_ascii=False))
+    else:
+        print("Runtime Store: PASS" if output["ok"] else "Runtime Store: FAIL")
+        print(f"TaskFrames indexed: {output['taskframes_indexed']}")
+        print(f"Locks active: {output['locks_active']}")
+        print(f"Expired locks: {output['locks_expired']}")
+        print(f"Versioned artifacts: {output['versioned_artifacts']}")
+        warnings = output["warnings"]
+        print(f"Warnings: {', '.join(warnings) if warnings else 'none'}")
+    return 0 if output["ok"] else 1
+
+
+def _run_runtime_store_locks(args: argparse.Namespace) -> int:
+    from runtime.runtime_locking import list_runtime_locks, _lock_is_expired
+
+    locks = list_runtime_locks(args.runtime_data_dir)
+    active = []
+    expired = []
+    for record in locks:
+        if _lock_is_expired(record):
+            expired.append(record)
+            continue
+        active.append(record)
+    payload = {"ok": True, "locks": locks, "active_count": len(active), "expired_count": len(expired)}
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("Runtime Store Locks")
+        print(f"Active locks: {len(active)}")
+        print(f"Expired locks: {len(expired)}")
+        for record in locks:
+            print(f"- {record.get('resource_key', '')} ({record.get('lock_id', '')})")
+    return 0
+
+
+def _run_runtime_store_cleanup_locks(args: argparse.Namespace) -> int:
+    from runtime.runtime_locking import cleanup_expired_runtime_locks
+
+    payload = cleanup_expired_runtime_locks(args.runtime_data_dir)
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    else:
+        print("Runtime Store Cleanup Locks")
+        print(f"Removed: {len(payload.get('removed', []))}")
+        print(f"Active: {payload.get('active_count', 0)}")
+    return 0
 
 
 def _run_runtime_store_check(args: argparse.Namespace) -> int:

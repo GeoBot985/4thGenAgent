@@ -21,6 +21,8 @@ runtime_data/
 
 The store also continues to carry legacy run folders under `runtime_data/runs/` while the migration path is still in progress.
 
+The runtime store now also includes `runtime_data/locks/` for per-artifact lock files and `runtime_data/runtime_store_audit/` for lock/version audit events.
+
 ## Artifact Types
 
 - `taskframes/` holds TaskFrame JSON records.
@@ -35,6 +37,8 @@ The store also continues to carry legacy run folders under `runtime_data/runs/` 
 
 Each major artifact type should carry a stable path, a schema or version field where practical, created/updated timestamps, and a source frame or run reference.
 
+Mutable artifacts now carry `schema_version`, `runtime_version`, and `updated_at` so stale writes can be rejected safely.
+
 ## Validation
 
 Use:
@@ -42,6 +46,9 @@ Use:
 ```bash
 taskframe runtime-store check
 taskframe runtime-store index
+taskframe runtime-store status
+taskframe runtime-store locks
+taskframe runtime-store cleanup-locks
 ```
 
 Validation checks for:
@@ -55,6 +62,9 @@ Validation checks for:
 - reports that point at real runs
 - rebuildable indexes
 - corrupted JSON files
+- stale lock files
+
+`taskframe runtime-store status` summarizes the current versioned-artifact and lock health, `taskframe runtime-store locks` lists active and expired locks, and `taskframe runtime-store cleanup-locks` removes expired locks only.
 
 Validation reports corrupted paths and orphaned artifacts instead of crashing the full scan.
 

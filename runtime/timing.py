@@ -12,7 +12,7 @@ MIN_TIMEOUT_SECONDS = 0.001
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 
 def monotonic_now() -> float:

@@ -21,7 +21,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from src.backend.audit import install_audit_request_id_middleware, write_route_audit
 from src.backend.auth import BackendAuthError, backend_auth_error_response, install_backend_auth_middleware, require_backend_role
@@ -49,10 +49,19 @@ from src.backend_security import (
     load_security_config,
 )
 from src.backend_authz import install_authz_middleware
+from runtime.taskframe import to_dict as taskframe_to_dict
 
 
 class ReportRequest(BaseModel):
     rebuild: bool = False
+
+
+class ApprovalDecisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action_id: str | None = None
+    decision: str | None = None
+    expected_version: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -384,11 +393,11 @@ def create_app(
         "/api/runs/{frame_id}/pending-actions/{action_id}/approve",
         dependencies=[Depends(require_backend_role("operator")), Depends(require_rate_limit("pending_action_write"))],
     )
-    async def approve_pending_action(frame_id: str, action_id: str, request: Request) -> dict[str, Any]:
+    async def approve_pending_action(frame_id: str, action_id: str, request: Request, body: ApprovalDecisionRequest | None = None) -> dict[str, Any]:
         """Approve a pending action using the existing runtime approval function."""
         _validate_id(frame_id, "frame_id")
         _validate_id(action_id, "action_id")
-        return await _handle_approval(frame_id, action_id, "approve", request)
+        return await _handle_approval(frame_id, action_id, "approve", request, expected_version=getattr(body, "expected_version", None))
 
     # ── POST /api/runs/{frame_id}/pending-actions/{action_id}/reject ──────
 
@@ -396,51 +405,181 @@ def create_app(
         "/api/runs/{frame_id}/pending-actions/{action_id}/reject",
         dependencies=[Depends(require_backend_role("operator")), Depends(require_rate_limit("pending_action_write"))],
     )
-    async def reject_pending_action(frame_id: str, action_id: str, request: Request) -> dict[str, Any]:
+    async def reject_pending_action(frame_id: str, action_id: str, request: Request, body: ApprovalDecisionRequest | None = None) -> dict[str, Any]:
         """Reject a pending action using the existing runtime rejection function."""
         _validate_id(frame_id, "frame_id")
         _validate_id(action_id, "action_id")
-        return await _handle_approval(frame_id, action_id, "reject", request)
+        return await _handle_approval(frame_id, action_id, "reject", request, expected_version=getattr(body, "expected_version", None))
+
+    @app.post(
+        "/api/approvals/{action_id}/approve",
+        dependencies=[Depends(require_backend_role("operator")), Depends(require_rate_limit("pending_action_write"))],
+    )
+    async def approve_pending_action_alias(action_id: str, request: Request, body: ApprovalDecisionRequest | None = None) -> dict[str, Any]:
+        _validate_id(action_id, "action_id")
+        return await _handle_approval(None, action_id, "approve", request, expected_version=getattr(body, "expected_version", None))
+
+    @app.post(
+        "/api/approvals/{action_id}/reject",
+        dependencies=[Depends(require_backend_role("operator")), Depends(require_rate_limit("pending_action_write"))],
+    )
+    async def reject_pending_action_alias(action_id: str, request: Request, body: ApprovalDecisionRequest | None = None) -> dict[str, Any]:
+        _validate_id(action_id, "action_id")
+        return await _handle_approval(None, action_id, "reject", request, expected_version=getattr(body, "expected_version", None))
+
+    async def _resolve_frame_id_for_action(action_id: str, runtime_data_dir: str) -> str | None:
+        try:
+            from runtime.persistence import load_taskframe_dict
+        except Exception:
+            return None
+
+        runs_dir = Path(runtime_data_dir) / "runs"
+        if not runs_dir.is_dir():
+            return None
+
+        for taskframe_path in sorted(runs_dir.rglob("taskframe.json")):
+            if not taskframe_path.is_file():
+                continue
+            frame_dir = taskframe_path.parent.name
+            try:
+                payload = load_taskframe_dict(frame_dir, runtime_data_dir)
+            except Exception:
+                continue
+            for pending_action in payload.get("pending_actions", []) if isinstance(payload, dict) else []:
+                if isinstance(pending_action, dict) and str(pending_action.get("action_id", "")) == action_id:
+                    return frame_dir
+        return None
 
     async def _handle_approval(
-        frame_id: str,
+        frame_id: str | None,
         action_id: str,
         operation: str,
         request: Request,
+        *,
+        expected_version: int | None = None,
     ) -> dict[str, Any]:
         rd = request.app.state.runtime_data_dir
         audit_op = "pending_action.approve" if operation == "approve" else "pending_action.reject"
-        _target = {"frame_id": frame_id, "event_id": "", "action_id": action_id, "manifest_id": ""}
+        _target = {"frame_id": str(frame_id or ""), "event_id": "", "action_id": action_id, "manifest_id": ""}
         try:
-            from runtime.taskframe_reload import load_taskframe
-            from runtime.errors import TaskFrameReloadError
-            from runtime.persistence import persist_frame_update
+            from runtime.persistence import get_taskframe_path, load_taskframe_dict
             from runtime.approval import approve_action, reject_action
             from runtime.pending_actions import list_pending_actions, get_pending_action
+            from runtime.runtime_locking import RuntimeLockTimeoutError, mutate_runtime_json
+            from runtime.taskframe_reload import taskframe_from_dict
 
-            try:
-                frame = load_taskframe(frame_id, runtime_data_dir=rd)
-            except (TaskFrameReloadError, Exception):
+            resolved_frame_id = frame_id or await _resolve_frame_id_for_action(action_id, rd)
+            if not resolved_frame_id:
+                write_route_audit(request, audit_op, "failure", 404, target=_target, error=f"Pending action not found: {action_id}")
+                return JSONResponse(status_code=404, content={"ok": False, "frame_id": "", "action_id": action_id, "operation": operation, "error": f"Pending action not found: {action_id}"})
+
+            frame_id = resolved_frame_id
+            _target["frame_id"] = frame_id
+            path = get_taskframe_path(frame_id, rd)
+            if not path.is_file():
                 write_route_audit(request, audit_op, "failure", 404, target=_target, error=f"Run not found: {frame_id}")
                 return JSONResponse(status_code=404, content={"ok": False, "frame_id": frame_id, "action_id": action_id, "operation": operation, "error": f"Run not found: {frame_id}"})
 
-            try:
-                get_pending_action(frame, action_id)
-            except Exception:
-                write_route_audit(request, audit_op, "failure", 404, target=_target, error=f"Pending action not found: {action_id}")
-                return JSONResponse(status_code=404, content={"ok": False, "frame_id": frame_id, "action_id": action_id, "operation": operation, "error": f"Pending action not found: {action_id}"})
+            def _mutate(payload: dict[str, Any]) -> dict[str, Any]:
+                frame = taskframe_from_dict(payload)
+                try:
+                    get_pending_action(frame, action_id)
+                except Exception:
+                    return {
+                        "ok": False,
+                        "error": "APPROVAL_ALREADY_FINALIZED",
+                        "message": f"Pending action not found: {action_id}",
+                        "status_code": 404,
+                        "current_status": "",
+                        "current_version": int(payload.get("runtime_version", 1) or 1),
+                        "action_id": action_id,
+                    }
 
-            if operation == "approve":
-                frame = approve_action(frame, action_id, approved_by="api", reason="Approved via production API")
-            else:
-                frame = reject_action(frame, action_id, rejected_by="api", reason="Rejected via production API")
+                pending_action = next((item for item in frame.pending_actions if str(item.get("action_id", "")) == action_id), None)
+                if not isinstance(pending_action, dict):
+                    return {
+                        "ok": False,
+                        "error": "APPROVAL_ALREADY_FINALIZED",
+                        "message": f"Pending action not found: {action_id}",
+                        "status_code": 404,
+                        "current_status": "",
+                        "current_version": int(payload.get("runtime_version", 1) or 1),
+                        "action_id": action_id,
+                    }
+                current_status = str(pending_action.get("status", "")).upper()
+                if current_status != "PENDING_APPROVAL":
+                    return {
+                        "ok": False,
+                        "error": "APPROVAL_ALREADY_FINALIZED",
+                        "message": "Pending action already finalized.",
+                        "status_code": 409,
+                        "current_status": current_status,
+                        "current_version": int(payload.get("runtime_version", 1) or 1),
+                        "action_id": action_id,
+                    }
 
-            persist_frame_update(frame, rd)
+                if operation == "approve":
+                    mutated = approve_action(frame, action_id, approved_by="api", reason="Approved via production API")
+                else:
+                    mutated = reject_action(frame, action_id, rejected_by="api", reason="Rejected via production API")
+                return taskframe_to_dict(mutated)
+
+            result = mutate_runtime_json(
+                path,
+                _mutate,
+                expected_version=expected_version,
+                resource_key=f"taskframe/{frame_id}",
+                runtime_data_dir=rd,
+                owner="backend-api",
+                request_id=str(getattr(request.state, "request_id", "") or ""),
+            )
+            if not result.get("ok"):
+                status_code = int(result.get("status_code", 409 if result.get("error") in {"VERSION_CONFLICT", "APPROVAL_ALREADY_FINALIZED"} else 500))
+                if result.get("error") == "VERSION_CONFLICT":
+                    current_payload = load_taskframe_dict(frame_id, rd)
+                    current_frame = taskframe_from_dict(current_payload)
+                    current_action = next((item for item in current_frame.pending_actions if str(item.get("action_id", "")) == action_id), None)
+                    write_route_audit(request, audit_op, "failure", status_code, target=_target, error="Approval action changed since it was loaded.")
+                    return JSONResponse(
+                        status_code=status_code,
+                        content={
+                            "ok": False,
+                            "error": "VERSION_CONFLICT",
+                            "message": "Approval action changed since it was loaded.",
+                            "action_id": action_id,
+                            "expected_version": expected_version,
+                            "actual_version": result.get("actual_version"),
+                            "current_version": result.get("actual_version"),
+                            "current_status": str((current_action or {}).get("status", "")),
+                        },
+                    )
+                if result.get("error") == "APPROVAL_ALREADY_FINALIZED":
+                    write_route_audit(request, audit_op, "failure", status_code, target=_target, error="Pending action already finalized.")
+                    return JSONResponse(
+                        status_code=status_code,
+                        content={
+                            "ok": False,
+                            "error": "APPROVAL_ALREADY_FINALIZED",
+                            "message": "Pending action already finalized.",
+                            "action_id": action_id,
+                            "expected_version": expected_version,
+                            "actual_version": result.get("current_version"),
+                            "current_version": result.get("current_version"),
+                            "current_status": result.get("current_status", ""),
+                        },
+                    )
+                write_route_audit(request, audit_op, "error", status_code, target=_target, error=str(result.get("message") or result.get("error") or "Approval update failed."))
+                return JSONResponse(status_code=status_code, content={"ok": False, "frame_id": frame_id, "action_id": action_id, "operation": operation, "error": str(result.get("message") or result.get("error") or "Approval update failed.")})
+
+            frame = taskframe_from_dict(result["data"]) if isinstance(result.get("data"), dict) else taskframe_from_dict(load_taskframe_dict(frame_id, rd))
             pending = list_pending_actions(frame)
             executed = list(frame.executed_actions or [])
 
         except (_HardeningHTTPException, BackendRateLimitError):
             raise
+        except RuntimeLockTimeoutError as exc:
+            write_route_audit(request, audit_op, "failure", 409, target=_target, error=str(exc))
+            return JSONResponse(status_code=409, content={"ok": False, "error": "LOCK_TIMEOUT", "message": str(exc), "action_id": action_id, "frame_id": frame_id})
         except Exception as exc:
             write_route_audit(request, audit_op, "error", 500, target=_target, error=str(exc))
             return JSONResponse(status_code=500, content={"ok": False, "frame_id": frame_id, "action_id": action_id, "operation": operation, "error": str(exc)})

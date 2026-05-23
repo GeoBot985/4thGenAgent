@@ -23,6 +23,7 @@ def build_ledger_record(frame: TaskFrame) -> dict[str, Any]:
         "state": frame.state,
         "created_at": frame.created_at,
         "updated_at": frame.updated_at,
+        "runtime_version": int(getattr(frame, "runtime_version", 1) or 1),
         "trigger_source": str(trigger.get("source", "")),
         "trigger_event_type": str(trigger.get("event_type", "")),
         "step_count": summary["step_count"],

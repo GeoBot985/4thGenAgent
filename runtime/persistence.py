@@ -7,6 +7,7 @@ from typing import Any
 
 from .errors import TaskFrameNotFoundError, TaskFramePersistenceError
 from .models import TaskFrame
+from .runtime_versions import normalize_versioned_payload
 from .taskframe import build_taskframe_summary, json_safe, to_dict
 
 
@@ -91,7 +92,7 @@ def save_taskframe(
 ) -> Path:
     from .persistence_backends.backend_factory import get_persistence_backend
 
-    frame_data = to_dict(frame)
+    frame_data = normalize_versioned_payload(to_dict(frame), runtime_version=int(getattr(frame, "runtime_version", 1) or 1))
     frame_dir = ensure_dir(get_frame_dir(frame.frame_id, runtime_data_dir))
     write_json_atomic(get_taskframe_path(frame.frame_id, runtime_data_dir), frame_data)
     write_json_atomic(get_audit_path(frame.frame_id, runtime_data_dir), [json_safe(item) for item in frame.audit])
@@ -107,6 +108,14 @@ def persist_frame_update(
     frame: TaskFrame,
     runtime_data_dir: str | Path = DEFAULT_RUNTIME_DATA_DIR,
 ) -> Path:
+    taskframe_path = get_taskframe_path(frame.frame_id, runtime_data_dir)
+    try:
+        if taskframe_path.is_file():
+            frame.runtime_version = int(getattr(frame, "runtime_version", 1) or 1) + 1
+        else:
+            frame.runtime_version = int(getattr(frame, "runtime_version", 1) or 1)
+    except Exception:
+        pass
     frame_dir = save_taskframe(frame, runtime_data_dir)
     from .run_ledger import append_ledger_record
 

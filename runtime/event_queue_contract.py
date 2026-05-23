@@ -212,6 +212,8 @@ def build_durable_queue_record(
         "failure_category": "",
         "created_at": now,
         "updated_at": now,
+        "schema_version": 1,
+        "runtime_version": 1,
     }
 
 
@@ -220,4 +222,5 @@ def update_durable_queue_record(existing: dict[str, Any], **overrides: Any) -> d
     updated = dict(existing)
     updated.update(overrides)
     updated["updated_at"] = utc_now()
+    updated["runtime_version"] = int(updated.get("runtime_version", 1) or 1) + 1
     return updated

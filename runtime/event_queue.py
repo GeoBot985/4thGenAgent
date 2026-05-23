@@ -137,6 +137,8 @@ def build_queue_record(
         "dry_run": bool(dry_run),
         "created_at": existing_created_at or now,
         "updated_at": now,
+        "schema_version": 1,
+        "runtime_version": int(event_data.get("runtime_version", 1) or 1),
         "metadata": meta,
     }
 
@@ -146,6 +148,7 @@ def update_queue_record(existing: dict[str, Any], **overrides: Any) -> dict[str,
     updated = dict(existing)
     updated.update(overrides)
     updated["updated_at"] = utc_now()
+    updated["runtime_version"] = int(updated.get("runtime_version", 1) or 1) + 1
     meta_update = overrides.get("metadata")
     if isinstance(meta_update, dict):
         merged_meta = dict(existing.get("metadata") or {})

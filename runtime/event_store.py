@@ -30,6 +30,7 @@ from .event_queue import (
 )
 from .event_failure_reason import derive_event_failure_reason
 from .event_source_registry import validate_event_against_source_contract
+from .runtime_versions import bump_runtime_version, normalize_versioned_payload, read_runtime_version
 
 
 EVENTS_DIR_NAME = "events"
@@ -101,6 +102,9 @@ def upsert_event_index(event: dict[str, Any], runtime_data_dir: str | Path = "ru
             "first_seen_at": now,
             "last_seen_at": now,
             "seen_count": 1,
+            "schema_version": 1,
+            "runtime_version": 1,
+            "updated_at": now,
         }
     else:
         record["status"] = str(event.get("status", record.get("status", "")))
@@ -110,6 +114,9 @@ def upsert_event_index(event: dict[str, Any], runtime_data_dir: str | Path = "ru
         record["last_seen_at"] = now
         record["seen_count"] = int(record.get("seen_count", 0) or 0) + 1
         record.setdefault("first_seen_at", now)
+        record["schema_version"] = int(record.get("schema_version", 1) or 1)
+        record["runtime_version"] = int(record.get("runtime_version", 1) or 1) + 1
+        record["updated_at"] = now
     index[event_id] = record
     save_event_index(index, str(get_event_index_path(runtime_data_dir)))
     return record

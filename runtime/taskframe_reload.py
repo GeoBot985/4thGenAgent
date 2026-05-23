@@ -88,6 +88,8 @@ def taskframe_from_dict(data: dict[str, Any]) -> TaskFrame:
     steps_raw = data.get("steps")
     created_at = data.get("created_at")
     updated_at = data.get("updated_at")
+    schema_version = int(data.get("schema_version", 1) or 1)
+    runtime_version = int(data.get("runtime_version", 1) or 1)
 
     if not isinstance(frame_id, str) or not frame_id.strip():
         raise TaskFrameReloadError("TaskFrame frame_id is required.")
@@ -131,6 +133,8 @@ def taskframe_from_dict(data: dict[str, Any]) -> TaskFrame:
         created_at=created_at,
         updated_at=updated_at,
         attempts=list(data.get("attempts", [])) if isinstance(data.get("attempts", []), list) else [],
+        schema_version=schema_version,
+        runtime_version=runtime_version,
     )
     if frame.current_step_id is None and frame.steps:
         frame.current_step_id = frame.steps[0].step_id

@@ -13,6 +13,7 @@ from typing import Any, Iterable
 from .errors import RuntimeStoreBackupError, RuntimeStorePolicyError, RuntimeStoreRestoreError, RuntimeStoreValidationError
 from .manifest_loader import load_manifest_by_id
 from .persistence import ensure_dir, read_json, write_json_atomic
+from .runtime_locking import cleanup_expired_runtime_locks, list_runtime_locks
 from .taskframe import TASKFRAME_STATES, json_safe, utc_now
 
 
@@ -27,6 +28,7 @@ RUNTIME_STORE_DIRS = (
     "backups",
     "cleanup",
     "migrations",
+    "locks",
 )
 
 LEGACY_RUNTIME_DIRS = ("runs", "readiness", "portfolio_evidence")
@@ -131,9 +133,13 @@ def validate_runtime_store(
         "indexes": snapshot["indexes"],
         "cleanup": snapshot["cleanup"],
         "migrations": snapshot["migrations"],
+        "locks": snapshot["locks"],
         "orphaned_artifacts": snapshot["orphaned_artifacts"],
         "corrupted_paths": snapshot["corrupted_paths"],
         "issues": snapshot["issues"],
+        "versioned_artifacts": snapshot["versioned_artifacts"],
+        "active_locks": snapshot["active_locks"],
+        "expired_locks": snapshot["expired_locks"],
         "index_rebuildable": index_ok,
     }
 
@@ -147,9 +153,13 @@ def rebuild_runtime_store_index(
 ) -> dict[str, Any]:
     runtime_root = Path(runtime_data_dir)
     validation = _precomputed if _precomputed is not None else _collect_runtime_store_snapshot(runtime_root, manifest_dir=manifest_dir)
+    existing_index = load_runtime_store_index(runtime_root) if persist else {}
+    previous_version = int(existing_index.get("runtime_version", 0) or 0) if isinstance(existing_index, dict) else 0
     index = {
         "schema_version": 1,
+        "runtime_version": previous_version + 1 if previous_version > 0 else 1,
         "generated_at": utc_now(),
+        "updated_at": utc_now(),
         "runtime_data_dir": str(runtime_root),
         "artifact_counts": dict(validation.get("artifact_counts", {})),
         "ok": not any(item.get("severity") == "error" for item in validation.get("issues", [])),
@@ -162,10 +172,17 @@ def rebuild_runtime_store_index(
         "indexes": list(validation.get("indexes", [])),
         "cleanup": list(validation.get("cleanup", [])),
         "migrations": list(validation.get("migrations", [])),
+        "locks": list(validation.get("locks", [])),
     }
     if persist:
-        ensure_dir(get_runtime_store_index_path(runtime_root).parent)
-        write_json_atomic(get_runtime_store_index_path(runtime_root), index)
+        from .runtime_locking import with_runtime_lock
+
+        def _write_index() -> dict[str, Any]:
+            ensure_dir(get_runtime_store_index_path(runtime_root).parent)
+            write_json_atomic(get_runtime_store_index_path(runtime_root), index)
+            return index
+
+        with_runtime_lock("runtime_store/index", _write_index, owner="runtime-store", runtime_data_dir=runtime_root)
     return index
 
 
@@ -174,7 +191,9 @@ def load_runtime_store_index(runtime_data_dir: str | Path = "runtime_data") -> d
     if not path.is_file():
         return {
             "schema_version": 1,
+            "runtime_version": 1,
             "generated_at": "",
+            "updated_at": "",
             "runtime_data_dir": str(Path(runtime_data_dir)),
             "artifact_counts": {},
             "ok": False,
@@ -187,6 +206,7 @@ def load_runtime_store_index(runtime_data_dir: str | Path = "runtime_data") -> d
             "indexes": [],
             "cleanup": [],
             "migrations": [],
+            "locks": [],
         }
     data = read_json(path)
     return data if isinstance(data, dict) else {}
@@ -415,6 +435,7 @@ def _collect_runtime_store_snapshot(runtime_root: Path, *, manifest_dir: str | P
     evidence = _scan_evidence(runtime_root, taskframe_ids, issues=issues, corrupted_paths=corrupted_paths)
     tool_health = _scan_tool_health(runtime_root, issues=issues, corrupted_paths=corrupted_paths)
     indexes = _scan_indexes(runtime_root, issues=issues, corrupted_paths=corrupted_paths)
+    locks, active_locks, expired_locks = _scan_locks(runtime_root, issues=issues, corrupted_paths=corrupted_paths)
     cleanup = _scan_json_directory(runtime_root / "cleanup", "cleanup", issues=issues, corrupted_paths=corrupted_paths)
     migrations = _scan_json_directory(runtime_root / "migrations", "migration", issues=issues, corrupted_paths=corrupted_paths)
 
@@ -445,6 +466,7 @@ def _collect_runtime_store_snapshot(runtime_root: Path, *, manifest_dir: str | P
         "indexes": len(indexes),
         "cleanup": len(cleanup),
         "migrations": len(migrations),
+        "locks": len(locks),
     }
 
     return {
@@ -457,9 +479,13 @@ def _collect_runtime_store_snapshot(runtime_root: Path, *, manifest_dir: str | P
         "indexes": indexes,
         "cleanup": cleanup,
         "migrations": migrations,
+        "locks": locks,
+        "active_locks": active_locks,
+        "expired_locks": expired_locks,
         "orphaned_artifacts": orphaned,
         "corrupted_paths": corrupted_paths,
         "issues": issues,
+        "versioned_artifacts": _count_versioned_artifacts(taskframes, approval_packs, indexes, cleanup, migrations),
     }
 
 
@@ -473,7 +499,7 @@ def _validate_taskframe_payload(
     frame_id = str(payload.get("frame_id", "")).strip()
     manifest_id = str(payload.get("manifest_id", "")).strip()
     state = str(payload.get("state", "")).strip()
-    for field in ("frame_id", "manifest_id", "state", "created_at", "updated_at"):
+    for field in ("frame_id", "manifest_id", "state", "created_at", "updated_at", "schema_version", "runtime_version"):
         if not str(payload.get(field, "")).strip():
             _issue(issues, "missing_required_field", str(path), f"TaskFrame missing required field: {field}", "Repair the TaskFrame JSON or restore it from backup.", severity="error")
     if state and state not in TASKFRAME_STATES:
@@ -522,6 +548,8 @@ def _normalize_approval_pack(payload: dict[str, Any], path: Path) -> dict[str, A
         "manifest_id": str(payload.get("manifest_id", "")),
         "state": str(payload.get("state", "")),
         "schema_version": int(payload.get("schema_version", 1) or 1),
+        "runtime_version": int(payload.get("runtime_version", 1) or 1),
+        "updated_at": str(payload.get("updated_at", "") or ""),
     }
 
 
@@ -558,6 +586,8 @@ def _normalize_report_record(path: Path, issues: list[dict[str, Any]], corrupted
         "frame_id": frame_id,
         "report_type": path.stem,
         "schema_version": int(payload.get("schema_version", 1) or 1) if isinstance(payload, dict) else 1,
+        "runtime_version": int(payload.get("runtime_version", 1) or 1) if isinstance(payload, dict) else 1,
+        "updated_at": str(payload.get("updated_at", "") or "") if isinstance(payload, dict) else "",
     }
 
 
@@ -592,6 +622,72 @@ def _scan_evidence(
         artifacts.append(record)
         _validate_evidence_artifact(payload, path, taskframe_ids, issues)
     return artifacts
+
+
+def _scan_locks(
+    runtime_root: Path,
+    *,
+    issues: list[dict[str, Any]],
+    corrupted_paths: list[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    lock_dir = runtime_root / "locks"
+    records: list[dict[str, Any]] = []
+    active: list[dict[str, Any]] = []
+    expired: list[dict[str, Any]] = []
+    if not lock_dir.is_dir():
+        _issue(issues, "missing_folder", str(lock_dir), "Missing runtime store folder: locks", "Create the locks directory.", severity="warning")
+        return records, active, expired
+    for path in sorted(lock_dir.glob("*.lock")):
+        payload = _safe_read_json(path, issues, corrupted_paths)
+        if not isinstance(payload, dict):
+            continue
+        record = {
+            "path": str(path),
+            "resource_key": str(payload.get("resource_key", "")),
+            "lock_id": str(payload.get("lock_id", "")),
+            "owner": str(payload.get("owner", "")),
+            "pid": int(payload.get("pid", 0) or 0),
+            "created_at": str(payload.get("created_at", "") or ""),
+            "expires_at": str(payload.get("expires_at", "") or ""),
+            "schema_version": int(payload.get("schema_version", 1) or 1),
+            "runtime_version": int(payload.get("runtime_version", 1) or 1),
+        }
+        records.append(record)
+        if _lock_expired(record):
+            expired.append(record)
+            _issue(
+                issues,
+                "stale_lock",
+                str(path),
+                f"Expired runtime lock present: {record['resource_key']}",
+                "Run cleanup-locks to remove expired locks.",
+                severity="warning",
+            )
+        else:
+            active.append(record)
+    return records, active, expired
+
+
+def _lock_expired(record: dict[str, Any]) -> bool:
+    expires_at = str(record.get("expires_at", "") or "")
+    if not expires_at:
+        return True
+    try:
+        expiry = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    except Exception:
+        return True
+    return expiry <= datetime.now(timezone.utc)
+
+
+def _count_versioned_artifacts(*groups: list[dict[str, Any]]) -> int:
+    count = 0
+    for group in groups:
+        for item in group:
+            if not isinstance(item, dict):
+                continue
+            if int(item.get("runtime_version", 0) or 0) > 0:
+                count += 1
+    return count
 
 
 def _validate_evidence_artifact(

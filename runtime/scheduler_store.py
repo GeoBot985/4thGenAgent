@@ -88,6 +88,7 @@ def update_schedule(
     updated = dict(existing)
     updated.update(updates)
     updated["updated_at"] = utc_now()
+    updated["runtime_version"] = int(updated.get("runtime_version", 1) or 1) + 1
     ok, errors = validate_schedule(updated)
     if not ok:
         return {"ok": False, "error": "; ".join(errors)}
@@ -113,6 +114,7 @@ def delete_schedule(schedule_id: str, *, runtime_data_dir: Path | str = "runtime
     deleted["enabled"] = False
     deleted["deleted_at"] = utc_now()
     deleted["updated_at"] = utc_now()
+    deleted["runtime_version"] = int(deleted.get("runtime_version", 1) or 1) + 1
     backend.save_schedule_record(deleted)
     return {"ok": True}
 
@@ -149,6 +151,7 @@ def record_schedule_run(
         updated["last_run_at"] = run["created_at"]
         updated["last_run_status"] = status
         updated["updated_at"] = utc_now()
+        updated["runtime_version"] = int(updated.get("runtime_version", 1) or 1) + 1
         backend.save_schedule_record(updated)
 
     return run

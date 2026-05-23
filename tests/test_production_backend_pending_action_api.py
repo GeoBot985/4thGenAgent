@@ -215,17 +215,30 @@ class TestDoubleOperation:
         c.post(f"/api/runs/{frame.frame_id}/pending-actions/{action_id}/approve")
         # Second approve should fail (action no longer PENDING_APPROVAL)
         resp = c.post(f"/api/runs/{frame.frame_id}/pending-actions/{action_id}/approve")
-        assert resp.status_code in (400, 404, 500)
+        assert resp.status_code == 409
         data = resp.json()
         assert data["ok"] is False
+        assert data["error"] == "APPROVAL_ALREADY_FINALIZED"
+
+    def test_approve_stale_version_returns_409_conflict(self, client_with_pending):
+        c, frame, action_id, _ = client_with_pending
+        first = c.post(f"/api/runs/{frame.frame_id}/pending-actions/{action_id}/approve", json={"expected_version": 1})
+        second = c.post(f"/api/runs/{frame.frame_id}/pending-actions/{action_id}/approve", json={"expected_version": 1})
+        assert first.status_code == 200
+        assert second.status_code == 409
+        data = second.json()
+        assert data["ok"] is False
+        assert data["error"] == "VERSION_CONFLICT"
+        assert data["current_status"] == "APPROVED"
 
     def test_cannot_reject_already_approved(self, client_with_pending):
         c, frame, action_id, _ = client_with_pending
         c.post(f"/api/runs/{frame.frame_id}/pending-actions/{action_id}/approve")
         resp = c.post(f"/api/runs/{frame.frame_id}/pending-actions/{action_id}/reject")
-        assert resp.status_code in (400, 404, 500)
+        assert resp.status_code == 409
         data = resp.json()
         assert data["ok"] is False
+        assert data["error"] == "APPROVAL_ALREADY_FINALIZED"
 
 
 # ---------------------------------------------------------------------------

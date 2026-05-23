@@ -113,6 +113,8 @@ def build_schedule_record(
         "last_run_status": "",
         "created_at": now,
         "updated_at": now,
+        "schema_version": 1,
+        "runtime_version": 1,
     }
 
 

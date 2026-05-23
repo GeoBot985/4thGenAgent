@@ -364,6 +364,8 @@ class TaskFrame:
     created_at: str
     updated_at: str
     attempts: list[dict[str, Any]] = field(default_factory=list)
+    schema_version: int = 1
+    runtime_version: int = 1
 
 
 PENDING_ACTION_STATUSES = {
