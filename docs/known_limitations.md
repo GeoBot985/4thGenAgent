@@ -6,8 +6,6 @@ It is not presented as production-ready for unsupervised live operations.
 ## Default RC Limitations
 - The clean-clone release-candidate path uses deterministic fixtures and demo data.
 - Live side effects stay approval-gated or dry-run only.
-- Worker service mode is bounded and safe-by-default; the soak harness does not enable live writes, live sends, or optional RPA.
-- Stale-lock recovery is explicit, not automatic high availability.
 
 ## Optional Tooling Limitations
 - Optional browser-backed RPA remains outside the default RC path.
@@ -25,7 +23,6 @@ It is not presented as production-ready for unsupervised live operations.
 
 ## Not Production Claims
 - This release candidate is not a promise of unsupervised production operation.
-- Worker hardening improves evidence and recovery boundaries, but it is not a live-side-effect approval system.
 
 ## Deferred Work
 - Optional live integration profiles.

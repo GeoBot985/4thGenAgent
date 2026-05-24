@@ -138,6 +138,38 @@ Prints the current live execution safety summary.
 Exit codes:
 - `0` on success
 
+### `taskframe monitor snapshot`
+
+Builds the consolidated operational monitoring snapshot.
+
+- `--profile service`
+- `--runtime-data-dir runtime_data`
+- `--threshold-failed-frames 10`
+- `--heartbeat-stale-seconds 600`
+- `--max-cycle-duration-ms 1000`
+- `--write-report`
+- `--json`
+
+Exit codes:
+- `0` when the snapshot is generated successfully
+- non-zero when the snapshot is blocked or the monitor command fails
+
+### `taskframe monitor alerts`
+
+Shows the alert candidates from the consolidated snapshot.
+
+- `--profile service`
+- `--runtime-data-dir runtime_data`
+- `--threshold-failed-frames 10`
+- `--heartbeat-stale-seconds 600`
+- `--max-cycle-duration-ms 1000`
+- `--write-report`
+- `--json`
+
+Exit codes:
+- `0` when alert candidates are generated successfully
+- non-zero when the monitor command fails
+
 ### `taskframe pending-actions`
 
 Lists pending actions for the active frame or for a specific frame id.

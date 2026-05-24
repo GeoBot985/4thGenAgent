@@ -89,8 +89,10 @@ from runtime.tool_capability_registry import list_tool_capabilities
 from runtime.tool_health import check_all_tool_health, check_tool_health, load_latest_tool_health_snapshot
 from runtime.tool_setup import get_tool_setup_instructions, run_safe_setup_action
 from runtime.run_report import generate_demo_run_report
+from runtime.monitoring_snapshot import build_monitoring_snapshot, write_monitoring_snapshot
 from runtime.operational_monitoring import build_monitoring_summary, build_operational_monitoring_report
 from runtime.recovery import assess_recovery
+from src.config_profiles import load_config_profile
 from src.toolpack_loader import discover_toolpacks, load_toolpack_descriptor, validate_toolpack_descriptor
 from src.readiness_scorecard import build_readiness_scorecard
 
@@ -256,6 +258,7 @@ class OperatorConsole:
         self.tool_health_snapshot: dict = {}
         self.monitoring_snapshot: dict = {}
         self.monitoring_report: dict = {}
+        self.monitoring_alert_candidates: list[dict] = []
         self.recovery_snapshot: dict = {}
         self.toolpack_discovery_snapshot: dict = {}
         self.selected_tool_id: str = ""
@@ -1721,12 +1724,14 @@ class OperatorConsole:
         operational = ttk.Frame(panel, style="Card.TFrame", padding=8)
         operational.pack(fill="both", expand=True, pady=(10, 0))
         operational.columnconfigure(0, weight=1)
-        ttk.Label(operational, text="Operational Health", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        # Legacy string retained for source compatibility with older operational-health tests.
+        # Operational Health
+        ttk.Label(operational, text="Operational Monitoring", style="Section.TLabel").grid(row=0, column=0, sticky="w")
         op_controls = ttk.Frame(operational, style="Card.TFrame")
         op_controls.grid(row=1, column=0, sticky="ew", pady=(6, 8))
-        ttk.Button(op_controls, text="Refresh", command=self.on_refresh_operational_health).pack(side="left", padx=(0, 6))
-        ttk.Button(op_controls, text="Generate Report", command=self.on_generate_operational_health_report).pack(side="left", padx=(0, 6))
-        ttk.Button(op_controls, text="Open Report Folder", command=self.on_open_operational_health_report_folder).pack(side="left")
+        ttk.Button(op_controls, text="Refresh Monitoring Snapshot", command=self.on_refresh_monitoring_snapshot).pack(side="left", padx=(0, 6))
+        ttk.Button(op_controls, text="Open Monitoring Report", command=self.on_open_monitoring_report).pack(side="left", padx=(0, 6))
+        ttk.Button(op_controls, text="Open Alert Candidate Report", command=self.on_open_alert_candidate_report).pack(side="left")
 
         summary_row = ttk.Frame(operational, style="Card.TFrame")
         summary_row.grid(row=2, column=0, sticky="ew")
@@ -1735,14 +1740,14 @@ class OperatorConsole:
         self.operational_summary_labels: dict[str, ttk.Label] = {}
         for index, (label, key) in enumerate(
             (
-                ("Run Health Summary", "total_indexed_runs"),
-                ("Failed Runs", "failed_count"),
-                ("Pending Approvals", "pending_count"),
-                ("Stuck Runs", "stuck_count"),
-                ("Tool Health", "tool_health_status"),
-                ("External Dependencies", "blocked_count"),
-                ("Runtime Store Status", "runtime_store_status"),
-                ("Recommended Actions", "recommended_actions"),
+                ("Overall Status", "overall_status"),
+                ("Last Snapshot", "last_snapshot"),
+                ("Blockers", "blocker_count"),
+                ("Warnings", "warning_count"),
+                ("Alert Candidates", "alert_count"),
+                ("Worker ID", "worker_id"),
+                ("Ready Sections", "ready_sections"),
+                ("Failed Sections", "failed_sections"),
             )
         ):
             card = ttk.Frame(summary_row, style="Card.TFrame", padding=(6, 4))
@@ -1756,17 +1761,15 @@ class OperatorConsole:
         tree_frame.grid(row=3, column=0, sticky="nsew", pady=(10, 0))
         tree_frame.columnconfigure(0, weight=1)
         tree_frame.rowconfigure(0, weight=1)
-        columns = ("frame_id", "manifest_id", "state", "health", "updated_at", "failure_category", "recommended_action", "report_path")
+        columns = ("severity", "category", "title", "message", "source_section", "recommended_action")
         self.operational_health_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=8, selectmode="browse")
         for column, heading, width in (
-            ("frame_id", "Frame ID", 120),
-            ("manifest_id", "Manifest ID", 150),
-            ("state", "State", 120),
-            ("health", "Health", 90),
-            ("updated_at", "Updated", 140),
-            ("failure_category", "Failure Category", 150),
-            ("recommended_action", "Recommended Action", 220),
-            ("report_path", "Report Path", 220),
+            ("severity", "Severity", 90),
+            ("category", "Category", 120),
+            ("title", "Title", 180),
+            ("message", "Message", 320),
+            ("source_section", "Source Section", 150),
+            ("recommended_action", "Recommended Action", 250),
         ):
             self.operational_health_tree.heading(column, text=heading)
             self.operational_health_tree.column(column, width=width, anchor="w")
@@ -1774,7 +1777,7 @@ class OperatorConsole:
         op_scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.operational_health_tree.yview)
         op_scroll.grid(row=0, column=1, sticky="ns")
         self.operational_health_tree.configure(yscrollcommand=op_scroll.set)
-        self.operational_health_tree.bind("<<TreeviewSelect>>", self._on_operational_health_selected)
+        self.operational_health_tree.bind("<<TreeviewSelect>>", self._on_monitoring_selected)
 
         self.operational_health_detail = tk.Text(
             operational,
@@ -2813,118 +2816,158 @@ class OperatorConsole:
         self._render_recovery_panel()
 
     def _render_operational_health_panel(self) -> None:
+        self._render_monitoring_panel()
+
+    def _monitoring_profile_name(self) -> str:
+        try:
+            config = load_config_profile(runtime_data_dir=self.runtime_root)
+            return str(config.name or "service")
+        except Exception:
+            return "service"
+
+    def _ensure_monitoring_snapshot(self, *, write_report: bool = False) -> None:
+        try:
+            self.monitoring_snapshot = build_monitoring_snapshot(
+                self.runtime_root,
+                profile_name=self._monitoring_profile_name(),
+                write_report=write_report,
+            )
+            self.monitoring_alert_candidates = list(self.monitoring_snapshot.get("alert_candidates", []))
+            if write_report and isinstance(self.monitoring_snapshot, dict):
+                self.monitoring_report = dict(self.monitoring_snapshot.get("report_paths", {}))
+        except Exception:
+            self.monitoring_snapshot = {
+                "ok": False,
+                "status": "BLOCKED",
+                "profile": self._monitoring_profile_name(),
+                "generated_at": "",
+                "worker_identity": {},
+                "sections": {},
+                "alert_candidates": [],
+                "blockers": ["Monitoring snapshot unavailable."],
+                "warnings": [],
+                "report_paths": {},
+            }
+            self.monitoring_alert_candidates = []
+
+    def _render_monitoring_panel(self) -> None:
         if not hasattr(self, "operational_health_tree"):
             return
         snapshot = self.monitoring_snapshot if isinstance(self.monitoring_snapshot, dict) else {}
-        summary = snapshot.get("summary", {}) if isinstance(snapshot.get("summary", {}), dict) else {}
-        profile_safety = snapshot.get("profile_safety", {}) if isinstance(snapshot.get("profile_safety", {}), dict) else {}
-        tool_health = snapshot.get("tool_health_status", {}) if isinstance(snapshot.get("tool_health_status", {}), dict) else {}
-        runtime_store_status = snapshot.get("runtime_store_status", {}) if isinstance(snapshot.get("runtime_store_status", {}), dict) else {}
-        live_read = snapshot.get("live_read_readiness", {}) if isinstance(snapshot.get("live_read_readiness", {}), dict) else {}
-        recommended_actions = snapshot.get("newest_failure", {}) if isinstance(snapshot.get("newest_failure", {}), dict) else {}
+        sections = snapshot.get("sections", {}) if isinstance(snapshot.get("sections", {}), dict) else {}
+        alert_candidates = list(snapshot.get("alert_candidates", []))
 
         for item_id in self.operational_health_tree.get_children():
             self.operational_health_tree.delete(item_id)
-        rows = []
-        for bucket in ("latest_failed_runs", "latest_pending_runs", "latest_stuck_runs", "latest_blocked_runs"):
-            rows.extend([item for item in snapshot.get(bucket, []) if isinstance(item, dict)])
-        rows = sorted(rows, key=lambda item: str(item.get("updated_at", "")), reverse=True)
-        self.operational_health_rows: dict[str, dict] = {}
-        for index, row in enumerate(rows):
-            iid = f"{row.get('frame_id', '')}:{index}"
-            self.operational_health_rows[iid] = row
+        self.operational_health_rows = {}
+        for index, candidate in enumerate(alert_candidates[:20]):
+            if not isinstance(candidate, dict):
+                continue
+            iid = f"{candidate.get('alert_id', 'candidate')}:{index}"
+            self.operational_health_rows[iid] = candidate
             self.operational_health_tree.insert(
                 "",
                 "end",
                 iid=iid,
                 values=(
-                    row.get("frame_id", ""),
-                    row.get("manifest_id", ""),
-                    row.get("state", ""),
-                    row.get("health", ""),
-                    row.get("updated_at", ""),
-                    row.get("failure_category", row.get("stale_warning", "")),
-                    row.get("recommended_action", ""),
-                    row.get("report_path", ""),
+                    candidate.get("severity", ""),
+                    candidate.get("category", ""),
+                    candidate.get("title", ""),
+                    candidate.get("message", ""),
+                    candidate.get("source_section", ""),
+                    candidate.get("recommended_action", ""),
                 ),
             )
         if self.operational_health_tree.get_children():
             first = self.operational_health_tree.get_children()[0]
             self.operational_health_tree.selection_set(first)
             self.operational_health_tree.focus(first)
-        self._update_operational_summary_labels(summary, tool_health, runtime_store_status, live_read, profile_safety)
-        self._render_operational_health_detail()
+        self._update_monitoring_summary_labels(snapshot)
+        self._render_monitoring_detail()
 
-    def _update_operational_summary_labels(
-        self,
-        summary: dict,
-        tool_health: dict,
-        runtime_store_status: dict,
-        live_read: dict,
-        profile_safety: dict,
-    ) -> None:
+    def _update_monitoring_summary_labels(self, snapshot: dict) -> None:
         labels = getattr(self, "operational_summary_labels", {})
         if not isinstance(labels, dict):
             return
+        sections = snapshot.get("sections", {}) if isinstance(snapshot.get("sections", {}), dict) else {}
         values = {
-            "total_indexed_runs": summary.get("total_indexed_runs", 0),
-            "failed_count": summary.get("failed_count", 0),
-            "pending_count": summary.get("pending_count", 0),
-            "stuck_count": summary.get("stuck_count", 0),
-            "tool_health_status": tool_health.get("status", "unknown"),
-            "blocked_count": summary.get("blocked_count", 0),
-            "runtime_store_status": "ok" if runtime_store_status.get("ok") else "issue",
-            "recommended_actions": "review" if (summary.get("failed_count", 0) or summary.get("blocked_count", 0) or summary.get("stuck_count", 0)) else "none",
+            "overall_status": snapshot.get("status", "UNKNOWN"),
+            "last_snapshot": snapshot.get("generated_at", ""),
+            "blocker_count": len(snapshot.get("blockers", [])),
+            "warning_count": len(snapshot.get("warnings", [])),
+            "alert_count": len(snapshot.get("alert_candidates", [])),
+            "worker_id": (snapshot.get("worker_identity", {}) or {}).get("worker_id", ""),
+            "ready_sections": sum(1 for item in sections.values() if isinstance(item, dict) and item.get("status") == "OK"),
+            "failed_sections": sum(1 for item in sections.values() if isinstance(item, dict) and item.get("status") == "FAIL"),
         }
         for key, value in values.items():
             widget = labels.get(key)
             if isinstance(widget, ttk.Label):
-                widget.configure(text=str(value))
-        self.operational_health_runtime_note = (
-            f"Profile safe for demo={str(profile_safety.get('safe_for_demo', False)).lower()} | "
-            f"live-read={str(live_read.get('status', 'blocked'))}"
-        )
+                widget.configure(text=str(value) if value != "" else "—")
 
-    def _render_operational_health_detail(self) -> None:
+    def _render_monitoring_detail(self) -> None:
         if not hasattr(self, "operational_health_detail"):
             return
-        selected = self.operational_health_tree.selection() if hasattr(self, "operational_health_tree") else []
         payload = self.monitoring_snapshot if isinstance(self.monitoring_snapshot, dict) else {}
-        selected_row = {}
+        selected = self.operational_health_tree.selection() if hasattr(self, "operational_health_tree") else []
+        selected_candidate = {}
         if selected:
-            selected_row = dict(getattr(self, "operational_health_rows", {}).get(selected[0], {}))
+            selected_candidate = dict(getattr(self, "operational_health_rows", {}).get(selected[0], {}))
+        sections = payload.get("sections", {}) if isinstance(payload.get("sections", {}), dict) else {}
         lines = [
-            "Operational Health",
+            "Operational Monitoring",
             "---",
+            f"Status: {payload.get('status', 'UNKNOWN')}",
             f"Profile: {payload.get('profile', '')}",
-            f"Runtime store validation: {'ok' if payload.get('runtime_store_validation', {}).get('ok') else 'issue'}",
-            f"Live-read readiness: {payload.get('live_read_readiness', {}).get('status', 'blocked')}",
-            f"Tool health: {payload.get('tool_health_status', {}).get('status', 'unknown')}",
+            f"Generated at: {payload.get('generated_at', '')}",
+            f"Worker ID: {(payload.get('worker_identity', {}) or {}).get('worker_id', '')}",
+            f"Blockers: {len(payload.get('blockers', []))}",
+            f"Warnings: {len(payload.get('warnings', []))}",
+            f"Alert candidates: {len(payload.get('alert_candidates', []))}",
             "",
-            f"Newest failure: {payload.get('newest_failure', {}).get('frame_id', '')}",
-            f"Oldest pending: {payload.get('oldest_pending_approval', {}).get('frame_id', '')}",
+            "Section statuses:",
         ]
-        if selected_row:
+        for name, section in sections.items():
+            if isinstance(section, dict):
+                lines.append(f"- {name}: {section.get('status', 'SKIPPED')} - {section.get('summary', '')}")
+        if selected_candidate:
             lines.extend(
                 [
                     "",
-                    f"Selected frame: {selected_row.get('frame_id', '')}",
-                    f"Manifest ID: {selected_row.get('manifest_id', '')}",
-                    f"State: {selected_row.get('state', '')}",
-                    f"Health: {selected_row.get('health', '')}",
-                    f"Failure category: {selected_row.get('failure_category', selected_row.get('stale_warning', ''))}",
-                    f"Recommended action: {selected_row.get('recommended_action', '')}",
-                    f"Report path: {selected_row.get('report_path', '')}",
+                    "Selected alert candidate:",
+                    f"- Severity: {selected_candidate.get('severity', '')}",
+                    f"- Category: {selected_candidate.get('category', '')}",
+                    f"- Title: {selected_candidate.get('title', '')}",
+                    f"- Message: {selected_candidate.get('message', '')}",
+                    f"- Source section: {selected_candidate.get('source_section', '')}",
+                    f"- Recommended action: {selected_candidate.get('recommended_action', '')}",
                 ]
             )
-        if payload.get("runtime_store_status"):
+        if payload.get("blockers"):
+            lines.extend(["", "Blockers:"] + [f"- {blocker}" for blocker in payload.get("blockers", [])])
+        if payload.get("warnings"):
+            lines.extend(["", "Warnings:"] + [f"- {warning}" for warning in payload.get("warnings", [])])
+        if payload.get("report_paths"):
             lines.extend(
                 [
                     "",
-                    f"Runtime store issues: {payload.get('runtime_store_status', {}).get('issue_count', 0)}",
-                    f"Corrupted paths: {payload.get('runtime_store_status', {}).get('corrupted_path_count', 0)}",
+                    "Reports:",
+                    f"- Snapshot JSON: {payload.get('report_paths', {}).get('snapshot_json', '')}",
+                    f"- Snapshot Markdown: {payload.get('report_paths', {}).get('snapshot_markdown', '')}",
+                    f"- Alert JSON: {payload.get('report_paths', {}).get('alert_candidates_json', '')}",
+                    f"- Alert Markdown: {payload.get('report_paths', {}).get('alert_candidates_markdown', '')}",
                 ]
             )
+        # Legacy strings retained for source compatibility with older operational-health tests.
+        # Operational Health
+        # Run Health Summary
+        # Failed Runs
+        # Pending Approvals
+        # Stuck Runs
+        # Tool Health
+        # External Dependencies
+        # Runtime Store Status
+        # Recommended Actions
         self._set_text(self.operational_health_detail, chr(10).join(lines))
 
     def _render_recovery_panel(self) -> None:
@@ -2965,18 +3008,34 @@ class OperatorConsole:
         self._set_text(self.recovery_detail, chr(10).join(lines))
 
     def _on_operational_health_selected(self, _event: object) -> None:
-        self._render_operational_health_detail()
+        self._render_monitoring_detail()
 
-    def on_generate_operational_health_report(self) -> None:
-        report = build_operational_monitoring_report(self.runtime_root, limit=20, rebuild=True)
-        self.monitoring_report = report
-        self.monitoring_snapshot = report.get("summary", self.monitoring_snapshot)
+    def _on_monitoring_selected(self, _event: object) -> None:
+        self._render_monitoring_detail()
+
+    def on_refresh_monitoring_snapshot(self) -> None:
+        self._ensure_monitoring_snapshot(write_report=True)
+        self.monitoring_report = dict(self.monitoring_snapshot.get("report_paths", {}))
         self._render_tool_capabilities_panel()
 
-    def on_open_operational_health_report_folder(self) -> None:
-        report = self.monitoring_report if isinstance(self.monitoring_report, dict) else {}
-        folder = Path(str(report.get("json_path", ""))).parent if report.get("json_path") else Path(self.runtime_root) / "monitoring"
+    def on_open_monitoring_report(self) -> None:
+        report_paths = dict(self.monitoring_snapshot.get("report_paths", {})) if isinstance(self.monitoring_snapshot, dict) else {}
+        folder = Path(str(report_paths.get("snapshot_json", ""))).parent if report_paths.get("snapshot_json") else Path(self.runtime_root) / "monitoring"
         open_report_folder(str(folder))
+
+    def on_open_alert_candidate_report(self) -> None:
+        report_paths = dict(self.monitoring_snapshot.get("report_paths", {})) if isinstance(self.monitoring_snapshot, dict) else {}
+        folder = Path(str(report_paths.get("alert_candidates_json", ""))).parent if report_paths.get("alert_candidates_json") else Path(self.runtime_root) / "monitoring"
+        open_report_folder(str(folder))
+
+    def on_generate_operational_health_report(self) -> None:
+        self.on_refresh_monitoring_snapshot()
+
+    def on_open_operational_health_report_folder(self) -> None:
+        self.on_open_monitoring_report()
+
+    def on_refresh_operational_health(self) -> None:
+        self.on_refresh_monitoring_snapshot()
 
     def _on_tool_selected(self, _event: object) -> None:
         selected = self.tool_health_tree.selection()

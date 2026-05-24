@@ -1,96 +1,85 @@
 # Operational Monitoring
 
-Operational monitoring is the read-only inspection layer on top of runtime artifacts, TaskFrames, approvals, evidence, tool health, and runtime-store validation. It is meant to help a controlled pilot operator quickly see what is healthy, failed, pending, stuck, or blocked.
+Operational monitoring is the read-only runtime snapshot layer for TaskFrame. It consolidates worker status, worker hardening, soak evidence, scheduler state, queue state, event-source state, recovery state, tool health, manifest health, live-safety status, pending-action risk, runtime profile safety, and storage health into one operator-facing report.
 
-## Run Health Classifications
+## Snapshot Status
 
-The canonical run-health model uses these classifications:
+The consolidated snapshot uses four overall statuses:
 
-- `healthy` - completed successfully or no operator action is needed
-- `pending` - waiting for approval or input
-- `warning` - completed with non-blocking issues
-- `failed` - runtime, validation, tool, or completion failure
-- `stuck` - the run has not advanced within the stale threshold
-- `blocked` - external auth, dependency, or profile-policy problems prevent progress
+- `HEALTHY` - no blockers and no high-severity alert candidates
+- `DEGRADED` - warnings exist, but service operation can continue
+- `ATTENTION_REQUIRED` - manual review is needed before relying on service mode
+- `BLOCKED` - the runtime should not run as a controlled service
 
-## Commands
+## Snapshot Commands
 
 Use:
 
 ```bash
-taskframe monitor summary
-taskframe monitor failed
-taskframe monitor pending
-taskframe monitor stuck
-taskframe monitor blocked
-taskframe monitor tools
-taskframe monitor report
+taskframe monitor snapshot --profile service --json
+taskframe monitor snapshot --profile service --write-report --json
+taskframe monitor alerts --profile service --json
 ```
 
-All commands support `--runtime-data-dir`, `--profile`, `--limit`, `--rebuild`, and `--json`.
+The snapshot and alert commands are read-only. They do not run worker cycles, clear locks, execute pending actions, or send alerts.
 
-## Stuck-Run Detection
+## Sections
 
-Stale detection is threshold-based and does not auto-recover anything.
+The snapshot includes these sections:
 
-- `RUNNING` older than the configured threshold becomes `stuck`
-- `WAITING_FOR_INPUT` older than the configured threshold stays `pending` but gets a stale warning
-- `WAITING_FOR_EXECUTE` older than the configured threshold stays `pending` but gets a stale approval warning
-- repeated external auth or dependency failures are surfaced as `blocked`
+- `service_preflight`
+- `worker`
+- `worker_hardening`
+- `worker_soak`
+- `scheduler`
+- `queue`
+- `event_sources`
+- `recovery`
+- `tool_health`
+- `manifest_health`
+- `live_safety`
+- `pending_actions`
+- `runtime_profile`
+- `storage`
 
-The thresholds are:
+Each section reports:
 
-```json
-{
-  "running_stale_minutes": 10,
-  "waiting_for_input_stale_hours": 24,
-  "waiting_for_execute_stale_days": 7,
-  "external_dependency_retry_window_minutes": 30
-}
-```
+- `ok`
+- `status`
+- `summary`
+- `details`
+- `warnings`
+- `errors`
 
-## Tool Health
+## What It Checks
 
-Monitoring reuses the existing safe tool-health snapshot and does not introduce live side effects. The aggregated tool-health status is interpreted as:
+The snapshot is designed to answer one question: can this runtime be configured and started as a controlled worker service without accidentally enabling live side effects or unsafe external tools?
 
-- `ready`
-- `needs_auth`
-- `missing_dependency`
-- `misconfigured`
-- `failing`
-- `disabled_optional`
-- `unknown`
+It checks:
 
-For pilot readiness, live reads are only meaningful when the active profile allows them and the relevant read tools are healthy.
+- service preflight readiness
+- worker identity presence
+- stale or duplicate worker lock risk
+- queue, scheduler, and event-source health
+- manifest health and tool health
+- recovery risk for failed TaskFrames
+- pending-action live-read risk
+- runtime profile safety
+- storage integrity
 
-## What Monitoring Does Not Do
+## What It Does Not Do
 
-Monitoring does not do automatically:
+Operational monitoring does not:
 
-- retry failed runs automatically
-- recover stuck runs automatically
-- send alerts or email notifications
-- run background daemons
-- perform destructive cleanup
-- enable live writes, sends, or deletes
+- send email, Slack, Teams, or webhook alerts
+- run Prometheus/Grafana integrations
+- auto-remediate anything
+- auto-clear stale locks
+- execute live writes or live sends
+- start background daemons
 
-## Controlled Pilot Readiness
+## Production Readiness Boundary
 
-This layer supports controlled pilot readiness by making failure visibility and runtime discipline explicit. It is not full production monitoring and it does not claim production-grade incident response.
+This snapshot improves the evidence boundary for production-style operation, but it does not claim full production readiness. The runtime still keeps live side effects blocked in service mode and relies on explicit operator review for alert candidates.
 
-## Pilot Readiness Integration
-
-Operational monitoring is validated as part of the pilot readiness gate. The gate checks:
-
-- Monitoring report can be generated without error
-- Monitoring documentation is present
-
-See [pilot_readiness.md](pilot_readiness.md) for the full pilot readiness gate documentation.
-
-## Recovery Cross-Reference
-
-Monitoring and recovery work together:
-
-- monitoring tells the operator which runs are healthy, failed, pending, stuck, or blocked
-- recovery tells the operator whether a specific run is retryable or resumable
-- both remain dry-run and operator-controlled
+See [alert_candidates.md](alert_candidates.md) for the alert-candidate model.

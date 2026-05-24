@@ -14,15 +14,16 @@ The roadmap below shows the next hardening steps after the `service` runtime pro
 
 - Spec 151 established the service runtime profile boundary.
 - Spec 152 added worker hardening, stale-lock recovery evidence, and the bounded soak harness.
+- Spec 153 added the consolidated operational monitoring snapshot and alert-candidate pack.
 - These changes improve operational evidence and failure recovery without enabling live side effects.
 
 ## Next Hardening Specs
 
-1. Observability and service health reporting
-2. Live-read proof and live-read governance
-3. Live-side-effect governance and approval controls
-4. Worker identity propagation and audit coverage
-5. Deployment installation boundary
+1. Live-read proof and live-read governance
+2. Live-side-effect governance and approval controls
+3. Worker identity propagation and audit coverage
+4. Deployment installation boundary
+5. Alert delivery and incident workflow integration
 
 ## Deferred Work
 

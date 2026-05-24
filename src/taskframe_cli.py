@@ -545,6 +545,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     monitor = sub.add_parser("monitor", help="Inspect operational monitoring and run health.")
     monitor_sub = monitor.add_subparsers(dest="monitor_command", required=True)
+    monitor_snapshot = monitor_sub.add_parser("snapshot", help="Build the consolidated operational monitoring snapshot.")
+    monitor_snapshot.add_argument("--profile", default="service")
+    monitor_snapshot.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    monitor_snapshot.add_argument("--threshold-failed-frames", type=int, default=10)
+    monitor_snapshot.add_argument("--heartbeat-stale-seconds", type=int, default=600)
+    monitor_snapshot.add_argument("--max-cycle-duration-ms", type=int, default=1000)
+    monitor_snapshot.add_argument("--write-report", action="store_true")
+    monitor_snapshot.add_argument("--json", action="store_true")
+
+    monitor_alerts = monitor_sub.add_parser("alerts", help="Show alert candidates from the operational monitoring snapshot.")
+    monitor_alerts.add_argument("--profile", default="service")
+    monitor_alerts.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    monitor_alerts.add_argument("--threshold-failed-frames", type=int, default=10)
+    monitor_alerts.add_argument("--heartbeat-stale-seconds", type=int, default=600)
+    monitor_alerts.add_argument("--max-cycle-duration-ms", type=int, default=1000)
+    monitor_alerts.add_argument("--write-report", action="store_true")
+    monitor_alerts.add_argument("--json", action="store_true")
     for name, help_text in (
         ("summary", "Show a monitoring summary."),
         ("failed", "List failed runs."),
@@ -3702,6 +3719,10 @@ def _run_persistence(args: argparse.Namespace) -> int:
 
 def _run_monitor(args: argparse.Namespace) -> int:
     command = str(getattr(args, "monitor_command", "") or "")
+    if command == "snapshot":
+        return _run_monitor_snapshot(args)
+    if command == "alerts":
+        return _run_monitor_alerts(args)
     if command == "summary":
         return _run_monitor_summary(args)
     if command == "failed":
@@ -3718,6 +3739,68 @@ def _run_monitor(args: argparse.Namespace) -> int:
         return _run_monitor_report(args)
     print("Unknown monitor command.", file=sys.stderr)
     return 2
+
+
+def _build_monitoring_snapshot_payload(args: argparse.Namespace, *, write_report: bool = False) -> dict[str, Any]:
+    from runtime.monitoring_snapshot import build_monitoring_snapshot
+
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    profile = str(getattr(args, "profile", "service") or "service")
+    payload = build_monitoring_snapshot(
+        runtime_data_dir=runtime_data_dir,
+        profile_name=profile,
+        threshold_failed_frames=int(getattr(args, "threshold_failed_frames", 10) or 10),
+        heartbeat_stale_seconds=int(getattr(args, "heartbeat_stale_seconds", 600) or 600),
+        max_cycle_duration_ms=int(getattr(args, "max_cycle_duration_ms", 1000) or 1000),
+        write_report=write_report or bool(getattr(args, "write_report", False)),
+    )
+    payload["runtime_data_dir"] = runtime_data_dir
+    payload["profile"] = profile
+    return payload
+
+
+def _run_monitor_snapshot(args: argparse.Namespace) -> int:
+    payload = _build_monitoring_snapshot_payload(args, write_report=bool(getattr(args, "write_report", False)))
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0 if payload.get("ok", True) else 1
+    print("Operational Monitoring Snapshot")
+    print(f"Status: {payload.get('status', 'UNKNOWN')}")
+    print(f"Profile: {payload.get('profile', '')}")
+    print(f"Generated at: {payload.get('generated_at', '')}")
+    print(f"Blockers: {len(payload.get('blockers', []))}")
+    print(f"Warnings: {len(payload.get('warnings', []))}")
+    print(f"Alert candidates: {len(payload.get('alert_candidates', []))}")
+    for candidate in payload.get("alert_candidates", [])[:5]:
+        if isinstance(candidate, dict):
+            print(f"- [{candidate.get('severity', '')}] {candidate.get('title', '')}")
+    if payload.get("report_paths"):
+        print(f"Report: {payload.get('report_paths', {}).get('snapshot_json', '')}")
+    return 0 if payload.get("ok", True) else 1
+
+
+def _run_monitor_alerts(args: argparse.Namespace) -> int:
+    payload = _build_monitoring_snapshot_payload(args, write_report=bool(getattr(args, "write_report", False)))
+    result = {
+        "ok": bool(payload.get("ok", True)),
+        "profile": payload.get("profile", ""),
+        "generated_at": payload.get("generated_at", ""),
+        "alert_candidates": list(payload.get("alert_candidates", [])),
+        "blockers": list(payload.get("blockers", [])),
+        "warnings": list(payload.get("warnings", [])),
+        "report_paths": payload.get("report_paths", {}) if bool(getattr(args, "write_report", False)) else {},
+    }
+    if bool(args.json):
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok", True) else 1
+    print("Operational Monitoring Alert Candidates")
+    print(f"Status: {payload.get('status', 'UNKNOWN')}")
+    for candidate in result.get("alert_candidates", [])[:10]:
+        if isinstance(candidate, dict):
+            print(f"- [{candidate.get('severity', '')}] {candidate.get('title', '')}: {candidate.get('message', '')}")
+    if not result.get("alert_candidates"):
+        print("(none)")
+    return 0 if result.get("ok", True) else 1
 
 
 def _build_monitoring_payload(args: argparse.Namespace) -> dict[str, Any]:

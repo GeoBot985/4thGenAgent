@@ -31,6 +31,7 @@ RUNTIME_CONTRACTS_MD = ROOT / "docs" / "runtime_contracts.md"
 RUNTIME_PROFILES_MD = ROOT / "docs" / "runtime_profiles.md"
 RUNTIME_STORE_MD = ROOT / "docs" / "runtime_store.md"
 OPERATIONAL_MONITORING_MD = ROOT / "docs" / "operational_monitoring.md"
+ALERT_CANDIDATES_MD = ROOT / "docs" / "alert_candidates.md"
 OPERATOR_UI_MD = ROOT / "docs" / "operator_ui.md"
 RECOVERY_AND_IDEMPOTENCY_MD = ROOT / "docs" / "recovery_and_idempotency.md"
 DEFAULT_DEMO_BOUNDARY_MD = ROOT / "docs" / "default_demo_boundary.md"
@@ -278,6 +279,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         _check_external_event_source_polling(),
         _check_local_worker_supervisor(),
         _check_worker_hardening_soak(),
+        _check_operational_monitoring_snapshot(),
     ])
 
     if mode == "standard":
@@ -320,6 +322,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         "local_worker_supervisor": _status_from_static_mode(static_checks, "local_worker_supervisor"),
         "worker_hardening_soak": _status_from_static_mode(static_checks, "worker_hardening_soak"),
         "operational_monitoring": _status_from_static_mode(static_checks, "operational_monitoring"),
+        "operational_monitoring_snapshot": _status_from_static_mode(static_checks, "operational_monitoring_snapshot"),
         "default_demo_boundary_doc": _status_from_static_mode(static_checks, "default_demo_boundary_doc"),
         "golden_demo": "SKIPPED",
         "manifest_catalog_health": _status_from_static_mode(static_checks, "manifest_catalog_health"),
@@ -384,6 +387,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
             "runtime_store",
             "production_persistence_backend",
             "operational_monitoring",
+            "operational_monitoring_snapshot",
             "recovery",
             "public_quickstart_docs",
             "live_safety_docs",
@@ -4541,6 +4545,227 @@ def _check_operational_monitoring() -> dict[str, Any]:
 
     return {
         "name": "operational_monitoring",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_operational_monitoring_snapshot() -> dict[str, Any]:
+    missing: list[str] = []
+
+    for path in (
+        ROOT / "runtime" / "monitoring_snapshot.py",
+        ROOT / "docs" / "operational_monitoring.md",
+        ALERT_CANDIDATES_MD,
+    ):
+        if not path.is_file():
+            missing.append(_display_path(path))
+
+    if ROOT.joinpath("docs", "operational_monitoring.md").is_file():
+        doc_text = ROOT.joinpath("docs", "operational_monitoring.md").read_text(encoding="utf-8").lower()
+        for required in (
+            "monitoring snapshot",
+            "alert candidates",
+            "read-only",
+            "not externally sent",
+            "taskframe monitor snapshot",
+            "taskframe monitor alerts",
+        ):
+            if required not in doc_text:
+                missing.append(f"operational_monitoring_snapshot_doc_missing:{required}")
+
+    if ALERT_CANDIDATES_MD.is_file():
+        alert_doc = ALERT_CANDIDATES_MD.read_text(encoding="utf-8").lower()
+        for required in (
+            "alert candidates",
+            "severity",
+            "read-only",
+            "not externally sent",
+        ):
+            if required not in alert_doc:
+                missing.append(f"alert_candidates_doc_missing:{required}")
+
+    try:
+        from runtime.monitoring_snapshot import build_monitoring_snapshot, build_alert_candidates, classify_monitoring_status, write_monitoring_snapshot
+        from runtime.operational_monitoring import build_monitoring_summary
+        from runtime.runtime_store import ensure_runtime_store_layout
+    except Exception as exc:
+        return {"name": "operational_monitoring_snapshot", "status": "FAIL", "error": str(exc)}
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="rc_operational_monitoring_") as tmp:
+        runtime_root = Path(tmp) / "runtime_data"
+        config_dir = Path(tmp) / "config"
+        runtime_root.mkdir(parents=True, exist_ok=True)
+        config_dir.mkdir(parents=True, exist_ok=True)
+        ensure_runtime_store_layout(runtime_root)
+        service_config = (ROOT / "config" / "examples" / "taskframe.service.example.json").read_text(encoding="utf-8")
+        (config_dir / "taskframe.service.json").write_text(service_config, encoding="utf-8")
+
+        env = os.environ.copy()
+        env["TASKFRAME_CONFIG_DIR"] = str(config_dir)
+        env["TASKFRAME_PROFILE"] = "service"
+
+        snapshot_proc = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "src.taskframe_cli",
+                "monitor",
+                "snapshot",
+                "--profile",
+                "service",
+                "--runtime-data-dir",
+                str(runtime_root),
+                "--write-report",
+                "--json",
+            ],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=180,
+        )
+        if snapshot_proc.returncode != 0:
+            missing.append(f"monitor_snapshot_cli_failed:{snapshot_proc.stderr[-200:]}")
+            snapshot_payload = {}
+        else:
+            try:
+                snapshot_payload = json.loads(snapshot_proc.stdout)
+            except Exception:
+                snapshot_payload = {}
+                missing.append("monitor_snapshot_cli_invalid_json")
+
+        alerts_proc = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "src.taskframe_cli",
+                "monitor",
+                "alerts",
+                "--profile",
+                "service",
+                "--runtime-data-dir",
+                str(runtime_root),
+                "--json",
+            ],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=180,
+        )
+        if alerts_proc.returncode != 0:
+            missing.append(f"monitor_alerts_cli_failed:{alerts_proc.stderr[-200:]}")
+            alerts_payload = {}
+        else:
+            try:
+                alerts_payload = json.loads(alerts_proc.stdout)
+            except Exception:
+                alerts_payload = {}
+                missing.append("monitor_alerts_cli_invalid_json")
+
+        if not isinstance(snapshot_payload, dict) or not snapshot_payload.get("ok", False):
+            missing.append("monitor_snapshot_not_ok")
+        if not isinstance(alerts_payload, dict) or not alerts_payload.get("ok", False):
+            missing.append("monitor_alerts_not_ok")
+
+        required_sections = {
+            "service_preflight",
+            "worker",
+            "worker_hardening",
+            "worker_soak",
+            "scheduler",
+            "queue",
+            "event_sources",
+            "recovery",
+            "tool_health",
+            "manifest_health",
+            "live_safety",
+            "pending_actions",
+            "runtime_profile",
+            "storage",
+        }
+        sections = snapshot_payload.get("sections", {}) if isinstance(snapshot_payload, dict) else {}
+        if not required_sections.issubset(set(sections.keys() if isinstance(sections, dict) else [])):
+            missing.append("monitor_snapshot_sections_missing")
+
+        if snapshot_payload.get("status") == "BLOCKED" and not snapshot_payload.get("blockers"):
+            missing.append("monitor_snapshot_blocked_without_blockers")
+        if not isinstance(snapshot_payload.get("alert_candidates", []), list):
+            missing.append("monitor_snapshot_alert_candidates_invalid")
+        if not isinstance(alerts_payload.get("alert_candidates", []), list):
+            missing.append("monitor_alerts_alert_candidates_invalid")
+
+        report_paths = snapshot_payload.get("report_paths") or {}
+        if not Path(str(report_paths.get("snapshot_json", ""))).is_file():
+            missing.append("monitor_snapshot_report_json_missing")
+        if not Path(str(report_paths.get("snapshot_markdown", ""))).is_file():
+            missing.append("monitor_snapshot_report_markdown_missing")
+        if not Path(str(report_paths.get("alert_candidates_json", ""))).is_file():
+            missing.append("monitor_alert_report_json_missing")
+        if not Path(str(report_paths.get("alert_candidates_markdown", ""))).is_file():
+            missing.append("monitor_alert_report_markdown_missing")
+        if snapshot_payload.get("sections", {}).get("live_safety", {}).get("details", {}).get("live_execution_env_enabled") is True:
+            missing.append("monitor_snapshot_live_side_effects_enabled")
+        if snapshot_payload.get("sections", {}).get("runtime_profile", {}).get("details", {}).get("runtime_profile", {}).get("allow_live_side_effects") is True:
+            missing.append("monitor_snapshot_runtime_allows_live_side_effects")
+        if any("send" in str(candidate.get("title", "")).lower() for candidate in snapshot_payload.get("alert_candidates", []) if isinstance(candidate, dict)):
+            missing.append("monitor_snapshot_alert_delivery_detected")
+
+        try:
+            snapshot_model = build_monitoring_snapshot(runtime_root, profile_name="service")
+            monitoring_summary = build_monitoring_summary(runtime_root, profile_name="service", rebuild=False)
+            alert_model = build_alert_candidates(
+                sections=snapshot_model.get("sections", {}),
+                runtime_profile=snapshot_model.get("sections", {}).get("runtime_profile", {}).get("details", {}).get("runtime_profile", {}),
+                service_preflight=snapshot_model.get("sections", {}).get("service_preflight", {}).get("details", {}),
+                worker_status=snapshot_model.get("sections", {}).get("worker", {}).get("details", {}),
+                worker_hardening=snapshot_model.get("sections", {}).get("worker_hardening", {}).get("details", {}),
+                worker_soak=snapshot_model.get("sections", {}).get("worker_soak", {}).get("details", {}),
+                queue_status=snapshot_model.get("sections", {}).get("queue", {}).get("details", {}),
+                scheduler_status=snapshot_model.get("sections", {}).get("scheduler", {}).get("details", {}),
+                event_sources=snapshot_model.get("sections", {}).get("event_sources", {}).get("details", {}),
+                recovery=snapshot_model.get("sections", {}).get("recovery", {}).get("details", {}),
+                worker_lock=snapshot_model.get("sections", {}).get("worker_hardening", {}).get("details", {}).get("current_lock", {}),
+                tool_health=snapshot_model.get("sections", {}).get("tool_health", {}).get("details", {}),
+                manifest_health=snapshot_model.get("sections", {}).get("manifest_health", {}).get("details", {}),
+                live_safety=snapshot_model.get("sections", {}).get("live_safety", {}).get("details", {}),
+                pending_actions=snapshot_model.get("sections", {}).get("pending_actions", {}).get("details", {}),
+                storage=snapshot_model.get("sections", {}).get("storage", {}).get("details", {}),
+                monitoring_summary=monitoring_summary,
+                heartbeat_stale_seconds=600,
+                max_cycle_duration_ms=1000,
+                threshold_failed_frames=10,
+            )
+            status = classify_monitoring_status(
+                sections=snapshot_model.get("sections", {}),
+                alert_candidates=alert_model,
+                blockers=snapshot_model.get("blockers", []),
+                warnings=snapshot_model.get("warnings", []),
+            )
+            if status not in {"HEALTHY", "DEGRADED", "ATTENTION_REQUIRED", "BLOCKED"}:
+                missing.append("monitor_status_invalid")
+            report_paths = write_monitoring_snapshot(snapshot_model, runtime_data_dir=runtime_root)
+            if not isinstance(report_paths, dict):
+                missing.append("monitor_write_report_failed")
+            else:
+                if not Path(str(report_paths.get("snapshot_json", ""))).is_file():
+                    missing.append("monitor_snapshot_latest_json_missing")
+                if not Path(str(report_paths.get("snapshot_markdown", ""))).is_file():
+                    missing.append("monitor_snapshot_latest_md_missing")
+                if not Path(str(report_paths.get("alert_candidates_json", ""))).is_file():
+                    missing.append("monitor_alert_candidates_latest_json_missing")
+                if not Path(str(report_paths.get("alert_candidates_markdown", ""))).is_file():
+                    missing.append("monitor_alert_candidates_latest_md_missing")
+        except Exception as exc:
+            missing.append(f"monitor_module_execution_failed:{exc}")
+
+    return {
+        "name": "operational_monitoring_snapshot",
         "status": "PASS" if not missing else "FAIL",
         "missing": missing,
     }
