@@ -720,6 +720,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         _check_live_side_effect_contract(),
         _check_gmail_send_tool(),
         _check_governed_live_read_proof(),
+        _check_live_side_effect_approval_execution_model(),
     ])
     # manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     manifest_health_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "manifest_catalog_health"), {})
@@ -905,6 +906,8 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
                 release_blockers.append("local worker supervisor validation failed")
             elif check["name"] == "governed_live_read_proof":
                 release_blockers.append("governed live-read proof check failed")
+            elif check["name"] == "live_side_effect_approval_execution_model":
+                release_blockers.append("live side-effect approval execution model check failed")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -6115,6 +6118,200 @@ def _check_governed_live_read_proof() -> dict[str, Any]:
     status = "PASS" if not all_issues else "FAIL"
     return {
         "name": "governed_live_read_proof",
+        "status": status,
+        "missing": missing,
+        "failures": failures,
+        "details": all_issues,
+    }
+
+
+def _check_live_side_effect_approval_execution_model() -> dict[str, Any]:
+    """
+    Spec 155 — Live Side-Effect Approval Execution Model v1.
+
+    Validates the execution model boundary without requiring real Google credentials.
+    Uses boundary-only / dry_run_fallback mode exclusively.
+    """
+    failures: list[str] = []
+    missing: list[str] = []
+
+    # 1. Core module exists with required symbols
+    execution_module = ROOT / "runtime" / "live_side_effect_execution.py"
+    if not execution_module.is_file():
+        missing.append("runtime/live_side_effect_execution.py")
+    else:
+        content = execution_module.read_text(encoding="utf-8")
+        for symbol in (
+            "build_live_side_effect_preflight",
+            "execute_approved_live_side_effect",
+            "verify_live_side_effect_result",
+            "build_live_execution_audit_event",
+            "write_live_execution_report",
+            "render_live_execution_markdown",
+        ):
+            if symbol not in content:
+                failures.append(f"symbol_missing:{symbol}")
+
+    # 2. Ledger module exists with required symbols
+    ledger_module = ROOT / "runtime" / "live_execution_ledger.py"
+    if not ledger_module.is_file():
+        missing.append("runtime/live_execution_ledger.py")
+    else:
+        content = ledger_module.read_text(encoding="utf-8")
+        for symbol in ("append_ledger_entry", "read_ledger_entries", "is_idempotency_key_in_ledger", "build_ledger_entry"):
+            if symbol not in content:
+                failures.append(f"ledger_symbol_missing:{symbol}")
+
+    # 3. controlled_live_write profile exists
+    profile_module = ROOT / "src" / "controlled_live_profile.py"
+    if not profile_module.is_file():
+        missing.append("src/controlled_live_profile.py")
+    else:
+        content = profile_module.read_text(encoding="utf-8")
+        if "CONTROLLED_LIVE_WRITE_PROFILE" not in content:
+            failures.append("CONTROLLED_LIVE_WRITE_PROFILE_missing")
+        if "sheet/write_rows" not in content:
+            failures.append("sheet_write_rows_not_in_profile")
+
+    # 4. CLI has live-side-effect commands
+    cli_path = ROOT / "src" / "taskframe_cli.py"
+    if cli_path.is_file():
+        content = cli_path.read_text(encoding="utf-8")
+        for cmd in ("live-side-effect", "preflight", "rollback-plan", "lse_command"):
+            if cmd not in content:
+                failures.append(f"cli_missing:{cmd}")
+    else:
+        missing.append("src/taskframe_cli.py")
+
+    # 5. Import test (no external API calls)
+    try:
+        from runtime.live_side_effect_execution import (
+            build_live_side_effect_preflight,
+            live_side_effect_confirmation_phrase,
+            V1_EXECUTABLE_TOOLS,
+            V1_BLOCKED_TOOLS,
+        )
+        if "sheet/write_rows" not in V1_EXECUTABLE_TOOLS:
+            failures.append("sheet_write_rows_not_in_V1_EXECUTABLE_TOOLS")
+        for blocked_tool in ("gmail/send", "calendar/create", "rpa/run"):
+            if blocked_tool not in V1_BLOCKED_TOOLS:
+                failures.append(f"expected_blocked_tool_missing:{blocked_tool}")
+        phrase = live_side_effect_confirmation_phrase("frame_1", "action_1", "sheet/write_rows")
+        if not phrase.startswith("EXECUTE LIVE sheet/write_rows"):
+            failures.append(f"confirmation_phrase_format_wrong:{phrase}")
+    except Exception as exc:
+        failures.append(f"execution_module_import_error:{exc}")
+
+    # 6. Profile import test
+    try:
+        from src.controlled_live_profile import (
+            CONTROLLED_LIVE_WRITE_PROFILE,
+            is_live_write_tool_executable,
+            is_live_write_tool_blocked,
+        )
+        if not CONTROLLED_LIVE_WRITE_PROFILE.get("allow_live_side_effects"):
+            failures.append("controlled_live_write_profile_allow_live_side_effects_not_true")
+        executable_ok, _ = is_live_write_tool_executable("sheet/write_rows")
+        if not executable_ok:
+            failures.append("sheet_write_rows_not_executable_in_profile")
+        for blocked_tool in ("gmail/send", "calendar/create", "rpa/run"):
+            blocked, _ = is_live_write_tool_blocked(blocked_tool)
+            if not blocked:
+                failures.append(f"tool_not_blocked_in_profile:{blocked_tool}")
+    except Exception as exc:
+        failures.append(f"controlled_live_write_profile_import_error:{exc}")
+
+    # 7. Preflight boundary check (no external API call, no real execution)
+    try:
+        from runtime.live_side_effect_execution import build_live_side_effect_preflight
+        import tempfile, os
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # A minimal action missing most required fields — preflight must block
+            result = build_live_side_effect_preflight(
+                pending_action={"action_id": "pa_1", "tool": "sheet/write_rows", "status": "PENDING_APPROVAL"},
+                profile_name="controlled_live_write",
+                profile_data={"allow_live_side_effects": True},
+                runtime_data_dir=tmpdir,
+            )
+            if result.get("ok"):
+                failures.append("preflight_passed_for_incomplete_action")
+            if not result.get("blocked"):
+                failures.append("preflight_not_blocked_for_incomplete_action")
+            # A blocked tool must fail
+            result2 = build_live_side_effect_preflight(
+                pending_action={"action_id": "pa_2", "tool": "gmail/send", "status": "APPROVED"},
+                profile_name="controlled_live_write",
+                profile_data={"allow_live_side_effects": True},
+                runtime_data_dir=tmpdir,
+            )
+            if result2.get("ok"):
+                failures.append("preflight_passed_for_blocked_tool_gmail_send")
+    except Exception as exc:
+        failures.append(f"preflight_boundary_check_error:{exc}")
+
+    # 8. Idempotency enforcement (no external API call)
+    try:
+        from runtime.live_execution_ledger import (
+            append_ledger_entry,
+            build_ledger_entry,
+            is_idempotency_key_in_ledger,
+            LEDGER_STATUS_EXECUTED,
+        )
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            entry = build_ledger_entry(
+                frame_id="f1",
+                action_id="a1",
+                tool="sheet/write_rows",
+                idempotency_key="ikey_test_rc",
+                business_ref="inv-001",
+                target_ref="spreadsheet_id_1",
+                prepared_payload_hash="abc123",
+                approved_by="operator",
+                worker_identity="worker_1",
+                status=LEDGER_STATUS_EXECUTED,
+            )
+            append_ledger_entry(entry, runtime_data_dir=tmpdir)
+            found = is_idempotency_key_in_ledger("ikey_test_rc", runtime_data_dir=tmpdir)
+            if not found:
+                failures.append("idempotency_key_not_found_after_append")
+            not_found = is_idempotency_key_in_ledger("ikey_different", runtime_data_dir=tmpdir)
+            if not_found:
+                failures.append("false_positive_idempotency_key_match")
+    except Exception as exc:
+        failures.append(f"ledger_idempotency_check_error:{exc}")
+
+    # 9. Rollback plan is display-only (no auto-rollback in module)
+    try:
+        import inspect
+        from runtime import live_side_effect_execution as lse_mod
+        src = inspect.getsource(lse_mod)
+        if "auto_rollback" in src or "perform_rollback" in src:
+            failures.append("auto_rollback_detected_in_execution_module")
+    except Exception as exc:
+        failures.append(f"rollback_inspection_error:{exc}")
+
+    # 10. No real Google credentials required
+    try:
+        from runtime.live_side_effect_execution import build_live_side_effect_preflight
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = build_live_side_effect_preflight(
+                pending_action={"action_id": "pa_rc", "tool": "gmail/send"},
+                profile_name="controlled_live_write",
+                profile_data={"allow_live_side_effects": True},
+                runtime_data_dir=tmpdir,
+            )
+            # Should block because gmail/send is not v1 executable
+            if result.get("ok"):
+                failures.append("rc_verification_requires_credentials")
+    except Exception as exc:
+        failures.append(f"no_credentials_check_error:{exc}")
+
+    all_issues = missing + failures
+    status = "PASS" if not all_issues else "FAIL"
+    return {
+        "name": "live_side_effect_approval_execution_model",
         "status": status,
         "missing": missing,
         "failures": failures,

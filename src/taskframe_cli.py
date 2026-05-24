@@ -749,6 +749,44 @@ def build_parser() -> argparse.ArgumentParser:
     wkr_clear_lock.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     wkr_clear_lock.add_argument("--json", action="store_true")
 
+    # Spec 155 — Live Side-Effect Approval Execution Model
+    lse = sub.add_parser("live-side-effect", help="Governed live side-effect approval execution (v1: sheet/write_rows only).")
+    lse_sub = lse.add_subparsers(dest="lse_command", required=True)
+
+    lse_preflight = lse_sub.add_parser("preflight", help="Run the live side-effect preflight (15+ checks, no execution).")
+    lse_preflight.add_argument("--frame-id", required=True)
+    lse_preflight.add_argument("--action-id", required=True)
+    lse_preflight.add_argument("--tool", default="sheet/write_rows")
+    lse_preflight.add_argument("--profile", default="controlled_live_write")
+    lse_preflight.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    lse_preflight.add_argument("--json", action="store_true")
+
+    lse_execute = lse_sub.add_parser("execute", help="Execute an approved live side effect (requires typed confirmation).")
+    lse_execute.add_argument("--frame-id", required=True)
+    lse_execute.add_argument("--action-id", required=True)
+    lse_execute.add_argument("--tool", default="sheet/write_rows")
+    lse_execute.add_argument("--profile", default="controlled_live_write")
+    lse_execute.add_argument("--confirm", required=True, help="Typed confirmation phrase: 'EXECUTE LIVE <tool> <frame_id> <action_id>'")
+    lse_execute.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    lse_execute.add_argument("--dry-run-fallback", action="store_true", help="Simulate execution without calling any external API.")
+    lse_execute.add_argument("--json", action="store_true")
+
+    lse_verify = lse_sub.add_parser("verify", help="Post-execution verification for the latest ledger entry.")
+    lse_verify.add_argument("--frame-id", required=True)
+    lse_verify.add_argument("--action-id", required=True)
+    lse_verify.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    lse_verify.add_argument("--json", action="store_true")
+
+    lse_report = lse_sub.add_parser("report", help="Show the live execution ledger report.")
+    lse_report.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    lse_report.add_argument("--limit", type=int, default=20)
+    lse_report.add_argument("--json", action="store_true")
+
+    lse_rollback = lse_sub.add_parser("rollback-plan", help="Show the rollback plan for a ledger entry (display only, no auto-rollback).")
+    lse_rollback.add_argument("--idempotency-key", required=True)
+    lse_rollback.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    lse_rollback.add_argument("--json", action="store_true")
+
     # Spec 154 — Governed Live Read Proof Pack
     live_read = sub.add_parser("live-read", help="Governed live-read proof and boundary checks.")
     live_read_sub = live_read.add_subparsers(dest="live_read_command", required=True)
@@ -852,6 +890,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_schedule(args)
     if args.command == "worker":
         return _run_worker(args)
+    if args.command == "live-side-effect":
+        return _run_live_side_effect(args)
     if args.command == "live-read":
         return _run_live_read(args)
     parser.print_help()
@@ -4777,6 +4817,151 @@ def _run_worker(args: Any) -> int:
                 print(result.get("message", "No stale lock to clear."))
         else:
             print(f"Could not clear lock: {result.get('message') or result.get('error', 'unknown')}")
+        return 0 if result.get("ok") else 1
+
+    return 2
+
+
+def _run_live_side_effect(args: Any) -> int:
+    from runtime.live_side_effect_execution import (
+        build_live_side_effect_preflight,
+        execute_approved_live_side_effect,
+        live_side_effect_confirmation_phrase,
+        render_live_execution_markdown,
+        verify_live_side_effect_result,
+    )
+    from runtime.live_execution_ledger import build_ledger_report, get_ledger_entry
+
+    cmd = str(getattr(args, "lse_command", "") or "")
+    profile = str(getattr(args, "profile", "controlled_live_write") or "controlled_live_write")
+    rd = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    as_json = bool(getattr(args, "json", False))
+
+    from src.controlled_live_profile import CONTROLLED_LIVE_WRITE_PROFILE
+    profile_data = CONTROLLED_LIVE_WRITE_PROFILE if profile == "controlled_live_write" else {}
+
+    if cmd == "preflight":
+        frame_id = str(getattr(args, "frame_id", "") or "")
+        action_id = str(getattr(args, "action_id", "") or "")
+        tool = str(getattr(args, "tool", "sheet/write_rows") or "sheet/write_rows")
+        pending_action = {
+            "frame_id": frame_id,
+            "action_id": action_id,
+            "tool": tool,
+            "status": "APPROVED",
+        }
+        result = build_live_side_effect_preflight(
+            pending_action=pending_action,
+            profile_name=profile,
+            profile_data=profile_data,
+            runtime_data_dir=rd,
+        )
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            ok_str = "PASS" if result["ok"] else "FAIL"
+            print(f"Live side-effect preflight: {ok_str}")
+            print(f"Confirmation phrase: {result.get('confirmation_phrase', '')}")
+            for c in result.get("checks", []):
+                mark = "ok" if c.get("ok") else "FAIL"
+                print(f"  [{mark}] {c['name']}: {c.get('message', '')}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "execute":
+        frame_id = str(getattr(args, "frame_id", "") or "")
+        action_id = str(getattr(args, "action_id", "") or "")
+        tool = str(getattr(args, "tool", "sheet/write_rows") or "sheet/write_rows")
+        confirm = str(getattr(args, "confirm", "") or "")
+        dry_run_fallback = bool(getattr(args, "dry_run_fallback", False))
+        pending_action = {
+            "frame_id": frame_id,
+            "action_id": action_id,
+            "tool": tool,
+            "status": "APPROVED",
+        }
+        result = execute_approved_live_side_effect(
+            pending_action=pending_action,
+            profile_name=profile,
+            profile_data=profile_data,
+            typed_confirmation=confirm,
+            runtime_data_dir=rd,
+            dry_run_fallback=dry_run_fallback,
+        )
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            status = "EXECUTED" if result.get("executed") else "BLOCKED/FAILED"
+            print(f"Live side-effect execution: {status}")
+            print(render_live_execution_markdown(result))
+        return 0 if result.get("ok") else 1
+
+    if cmd == "verify":
+        frame_id = str(getattr(args, "frame_id", "") or "")
+        action_id = str(getattr(args, "action_id", "") or "")
+        result = {"ok": False, "checks": [], "failed_checks": [], "tool": "", "verified_at": ""}
+        # Look up the most recent execution result for this action from ledger
+        from runtime.live_execution_ledger import read_ledger_entries, LEDGER_STATUS_EXECUTED
+        entries = read_ledger_entries(runtime_data_dir=rd)
+        exec_entry = None
+        for e in reversed(entries):
+            if str(e.get("action_id") or "") == action_id and e.get("status") == LEDGER_STATUS_EXECUTED:
+                exec_entry = e
+                break
+        if exec_entry:
+            pending_action = {"frame_id": frame_id, "action_id": action_id, "tool": exec_entry.get("tool", ""), "target_ref": exec_entry.get("target_ref", "")}
+            result = verify_live_side_effect_result(
+                execution_result=exec_entry.get("execution_result") or {"ok": True, "type": "sheet_write_rows"},
+                pending_action=pending_action,
+            )
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            ok_str = "PASS" if result["ok"] else "FAIL"
+            print(f"Post-execution verification: {ok_str}")
+            for c in result.get("checks", []):
+                mark = "ok" if c.get("ok") else "FAIL"
+                print(f"  [{mark}] {c['name']}: {c.get('message', '')}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "report":
+        limit = int(getattr(args, "limit", 20) or 20)
+        report = build_ledger_report(runtime_data_dir=rd, limit=limit)
+        if as_json:
+            print(json.dumps(report, indent=2, default=str))
+        else:
+            print(f"Live execution ledger — {report['total_entries']} entries total")
+            print(f"  Executed: {report['executed_count']}, Failed: {report['failed_count']}")
+            for entry in report.get("recent_entries", []):
+                print(f"  [{entry.get('status')}] {entry.get('recorded_at')} tool={entry.get('tool')} key={entry.get('idempotency_key')}")
+        return 0
+
+    if cmd == "rollback-plan":
+        ikey = str(getattr(args, "idempotency_key", "") or "")
+        entry = get_ledger_entry(ikey, runtime_data_dir=rd)
+        if entry is None:
+            result: dict[str, Any] = {"ok": False, "error": f"No ledger entry found for idempotency_key: {ikey}"}
+        else:
+            rollback = entry.get("rollback_plan") or {}
+            result = {
+                "ok": True,
+                "idempotency_key": ikey,
+                "rollback_plan": rollback,
+                "tool": entry.get("tool", ""),
+                "action_id": entry.get("action_id", ""),
+                "status": entry.get("status", ""),
+                "note": "Rollback plan is display-only metadata. No automatic rollback is performed.",
+            }
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            if result.get("ok"):
+                print(f"Rollback plan for key: {ikey}")
+                print(f"Tool: {result.get('tool')}, Status: {result.get('status')}")
+                print(f"NOTE: {result.get('note')}")
+                for k, v in (result.get("rollback_plan") or {}).items():
+                    print(f"  {k}: {v}")
+            else:
+                print(f"ERROR: {result.get('error')}")
         return 0 if result.get("ok") else 1
 
     return 2

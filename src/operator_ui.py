@@ -287,6 +287,7 @@ class OperatorConsole:
         self.live_safety_status_var = tk.StringVar(value="Dry-run only. No live-ready pending actions.")
         self.live_safety_preflight: dict[str, object] = {}
         self.lr_proof_status_var = tk.StringVar(value="Status not loaded. Click 'Check Live Read Status'.")
+        self.lse_status_var = tk.StringVar(value="Status: No execution attempted. Only sheet/write_rows is executable in v1.")
         self.root.title(TITLE)
         self.root.geometry("1280x820")
         self.root.minsize(1180, 720)
@@ -610,6 +611,22 @@ class OperatorConsole:
         ttk.Button(lr_button_row, text="Run Boundary-Only Proof", command=self._run_live_read_boundary_proof).pack(side="left", padx=(0, 6))
         ttk.Button(lr_button_row, text="Open Live Read Proof Report", command=self._open_live_read_proof_report).pack(side="left", padx=(0, 6))
 
+        # Spec 155 — Live Side-Effect Approval Execution Model panel (guarded)
+        lse_card = ttk.Frame(detail_card, style="Card.TFrame", padding=(0, 8, 0, 0))
+        lse_card.grid(row=9, column=0, sticky="ew", pady=(10, 0))
+        lse_card.columnconfigure(0, weight=1)
+        ttk.Label(lse_card, text="Live Side-Effect Execution (v1: sheet/write_rows only)", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        self.lse_status_var = tk.StringVar(value="Status: No execution attempted. Only sheet/write_rows is executable in v1.")
+        lse_status_label = ttk.Label(lse_card, textvariable=self.lse_status_var, style="Body.TLabel", wraplength=700, justify="left")
+        lse_status_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        self.lse_details_text = self._make_text_widget(lse_card, height=5)
+        self.lse_details_text.grid(row=2, column=0, sticky="nsew", pady=(6, 8))
+        lse_button_row = ttk.Frame(lse_card, style="Card.TFrame")
+        lse_button_row.grid(row=3, column=0, sticky="w")
+        ttk.Button(lse_button_row, text="Check Write Profile", command=self._check_live_write_profile).pack(side="left", padx=(0, 6))
+        ttk.Button(lse_button_row, text="Show Ledger Report", command=self._show_live_execution_ledger).pack(side="left", padx=(0, 6))
+        ttk.Button(lse_button_row, text="Open Execution Report", command=self._open_live_execution_report).pack(side="left", padx=(0, 6))
+
         confirmation_row = ttk.Frame(live_safety_card, style="Card.TFrame")
         confirmation_row.grid(row=5, column=0, sticky="ew", pady=(8, 0))
         ttk.Label(confirmation_row, text="Typed confirmation:", style="Meta.TLabel").pack(side="left")
@@ -847,6 +864,72 @@ class OperatorConsole:
             self.lr_proof_status_var.set(f"Opened: {report_path.name}")
         else:
             self.lr_proof_status_var.set("No proof report found. Run 'Run Boundary-Only Proof' first.")
+
+    def _check_live_write_profile(self) -> None:
+        try:
+            from src.controlled_live_profile import (
+                CONTROLLED_LIVE_WRITE_PROFILE,
+                is_live_write_tool_executable,
+                is_live_write_tool_blocked,
+            )
+            v1_tools = CONTROLLED_LIVE_WRITE_PROFILE.get("executable_tools", [])
+            blocked_tools = CONTROLLED_LIVE_WRITE_PROFILE.get("blocked_executable_tools", [])
+            lines = [
+                f"Profile: {CONTROLLED_LIVE_WRITE_PROFILE.get('profile_id', '')}",
+                f"Environment: {CONTROLLED_LIVE_WRITE_PROFILE.get('environment', '')}",
+                f"Allow live side effects: {CONTROLLED_LIVE_WRITE_PROFILE.get('allow_live_side_effects', False)}",
+                f"V1 executable tools: {', '.join(v1_tools)}",
+                "",
+                "Blocked tools (v1):",
+            ]
+            for t in blocked_tools:
+                blocked, reason = is_live_write_tool_blocked(t)
+                lines.append(f"  [{'BLOCKED' if blocked else 'ok'}] {t}")
+            self.lse_status_var.set(f"Profile: {CONTROLLED_LIVE_WRITE_PROFILE.get('profile_id')} | V1 executable: {', '.join(v1_tools)}")
+            self._set_text(self.lse_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.lse_status_var.set(f"Write profile error: {exc}")
+
+    def _show_live_execution_ledger(self) -> None:
+        try:
+            from runtime.live_execution_ledger import build_ledger_report
+            report = build_ledger_report(runtime_data_dir=self.runtime_root)
+            lines = [
+                f"Total entries: {report['total_entries']}",
+                f"Executed: {report['executed_count']}",
+                f"Failed: {report['failed_count']}",
+                "",
+                "Recent entries:",
+            ]
+            for entry in (report.get("recent_entries") or [])[:10]:
+                lines.append(
+                    f"  [{entry.get('status')}] {entry.get('recorded_at', '')[:19]} "
+                    f"tool={entry.get('tool')} key={entry.get('idempotency_key')}"
+                )
+            no_live_side_effects_performed = report["executed_count"] == 0
+            self.lse_status_var.set(
+                f"Ledger: {report['total_entries']} entries | Executed: {report['executed_count']}"
+            )
+            self._set_text(self.lse_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.lse_status_var.set(f"Ledger error: {exc}")
+
+    def _open_live_execution_report(self) -> None:
+        import os as _os
+        import pathlib
+        report_dir = pathlib.Path(self.runtime_root) / "live_execution"
+        if report_dir.is_dir():
+            md_files = sorted(report_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if md_files:
+                report_path = md_files[0]
+                try:
+                    _os.startfile(str(report_path))  # type: ignore[attr-defined]
+                except AttributeError:
+                    import subprocess as _sp
+                    _sp.run(["xdg-open", str(report_path)], check=False)
+                self.lse_status_var.set(f"Opened: {report_path.name}")
+                return
+        self.lse_status_var.set("No execution report found. Run a live side-effect execution first.")
 
     def _copy_dry_run_cli_command(self) -> None:
         self._copy_to_clipboard(self._live_dry_run_command())

@@ -52,3 +52,57 @@ def build_live_side_effect_blocked_result() -> dict:
         "error_type": "LIVE_SIDE_EFFECT_BLOCKED",
         "message": "Live side effects are blocked in controlled_live_read profile.",
     }
+
+
+# ---------------------------------------------------------------------------
+# Spec 155 — Controlled Live Write Profile (Pilot)
+# Only sheet/write_rows is executable. Gmail/Calendar/RPA remain blocked.
+# ---------------------------------------------------------------------------
+
+CONTROLLED_LIVE_WRITE_PROFILE = {
+    "profile_id": "controlled_live_write",
+    "label": "Controlled Live Write Profile (Pilot)",
+    "environment": "pilot",
+    "dry_run": False,
+    "allow_live_reads": True,
+    "allow_live_side_effects": True,
+    "require_tool_governance": True,
+    "require_operator_approval": True,
+    "require_typed_confirmation": True,
+    "require_idempotency_key": True,
+    "require_worker_identity": True,
+    "require_rollback_plan": True,
+    "allowed_toolpacks": ["google_workspace_readonly", "google_sheets_write_pilot"],
+    "blocked_tool_classes": ["rpa", "send", "delete", "mutation"],
+    "executable_tools": ["sheet/write_rows"],
+    "blocked_executable_tools": [
+        "gmail/send",
+        "gmail/draft_send",
+        "calendar/create",
+        "calendar/update",
+        "calendar/delete",
+        "rpa/run",
+        "rpa/click",
+        "rpa/type",
+        "rpa/navigate",
+    ],
+}
+
+V1_EXECUTABLE_TOOLS = list(CONTROLLED_LIVE_WRITE_PROFILE["executable_tools"])
+V1_BLOCKED_EXECUTABLE_TOOLS = list(CONTROLLED_LIVE_WRITE_PROFILE["blocked_executable_tools"])
+
+
+def is_live_write_tool_executable(tool_key: str) -> tuple[bool, str]:
+    """Returns (executable, reason) for the controlled_live_write profile."""
+    if tool_key in CONTROLLED_LIVE_WRITE_PROFILE["blocked_executable_tools"]:
+        return False, f"Tool '{tool_key}' is blocked in controlled_live_write (v1)."
+    if tool_key in CONTROLLED_LIVE_WRITE_PROFILE["executable_tools"]:
+        return True, "ok"
+    return False, f"Tool '{tool_key}' is not in the v1 executable list."
+
+
+def is_live_write_tool_blocked(tool_key: str) -> tuple[bool, str]:
+    """Returns (blocked, reason) for the controlled_live_write profile."""
+    if tool_key in CONTROLLED_LIVE_WRITE_PROFILE["blocked_executable_tools"]:
+        return True, f"Tool '{tool_key}' is blocked in controlled_live_write (v1)."
+    return False, "not a known blocked tool"
