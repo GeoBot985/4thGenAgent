@@ -1056,6 +1056,33 @@
 - `invoice` (str)
 
 ---
+## invoiceops/evidence_pack
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | evidence_pack |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_accounting_evidence_pack` |
+
+### Command form
+
+```text
+[t:invoiceops/evidence_pack -> output_name]
+```
+
+### Optional arguments
+
+- `frame_id` (str)
+- `invoice_number` (str)
+- `posting_plan_id` (str)
+- `runtime_data_dir` (str)
+- `profile` (str)
+- `fixture_mode` (bool)
+- `write_report` (bool)
+
+---
 ## invoiceops/extract_invoice_fields
 
 | Field | Value |
@@ -1418,6 +1445,33 @@
 - `spreadsheet_id` (str)
 - `fixture_mode` (str)
 - `_fixture_dir` (str)
+
+---
+## invoiceops/reconcile
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | reconcile |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_reconciliation_result` |
+
+### Command form
+
+```text
+[t:invoiceops/reconcile -> output_name]
+```
+
+### Optional arguments
+
+- `frame_id` (str)
+- `invoice_number` (str)
+- `posting_plan_id` (str)
+- `runtime_data_dir` (str)
+- `profile` (str)
+- `fixture_mode` (bool)
+- `write_report` (bool)
 
 ---
 ## invoiceops/run_live_posting_preflight

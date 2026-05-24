@@ -1,19 +1,19 @@
 # Manifest Health Report
 
-Generated: 2026-05-24T11:46:10.160462Z
+Generated: 2026-05-24T15:51:45.632283Z
 
-Verdict: HEALTHY
+Verdict: HAS_FAILURES
 
 ## Summary
 
 | Metric | Count |
 |---|---:|
-| Total manifests | 20 |
+| Total manifests | 21 |
 | Healthy | 0 |
 | Warnings | 0 |
-| Failed | 0 |
+| Failed | 1 |
 | Repairable | 9 |
-| Manual fix required | 0 |
+| Manual fix required | 1 |
 | Critical | 0 |
 
 ## Manifest Results
@@ -23,6 +23,7 @@ Verdict: HEALTHY
 | SMOKE_SKIPPED | customer.status_llm_e2e | PASS | SKIPPED | 3 | input_declared_but_not_used, input_declared_but_not_used, input_declared_but_not_used | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | invoiceops.process_supplier_invoice_v1 | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | invoiceops.live_sheet_posting_pilot_v1 | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
+| FAILED | invoiceops.reconcile_posted_invoice_v1 | FAIL | SKIPPED | 0 | validation_error | Fix JSON/schema before smoke testing. |
 | SMOKE_SKIPPED | llm.classify_customer_message | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |
 | SMOKE_SKIPPED | llm.customer_status_reply | PASS | SKIPPED | 2 | input_declared_but_not_used, input_declared_but_not_used | Open Auto-Fix Preview. |
 | SMOKE_SKIPPED | llm.extract_order_ref | PASS | SKIPPED | 0 |  | Run smoke test manually with sample inputs. |

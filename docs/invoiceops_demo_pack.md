@@ -45,6 +45,7 @@ This demo pack shows the InvoiceOps manifest running end to end in safe fixture 
 - Prepared write evidence
 - Rollback evidence
 - Match, exception, ledger, rollback, and evidence bundle reports
+- Post-write reconciliation and accounting evidence pack reports for approved postings
 
 ## What Is Intentionally Not Live
 
@@ -54,6 +55,10 @@ This demo pack shows the InvoiceOps manifest running end to end in safe fixture 
 - Manifest creation
 - UI changes
 - HTML/Markdown rendering beyond the report text already produced by the tools
+
+## Read-Only Post-Write Checks
+
+The demo pack is separate from the post-write reconciliation flow. After live posting, use the reconciliation and accounting evidence pack commands to verify the posted rows without mutating accounting state.
 
 ## How To Run
 

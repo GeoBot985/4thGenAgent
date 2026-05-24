@@ -183,6 +183,17 @@ Each pending action carries a rollback plan from the prepared write. In v1:
 - **Auto-rollback is not implemented in v1**
 - To rollback, the operator must manually perform the inverse operation using the rollback plan details
 
+## Post-Write Follow-Up
+
+After an approved posting, run the read-only reconciliation and accounting evidence commands:
+
+```bash
+taskframe invoiceops reconcile --invoice-number <number> --json
+taskframe invoiceops evidence-pack --invoice-number <number> --write-report --json
+```
+
+These follow-up commands do not write rows, do not approve actions, and do not perform rollback. They only collect evidence for review.
+
 ---
 
 ## Credentials Note

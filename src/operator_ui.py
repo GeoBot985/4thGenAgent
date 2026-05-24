@@ -644,6 +644,22 @@ class OperatorConsole:
         ttk.Button(iolsp_button_row, text="Show Posting Ledger", command=self._show_invoiceops_posting_ledger).pack(side="left", padx=(0, 6))
         ttk.Button(iolsp_button_row, text="Open Posting Report", command=self._open_invoiceops_posting_report).pack(side="left", padx=(0, 6))
 
+        # Spec 157 — InvoiceOps Post-Write Reconciliation panel
+        ior_card = ttk.Frame(detail_card, style="Card.TFrame", padding=(0, 8, 0, 0))
+        ior_card.grid(row=11, column=0, sticky="ew", pady=(10, 0))
+        ior_card.columnconfigure(0, weight=1)
+        ttk.Label(ior_card, text="Post-Write Reconciliation", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        self.invoiceops_reconciliation_status_var = tk.StringVar(value="Status: No reconciliation run yet.")
+        ttk.Label(ior_card, textvariable=self.invoiceops_reconciliation_status_var, style="Body.TLabel", wraplength=700, justify="left").grid(row=1, column=0, sticky="w", pady=(4, 0))
+        self.invoiceops_reconciliation_details_text = self._make_text_widget(ior_card, height=6)
+        self.invoiceops_reconciliation_details_text.grid(row=2, column=0, sticky="nsew", pady=(6, 8))
+        ior_button_row = ttk.Frame(ior_card, style="Card.TFrame")
+        ior_button_row.grid(row=3, column=0, sticky="w")
+        ttk.Button(ior_button_row, text="Run Reconciliation", command=self._run_invoiceops_reconciliation).pack(side="left", padx=(0, 6))
+        ttk.Button(ior_button_row, text="Build Accounting Evidence Pack", command=self._build_invoiceops_accounting_evidence_pack).pack(side="left", padx=(0, 6))
+        ttk.Button(ior_button_row, text="Open Reconciliation Report", command=self._open_invoiceops_reconciliation_report).pack(side="left", padx=(0, 6))
+        ttk.Button(ior_button_row, text="Open Evidence Pack", command=self._open_invoiceops_accounting_evidence_pack).pack(side="left", padx=(0, 6))
+
         confirmation_row = ttk.Frame(live_safety_card, style="Card.TFrame")
         confirmation_row.grid(row=5, column=0, sticky="ew", pady=(8, 0))
         ttk.Label(confirmation_row, text="Typed confirmation:", style="Meta.TLabel").pack(side="left")
@@ -1010,6 +1026,95 @@ class OperatorConsole:
                 self.iolsp_status_var.set(f"Opened: {report_path.name}")
                 return
         self.iolsp_status_var.set("No posting report found. Run an InvoiceOps live posting first.")
+
+    def _run_invoiceops_reconciliation(self) -> None:
+        try:
+            from runtime.invoiceops_reconciliation import build_invoiceops_reconciliation_result
+
+            result = build_invoiceops_reconciliation_result(
+                invoice_number="INV-2024-001",
+                runtime_data_dir=self.runtime_root,
+                profile="service",
+                fixture_mode=True,
+                write_report=True,
+            )
+            report_paths = result.get("report_paths", {})
+            lines = [
+                f"Status: {result.get('status', '')}",
+                f"Invoice: {result.get('invoice_number', '')}",
+                f"Supplier: {result.get('supplier_name', '')}",
+                f"Registers checked: {', '.join(result.get('registers_checked', []))}",
+                f"Ledger balanced: {'yes' if any(check.get('section') == 'ledger_register' and check.get('ok') for check in result.get('checks', [])) else 'no'}",
+                f"Reconciliation report: {report_paths.get('json', '')}",
+            ]
+            if result.get("warnings"):
+                lines += ["", "Warnings:"] + [f"  {w}" for w in result.get("warnings", [])]
+            if result.get("blockers"):
+                lines += ["", "Blockers:"] + [f"  {b}" for b in result.get("blockers", [])]
+            self.invoiceops_reconciliation_status_var.set(f"InvoiceOps Reconciliation: {result.get('status', '')}")
+            self._set_text(self.invoiceops_reconciliation_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.invoiceops_reconciliation_status_var.set(f"Reconciliation error: {exc}")
+
+    def _build_invoiceops_accounting_evidence_pack(self) -> None:
+        try:
+            from runtime.invoiceops_accounting_evidence_pack import build_accounting_evidence_pack
+
+            result = build_accounting_evidence_pack(
+                invoice_number="INV-2024-001",
+                runtime_data_dir=self.runtime_root,
+                profile="service",
+                fixture_mode=True,
+                write_report=True,
+            )
+            report_paths = result.get("report_paths", {})
+            lines = [
+                f"Pack ID: {result.get('pack_id', '')}",
+                f"Status: {result.get('status', '')}",
+                f"Invoice: {result.get('invoice_number', '')}",
+                f"Supplier: {result.get('supplier_name', '')}",
+                f"Evidence pack: {report_paths.get('json', '')}",
+            ]
+            self.invoiceops_reconciliation_status_var.set(f"Accounting Evidence Pack: {result.get('status', '')}")
+            self._set_text(self.invoiceops_reconciliation_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.invoiceops_reconciliation_status_var.set(f"Evidence pack error: {exc}")
+
+    def _open_invoiceops_reconciliation_report(self) -> None:
+        import os as _os
+        import pathlib
+
+        report_dir = pathlib.Path(self.runtime_root) / "invoiceops" / "reconciliation"
+        if report_dir.is_dir():
+            md_files = sorted(report_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if md_files:
+                report_path = md_files[0]
+                try:
+                    _os.startfile(str(report_path))  # type: ignore[attr-defined]
+                except AttributeError:
+                    import subprocess as _sp
+                    _sp.run(["xdg-open", str(report_path)], check=False)
+                self.invoiceops_reconciliation_status_var.set(f"Opened: {report_path.name}")
+                return
+        self.invoiceops_reconciliation_status_var.set("No reconciliation report found. Run reconciliation first.")
+
+    def _open_invoiceops_accounting_evidence_pack(self) -> None:
+        import os as _os
+        import pathlib
+
+        report_dir = pathlib.Path(self.runtime_root) / "invoiceops" / "accounting_evidence"
+        if report_dir.is_dir():
+            md_files = sorted(report_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if md_files:
+                report_path = md_files[0]
+                try:
+                    _os.startfile(str(report_path))  # type: ignore[attr-defined]
+                except AttributeError:
+                    import subprocess as _sp
+                    _sp.run(["xdg-open", str(report_path)], check=False)
+                self.invoiceops_reconciliation_status_var.set(f"Opened: {report_path.name}")
+                return
+        self.invoiceops_reconciliation_status_var.set("No evidence pack found. Build an accounting evidence pack first.")
 
     def _copy_dry_run_cli_command(self) -> None:
         self._copy_to_clipboard(self._live_dry_run_command())

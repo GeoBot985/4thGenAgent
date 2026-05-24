@@ -15,6 +15,7 @@ The roadmap below shows the next hardening steps after the `service` runtime pro
 - Spec 151 established the service runtime profile boundary.
 - Spec 152 added worker hardening, stale-lock recovery evidence, and the bounded soak harness.
 - Spec 153 added the consolidated operational monitoring snapshot and alert-candidate pack.
+- Spec 157 added post-write reconciliation and accounting evidence packs for InvoiceOps live posting.
 - These changes improve operational evidence and failure recovery without enabling live side effects.
 
 ## Next Hardening Specs
@@ -24,6 +25,7 @@ The roadmap below shows the next hardening steps after the `service` runtime pro
 3. Worker identity propagation and audit coverage
 4. Deployment installation boundary
 5. Alert delivery and incident workflow integration
+6. Broader accounting reconciliation and rollback governance
 
 ## Deferred Work
 

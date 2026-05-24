@@ -722,6 +722,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         _check_governed_live_read_proof(),
         _check_live_side_effect_approval_execution_model(),
         _check_invoiceops_live_sheet_write_pilot(),
+        _check_invoiceops_post_write_reconciliation(),
     ])
     # manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     manifest_health_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "manifest_catalog_health"), {})
@@ -6506,6 +6507,154 @@ def _check_invoiceops_live_sheet_write_pilot() -> dict[str, Any]:
     status = "PASS" if not all_issues else "FAIL"
     return {
         "name": "invoiceops_live_sheet_write_pilot",
+        "status": status,
+        "missing": missing,
+        "failures": failures,
+        "details": all_issues,
+    }
+
+
+def _check_invoiceops_post_write_reconciliation() -> dict[str, Any]:
+    """Spec 157 - InvoiceOps post-write reconciliation and evidence pack boundary."""
+    missing: list[str] = []
+    failures: list[str] = []
+
+    doc_paths = [
+        ROOT / "docs" / "invoiceops_post_write_reconciliation.md",
+        ROOT / "docs" / "invoiceops_accounting_evidence_pack.md",
+    ]
+    for path in doc_paths:
+        if not path.is_file():
+            missing.append(_display_path(path))
+
+    module_paths = [
+        ROOT / "runtime" / "invoiceops_reconciliation.py",
+        ROOT / "runtime" / "invoiceops_accounting_evidence_pack.py",
+        ROOT / "manifests" / "invoiceops_reconcile_posted_invoice.manifest.json",
+    ]
+    for path in module_paths:
+        if not path.is_file():
+            missing.append(_display_path(path))
+
+    cli_path = ROOT / "src" / "taskframe_cli.py"
+    if cli_path.is_file():
+        content = cli_path.read_text(encoding="utf-8")
+        for token in (
+            "invoiceops",
+            "reconcile",
+            "evidence-pack",
+            "--frame-id",
+            "--invoice-number",
+            "--posting-plan-id",
+            "--fixture-mode",
+        ):
+            if token not in content:
+                failures.append(f"cli_missing:{token}")
+    else:
+        missing.append("src/taskframe_cli.py")
+
+    try:
+        import json as _json
+        import tempfile
+
+        with tempfile.TemporaryDirectory(prefix="rc_invoiceops_recon_") as tmpdir:
+            runtime_root = Path(tmpdir) / "runtime_data"
+            runtime_root.mkdir(parents=True, exist_ok=True)
+
+            reconcile_proc = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "src.taskframe_cli",
+                    "invoiceops",
+                    "reconcile",
+                    "--invoice-number",
+                    "fake",
+                    "--runtime-data-dir",
+                    str(runtime_root),
+                    "--write-report",
+                    "--json",
+                ],
+                cwd=str(ROOT),
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=180,
+            )
+            if reconcile_proc.returncode not in (0, 1):
+                failures.append(f"reconcile_cli_exit_{reconcile_proc.returncode}")
+            try:
+                reconcile_payload = _json.loads(reconcile_proc.stdout)
+            except Exception as exc:
+                failures.append(f"reconcile_cli_invalid_json:{exc}")
+                reconcile_payload = {}
+            else:
+                if reconcile_payload.get("invoice_number") != "fake":
+                    failures.append("reconcile_cli_invoice_mismatch")
+                if "checks" not in reconcile_payload:
+                    failures.append("reconcile_cli_missing_checks")
+                report_paths = reconcile_payload.get("report_paths", {})
+                json_path = str(report_paths.get("json", "") or "")
+                md_path = str(report_paths.get("markdown", "") or "")
+                if not json_path or not Path(json_path).is_file():
+                    failures.append("reconcile_report_json_missing")
+                if not md_path or not Path(md_path).is_file():
+                    failures.append("reconcile_report_markdown_missing")
+
+            pack_proc = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "src.taskframe_cli",
+                    "invoiceops",
+                    "evidence-pack",
+                    "--invoice-number",
+                    "fake",
+                    "--runtime-data-dir",
+                    str(runtime_root),
+                    "--write-report",
+                    "--json",
+                ],
+                cwd=str(ROOT),
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=180,
+            )
+            if pack_proc.returncode not in (0, 1):
+                failures.append(f"evidence_pack_cli_exit_{pack_proc.returncode}")
+            try:
+                pack_payload = _json.loads(pack_proc.stdout)
+            except Exception as exc:
+                failures.append(f"evidence_pack_cli_invalid_json:{exc}")
+                pack_payload = {}
+            else:
+                if pack_payload.get("invoice_number") != "fake":
+                    failures.append("evidence_pack_cli_invoice_mismatch")
+                sections = pack_payload.get("sections", {})
+                for key in ("invoice_source", "extraction", "validation", "matching", "posting", "reconciliation", "rollback", "audit_trail"):
+                    if key not in sections:
+                        failures.append(f"evidence_pack_missing_section:{key}")
+                report_paths = pack_payload.get("report_paths", {})
+                json_path = str(report_paths.get("json", "") or "")
+                md_path = str(report_paths.get("markdown", "") or "")
+                if not json_path or not Path(json_path).is_file():
+                    failures.append("evidence_pack_report_json_missing")
+                if not md_path or not Path(md_path).is_file():
+                    failures.append("evidence_pack_report_markdown_missing")
+
+            if (runtime_root / "invoiceops" / "live_posting").exists():
+                live_posting_files = list((runtime_root / "invoiceops" / "live_posting").glob("*"))
+                if any(path.is_file() for path in live_posting_files):
+                    failures.append("live_write_or_rollback_artifact_created")
+
+    except Exception as exc:
+        failures.append(f"invoiceops_post_write_reconciliation_error:{exc}")
+
+    all_issues = missing + failures
+    status = "PASS" if not all_issues else "FAIL"
+    return {
+        "name": "invoiceops_post_write_reconciliation",
         "status": status,
         "missing": missing,
         "failures": failures,

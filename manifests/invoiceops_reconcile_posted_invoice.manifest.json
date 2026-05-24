@@ -1,0 +1,62 @@
+{
+  "manifest_id": "invoiceops.reconcile_posted_invoice_v1",
+  "name": "InvoiceOps Reconcile Posted Invoice v1",
+  "version": 1,
+  "description": "Reconcile posted InvoiceOps rows and build an accounting evidence pack. Read-only only.",
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "frame_id",
+    "invoice_number",
+    "posting_plan_id",
+    "runtime_data_dir"
+  ],
+  "steps": [
+    {
+      "id": "load_invoice_reference",
+      "command": "[t:file/exists -> invoice_ref_exists] path=$inputs.runtime_data_dir"
+    },
+    {
+      "id": "load_posted_rows",
+      "command": "[t:invoiceops/reconcile -> reconciliation_result] frame_id=$inputs.frame_id; invoice_number=$inputs.invoice_number; posting_plan_id=$inputs.posting_plan_id; runtime_data_dir=$inputs.runtime_data_dir; profile=service; fixture_mode=true; write_report=true"
+    },
+    {
+      "id": "build_accounting_evidence_pack",
+      "command": "[t:invoiceops/evidence_pack -> accounting_evidence_pack] frame_id=$inputs.frame_id; invoice_number=$inputs.invoice_number; posting_plan_id=$inputs.posting_plan_id; runtime_data_dir=$inputs.runtime_data_dir; profile=service; fixture_mode=true; write_report=true"
+    }
+  ],
+  "validations": [
+    {
+      "id": "reconciliation_result_exists",
+      "type": "output_exists",
+      "output": "reconciliation_result"
+    },
+    {
+      "id": "accounting_evidence_pack_exists",
+      "type": "output_exists",
+      "output": "accounting_evidence_pack"
+    }
+  ],
+  "completion": {
+    "success_outputs": [
+      "reconciliation_result",
+      "accounting_evidence_pack"
+    ],
+    "acceptable_statuses": [
+      "RECONCILED",
+      "RECONCILED_WITH_WARNINGS",
+      "MANUAL_REVIEW_REQUIRED"
+    ],
+    "allow_pending_approval": false,
+    "required_state": "COMPLETED"
+  },
+  "live_execution": {
+    "enabled": false,
+    "allowed_tools": [],
+    "allowed_actions": [],
+    "max_live_actions": 0,
+    "requires_approval": false,
+    "requires_operator_confirmation": false
+  }
+}

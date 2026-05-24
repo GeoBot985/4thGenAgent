@@ -231,6 +231,40 @@ taskframe execute-approved \
   --confirm "LIVE-EXECUTE"
 ```
 
+### `taskframe invoiceops reconcile`
+
+Builds the post-write reconciliation result for a posted InvoiceOps invoice.
+
+- `--frame-id <frame_id>`
+- `--invoice-number <number>`
+- `--posting-plan-id <id>`
+- `--runtime-data-dir runtime_data`
+- `--profile service`
+- `--fixture-mode`
+- `--write-report`
+- `--json`
+
+Exit codes:
+- `0` when reconciliation completes with a reconciled or warning status
+- non-zero when reconciliation is blocked or missing posting evidence
+
+### `taskframe invoiceops evidence-pack`
+
+Builds the InvoiceOps accounting evidence pack.
+
+- `--frame-id <frame_id>`
+- `--invoice-number <number>`
+- `--posting-plan-id <id>`
+- `--runtime-data-dir runtime_data`
+- `--profile service`
+- `--fixture-mode`
+- `--write-report`
+- `--json`
+
+Exit codes:
+- `0` when the evidence pack is generated successfully
+- non-zero when the underlying reconciliation result is blocked or missing evidence
+
 ### `taskframe gmail-send dry-run`
 
 Validates a pending Gmail send action without calling the Gmail API.

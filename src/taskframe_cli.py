@@ -837,6 +837,26 @@ def build_parser() -> argparse.ArgumentParser:
     iolsp_report.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     iolsp_report.add_argument("--json", action="store_true")
 
+    invoiceops_reconcile = invoiceops_sub.add_parser("reconcile", help="Reconcile posted InvoiceOps rows and build a reconciliation report.")
+    invoiceops_reconcile.add_argument("--frame-id", default="")
+    invoiceops_reconcile.add_argument("--invoice-number", default="")
+    invoiceops_reconcile.add_argument("--posting-plan-id", default="")
+    invoiceops_reconcile.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    invoiceops_reconcile.add_argument("--profile", default="service")
+    invoiceops_reconcile.add_argument("--fixture-mode", action="store_true", default=True)
+    invoiceops_reconcile.add_argument("--write-report", action="store_true")
+    invoiceops_reconcile.add_argument("--json", action="store_true")
+
+    invoiceops_evidence = invoiceops_sub.add_parser("evidence-pack", help="Build an InvoiceOps accounting evidence pack (read-only).")
+    invoiceops_evidence.add_argument("--frame-id", default="")
+    invoiceops_evidence.add_argument("--invoice-number", default="")
+    invoiceops_evidence.add_argument("--posting-plan-id", default="")
+    invoiceops_evidence.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    invoiceops_evidence.add_argument("--profile", default="service")
+    invoiceops_evidence.add_argument("--fixture-mode", action="store_true", default=True)
+    invoiceops_evidence.add_argument("--write-report", action="store_true")
+    invoiceops_evidence.add_argument("--json", action="store_true")
+
     # Spec 154 — Governed Live Read Proof Pack
     live_read = sub.add_parser("live-read", help="Governed live-read proof and boundary checks.")
     live_read_sub = live_read.add_subparsers(dest="live_read_command", required=True)
@@ -4883,12 +4903,51 @@ def _run_invoiceops(args: Any) -> int:
         render_invoiceops_live_posting_markdown,
         write_invoiceops_live_posting_report,
     )
+    from runtime.invoiceops_reconciliation import build_invoiceops_reconciliation_result
+    from runtime.invoiceops_accounting_evidence_pack import build_accounting_evidence_pack
     from runtime.invoiceops_posting_approval_pack import build_invoiceops_posting_approval_pack
     from runtime.invoiceops_posting_ledger import build_posting_ledger_report
 
     cmd = str(getattr(args, "invoiceops_command", "") or "")
     rd = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
     as_json = bool(getattr(args, "json", False))
+    fixture_mode = bool(getattr(args, "fixture_mode", True))
+    profile = str(getattr(args, "profile", "service") or "service")
+
+    if cmd == "reconcile":
+        result = build_invoiceops_reconciliation_result(
+            frame_id=str(getattr(args, "frame_id", "") or ""),
+            invoice_number=str(getattr(args, "invoice_number", "") or ""),
+            posting_plan_id=str(getattr(args, "posting_plan_id", "") or ""),
+            runtime_data_dir=rd,
+            profile=profile,
+            fixture_mode=fixture_mode,
+            write_report=bool(getattr(args, "write_report", False)),
+        )
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            print(f"InvoiceOps Reconciliation: {result.get('status', '')}")
+            print(f"  Invoice: {result.get('invoice_number', '')}")
+            print(f"  Supplier: {result.get('supplier_name', '')}")
+        return 0 if result.get("ok", False) else 1
+
+    if cmd == "evidence-pack":
+        result = build_accounting_evidence_pack(
+            frame_id=str(getattr(args, "frame_id", "") or ""),
+            invoice_number=str(getattr(args, "invoice_number", "") or ""),
+            posting_plan_id=str(getattr(args, "posting_plan_id", "") or ""),
+            runtime_data_dir=rd,
+            profile=profile,
+            fixture_mode=fixture_mode,
+            write_report=bool(getattr(args, "write_report", False)),
+        )
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            print(f"InvoiceOps Evidence Pack: {result.get('pack_id', '')}")
+            print(f"  Status: {result.get('status', '')}")
+        return 0 if result.get("ok", False) else 1
 
     if cmd == "live-posting":
         sub_cmd = str(getattr(args, "iolsp_command", "") or "")

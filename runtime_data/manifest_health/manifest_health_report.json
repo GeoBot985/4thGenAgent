@@ -1,20 +1,20 @@
 {
   "ok": true,
-  "status": "HEALTHY",
-  "generated_at": "2026-05-24T11:46:10.160462Z",
+  "status": "HAS_FAILURES",
+  "generated_at": "2026-05-24T15:51:45.632283Z",
   "manifest_dir": "manifests",
   "summary": {
-    "total": 20,
+    "total": 21,
     "healthy": 0,
     "warnings": 0,
-    "failed": 0,
+    "failed": 1,
     "validation_passed": 20,
-    "validation_failed": 0,
+    "validation_failed": 1,
     "smoke_passed": 0,
     "smoke_failed": 0,
-    "smoke_skipped": 20,
+    "smoke_skipped": 21,
     "repairable": 9,
-    "manual_fix_required": 0,
+    "manual_fix_required": 1,
     "critical": 0,
     "strict_failed": 0,
     "strict_warnings": 0
@@ -43,15 +43,6 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
-            "example": "",
-            "source": "static_manifest_check"
-          },
-          {
-            "id": "input_declared_but_not_used",
-            "severity": "warning",
-            "location": "inputs",
             "message": "Input 'event_id' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
@@ -63,6 +54,15 @@
             "location": "inputs",
             "message": "Input 'channel' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -316,6 +316,84 @@
       "repairable": false,
       "manual_fix_required": false,
       "next_action": "Run smoke test manually with sample inputs."
+    },
+    {
+      "manifest_id": "invoiceops.reconcile_posted_invoice_v1",
+      "name": "InvoiceOps Reconcile Posted Invoice v1",
+      "path": "manifests\\invoiceops_reconcile_posted_invoice.manifest.json",
+      "health": "FAILED",
+      "validation": {
+        "ok": false,
+        "errors": [
+          "Invalid live_execution policy: live_execution.requires_approval must remain true."
+        ]
+      },
+      "repair_guidance": {
+        "status": "HAS_FINDINGS",
+        "severity": "error",
+        "finding_count": 1,
+        "top_findings": [
+          "validation_error"
+        ],
+        "findings": [
+          {
+            "id": "validation_error",
+            "severity": "error",
+            "location": "manifest",
+            "message": "Invalid live_execution policy: live_execution.requires_approval must remain true.",
+            "suggested_fix": "Review the validation error and fix the manifest accordingly.",
+            "example": "",
+            "source": "validation_result"
+          }
+        ]
+      },
+      "smoke": {
+        "status": "SKIPPED",
+        "classification": "NOT_RUN",
+        "reason": "manifest failed to load",
+        "state": ""
+      },
+      "strict_contract": {
+        "ok": true,
+        "status": "PASS",
+        "errors": [],
+        "warnings": [],
+        "findings": []
+      },
+      "autofix": {
+        "proposal_count": 1,
+        "supported_count": 0,
+        "unsupported_count": 1,
+        "low_risk_applyable": 0,
+        "top_supported": [],
+        "top_unsupported": [
+          "validation_error"
+        ],
+        "proposals": [
+          {
+            "fix_id": "unsupported_validation_error",
+            "finding_id": "validation_error",
+            "title": "Unsupported automatic fix: validation error",
+            "severity": "error",
+            "risk": "blocked",
+            "confidence": "n/a",
+            "status": "NOT_SUPPORTED",
+            "location": "manifest",
+            "summary": "Invalid live_execution policy: live_execution.requires_approval must remain true.",
+            "patches": [],
+            "before_preview": "",
+            "after_preview": "",
+            "diff": [],
+            "warnings": [
+              "No automatic fix available for 'validation_error'."
+            ],
+            "requires_operator_approval": true
+          }
+        ]
+      },
+      "repairable": false,
+      "manual_fix_required": true,
+      "next_action": "Fix JSON/schema before smoke testing."
     },
     {
       "manifest_id": "llm.classify_customer_message",
@@ -1580,15 +1658,6 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
-            "example": "",
-            "source": "static_manifest_check"
-          },
-          {
-            "id": "input_declared_but_not_used",
-            "severity": "warning",
-            "location": "inputs",
             "message": "Input 'event_id' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
@@ -1600,6 +1669,15 @@
             "location": "inputs",
             "message": "Input 'channel' is declared but not referenced in any step command.",
             "suggested_fix": "Remove 'channel' from inputs if unused, or reference it in a command as $inputs.channel.",
+            "example": "",
+            "source": "static_manifest_check"
+          },
+          {
+            "id": "input_declared_but_not_used",
+            "severity": "warning",
+            "location": "inputs",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
