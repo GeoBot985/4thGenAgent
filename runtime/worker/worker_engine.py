@@ -333,6 +333,7 @@ def build_worker_status(
     state = _read_state(runtime_data_dir) or {}
     lock_info = is_worker_locked(runtime_data_dir)
     recent = _read_recent_cycles(runtime_data_dir, limit=1)
+    hardening = _safe_worker_hardening(runtime_data_dir)
 
     return {
         "ok": True,
@@ -349,6 +350,12 @@ def build_worker_status(
         "last_cycle_summary": state.get("last_cycle_summary", {}),
         "last_error": state.get("last_error", ""),
         "last_cycle": recent[0] if recent else {},
+        "hardening": {
+            "ok": bool(hardening.get("ok", False)),
+            "classification": str(hardening.get("classification", "BLOCKED")),
+            "anomalies": list(hardening.get("anomalies", [])),
+            "recommendations": list(hardening.get("recommendations", [])),
+        },
     }
 
 
@@ -358,6 +365,7 @@ def build_worker_health(
     """Run availability checks on all worker dependencies."""
     checks: dict[str, bool] = {}
     warnings: list[str] = []
+    hardening = _safe_worker_hardening(runtime_data_dir)
 
     # Persistence backend
     try:
@@ -408,10 +416,25 @@ def build_worker_health(
     if stale.get("stale"):
         warnings.append("stale lock detected — run 'taskframe worker clear-stale-lock'")
 
+    hardening_profile = str(hardening.get("profile", "") or "")
+    checks["service_ready"] = bool(hardening.get("service_ready", True))
+    checks["soak_ready"] = bool(hardening.get("soak_ready", True))
+    checks["worker_identity_present"] = bool(hardening.get("worker_identity_present", True)) if hardening_profile == "service" else True
+
     return {
         "ok": all(checks.values()),
         "checks": checks,
         "warnings": warnings,
+        "soak_ready": bool(hardening.get("soak_ready", False)),
+        "service_ready": bool(hardening.get("service_ready", False)),
+        "hardening_checks": dict(hardening.get("hardening_checks", {})),
+        "blockers": list(hardening.get("blockers", [])),
+        "hardening": {
+            "ok": bool(hardening.get("ok", False)),
+            "classification": str(hardening.get("classification", "BLOCKED")),
+            "anomalies": list(hardening.get("anomalies", [])),
+            "recommendations": list(hardening.get("recommendations", [])),
+        },
     }
 
 
@@ -446,3 +469,21 @@ def clear_stale_worker_lock(
 ) -> dict[str, Any]:
     """Clear a stale worker lock. Safe — refuses to touch a live lock."""
     return clear_stale_lock(runtime_data_dir)
+
+
+def _safe_worker_hardening(runtime_data_dir: str | Path) -> dict[str, Any]:
+    try:
+        from runtime.worker.worker_hardening import build_worker_hardening_status
+
+        return build_worker_hardening_status(runtime_data_dir=runtime_data_dir)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "classification": "BLOCKED",
+            "anomalies": [{"id": "hardening_unavailable", "severity": "error", "message": str(exc)}],
+            "recommendations": ["Inspect the worker hardening module error before retrying."],
+            "service_ready": False,
+            "soak_ready": False,
+            "hardening_checks": {"hardening_unavailable": False},
+            "blockers": [{"id": "hardening_unavailable", "message": str(exc)}],
+        }

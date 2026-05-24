@@ -838,6 +838,73 @@ Exit codes:
 - `0`
 
 
+## Local Worker Supervisor (`taskframe worker`)
+
+Manage the local bounded worker supervisor and its hardening evidence.
+
+### `taskframe worker status`
+
+Shows worker status, lock state, last cycle data, and the hardening payload.
+
+- `--runtime-data-dir runtime_data`
+- `--json`
+
+### `taskframe worker health`
+
+Checks worker runtime dependencies and readiness.
+
+- `--runtime-data-dir runtime_data`
+- `--json`
+
+### `taskframe worker run-once`
+
+Runs one bounded worker cycle.
+
+- `--runtime-data-dir runtime_data`
+- `--worker-id local-worker-1`
+- `--no-scheduler`
+- `--no-event-sources`
+- `--queue-limit 10`
+- `--json`
+
+### `taskframe worker soak`
+
+Runs a bounded soak test. When `--profile service` is used, the command runs service preflight first and keeps live side effects disabled.
+
+- `--profile service`
+- `--cycles 20`
+- `--sleep-seconds 0.1`
+- `--max-runtime-seconds 300`
+- `--queue-limit 10`
+- `--runtime-data-dir runtime_data`
+- `--fail-fast`
+- `--write-report`
+- `--json`
+
+### `taskframe worker stop`
+
+Requests a graceful stop for the worker loop.
+
+- `--runtime-data-dir runtime_data`
+- `--worker-id local-worker-1`
+- `--json`
+
+### `taskframe worker cycles`
+
+Shows recent worker cycle history.
+
+- `--limit 10`
+- `--runtime-data-dir runtime_data`
+- `--json`
+
+### `taskframe worker clear-stale-lock`
+
+Clears a stale worker lock only.
+
+- `--runtime-data-dir runtime_data`
+- `--json`
+
+
 ## Durable Event Queue (`taskframe queue`)
 
 Manage and inspect the Spec 137 durable event queue.

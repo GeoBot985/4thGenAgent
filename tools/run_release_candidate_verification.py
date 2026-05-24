@@ -277,6 +277,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         _check_scheduler_runtime(),
         _check_external_event_source_polling(),
         _check_local_worker_supervisor(),
+        _check_worker_hardening_soak(),
     ])
 
     if mode == "standard":
@@ -317,6 +318,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         "scheduler_runtime": _status_from_static_mode(static_checks, "scheduler_runtime"),
         "external_event_source_polling": _status_from_static_mode(static_checks, "external_event_source_polling"),
         "local_worker_supervisor": _status_from_static_mode(static_checks, "local_worker_supervisor"),
+        "worker_hardening_soak": _status_from_static_mode(static_checks, "worker_hardening_soak"),
         "operational_monitoring": _status_from_static_mode(static_checks, "operational_monitoring"),
         "default_demo_boundary_doc": _status_from_static_mode(static_checks, "default_demo_boundary_doc"),
         "golden_demo": "SKIPPED",
@@ -389,6 +391,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
             "optional_rpa_isolation",
             "config_secrets_hygiene",
             "service_runtime_profile",
+            "worker_hardening_soak",
         }:
             release_blockers.append(f"{check['name']} failed")
 
@@ -4180,6 +4183,162 @@ def _check_local_worker_supervisor() -> dict[str, Any]:
 
     return {
         "name": "local_worker_supervisor",
+        "status": "PASS" if not missing else "FAIL",
+        "missing": missing,
+    }
+
+
+def _check_worker_hardening_soak() -> dict[str, Any]:
+    missing: list[str] = []
+
+    try:
+        from runtime.worker.worker_failure_fixtures import write_active_lock_fixture, write_stale_lock_fixture
+        from runtime.worker.worker_hardening import build_worker_hardening_status
+        from runtime.worker.worker_lock import clear_stale_lock, detect_stale_lock
+        from runtime.worker.worker_soak import WORKER_SOAK_MD, WORKER_SOAK_JSON
+    except Exception as exc:
+        return {"name": "worker_hardening_soak", "status": "FAIL", "error": str(exc)}
+
+    import json as _json
+    import shutil
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="rc_worker_hardening_") as tmp:
+        runtime_root = Path(tmp) / "runtime_data"
+        config_dir = Path(tmp) / "config"
+        runtime_root.mkdir(parents=True, exist_ok=True)
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        service_config = (ROOT / "config" / "examples" / "taskframe.service.example.json").read_text(encoding="utf-8")
+        (config_dir / "taskframe.service.json").write_text(service_config, encoding="utf-8")
+
+        stale_lock_path = write_stale_lock_fixture(runtime_root)
+        if not stale_lock_path.is_file():
+            missing.append("stale_lock_fixture_not_written")
+        if not detect_stale_lock(runtime_root).get("stale", False):
+            missing.append("stale_lock_not_detected")
+        clear_result = clear_stale_lock(runtime_root)
+        if not clear_result.get("ok", False):
+            missing.append("stale_lock_clear_failed")
+        active_lock_path = write_active_lock_fixture(runtime_root)
+        if not active_lock_path.is_file():
+            missing.append("active_lock_fixture_not_written")
+        if clear_stale_lock(runtime_root).get("ok", True):
+            missing.append("active_lock_cleared_accidentally")
+
+        env = os.environ.copy()
+        env["TASKFRAME_CONFIG_DIR"] = str(config_dir)
+        env["TASKFRAME_PROFILE"] = "service"
+        health_root = Path(tmp) / "runtime_data_health"
+        health_root.mkdir(parents=True, exist_ok=True)
+        soak_root = Path(tmp) / "runtime_data_soak"
+        soak_root.mkdir(parents=True, exist_ok=True)
+
+        status_proc = subprocess.run(
+            [sys.executable, "-m", "src.taskframe_cli", "worker", "status", "--runtime-data-dir", str(runtime_root), "--json"],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=120,
+        )
+        if status_proc.returncode != 0:
+            missing.append(f"worker_status_cli_failed:{status_proc.stderr[-200:]}")
+        else:
+            try:
+                status_payload = _json.loads(status_proc.stdout)
+            except Exception:
+                status_payload = {}
+                missing.append("worker_status_cli_invalid_json")
+            hardening = status_payload.get("hardening") if isinstance(status_payload, dict) else {}
+            if not isinstance(hardening, dict):
+                missing.append("worker_status_missing_hardening")
+            else:
+                for key in ("ok", "classification", "anomalies", "recommendations"):
+                    if key not in hardening:
+                        missing.append(f"worker_status_hardening_missing_{key}")
+
+        health_proc = subprocess.run(
+            [sys.executable, "-m", "src.taskframe_cli", "worker", "health", "--runtime-data-dir", str(health_root), "--json"],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=120,
+        )
+        if health_proc.returncode != 0:
+            missing.append(f"worker_health_cli_failed:{health_proc.stderr[-200:]}")
+        else:
+            try:
+                health_payload = _json.loads(health_proc.stdout)
+            except Exception:
+                health_payload = {}
+                missing.append("worker_health_cli_invalid_json")
+            for key in ("soak_ready", "service_ready", "hardening_checks", "blockers", "warnings"):
+                if key not in health_payload:
+                    missing.append(f"worker_health_missing_{key}")
+
+        soak_proc = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "src.taskframe_cli",
+                "worker",
+                "soak",
+                "--profile",
+                "service",
+                "--cycles",
+                "3",
+                "--sleep-seconds",
+                "0",
+                "--runtime-data-dir",
+                str(soak_root),
+                "--json",
+            ],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=120,
+        )
+        if soak_proc.returncode != 0:
+            missing.append(f"worker_soak_cli_failed:{soak_proc.stderr[-200:]}")
+        else:
+            try:
+                soak_payload = _json.loads(soak_proc.stdout)
+            except Exception:
+                soak_payload = {}
+                missing.append("worker_soak_cli_invalid_json")
+            if soak_payload.get("ok") is not True:
+                missing.append("worker_soak_not_ok")
+            if soak_payload.get("cycles_requested") != 3 or soak_payload.get("cycles_completed") != 3:
+                missing.append("worker_soak_cycle_count_mismatch")
+            if soak_payload.get("live_side_effects_performed") is not False:
+                missing.append("worker_soak_live_side_effects_enabled")
+            if str(soak_payload.get("worker_identity", {}).get("worker_id", "")) != "service-worker-1":
+                missing.append("worker_soak_worker_identity_missing")
+            report_paths = soak_payload.get("report_paths") or {}
+            if not Path(str(report_paths.get("json", ""))).is_file():
+                missing.append("worker_soak_report_json_missing")
+            if not Path(str(report_paths.get("markdown", ""))).is_file():
+                missing.append("worker_soak_report_markdown_missing")
+            if not (soak_root / "worker" / "reports" / WORKER_SOAK_JSON).is_file():
+                missing.append("worker_soak_report_latest_json_missing")
+            if not (soak_root / "worker" / "reports" / WORKER_SOAK_MD).is_file():
+                missing.append("worker_soak_report_latest_md_missing")
+
+        hardening = build_worker_hardening_status(runtime_data_dir=soak_root, profile_name="service")
+        if not hardening.get("worker_identity_present", False):
+            missing.append("worker_hardening_identity_missing")
+        if not hardening.get("service_ready", False):
+            missing.append("worker_hardening_service_not_ready")
+
+    return {
+        "name": "worker_hardening_soak",
         "status": "PASS" if not missing else "FAIL",
         "missing": missing,
     }

@@ -698,6 +698,18 @@ def build_parser() -> argparse.ArgumentParser:
     wkr_run_once.add_argument("--queue-limit", type=int, default=10, help="Max queue items to process.")
     wkr_run_once.add_argument("--json", action="store_true")
 
+    wkr_soak = wkr_sub.add_parser("soak", help="Run a bounded worker soak test.")
+    wkr_soak.add_argument("--profile", default="service")
+    wkr_soak.add_argument("--cycles", type=int, default=20)
+    wkr_soak.add_argument("--sleep-seconds", type=float, default=0.1)
+    wkr_soak.add_argument("--max-runtime-seconds", type=float, default=300.0)
+    wkr_soak.add_argument("--queue-limit", type=int, default=10)
+    wkr_soak.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    wkr_soak.add_argument("--fail-fast", action="store_true")
+    wkr_soak.add_argument("--write-report", dest="write_report", action="store_true", default=True)
+    wkr_soak.add_argument("--no-write-report", dest="write_report", action="store_false")
+    wkr_soak.add_argument("--json", action="store_true")
+
     wkr_loop = wkr_sub.add_parser("run-loop", help="Run a bounded worker loop.")
     wkr_loop.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     wkr_loop.add_argument("--worker-id", default="local-worker-1")
@@ -4407,6 +4419,16 @@ def _run_worker(args: Any) -> int:
     if cmd == "status":
         try:
             result = build_worker_status(rd)
+            from runtime.worker.worker_hardening import build_worker_hardening_status, write_worker_hardening_report
+
+            hardening = build_worker_hardening_status(runtime_data_dir=rd)
+            result["hardening"] = {
+                "ok": bool(hardening.get("ok", False)),
+                "classification": hardening.get("classification", "BLOCKED"),
+                "anomalies": list(hardening.get("anomalies", [])),
+                "recommendations": list(hardening.get("recommendations", [])),
+            }
+            result["report_paths"] = write_worker_hardening_report(hardening, runtime_data_dir=rd)
         except Exception as exc:
             result = {"ok": False, "error": str(exc)}
         if use_json:
@@ -4423,6 +4445,8 @@ def _run_worker(args: Any) -> int:
         print(f"  Last cycle started:   {result.get('last_cycle_started_at', 'never')}")
         print(f"  Last cycle completed: {result.get('last_cycle_completed_at', 'never')}")
         last = result.get("last_cycle_summary") or {}
+        hardening = result.get("hardening") or {}
+        print(f"  Hardening:            {hardening.get('classification', 'BLOCKED')}")
         if last:
             print(f"  Last cycle OK:        {last.get('ok', True)}")
             print(f"  Queue processed:      {last.get('queue_items_processed', 0)}")
@@ -4442,6 +4466,8 @@ def _run_worker(args: Any) -> int:
         for k, v in sorted((result.get("checks") or {}).items()):
             flag = "OK" if v else "FAIL"
             print(f"  [{flag}] {k}")
+        print(f"  Service ready: {result.get('service_ready', False)}")
+        print(f"  Soak ready:    {result.get('soak_ready', False)}")
         for w in result.get("warnings") or []:
             print(f"  WARN: {w}")
         return 0 if result.get("ok") else 1
@@ -4490,6 +4516,67 @@ def _run_worker(args: Any) -> int:
         if result.get("errors"):
             for e in result["errors"]:
                 print(f"  ERROR: {e}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "soak":
+        from runtime.worker.worker_soak import run_worker_soak
+
+        profile_name = str(getattr(args, "profile", "service") or "service")
+        cycles = int(getattr(args, "cycles", 20))
+        sleep_seconds = float(getattr(args, "sleep_seconds", 0.1))
+        max_runtime_seconds = float(getattr(args, "max_runtime_seconds", 300.0))
+        queue_limit = int(getattr(args, "queue_limit", 10))
+        fail_fast = bool(getattr(args, "fail_fast", False))
+        write_report = bool(getattr(args, "write_report", True))
+        try:
+            result = run_worker_soak(
+                profile_name=profile_name,
+                cycles=cycles,
+                sleep_seconds=sleep_seconds,
+                max_runtime_seconds=max_runtime_seconds,
+                queue_limit=queue_limit,
+                runtime_data_dir=rd,
+                fail_fast=fail_fast,
+                write_report=write_report,
+            )
+        except Exception as exc:
+            result = {
+                "ok": False,
+                "error": str(exc),
+                "profile": profile_name,
+                "worker_id": "",
+                "cycles_requested": cycles,
+                "cycles_completed": 0,
+                "cycles_failed": 0,
+                "cycles_no_work": 0,
+                "duration_ms": 0,
+                "max_cycle_duration_ms": 0,
+                "average_cycle_duration_ms": 0.0,
+                "stale_lock_detected": False,
+                "live_side_effects_performed": False,
+                "classifications": {},
+                "blockers": [],
+                "warnings": [],
+                "report_paths": {},
+            }
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        print(f"Worker soak: {'OK' if result.get('ok') else 'FAIL'}")
+        print(f"  Profile:           {result.get('profile', '')}")
+        print(f"  Worker ID:         {result.get('worker_id', '')}")
+        print(f"  Cycles completed:  {result.get('cycles_completed', 0)} / {result.get('cycles_requested', 0)}")
+        print(f"  Cycles failed:     {result.get('cycles_failed', 0)}")
+        print(f"  No work cycles:    {result.get('cycles_no_work', 0)}")
+        print(f"  Max cycle ms:      {result.get('max_cycle_duration_ms', 0)}")
+        print(f"  Average cycle ms:   {result.get('average_cycle_duration_ms', 0)}")
+        if result.get("report_paths"):
+            print(f"  Report:            {result.get('report_paths', {}).get('json', '')}")
+        for warning in result.get("warnings") or []:
+            print(f"  WARN: {warning}")
+        for blocker in result.get("blockers") or []:
+            if isinstance(blocker, dict):
+                print(f"  BLOCKER: {blocker.get('message', '')}")
         return 0 if result.get("ok") else 1
 
     if cmd == "run-loop":
