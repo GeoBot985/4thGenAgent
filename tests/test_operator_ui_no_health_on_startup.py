@@ -16,7 +16,6 @@ def test_operator_ui_constructor_does_not_run_tool_health(monkeypatch, tmp_path)
     monkeypatch.setattr(root, "after", lambda delay, callback, *args: "after-id", raising=False)
     monkeypatch.setattr(operator_ui, "check_all_tool_health", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("check_all_tool_health must not run at startup")))
     monkeypatch.setattr(operator_ui, "build_monitoring_summary", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("build_monitoring_summary must not run at startup")))
-    monkeypatch.setattr(operator_ui, "assess_recovery", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("assess_recovery must not run at startup")))
 
     try:
         root.withdraw()
@@ -26,4 +25,3 @@ def test_operator_ui_constructor_does_not_run_tool_health(monkeypatch, tmp_path)
         assert "Loading runtime data" in console.startup_state_var.get()
     finally:
         root.destroy()
-

@@ -95,7 +95,6 @@ from runtime.tool_setup import get_tool_setup_instructions, run_safe_setup_actio
 from runtime.run_report import generate_demo_run_report
 from runtime.monitoring_snapshot import build_monitoring_snapshot, load_latest_monitoring_snapshot, write_monitoring_snapshot
 from runtime.operational_monitoring import build_monitoring_summary, build_operational_monitoring_report
-from runtime.recovery import assess_recovery
 from src.config_profiles import load_config_profile
 from src.toolpack_loader import discover_toolpacks, load_toolpack_descriptor, validate_toolpack_descriptor
 from src.readiness_scorecard import build_readiness_scorecard
@@ -271,8 +270,10 @@ class OperatorConsole:
         self.recovery_snapshot: dict = {}
         self.toolpack_discovery_snapshot: dict = {}
         self.selected_tool_id: str = ""
-        self.view_mode_var = tk.StringVar(value="Demo")
+        self.view_mode_var = tk.StringVar(value="Demo Home")
         self.selected_demo_id = tk.StringVar(value="")
+        self.demo_home_status_var = tk.StringVar(value="Choose a demo and click Run.")
+        self.demo_home_run_summary_var = tk.StringVar(value="")
         self.advanced_settings_visible = False
         self.scenario_category_var = tk.StringVar(value="All")
         self.scenario_var = tk.StringVar(value="")
@@ -321,6 +322,18 @@ class OperatorConsole:
         style.configure("Meta.TLabel", background="#e9edf2", foreground="#475569", font=("Segoe UI", 10))
         style.configure("Body.TLabel", background="#f7f8fa", foreground="#1f2937", font=("Segoe UI", 10))
         style.configure("DarkBody.TLabel", background="#111827", foreground="#dbeafe", font=("Consolas", 10))
+        # Demo Home chip styles
+        style.configure("Chip.Ready.TLabel", background="#dcfce7", foreground="#166534", font=("Segoe UI", 9, "bold"), padding=(6, 2))
+        style.configure("Chip.Running.TLabel", background="#dbeafe", foreground="#1e40af", font=("Segoe UI", 9, "bold"), padding=(6, 2))
+        style.configure("Chip.Awaiting.TLabel", background="#fef9c3", foreground="#713f12", font=("Segoe UI", 9, "bold"), padding=(6, 2))
+        style.configure("Chip.Completed.TLabel", background="#dcfce7", foreground="#166534", font=("Segoe UI", 9, "bold"), padding=(6, 2))
+        style.configure("Chip.Failed.TLabel", background="#fee2e2", foreground="#991b1b", font=("Segoe UI", 9, "bold"), padding=(6, 2))
+        style.configure("Chip.LiveBlocked.TLabel", background="#fce7f3", foreground="#9d174d", font=("Segoe UI", 9, "bold"), padding=(6, 2))
+        style.configure("Chip.NeedsReview.TLabel", background="#fef3c7", foreground="#92400e", font=("Segoe UI", 9, "bold"), padding=(6, 2))
+        style.configure("DemoCard.TFrame", background="#ffffff", relief="flat")
+        style.configure("DemoCardTitle.TLabel", background="#ffffff", foreground="#111827", font=("Segoe UI", 11, "bold"))
+        style.configure("DemoCardBody.TLabel", background="#ffffff", foreground="#374151", font=("Segoe UI", 9))
+        style.configure("ShowcaseStep.TLabel", background="#f7f8fa", foreground="#1e40af", font=("Segoe UI", 10, "bold"))
 
     def _build_layout(self) -> None:
         self.outer = ttk.Frame(self.root, style="Workspace.TFrame", padding=16)
@@ -336,18 +349,20 @@ class OperatorConsole:
         self.view_stack.columnconfigure(0, weight=1)
         self.view_stack.rowconfigure(0, weight=1)
 
+        self.demo_home_view_frame = ttk.Frame(self.view_stack, style="Workspace.TFrame")
         self.demo_view_frame = ttk.Frame(self.view_stack, style="Workspace.TFrame")
         self.operator_view_frame = ttk.Frame(self.view_stack, style="Workspace.TFrame")
         self.inspector_view_frame = ttk.Frame(self.view_stack, style="Workspace.TFrame")
         self.workbench_view_frame = ttk.Frame(self.view_stack, style="Workspace.TFrame")
 
-        for frame in (self.demo_view_frame, self.operator_view_frame, self.inspector_view_frame, self.workbench_view_frame):
+        for frame in (self.demo_home_view_frame, self.demo_view_frame, self.operator_view_frame, self.inspector_view_frame, self.workbench_view_frame):
             frame.grid(row=0, column=0, sticky="nsew")
             frame.columnconfigure(0, weight=1)
             frame.rowconfigure(0, weight=0)
             frame.rowconfigure(1, weight=1)
             frame.rowconfigure(2, weight=0)
 
+        self._build_demo_home_view(self.demo_home_view_frame)
         self._build_demo_view(self.demo_view_frame)
         self._build_operator_view(self.operator_view_frame)
         self._build_inspector_view(self.inspector_view_frame)
@@ -371,9 +386,10 @@ class OperatorConsole:
         controls.grid(row=0, column=1, sticky="e")
         mode_block = ttk.Frame(controls, style="Workspace.TFrame")
         mode_block.pack(anchor="e")
-        ttk.Label(mode_block, text="View Mode", style="Meta.TLabel").grid(row=0, column=0, columnspan=3, sticky="e")
-        for column, mode in enumerate(("Demo", "Operator", "Inspector", "Manifest Workbench")):
-            ttk.Radiobutton(mode_block, text=mode, value=mode, variable=self.view_mode_var, command=self._switch_view_mode).grid(row=1, column=column, sticky="e", padx=(0, 8) if mode != "Inspector" else (0, 0))
+        ttk.Label(mode_block, text="View", style="Meta.TLabel").grid(row=0, column=0, columnspan=5, sticky="e")
+        _nav_modes = ("Demo Home", "Console", "Inspector", "Manifest Workbench")
+        for column, mode in enumerate(_nav_modes):
+            ttk.Radiobutton(mode_block, text=mode, value=mode, variable=self.view_mode_var, command=self._switch_view_mode).grid(row=1, column=column, sticky="e", padx=(0, 8) if column < len(_nav_modes) - 1 else (0, 0))
 
         startup = ttk.Frame(header, style="Card.TFrame", padding=(10, 8))
         startup.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(10, 0))
@@ -552,6 +568,258 @@ class OperatorConsole:
             self.scenario_var.set(default_label)
             self.scenario_description_label.configure(text=self.scenario_items[0].get("description", ""))
             self._on_scenario_selected(None)
+
+    # -----------------------------------------------------------------------
+    # Demo Home view (Spec 159 — default startup view)
+    # -----------------------------------------------------------------------
+
+    def _build_demo_home_view(self, parent: ttk.Frame) -> None:
+        """Build the Demo Home view: guidance, demo cards, run summary, showcase panel."""
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(0, weight=0)  # guidance strip
+        parent.rowconfigure(1, weight=0)  # demo cards
+        parent.rowconfigure(2, weight=0)  # run summary strip
+        parent.rowconfigure(3, weight=1)  # showcase guided section (fills remaining)
+
+        # --- Guidance strip ---
+        guidance_card = ttk.Frame(parent, style="Card.TFrame", padding=(12, 8))
+        guidance_card.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        guidance_card.columnconfigure(0, weight=1)
+        guidance_card.columnconfigure(1, weight=0)
+        ttk.Label(guidance_card, text="Demo Home", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        self.demo_home_guidance_label = ttk.Label(
+            guidance_card,
+            textvariable=self.demo_home_status_var,
+            style="Body.TLabel",
+            wraplength=900,
+            justify="left",
+        )
+        self.demo_home_guidance_label.grid(row=1, column=0, sticky="w", pady=(2, 0))
+        ttk.Button(guidance_card, text="Open Operator Console →", command=self._go_to_console).grid(row=0, column=1, rowspan=2, sticky="e", padx=(12, 0))
+
+        # --- Demo cards ---
+        cards_frame = ttk.Frame(parent, style="Workspace.TFrame")
+        cards_frame.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+        for col in range(5):
+            cards_frame.columnconfigure(col, weight=1)
+
+        _demo_cards = [
+            {
+                "title": "Customer Support Demo",
+                "desc": "Handles customer status inquiries and routes responses through approval.",
+                "scenario_id": "customer_status_happy_path",
+                "report_attr": None,
+            },
+            {
+                "title": "Procurement Demo",
+                "desc": "Detects low stock, raises a purchase order, and stages approval for reorder.",
+                "scenario_id": "procurement_low_stock_happy_path",
+                "report_attr": None,
+            },
+            {
+                "title": "Order Management Demo",
+                "desc": "Validates and fulfils customer orders, handling exceptions and partial fills.",
+                "scenario_id": "accounting_payment_reconciliation_happy_path",
+                "report_attr": None,
+            },
+            {
+                "title": "InvoiceOps Bookkeeping Demo",
+                "desc": "Matches supplier invoices against PO and receipt records, stages ledger writes, and creates evidence.",
+                "scenario_id": "supplier_invoice_match_happy_path",
+                "report_attr": None,
+            },
+            {
+                "title": "Live Bookkeeping Showcase",
+                "desc": "Full live demo: 8 invoice scenarios, Google Sheets posting, dashboard, reconciliation, and evidence.",
+                "scenario_id": None,
+                "report_attr": "iosc",
+            },
+        ]
+        self._demo_card_status_vars: list[tk.StringVar] = []
+        for col, card_def in enumerate(_demo_cards):
+            sv = tk.StringVar(value="Ready")
+            self._demo_card_status_vars.append(sv)
+            self._build_demo_card(cards_frame, col, card_def, sv)
+
+        # --- Run summary strip ---
+        self.demo_home_run_summary_frame = ttk.Frame(parent, style="Card.TFrame", padding=(12, 6))
+        self.demo_home_run_summary_frame.grid(row=2, column=0, sticky="ew", pady=(0, 8))
+        self.demo_home_run_summary_frame.columnconfigure(0, weight=1)
+        self.demo_home_run_summary_label = ttk.Label(
+            self.demo_home_run_summary_frame,
+            text="No demo has been run yet.  Choose a demo above and click Run.",
+            style="Meta.TLabel",
+            wraplength=1160,
+            justify="left",
+        )
+        self.demo_home_run_summary_label.grid(row=0, column=0, sticky="w")
+
+        # --- InvoiceOps Showcase guided section ---
+        showcase_outer = ttk.Frame(parent, style="Workspace.TFrame")
+        showcase_outer.grid(row=3, column=0, sticky="nsew")
+        showcase_outer.columnconfigure(0, weight=1)
+        showcase_outer.rowconfigure(1, weight=1)
+
+        sc_header = ttk.Frame(showcase_outer, style="Card.TFrame", padding=(12, 6))
+        sc_header.grid(row=0, column=0, sticky="ew")
+        sc_header.columnconfigure(0, weight=1)
+        ttk.Label(sc_header, text="InvoiceOps Live Bookkeeping Showcase", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            sc_header,
+            text="Step-by-step guide to running the live bookkeeping demonstration with a real Google Sheet.",
+            style="Body.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(2, 0))
+        ttk.Button(sc_header, text="Check Config", command=self._check_invoiceops_showcase_config).grid(row=0, column=1, rowspan=2, sticky="e", padx=(12, 0))
+
+        sc_steps = ttk.Frame(showcase_outer, style="Card.TFrame", padding=(12, 8))
+        sc_steps.grid(row=1, column=0, sticky="nsew", pady=(2, 0))
+        sc_steps.columnconfigure(1, weight=1)
+
+        _steps = [
+            ("1. Configure Google Sheet", "Set spreadsheet_id in ~/.taskframe/invoiceops_showcase.json", "Check Config", self._check_invoiceops_showcase_config),
+            ("2. Prepare Demo Sheet", "Seed master data: suppliers, POs, goods receipts", "Prepare Sheet", self._showcase_prepare_sheet),
+            ("3. Run Invoice Batch", "Process 8 invoice scenarios (boundary mode — no live writes)", "Run Boundary Demo", self._run_invoiceops_showcase_boundary),
+            ("4. Review Dashboard", "Open the showcase Markdown report", "Open Report", self._open_invoiceops_showcase_report),
+            ("5. Open Evidence", "View invoice results, live write summary, and reconciliation", "Open Evidence Folder", self._showcase_open_evidence_folder),
+        ]
+        for row_idx, (step_label, step_desc, btn_text, btn_cmd) in enumerate(_steps):
+            ttk.Label(sc_steps, text=step_label, style="ShowcaseStep.TLabel").grid(row=row_idx, column=0, sticky="w", padx=(0, 16), pady=(4, 0))
+            ttk.Label(sc_steps, text=step_desc, style="Body.TLabel").grid(row=row_idx, column=1, sticky="w", pady=(4, 0))
+            ttk.Button(sc_steps, text=btn_text, command=btn_cmd).grid(row=row_idx, column=2, sticky="e", padx=(12, 0), pady=(4, 0))
+
+        # Status line for showcase
+        sc_status_frame = ttk.Frame(showcase_outer, style="Card.TFrame", padding=(12, 4))
+        sc_status_frame.grid(row=2, column=0, sticky="ew", pady=(2, 0))
+        sc_status_frame.columnconfigure(0, weight=1)
+        if not hasattr(self, "iosc_status_var"):
+            self.iosc_status_var = tk.StringVar(value="Status: No showcase run yet.")
+        ttk.Label(sc_status_frame, textvariable=self.iosc_status_var, style="Meta.TLabel", wraplength=1100, justify="left").grid(row=0, column=0, sticky="w")
+        sc_btn_row = ttk.Frame(showcase_outer, style="Card.TFrame", padding=(12, 4))
+        sc_btn_row.grid(row=3, column=0, sticky="ew")
+        ttk.Button(sc_btn_row, text="Run Live Showcase Demo", command=self._showcase_run_live_prompt).pack(side="left", padx=(0, 6))
+        ttk.Button(sc_btn_row, text="Open Google Sheet", command=self._showcase_open_google_sheet).pack(side="left", padx=(0, 6))
+        ttk.Button(sc_btn_row, text="Open Showcase Report", command=self._open_invoiceops_showcase_report).pack(side="left")
+
+    def _build_demo_card(self, parent: ttk.Frame, col: int, card_def: dict, status_var: tk.StringVar) -> None:
+        """Build a single demo card widget."""
+        card = ttk.Frame(parent, style="DemoCard.TFrame", padding=12)
+        card.grid(row=0, column=col, sticky="nsew", padx=(0, 8) if col < 4 else (0, 0))
+        card.columnconfigure(0, weight=1)
+
+        ttk.Label(card, text=card_def["title"], style="DemoCardTitle.TLabel", wraplength=200).grid(row=0, column=0, sticky="w")
+        ttk.Label(card, text=card_def["desc"], style="DemoCardBody.TLabel", wraplength=200).grid(row=1, column=0, sticky="w", pady=(4, 0))
+
+        chip_frame = ttk.Frame(card, style="DemoCard.TFrame")
+        chip_frame.grid(row=2, column=0, sticky="w", pady=(6, 0))
+        self._status_chip_label = ttk.Label(chip_frame, textvariable=status_var, style="Chip.Ready.TLabel")
+        self._status_chip_label.pack(side="left")
+
+        btn_row = ttk.Frame(card, style="DemoCard.TFrame")
+        btn_row.grid(row=3, column=0, sticky="w", pady=(8, 0))
+
+        scenario_id = card_def.get("scenario_id")
+        report_attr = card_def.get("report_attr")
+
+        if scenario_id:
+            def make_run(sid: str, sv: tk.StringVar) -> None:
+                def _run() -> None:
+                    sv.set("Running")
+                    self._select_demo_scenario(sid)
+                    self.view_mode_var.set("Console")
+                    self._switch_view_mode()
+                    self.on_run_scenario()
+                return _run
+            ttk.Button(btn_row, text="Run Demo", command=make_run(scenario_id, status_var)).pack(side="left", padx=(0, 4))
+            ttk.Button(btn_row, text="Open Console →", command=lambda sid=scenario_id: self._go_to_console_with(sid)).pack(side="left")
+        else:
+            ttk.Button(btn_row, text="Run Boundary Demo", command=self._run_invoiceops_showcase_boundary).pack(side="left", padx=(0, 4))
+            ttk.Button(btn_row, text="Open Report", command=self._open_invoiceops_showcase_report).pack(side="left")
+
+    def _refresh_demo_home_view(self) -> None:
+        """Update the Demo Home run summary strip after a run."""
+        if not hasattr(self, "demo_home_run_summary_label"):
+            return
+        run = self.current_run
+        if not run:
+            self.demo_home_run_summary_label.configure(
+                text="No demo has been run yet.  Choose a demo above and click Run."
+            )
+            self.demo_home_status_var.set("Choose a demo and click Run.")
+            return
+        status = str(run.get("status", "") or run.get("state", "") or "running")
+        title = str(run.get("scenario_title", "") or run.get("label", ""))
+        frame_id = str(run.get("frame_id", "") or self.active_frame_id or "")
+        pending = run.get("pending_actions", [])
+        pending_count = len(pending) if isinstance(pending, list) else 0
+        has_report = bool(run.get("report_path") or self.active_report_result)
+        has_evidence = bool(self.active_artifact_paths)
+
+        parts = []
+        if title:
+            parts.append(f"Demo: {title}")
+        if frame_id:
+            parts.append(f"Frame: {frame_id[:20]}")
+        if status:
+            parts.append(f"Status: {status}")
+        parts.append(f"Pending actions: {pending_count}")
+        parts.append(f"Report: {'Available' if has_report else 'Not generated'}")
+        parts.append(f"Evidence: {'Available' if has_evidence else 'Not generated'}")
+        self.demo_home_run_summary_label.configure(text="  |  ".join(parts))
+        self.demo_home_status_var.set(f"Last run: {title or 'unknown'}  —  Status: {status}")
+
+    def _go_to_console(self) -> None:
+        self.view_mode_var.set("Console")
+        self._switch_view_mode()
+
+    def _go_to_console_with(self, scenario_id: str) -> None:
+        self._select_demo_scenario(scenario_id)
+        self._go_to_console()
+
+    def _showcase_prepare_sheet(self) -> None:
+        if hasattr(self, "iosc_status_var"):
+            self.iosc_status_var.set("Prepare sheet: run 'taskframe invoiceops showcase setup-sheet --profile controlled_live_write --spreadsheet-id <id> --confirm ...' from the CLI.")
+
+    def _showcase_run_live_prompt(self) -> None:
+        if hasattr(self, "iosc_status_var"):
+            self.iosc_status_var.set(
+                "Live run requires: --profile controlled_live_write --confirm 'EXECUTE LIVE INVOICEOPS SHOWCASE <id>'\n"
+                "Use the CLI: taskframe invoiceops showcase run --live --spreadsheet-id <id> --confirm '...'"
+            )
+
+    def _showcase_open_evidence_folder(self) -> None:
+        import pathlib
+        report_dir = pathlib.Path(self.runtime_root) / "invoiceops" / "showcase"
+        if report_dir.is_dir():
+            try:
+                os.startfile(str(report_dir))  # type: ignore[attr-defined]
+            except (AttributeError, OSError):
+                import subprocess as _sp
+                try:
+                    _sp.run(["xdg-open", str(report_dir)], check=False)
+                except Exception:
+                    pass
+            if hasattr(self, "iosc_status_var"):
+                self.iosc_status_var.set(f"Opened: {report_dir}")
+        else:
+            if hasattr(self, "iosc_status_var"):
+                self.iosc_status_var.set("No evidence folder found. Run the showcase first.")
+
+    def _showcase_open_google_sheet(self) -> None:
+        try:
+            from runtime.invoiceops_showcase_demo import get_showcase_status
+            status = get_showcase_status(runtime_data_dir=self.runtime_root)
+            url = status.get("spreadsheet_url", "")
+            if url:
+                import webbrowser
+                webbrowser.open(url)
+                if hasattr(self, "iosc_status_var"):
+                    self.iosc_status_var.set(f"Opened: {url}")
+            else:
+                if hasattr(self, "iosc_status_var"):
+                    self.iosc_status_var.set("Spreadsheet URL not configured. Set spreadsheet_id in ~/.taskframe/invoiceops_showcase.json")
+        except Exception as exc:
+            if hasattr(self, "iosc_status_var"):
+                self.iosc_status_var.set(f"Error: {exc}")
 
     def _build_operator_view(self, parent: ttk.Frame) -> None:
         parent.columnconfigure(0, weight=35)
@@ -1469,18 +1737,36 @@ class OperatorConsole:
         self.on_run_scenario()
 
     def _switch_view_mode(self) -> None:
-        mode = self.view_mode_var.get() or "Demo"
-        for frame in (self.demo_view_frame, self.operator_view_frame, self.inspector_view_frame, self.workbench_view_frame):
-            frame.grid_remove()
-        if mode == "Operator":
-            self.operator_view_frame.grid()
+        mode = self.view_mode_var.get() or "Demo Home"
+        all_frames = [
+            getattr(self, "demo_home_view_frame", None),
+            getattr(self, "demo_view_frame", None),
+            getattr(self, "operator_view_frame", None),
+            getattr(self, "inspector_view_frame", None),
+            getattr(self, "workbench_view_frame", None),
+        ]
+        for frame in all_frames:
+            if frame is not None:
+                frame.grid_remove()
+        if mode == "Demo Home":
+            if hasattr(self, "demo_home_view_frame"):
+                self.demo_home_view_frame.grid()
+        elif mode in ("Console", "Demo"):
+            if hasattr(self, "demo_view_frame"):
+                self.demo_view_frame.grid()
+        elif mode == "Operator":
+            if hasattr(self, "operator_view_frame"):
+                self.operator_view_frame.grid()
         elif mode == "Inspector":
-            self.inspector_view_frame.grid()
+            if hasattr(self, "inspector_view_frame"):
+                self.inspector_view_frame.grid()
         elif mode == "Manifest Workbench":
-            self.workbench_view_frame.grid()
+            if hasattr(self, "workbench_view_frame"):
+                self.workbench_view_frame.grid()
         else:
-            self.demo_view_frame.grid()
-        self._sync_demo_toolbar_visibility(mode == "Demo")
+            if hasattr(self, "demo_home_view_frame"):
+                self.demo_home_view_frame.grid()
+        self._sync_demo_toolbar_visibility(mode in ("Console", "Demo"))
         self._render_current_view()
 
     def _sync_demo_toolbar_visibility(self, demo_mode: bool) -> None:
@@ -2553,22 +2839,48 @@ class OperatorConsole:
                 "command_suggestion": "",
             }
             return
-        try:
-            self.recovery_snapshot = assess_recovery(frame, runtime_data_dir=self.runtime_root, manifest_dir="manifests")
-        except Exception:
-            self.recovery_snapshot = {
-                "ok": False,
-                "frame_id": str(frame.get("frame_id", "")),
-                "manifest_id": str(frame.get("manifest_id", "")),
-                "state": str(frame.get("state", "")),
-                "recovery_status": "manual_review_required",
-                "safe_to_retry": False,
-                "safe_to_resume": False,
-                "side_effect_risk": "unknown",
-                "reason": "Recovery assessment could not be generated.",
-                "recommended_action": "Inspect the active frame manually.",
-                "command_suggestion": "",
-            }
+        cached = self._load_cached_recovery_snapshot(frame)
+        if cached:
+            self.recovery_snapshot = cached
+            return
+        self.recovery_snapshot = {
+            "ok": False,
+            "frame_id": str(frame.get("frame_id", "")),
+            "manifest_id": str(frame.get("manifest_id", "")),
+            "state": str(frame.get("state", "")),
+            "recovery_status": "not_run",
+            "safe_to_retry": False,
+            "safe_to_resume": False,
+            "side_effect_risk": "unknown",
+            "reason": "Recovery assessment has not been run yet.",
+            "recommended_action": "Run recovery assessment from the command line or a dedicated refresh action.",
+            "command_suggestion": "",
+        }
+
+    def _load_cached_recovery_snapshot(self, frame: dict | None) -> dict:
+        frame = frame if isinstance(frame, dict) else {}
+        frame_id = str(frame.get("frame_id", "")).strip()
+        if not frame_id:
+            return {}
+        recovery_dir = Path(self.runtime_root) / "recovery"
+        if not recovery_dir.is_dir():
+            return {}
+        candidates = sorted(
+            recovery_dir.glob("recovery_assessment_*.json"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        for path in candidates:
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if not isinstance(payload, dict):
+                continue
+            if str(payload.get("frame_id", "")).strip() != frame_id:
+                continue
+            return payload
+        return {}
 
     def _ensure_toolpack_discovery_snapshot(self) -> None:
         try:
@@ -5724,15 +6036,17 @@ class OperatorConsole:
 
     def _render_current_view(self) -> None:
         mode = self.view_mode_var.get()
-        if mode == "Inspector":
+        if mode == "Demo Home":
+            self._refresh_demo_home_view()
+        elif mode in ("Console", "Demo"):
+            self._render_demo_story_view()
+        elif mode == "Inspector":
             view = self._current_view()
             self._render_task_queue(view)
             self._render_active_taskframe(view)
             self._render_results_actions(view)
             self._render_runtime_trace(view)
             self._update_footer(view)
-        elif mode == "Demo":
-            self._render_demo_story_view()
         elif mode == "Manifest Workbench":
             self._render_manifest_workbench_view()
         else:

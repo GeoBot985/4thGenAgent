@@ -22,7 +22,6 @@ def test_operator_ui_safe_start_skips_heavy_startup_work(monkeypatch, tmp_path) 
     monkeypatch.setattr(root, "after", fake_after, raising=False)
     monkeypatch.setattr(operator_ui, "check_all_tool_health", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("check_all_tool_health must not run during safe start")))
     monkeypatch.setattr(operator_ui, "build_monitoring_summary", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("build_monitoring_summary must not run during safe start")))
-    monkeypatch.setattr(operator_ui, "assess_recovery", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("assess_recovery must not run during safe start")))
 
     try:
         root.withdraw()
@@ -33,4 +32,3 @@ def test_operator_ui_safe_start_skips_heavy_startup_work(monkeypatch, tmp_path) 
         assert scheduled == [(100, "safe_initial_refresh")]
     finally:
         root.destroy()
-

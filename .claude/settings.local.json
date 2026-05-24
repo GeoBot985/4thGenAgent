@@ -14,7 +14,9 @@
       "Bash(python -m pytest tests/test_invoiceops_showcase_dataset.py tests/test_invoiceops_showcase_sheet_config.py tests/test_invoiceops_showcase_sheet_formatting.py tests/test_invoiceops_showcase_run_boundary.py tests/test_invoiceops_showcase_live_write_safety.py tests/test_invoiceops_showcase_dashboard.py tests/test_invoiceops_showcase_reports.py tests/test_operator_invoiceops_showcase_panel.py tests/test_invoiceops_showcase_release_verifier.py -v)",
       "Bash(python -m pytest tests/test_invoiceops_showcase_cli.py -v)",
       "Bash(python -m src.taskframe_cli invoiceops showcase status --json)",
-      "Bash(python -m src.taskframe_cli invoiceops showcase run --profile controlled_live_write --invoice-limit 1 --json)"
+      "Bash(python -m src.taskframe_cli invoiceops showcase run --profile controlled_live_write --invoice-limit 1 --json)",
+      "Bash(python -c \"from src.operator_scenarios import list_scenarios; import json; items = list_scenarios\\(include_test_only=False\\); print\\(json.dumps\\([{'id': x['id'], 'label': x['label'], 'category': x.get\\('category',''\\)} for x in items[:20]], indent=2\\)\\)\")",
+      "Bash(python -m pytest tests/test_demo_home_default_view.py tests/test_demo_home_cards.py tests/test_invoiceops_showcase_panel.py tests/test_operator_ui_advanced_hidden_by_default.py tests/test_operator_ui_startup_guidance.py -v)"
     ]
   }
 }

@@ -23,7 +23,6 @@ def test_operator_ui_schedules_deferred_refresh_without_sync_health(monkeypatch,
     monkeypatch.setattr(operator_ui.OperatorConsole, "refresh_runtime_data", lambda self: (_ for _ in ()).throw(AssertionError("refresh_runtime_data must not run synchronously")))
     monkeypatch.setattr(operator_ui, "check_all_tool_health", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("check_all_tool_health must not run at startup")))
     monkeypatch.setattr(operator_ui, "build_monitoring_summary", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("build_monitoring_summary must not run at startup")))
-    monkeypatch.setattr(operator_ui, "assess_recovery", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("assess_recovery must not run at startup")))
 
     try:
         root.withdraw()
@@ -34,4 +33,3 @@ def test_operator_ui_schedules_deferred_refresh_without_sync_health(monkeypatch,
         assert scheduled == [(100, "safe_initial_refresh")]
     finally:
         root.destroy()
-
