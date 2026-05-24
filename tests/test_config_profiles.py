@@ -98,6 +98,7 @@ def test_config_examples_exist() -> None:
         "taskframe.local-llm.example.json",
         "taskframe.google-live.example.json",
         "taskframe.rpa-local.example.json",
+        "taskframe.service.example.json",
         "accounting_google_sheet.example.json",
     ]
     for name in expected:

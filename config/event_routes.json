@@ -133,6 +133,7 @@
       "source": "customer_inbox",
       "event_type": "manual.customer_status_llm_e2e",
       "manifest_id": "customer.status_llm_e2e",
+      "enabled": false,
       "input_map": {
         "message": "payload.message",
         "customer_id": "payload.customer_id",

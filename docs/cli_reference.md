@@ -586,6 +586,45 @@ Lists active and expired runtime store locks.
 - `--runtime-data-dir <path>`
 - `--json`
 
+### `taskframe service preflight`
+
+Runs the controlled worker-service preflight checks.
+
+- `--profile service`
+- `--config-dir <path>`
+- `--runtime-data-dir <path>`
+- `--manifest-dir manifests`
+- `--routes-path config/event_routes.json`
+- `--toolpack-config-path config/enabled_toolpacks.json`
+- `--json`
+
+### `taskframe service status`
+
+Shows the current service runtime status and the latest worker/service artifacts.
+
+- `--profile service`
+- `--config-dir <path>`
+- `--runtime-data-dir <path>`
+- `--manifest-dir manifests`
+- `--routes-path config/event_routes.json`
+- `--toolpack-config-path config/enabled_toolpacks.json`
+- `--json`
+
+### `taskframe service run-once`
+
+Runs one bounded service worker cycle after preflight passes.
+
+- `--profile service`
+- `--config-dir <path>`
+- `--runtime-data-dir <path>`
+- `--manifest-dir manifests`
+- `--routes-path config/event_routes.json`
+- `--toolpack-config-path config/enabled_toolpacks.json`
+- `--queue-limit <n>`
+- `--no-scheduler`
+- `--no-event-sources`
+- `--json`
+
 ### `taskframe runtime-store cleanup-locks`
 
 Removes expired runtime store locks only.

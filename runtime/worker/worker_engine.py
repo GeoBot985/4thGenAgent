@@ -126,6 +126,7 @@ def run_worker_once(
     features = config.get("features") or {}
     limits = config.get("limits") or {}
     safety = config.get("safety") or {}
+    frame_metadata = dict(config.get("frame_metadata") or {})
 
     # ── Acquire lock ──────────────────────────────────────────────────────
     lock_result = acquire_worker_lock(worker_id, runtime_data_dir)
@@ -209,6 +210,7 @@ def run_worker_once(
                 limit=max_items,
                 runtime_data_dir=runtime_data_dir,
                 worker_id=worker_id,
+                frame_metadata=frame_metadata or None,
             )
             summary["queue_items_processed"] = int(batch.get("processed") or 0)
             summary["queue_items_completed"] = int(batch.get("completed") or 0)

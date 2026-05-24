@@ -30,7 +30,7 @@ def test_profile_list_returns_profiles() -> None:
     payload = json.loads(proc.stdout)
     assert payload["ok"] is True
     profiles = {item["profile"] for item in payload["profiles"]}
-    assert profiles == {"demo", "dev", "test", "release", "pilot", "live"}
+    assert profiles == {"demo", "dev", "test", "release", "pilot", "service", "live"}
 
 
 def test_profile_check_returns_valid_structured_output() -> None:

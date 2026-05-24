@@ -5,7 +5,7 @@ It is intended to be shared with an LLM as a single reference document.
 
 ## Inventory
 
-- Text files included: 85
+- Text files included: 89
 - Binary assets listed: 24
 - Source directory: `D:/Projects/4thGenAgent/docs`
 
@@ -613,6 +613,436 @@ Browser-backed RPA tools are treated as optional, high-risk, live-environment-de
 - `bits/` contains a separate FastAPI/RAG prototype path
 
 See [docs/product_boundary.md](product_boundary.md) for the product framing in one place.
+
+
+### docs/backend_authz_scopes.md
+
+# Backend Auth Scopes + Route Permission Enforcement
+
+**Spec 149** — Token-scope-based route permission enforcement for the TaskFrame backend API.
+
+> This spec adds route-level token authorization. It does not implement user accounts, SSO, RBAC, tenancy, or production identity management.
+
+---
+
+## Overview
+
+Spec 148 introduced `token_records` with a `scopes` field. Spec 149 makes those scopes meaningful: every token that has a `token_records` entry is now **scope-checked** against the permission requirements of the route it accesses.
+
+Tokens that have **no** matching `token_record` are not scope-checked (backwards compatibility with the 3-role env-var token system from Spec 141).
+
+---
+
+## Canonical Scopes
+
+| Scope | Meaning |
+|---|---|
+| `read` | General low-risk read access |
+| `events:intake` | Submit external events into the runtime |
+| `runs:read` | View runs and TaskFrame state |
+| `reports:read` | View/open report metadata and evidence |
+| `approvals:read` | View pending approval packs |
+| `approvals:write` | Approve or reject pending actions |
+| `readiness:read` | View readiness and evidence gate status |
+| `security:read` | View sanitized backend security status |
+| `admin:status` | View general backend status/config posture |
+
+No wildcard scope exists. `read` does not imply any `*:read` scope and `approvals:read` does not imply `approvals:write`.
+
+---
+
+## Route Permission Map
+
+| Route | Required Scopes |
+|---|---|
+| `GET /api/health` | *(none — any authenticated token)* |
+| `GET /api/security/status` | `security:read` |
+| `POST /api/events` | `events:intake` |
+| `GET /api/events` | `runs:read` |
+| `GET /api/events/{event_id}` | `runs:read` |
+| `GET /api/audit` | `admin:status` |
+| `GET /api/audit/{audit_id}` | `admin:status` |
+| `GET /api/runs` | `runs:read` |
+| `GET /api/runs/{frame_id}` | `runs:read` |
+| `GET /api/runs/{frame_id}/evidence` | `reports:read` |
+| `GET /api/runs/{frame_id}/approval-pack` | `approvals:read` |
+| `GET /api/runs/{frame_id}/failure-summary` | `runs:read` |
+| `POST /api/runs/{frame_id}/report` | `reports:read` |
+| `POST /api/runs/{frame_id}/pending-actions/{action_id}/approve` | `approvals:write` |
+| `POST /api/runs/{frame_id}/pending-actions/{action_id}/reject` | `approvals:write` |
+
+Routes not in the map fail closed when scope enforcement is active.
+
+---
+
+## Example Token Records
+
+### Read-only UI Token
+
+```json
+{
+  "token_hash": "sha256:<hash>",
+  "label": "operator-ui-local",
+  "created_at": "2026-05-22T00:00:00Z",
+  "expires_at": "2026-06-22T00:00:00Z",
+  "scopes": ["read", "runs:read", "reports:read", "approvals:read"]
+}
+```
+
+This token can view runs, evidence, and approval packs — but cannot approve/reject actions or submit events.
+
+### Approval Operator Token
+
+```json
+{
+  "token_hash": "sha256:<hash>",
+  "label": "approval-operator",
+  "created_at": "2026-05-22T00:00:00Z",
+  "expires_at": "2026-06-22T00:00:00Z",
+  "scopes": ["runs:read", "approvals:read", "approvals:write"]
+}
+```
+
+This token can view and act on pending approvals.
+
+### Event Intake Token
+
+```json
+{
+  "token_hash": "sha256:<hash>",
+  "label": "event-intake-service",
+  "created_at": "2026-05-22T00:00:00Z",
+  "expires_at": "2026-12-31T23:59:59Z",
+  "scopes": ["events:intake"]
+}
+```
+
+This token can only submit events. It cannot read runs or reports.
+
+### Admin/Status Token
+
+```json
+{
+  "token_hash": "sha256:<hash>",
+  "label": "monitoring-dashboard",
+  "created_at": "2026-05-22T00:00:00Z",
+  "scopes": ["admin:status", "security:read", "runs:read"]
+}
+```
+
+This token can view health, security status, audit logs, and runs — but cannot approve actions or submit events.
+
+---
+
+## Permission Denied Response
+
+When a scoped token is missing a required scope:
+
+```json
+{
+  "ok": false,
+  "error": "FORBIDDEN",
+  "message": "Token does not have permission for this endpoint.",
+  "required_scopes": ["approvals:write"],
+  "missing_scopes": ["approvals:write"],
+  "request_id": "req_..."
+}
+```
+
+The response never includes token hashes or raw token values.
+
+---
+
+## Audit Events
+
+Four authz audit event types are written to the backend audit ledger:
+
+| Event Type | When |
+|---|---|
+| `AUTHZ_ALLOWED` | Scoped token passes the scope check |
+| `AUTHZ_DENIED` | Scoped token is missing a required scope |
+| `AUTHZ_ROUTE_UNMAPPED` | Route is not in the permission map (fail closed) |
+| `AUTHZ_SCOPE_INVALID` | (Reserved for future invalid-scope detection) |
+
+Audit records include `token_label` (from the token record), never the raw token or its hash:
+
+```json
+{
+  "event_type": "AUTHZ_DENIED",
+  "request_id": "req_...",
+  "token_label": "operator-ui-local",
+  "method": "POST",
+  "path": "/api/runs/TF-001/pending-actions/ACT-1/approve",
+  "required_scopes": ["approvals:write"],
+  "missing_scopes": ["approvals:write"],
+  "timestamp": "2026-05-22T..."
+}
+```
+
+---
+
+## Middleware Execution Order
+
+The authz middleware is registered first in `create_app()`, making it the innermost middleware. It runs after auth has set the auth context:
+
+```
+security_headers (outermost)
+  → cors
+    → body_size
+      → audit_request_id
+        → auth (resolves backend_auth_context)
+          → authz (enforces scopes)  ← innermost
+            → route_handler
+```
+
+Scope enforcement is skipped when:
+- No `token_records` are configured (backwards compatible).
+- Auth context is missing or failed (route handles 401).
+- Dev bypass is active.
+- The bearer token has no matching `token_record` (pass-through).
+
+---
+
+## Backwards Compatibility
+
+If no `token_records` are configured in the security config, the authz middleware is fully transparent. All existing behaviour from Spec 141–148 is preserved.
+
+Only tokens with an explicit `token_record` entry are scope-enforced.
+
+---
+
+## Why Scopes Do Not Equal Full RBAC
+
+The 3 existing roles (`admin`, `operator`, `viewer`) provide coarse-grained access tiers. Scopes provide fine-grained, per-token capability constraints within those tiers.
+
+Scopes are intentionally simple:
+- No scope hierarchy or inheritance
+- No resource-level permissions
+- No per-record access control
+- No tenant isolation
+- No delegation or chaining
+
+More advanced access control (multi-user accounts, tenant isolation, OAuth2 flows) would require a dedicated identity management layer not in scope here.
+
+---
+
+## Files
+
+| File | Description |
+|---|---|
+| `src/backend_authz.py` | Core scope definitions, route map, authz functions, middleware |
+| `tests/test_backend_authz.py` | Test suite (43 tests) |
+| `docs/backend_authz_scopes.md` | This document |
+
+
+### docs/backend_security_hardening.md
+
+# Backend Security Hardening
+
+**Spec 148** — Backend Security Headers, CORS Enforcement, and Token Hardening
+
+---
+
+## Overview
+
+The production backend API applies layered security hardening at the middleware level:
+
+1. **Security response headers** — added to every HTTP response regardless of outcome.
+2. **CORS allowlist enforcement** — cross-origin requests from unlisted origins are rejected.
+3. **Token hashing helpers** — tokens are stored and verified as SHA-256 hashes, never in plaintext.
+4. **Token expiry enforcement** — expired `token_records` are rejected before reaching auth.
+5. **Security status endpoint** — `/api/security/status` exposes the security posture without secrets.
+
+---
+
+## Default Security Posture
+
+With no config file, the following defaults apply:
+
+| Setting | Default |
+|---|---|
+| Security headers | Enabled |
+| CORS enforcement | Enabled |
+| Allowed CORS origins | `http://127.0.0.1:7860`, `http://localhost:7860` |
+| Token authentication required | Yes |
+| Plaintext dev tokens allowed | Yes (dev-only intent) |
+| Token expiry enforcement | Off (no `token_records`) |
+| Wildcard CORS (`*`) | Blocked except in `TASKFRAME_ENV=dev` or `test` |
+
+---
+
+## Security Response Headers
+
+Applied to **all** responses, including auth failures, CORS rejections, and 4xx/5xx errors:
+
+| Header | Value |
+|---|---|
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `DENY` |
+| `Referrer-Policy` | `no-referrer` |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
+| `Cache-Control` | `no-store` |
+| `Content-Security-Policy` | `default-src 'self'; frame-ancestors 'none'; object-src 'none'` |
+
+---
+
+## CORS Configuration
+
+CORS is enforced by an allowlist. Requests with an `Origin` header not in the list receive a `403 CORS_ORIGIN_BLOCKED` response.
+
+Requests without an `Origin` header (same-origin, server-to-server) pass through without any CORS check.
+
+### Wildcard CORS
+
+`*` in `allowed_origins` is stripped unless `TASKFRAME_ENV` is `dev` or `test`. Setting a wildcard origin in a non-dev environment is an error surfaced by `get_security_status()`.
+
+### Preflight (OPTIONS)
+
+Preflight requests from an allowlisted origin return `200` immediately — they never reach the auth middleware. This is the standard browser behavior for CORS preflight.
+
+### Configuration example
+
+```json
+{
+  "backend_security": {
+    "cors": {
+      "enabled": true,
+      "allowed_origins": ["http://127.0.0.1:7860", "http://localhost:7860"],
+      "allow_credentials": false,
+      "allowed_methods": ["GET", "POST", "OPTIONS"],
+      "allowed_headers": ["Authorization", "Content-Type", "X-TaskFrame-Request-ID"]
+    }
+  }
+}
+```
+
+---
+
+## Token Hashing
+
+Token values are never stored in plaintext. The `hash_token()` helper returns a `sha256:<hex>` string:
+
+```python
+from src.backend_security import hash_token, verify_token
+
+h = hash_token("my-bearer-token")
+# → "sha256:a3f1..."
+
+assert verify_token("my-bearer-token", [h]) is True
+```
+
+To add a token to the config, generate its hash and store only the hash:
+
+```bash
+python -c "from src.backend_security import hash_token; print(hash_token('my-token'))"
+```
+
+---
+
+## Token Expiry (token_records)
+
+`token_records` provide per-token metadata including optional `expires_at`. When a bearer token matches a record that is expired, the security headers middleware rejects the request with `401 AUTH_TOKEN_EXPIRED` before the auth middleware is reached.
+
+Token records use hashed values — raw tokens never appear in config files or audit logs.
+
+```json
+{
+  "backend_security": {
+    "token_records": [
+      {
+        "token_hash": "sha256:...",
+        "label": "ci-deploy-token",
+        "created_at": "2026-01-01T00:00:00Z",
+        "expires_at": "2026-12-31T23:59:59Z",
+        "scopes": ["read"]
+      }
+    ]
+  }
+}
+```
+
+If a token is **not** found in `token_records`, it falls through to the existing auth middleware — backwards compatibility is preserved.
+
+---
+
+## Security Status Endpoint
+
+`GET /api/security/status` (requires `viewer` role) returns the current security posture:
+
+```json
+{
+  "ok": true,
+  "security_headers_enabled": true,
+  "cors_enabled": true,
+  "allowed_origin_count": 2,
+  "auth_required": true,
+  "token_hash_count": 0,
+  "token_record_count": 0,
+  "plaintext_dev_token_allowed": true,
+  "expired_token_count": 0,
+  "warnings": [],
+  "errors": []
+}
+```
+
+This endpoint **never** exposes token hashes, raw token values, or plaintext secrets.
+
+### CLI equivalent
+
+```bash
+taskframe backend-security
+taskframe backend-security --json
+```
+
+---
+
+## Middleware Order
+
+Middleware is registered innermost-first (LIFO execution order):
+
+1. `install_backend_auth_middleware` — resolves auth context (innermost)
+2. `install_audit_request_id_middleware` — generates `X-Request-ID`
+3. `install_body_size_middleware` — rejects oversized payloads
+4. `install_cors_middleware` — CORS allowlist enforcement
+5. `install_security_headers_middleware` — adds headers to ALL responses; checks token expiry (outermost)
+
+The outermost middleware wraps all others, so security headers appear on every response regardless of where the request is rejected.
+
+---
+
+## Reverse Proxy Notes
+
+This API is intended for private-network deployment (localhost or internal LAN). When deployed behind a reverse proxy (nginx, Caddy):
+
+- The proxy should terminate TLS and add its own `Strict-Transport-Security` header.
+- The CORS `allowed_origins` should list the proxy's origin, not internal addresses.
+- The proxy may add `X-Forwarded-For` — the API does not use this value for auth decisions.
+
+---
+
+## What This Does NOT Solve
+
+| Item | Notes |
+|---|---|
+| OAuth2 / OIDC | Not implemented. Single shared bearer token only. |
+| SSO / multi-user sessions | Not implemented. |
+| RBAC beyond 3 roles | Roles are `admin`, `operator`, `viewer` — no custom RBAC. |
+| Browser session management | No cookies or session tokens. |
+| Public internet exposure | Designed for local/private network only. |
+| Live side-effect authorization | Controlled by the runtime safety layer, not the HTTP security layer. |
+| Secrets vault | Config file tokens are hashed but the config file itself must be protected by OS file permissions. |
+
+---
+
+## Files
+
+| File | Description |
+|---|---|
+| `src/backend_security.py` | Core security config, middleware, and token helpers |
+| `src/backend/routes/security.py` | `/api/security/status` endpoint |
+| `config/backend_security.example.json` | Full example configuration |
+| `tests/test_backend_security.py` | Test suite (51 tests) |
+| `docs/backend_security_hardening.md` | This document |
 
 
 ### docs/builtin_toolpack_migration.md
@@ -1267,6 +1697,28 @@ Validates the runtime store layout and reports corrupted or orphaned artifacts w
 
 - `--runtime-data-dir <path>`
 - `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store status`
+
+Shows runtime-store health, lock counts, and versioned-artifact summary.
+
+- `--runtime-data-dir <path>`
+- `--manifest-dir <path>`
+- `--json`
+
+### `taskframe runtime-store locks`
+
+Lists active and expired runtime store locks.
+
+- `--runtime-data-dir <path>`
+- `--json`
+
+### `taskframe runtime-store cleanup-locks`
+
+Removes expired runtime store locks only.
+
+- `--runtime-data-dir <path>`
 - `--json`
 
 ### `taskframe runtime-store index`
@@ -10835,6 +11287,236 @@ Installs test dependencies and runs bounded local validation.
 | Tests fail on import | Ensure the virtual environment is active and `pip install -e ".[dev]"` completed. |
 
 
+### docs/readiness_evidence_gate.md
+
+# Readiness Evidence Gate
+
+**Spec 147** — Fresh Readiness Evidence Gate + 90% Claim Enforcement
+
+---
+
+## Purpose
+
+The Readiness Evidence Gate determines whether the project may currently claim:
+
+> **90%+ controlled demo / portfolio readiness**
+
+The gate evaluates freshly generated evidence artifacts, applies deterministic
+rules, and produces a structured PASS/FAIL verdict. It never runs tests directly.
+
+---
+
+## What This Gate Does NOT Claim
+
+The gate explicitly states:
+
+> This evidence supports **controlled demo / portfolio readiness only**. It does
+> not establish full production readiness.
+
+The following claims are **disallowed** unless a separate production-readiness
+gate explicitly passes:
+
+- Production ready
+- Enterprise production ready
+- Safe for unsupervised live automation
+- Live side effects fully enabled
+- 90% production readiness
+- Autonomous production worker
+
+---
+
+## CLI Usage
+
+```bash
+# Basic check
+taskframe readiness-gate --threshold 90
+
+# With freshness enforcement
+taskframe readiness-gate --threshold 90 --since "2026-05-22T00:00:00Z"
+
+# Write all three report formats (JSON, Markdown, HTML)
+taskframe readiness-gate --threshold 90 --write-report
+
+# Strict mode (release verifier evidence is required, not just a warning)
+taskframe readiness-gate --threshold 90 --strict
+
+# Machine-readable JSON output
+taskframe readiness-gate --threshold 90 --json
+```
+
+---
+
+## Required Evidence
+
+The gate inspects four required artifacts and two optional ones:
+
+| Artifact | Required | Default Location |
+|---|---|---|
+| Bounded validation report | **Yes** | `runtime_data/validation/bounded_validation_report.json` |
+| Readiness scorecard | **Yes** | `runtime_data/readiness/readiness_scorecard.json` |
+| Cross-workflow story/demo pack | **Yes** | `runtime_data/demo_packs/<latest>/cross_workflow_demo_summary.json` |
+| Portfolio evidence pack | **Yes** | `runtime_data/portfolio_evidence/<latest>/summary.json` |
+| Release verifier evidence | Warning / Strict | `runtime_data/audit/release_candidate_verification.json` |
+| Pilot readiness | Optional | `runtime_data/pilot_readiness/<latest>/pilot_readiness_scorecard.json` |
+
+---
+
+## Gate Rules
+
+The gate PASSES only when **all** of the following are true:
+
+1. **Bounded validation report** — exists, `ok == true`
+2. **Readiness scorecard** — exists, `ok == true`, `overall_score >= threshold`, `status == "PASS"`
+3. **Portfolio evidence pack** — exists, `ok == true`, `production_readiness_claimed == false`,
+   `included_readiness_scorecard == true`, `included_story_pack == true`
+4. **Cross-workflow story pack** — exists, `ok == true`, `dry_run_only == true`,
+   `live_side_effects_performed != true`
+5. **No evidence file** claims full production readiness
+6. **No required artifact** is stale (if `--since` is provided or git HEAD is available)
+
+---
+
+## Freshness Enforcement
+
+By default, the gate attempts to read the **git HEAD commit timestamp** and
+requires all evidence to be newer than that timestamp.
+
+Override with `--since`:
+
+```bash
+taskframe readiness-gate --since "2026-05-22T00:00:00Z"
+```
+
+Each artifact's freshness status is reported as:
+
+| Status | Meaning |
+|---|---|
+| `PASS` | Artifact exists, valid, and fresh |
+| `FAIL` | Artifact exists but fails gate rules |
+| `STALE` | Artifact exists but is older than the `--since` timestamp |
+| `MISSING` | Artifact file not found |
+
+---
+
+## Output Shape
+
+```json
+{
+  "ok": true,
+  "claim": "90%+ controlled demo / portfolio readiness",
+  "claim_allowed": true,
+  "threshold": 90,
+  "overall_score": 100.0,
+  "status": "PASS",
+  "classification": "PASS_CONTROLLED_DEMO_90",
+  "production_readiness_claimed": false,
+  "production_claim_status": "PRODUCTION_NOT_CLAIMED",
+  "controlled_demo_readiness_claimed": true,
+  "evidence": {
+    "bounded_validation": { "status": "PASS", "fresh": true, "path": "..." },
+    "readiness_scorecard": { "status": "PASS", "fresh": true, "score": 100.0, "path": "..." },
+    "cross_workflow_story_pack": { "status": "PASS", "fresh": true, "path": "..." },
+    "portfolio_evidence_pack": { "status": "PASS", "fresh": true, "path": "..." },
+    "release_verifier": { "status": "PASS", "fresh": true, "verdict": "READY_WITH_KNOWN_LIMITATIONS", "path": "..." }
+  },
+  "blocking_failures": [],
+  "warnings": [],
+  "recommended_next_steps": [],
+  "generated_at": "2026-05-22T...",
+  "disclaimer": "This evidence supports controlled demo / portfolio readiness only. It does not establish full production readiness.",
+  "allowed_wording": "TaskFrame Runtime has reached 90%+ controlled demo / portfolio readiness...",
+  "disallowed_claims": ["Production ready", "Enterprise production ready", ...]
+}
+```
+
+---
+
+## Claim Classification Codes
+
+| Code | Meaning |
+|---|---|
+| `PASS_CONTROLLED_DEMO_90` | Gate passes at 90% controlled-demo threshold |
+| `FAIL_CONTROLLED_DEMO_90` | Gate fails at 90% controlled-demo threshold |
+| `PASS_PILOT_READINESS` | (Future) Pilot readiness gate passes |
+| `FAIL_PILOT_READINESS` | (Future) Pilot readiness gate fails |
+| `PRODUCTION_NOT_CLAIMED` | No production readiness claim is being made |
+| `PRODUCTION_CLAIM_BLOCKED` | A production readiness claim was detected and blocked |
+
+---
+
+## Report Output
+
+When `--write-report` is used, three files are written to
+`runtime_data/readiness_gate/`:
+
+| File | Purpose |
+|---|---|
+| `readiness_gate_report.json` | Full machine-readable result |
+| `readiness_gate_report.md` | Human-readable summary with evidence table |
+| `readiness_gate_report.html` | Browser-viewable HTML version |
+
+The Markdown report includes:
+- Claim being evaluated and threshold
+- Final verdict and classification code
+- Evidence status table
+- Freshness table
+- Blocking failures (if any)
+- Warnings
+- Recommended next steps
+- Allowed portfolio/docs wording (if PASS)
+- Disallowed wording list
+
+---
+
+## Generating Fresh Evidence
+
+To get a fresh PASS, regenerate all required evidence in order:
+
+```bash
+# 1. Run bounded validation
+python tools/run_bounded_validation.py local
+
+# 2. Build readiness scorecard
+taskframe readiness --threshold 90
+
+# 3. Run cross-workflow demo pack
+taskframe demo cross-workflow-v2
+
+# 4. Build portfolio evidence pack
+taskframe portfolio-pack
+
+# 5. Evaluate the gate
+taskframe readiness-gate --threshold 90 --write-report
+```
+
+---
+
+## Operator UI Panel
+
+A status card may be displayed in the Operator UI showing:
+
+```
+90% Readiness Gate
+Status:           PASS / FAIL / STALE / MISSING
+Claim Allowed:    Yes / No
+Latest Report:    [open link]
+Blocking Failures: 0
+```
+
+The UI must not display a 90% readiness claim unless the gate result is PASS.
+
+---
+
+## Files
+
+| File | Description |
+|---|---|
+| `src/readiness_evidence_gate.py` | Core gate logic |
+| `runtime/readiness_evidence_contracts.py` | Shared constants and claim labels |
+| `tests/test_readiness_evidence_gate.py` | Test suite (37 tests) |
+| `docs/readiness_evidence_gate.md` | This document |
+
+
 ### docs/readiness_scorecard.md
 
 # 90% Readiness Scorecard
@@ -11738,6 +12420,8 @@ runtime_data/
 
 The store also continues to carry legacy run folders under `runtime_data/runs/` while the migration path is still in progress.
 
+The runtime store now also includes `runtime_data/locks/` for per-artifact lock files and `runtime_data/runtime_store_audit/` for lock/version audit events.
+
 ## Artifact Types
 
 - `taskframes/` holds TaskFrame JSON records.
@@ -11752,6 +12436,8 @@ The store also continues to carry legacy run folders under `runtime_data/runs/` 
 
 Each major artifact type should carry a stable path, a schema or version field where practical, created/updated timestamps, and a source frame or run reference.
 
+Mutable artifacts now carry `schema_version`, `runtime_version`, and `updated_at` so stale writes can be rejected safely.
+
 ## Validation
 
 Use:
@@ -11759,6 +12445,9 @@ Use:
 ```bash
 taskframe runtime-store check
 taskframe runtime-store index
+taskframe runtime-store status
+taskframe runtime-store locks
+taskframe runtime-store cleanup-locks
 ```
 
 Validation checks for:
@@ -11772,6 +12461,9 @@ Validation checks for:
 - reports that point at real runs
 - rebuildable indexes
 - corrupted JSON files
+- stale lock files
+
+`taskframe runtime-store status` summarizes the current versioned-artifact and lock health, `taskframe runtime-store locks` lists active and expired locks, and `taskframe runtime-store cleanup-locks` removes expired locks only.
 
 Validation reports corrupted paths and orphaned artifacts instead of crashing the full scan.
 
@@ -11886,6 +12578,59 @@ The runtime store is validated as part of the pilot readiness gate. The gate che
 - Backup manifest is present in the store contract
 
 See [pilot_readiness.md](pilot_readiness.md) for the full pilot readiness gate documentation.
+
+
+### docs/runtime_store_concurrency.md
+
+# Runtime Store Concurrency
+
+The runtime store is file-based. As more backend, UI, scheduler, and worker code touches the same TaskFrame artifacts, we need explicit protection against stale reads and concurrent writes.
+
+This spec adds two controls:
+
+1. Per-artifact lock files under `runtime_data/locks/`.
+2. Optimistic version checks on mutable JSON artifacts.
+
+## Why file locking exists
+
+JSON artifacts under `runtime_data/` can be updated by multiple processes. Without a lock, two writers can read the same version and overwrite each other. Lock files let the runtime serialize a single mutable write per artifact key.
+
+## How optimistic versions work
+
+Mutable artifacts carry:
+
+- `schema_version`
+- `runtime_version`
+- `updated_at`
+
+Every successful mutation increments `runtime_version` and refreshes `updated_at`. Writers can pass an `expected_version`; if the artifact has moved on, the write is rejected with `VERSION_CONFLICT`.
+
+## Approval conflict behavior
+
+Approval and rejection paths require the latest version of the frame or approval artifact. If two requests race:
+
+- one succeeds
+- one returns a conflict
+
+Already-finalized actions are rejected deterministically instead of being re-applied.
+
+## Stale UI/API update handling
+
+Clients should treat `VERSION_CONFLICT` as a reload signal. Load the current artifact again, re-read the current state, and resubmit only if the action is still valid.
+
+## Limitations
+
+This spec improves controlled pilot safety for a file-based runtime store. It does not provide database-grade transactional guarantees, distributed locking, multi-node clustering, or full production persistence.
+
+Known limits:
+
+- locks are local to the filesystem
+- recovery is TTL-based, not consensus-based
+- concurrent processes still depend on the filesystem honoring atomic rename and exclusive create semantics
+
+## Migration path
+
+This is a hardening layer, not a replacement for a database. If the runtime later moves to a persistent store with transactional writes, the same version fields and conflict handling can carry forward with less operational risk.
 
 
 ### docs/runtime_tool_governance.md

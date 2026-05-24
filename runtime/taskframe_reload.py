@@ -132,6 +132,7 @@ def taskframe_from_dict(data: dict[str, Any]) -> TaskFrame:
         audit=audit,
         created_at=created_at,
         updated_at=updated_at,
+        metadata=dict(data.get("metadata", {})) if isinstance(data.get("metadata", {}), dict) else {},
         attempts=list(data.get("attempts", [])) if isinstance(data.get("attempts", []), list) else [],
         schema_version=schema_version,
         runtime_version=runtime_version,

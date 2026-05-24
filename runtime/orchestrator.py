@@ -54,12 +54,14 @@ class Orchestrator:
         trigger: dict[str, Any] | None = None,
         inputs: dict[str, Any] | None = None,
         raw_input: str = "",
+        metadata: dict[str, Any] | None = None,
     ) -> TaskFrame:
         frame = create_taskframe(
             manifest=manifest,
             trigger=trigger,
             inputs=inputs,
             raw_input=raw_input,
+            metadata=metadata,
         )
         add_audit_event(
             frame,

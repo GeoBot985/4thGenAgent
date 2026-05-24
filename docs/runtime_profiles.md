@@ -43,12 +43,14 @@ The runtime also records whether the profile is reserved or blocked.
 | `test` | Deterministic test mode | Yes | No | No | Fixture-backed automated runs |
 | `release` | Release verification | Yes | No | No | Strict gates, no live execution |
 | `pilot` | Controlled live-read mode | No | Yes | No | Pilot mode allows allowlisted read-only toolpacks only |
+| `service` | Controlled worker service mode | No | No | No | Deployment boundary with worker identity and dry-run default |
 | `live` | Reserved future production profile | No | Yes | No | Blocked unless a future override explicitly enables it |
 
 ## Safety Boundaries
 
 - Default execution remains safe and dry-run by default.
 - `pilot` allows controlled live reads only.
+- `service` is a deployment-oriented worker profile with dry-run defaults, worker identity requirements, and no live side effects.
 - Live side effects are not production-enabled.
 - Unknown toolpacks stay blocked outside the narrow dev workflow.
 - Tool governance and evidence remain required across all active profiles.
@@ -69,6 +71,7 @@ JSON output is available for all three commands.
 
 - Use `demo` for portfolio demos and default local runs.
 - Use `pilot` only when the toolpack and credential boundary have been deliberately allowlisted.
+- Use `service` when you need a controlled worker-service runtime with explicit identity metadata and safe defaults.
 - Treat `live` as reserved until a later spec explicitly enables it.
 
 ## Pilot Readiness Gate

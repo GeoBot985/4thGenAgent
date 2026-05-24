@@ -383,6 +383,7 @@ def _summary_from_frame_dict(frame: dict[str, Any]) -> dict[str, Any]:
         "validation_failed_count": sum(1 for item in validations if isinstance(item, dict) and item.get("ok") is False),
         "output_keys": sorted(dict(frame.get("outputs") or {}).keys()),
         "completion_status": str(completion.get("status", "")) if isinstance(completion, dict) else "",
+        "metadata": json_safe(dict(frame.get("metadata") or {})),
     })
 
 

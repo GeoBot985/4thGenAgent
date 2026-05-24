@@ -183,6 +183,7 @@ def intake_event(
     routes_path: str = "config/event_routes.json",
     strict_source_contracts: bool = False,
     strict_manifest_preflight: bool = False,
+    frame_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     timestamp = utc_now()
     event_record = _normalize_event_record(event_data, timestamp)
@@ -411,6 +412,7 @@ def intake_event(
             trigger=trigger,
             inputs=mapped_inputs,
             raw_input=json.dumps(event_record, sort_keys=True),
+            metadata=frame_metadata,
         )
         PersistenceManager(runtime_data_dir).save_snapshot(frame)
         event_record["status"] = "FRAME_CREATED"
@@ -457,6 +459,7 @@ def intake_and_run_event(
     routes_path: str = "config/event_routes.json",
     strict_source_contracts: bool = False,
     strict_manifest_preflight: bool = False,
+    frame_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     intake_result = intake_event(
         event_data,
@@ -465,6 +468,7 @@ def intake_and_run_event(
         routes_path=routes_path,
         strict_source_contracts=strict_source_contracts,
         strict_manifest_preflight=strict_manifest_preflight,
+        frame_metadata=frame_metadata,
     )
     if intake_result.get("status") != "FRAME_CREATED" or not intake_result.get("frame_id"):
         frame_id = intake_result.get("frame_id")

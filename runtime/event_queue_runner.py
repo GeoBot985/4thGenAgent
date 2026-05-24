@@ -61,6 +61,7 @@ def _write_queue_audit_event(
 def process_next_queued_event(
     runtime_data_dir: str | Path = "runtime_data",
     worker_id: str = "local",
+    frame_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Claim and process one PENDING queue item into a TaskFrame.
 
@@ -99,7 +100,7 @@ def process_next_queued_event(
     }
 
     try:
-        result = intake_and_run_event(event_data, runtime_data_dir=runtime_data_dir)
+        result = intake_and_run_event(event_data, runtime_data_dir=runtime_data_dir, frame_metadata=frame_metadata)
     except Exception as exc:
         error = {"message": str(exc), "category": FAILURE_RUNTIME_EXCEPTION}
         mark_event_failed(queue_id, error, runtime_data_dir)
@@ -140,6 +141,7 @@ def process_queued_events(
     limit: int = 10,
     runtime_data_dir: str | Path = "runtime_data",
     worker_id: str = "local",
+    frame_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Process up to `limit` PENDING queue items sequentially.
 
@@ -147,7 +149,7 @@ def process_queued_events(
     """
     results: list[dict[str, Any]] = []
     for _ in range(int(limit)):
-        result = process_next_queued_event(runtime_data_dir=runtime_data_dir, worker_id=worker_id)
+        result = process_next_queued_event(runtime_data_dir=runtime_data_dir, worker_id=worker_id, frame_metadata=frame_metadata)
         results.append(result)
         if result.get("no_pending_event"):
             break

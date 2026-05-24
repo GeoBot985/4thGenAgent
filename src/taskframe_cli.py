@@ -433,6 +433,39 @@ def build_parser() -> argparse.ArgumentParser:
     controlled_live.add_argument("--check-tools", action="store_true")
     controlled_live.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
 
+    service = sub.add_parser("service", help="Inspect and run the controlled worker service profile.")
+    service_sub = service.add_subparsers(dest="service_command", required=True)
+
+    service_preflight = service_sub.add_parser("preflight", help="Run the service deployment preflight checks.")
+    service_preflight.add_argument("--profile", default="service")
+    service_preflight.add_argument("--config-dir", default="")
+    service_preflight.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    service_preflight.add_argument("--manifest-dir", default="manifests")
+    service_preflight.add_argument("--routes-path", default="config/event_routes.json")
+    service_preflight.add_argument("--toolpack-config-path", default="config/examples/taskframe.service.toolpacks.example.json")
+    service_preflight.add_argument("--json", action="store_true")
+
+    service_status = service_sub.add_parser("status", help="Show the service runtime status.")
+    service_status.add_argument("--profile", default="service")
+    service_status.add_argument("--config-dir", default="")
+    service_status.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    service_status.add_argument("--manifest-dir", default="manifests")
+    service_status.add_argument("--routes-path", default="config/event_routes.json")
+    service_status.add_argument("--toolpack-config-path", default="config/examples/taskframe.service.toolpacks.example.json")
+    service_status.add_argument("--json", action="store_true")
+
+    service_run_once = service_sub.add_parser("run-once", help="Run one bounded service worker cycle after preflight.")
+    service_run_once.add_argument("--profile", default="service")
+    service_run_once.add_argument("--config-dir", default="")
+    service_run_once.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    service_run_once.add_argument("--manifest-dir", default="manifests")
+    service_run_once.add_argument("--routes-path", default="config/event_routes.json")
+    service_run_once.add_argument("--toolpack-config-path", default="config/examples/taskframe.service.toolpacks.example.json")
+    service_run_once.add_argument("--queue-limit", type=int, default=10)
+    service_run_once.add_argument("--no-scheduler", action="store_true")
+    service_run_once.add_argument("--no-event-sources", action="store_true")
+    service_run_once.add_argument("--json", action="store_true")
+
     runtime_store = sub.add_parser("runtime-store", help="Inspect, validate, back up, and assess the runtime store.")
     runtime_store_sub = runtime_store.add_subparsers(dest="runtime_store_command", required=True)
 
@@ -745,6 +778,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_events(args)
     if args.command == "profile":
         return _run_profile(args)
+    if args.command == "service":
+        return _run_service(args)
     if args.command == "runtime-store":
         return _run_runtime_store(args)
     if args.command == "persistence":
@@ -3255,6 +3290,124 @@ def _run_profile_check(args: argparse.Namespace) -> int:
     print(f"Safe for demo: {str(result['safe_for_demo']).lower()}")
     print(f"Safe for pilot: {str(result['safe_for_pilot']).lower()}")
     print(f"Safe for release: {str(result['safe_for_release']).lower()}")
+    if result.get("blockers"):
+        print("Blockers:")
+        for blocker in result["blockers"]:
+            print(f"  - {blocker.get('message', '')}")
+    return 0 if result.get("ok") else 1
+
+
+def _run_service(args: argparse.Namespace) -> int:
+    command = str(getattr(args, "service_command", "") or "")
+    if command == "preflight":
+        return _run_service_preflight(args)
+    if command == "status":
+        return _run_service_status(args)
+    if command == "run-once":
+        return _run_service_run_once(args)
+    print("Unknown service command.", file=sys.stderr)
+    return 2
+
+
+def _service_paths(args: argparse.Namespace) -> dict[str, Any]:
+    profile_name = str(getattr(args, "profile", "service") or "service")
+    config_dir = str(getattr(args, "config_dir", "") or "") or None
+    runtime_data_dir = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    manifest_dir = str(getattr(args, "manifest_dir", "manifests") or "manifests")
+    routes_path = str(getattr(args, "routes_path", "config/event_routes.json") or "config/event_routes.json")
+    toolpack_config_path = str(getattr(args, "toolpack_config_path", "config/examples/taskframe.service.toolpacks.example.json") or "config/examples/taskframe.service.toolpacks.example.json")
+    return {
+        "profile_name": profile_name,
+        "config_dir": config_dir,
+        "runtime_data_dir": runtime_data_dir,
+        "manifest_dir": manifest_dir,
+        "routes_path": routes_path,
+        "toolpack_config_path": toolpack_config_path,
+    }
+
+
+def _run_service_preflight(args: argparse.Namespace) -> int:
+    from runtime.service_runtime import build_service_preflight, write_service_preflight_report
+
+    paths = _service_paths(args)
+    try:
+        result = build_service_preflight(**paths)
+        report_paths = write_service_preflight_report(result, runtime_data_dir=paths["runtime_data_dir"])
+        result["report_paths"] = report_paths
+    except Exception as exc:
+        result = {"ok": False, "profile": paths["profile_name"], "worker_identity": {}, "checks": [], "blockers": [{"id": "service_preflight_failed", "message": str(exc)}], "warnings": []}
+    if bool(args.json):
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    print(f"Service preflight: {'PASS' if result.get('ok') else 'FAIL'}")
+    print(f"Profile: {result.get('profile', '')}")
+    worker_identity = result.get("worker_identity") or {}
+    if worker_identity:
+        print(f"Worker ID: {worker_identity.get('worker_id', '')}")
+        print(f"Runtime instance ID: {worker_identity.get('runtime_instance_id', '')}")
+    if result.get("blockers"):
+        print("Blockers:")
+        for blocker in result["blockers"]:
+            print(f"  - {blocker.get('message', '')}")
+    return 0 if result.get("ok") else 1
+
+
+def _run_service_status(args: argparse.Namespace) -> int:
+    from runtime.service_runtime import build_service_status, write_service_status_report
+
+    paths = _service_paths(args)
+    try:
+        result = build_service_status(**paths)
+        report_paths = write_service_status_report(result, runtime_data_dir=paths["runtime_data_dir"])
+        result["report_paths"] = report_paths
+    except Exception as exc:
+        result = {"ok": False, "error": str(exc), "profile": paths["profile_name"], "worker_identity": {}, "enabled_toolpacks": [], "last_worker_cycle": {}, "latest_monitoring_snapshot": {}, "latest_recovery_summary": {}}
+    if bool(args.json):
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    print(f"Service profile: {result.get('profile', '')}")
+    print(f"Runtime data dir: {result.get('runtime_data_dir', '')}")
+    worker_identity = result.get("worker_identity") or {}
+    print(f"Worker ID: {worker_identity.get('worker_id', '')}")
+    print(f"Live reads: {result.get('live_read_status', '')}")
+    print(f"Live side effects: {result.get('live_side_effect_status', '')}")
+    print(f"Enabled toolpacks: {', '.join(result.get('enabled_toolpacks', [])) or '(none)'}")
+    last_cycle = result.get("last_worker_cycle") or {}
+    if last_cycle:
+        print(f"Last worker cycle: {last_cycle.get('cycle_id', '')} ({last_cycle.get('ok', False)})")
+    return 0
+
+
+def _run_service_run_once(args: argparse.Namespace) -> int:
+    from runtime.service_runtime import run_service_once
+
+    paths = _service_paths(args)
+    try:
+        result = run_service_once(
+            profile_name=paths["profile_name"],
+            runtime_data_dir=paths["runtime_data_dir"],
+            config_dir=paths["config_dir"],
+            manifest_dir=paths["manifest_dir"],
+            routes_path=paths["routes_path"],
+            toolpack_config_path=paths["toolpack_config_path"],
+            queue_limit=int(getattr(args, "queue_limit", 10)),
+            no_scheduler=bool(getattr(args, "no_scheduler", False)),
+            no_event_sources=bool(getattr(args, "no_event_sources", False)),
+        )
+    except Exception as exc:
+        result = {"ok": False, "error": str(exc), "profile": paths["profile_name"], "worker_identity": {}, "preflight": {}, "worker_cycle": {}, "service_cycle_record_path": ""}
+    if bool(args.json):
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
+    print(f"Service run-once: {'OK' if result.get('ok') else 'FAIL'}")
+    worker_identity = result.get("worker_identity") or {}
+    print(f"Worker ID: {worker_identity.get('worker_id', '')}")
+    worker_cycle = result.get("worker_cycle") or {}
+    if worker_cycle:
+        print(f"Cycle ID: {worker_cycle.get('cycle_id', '')}")
+        print(f"Queue processed: {worker_cycle.get('queue_items_processed', 0)}")
+    if result.get("service_cycle_record_path"):
+        print(f"Service cycle record: {result.get('service_cycle_record_path')}")
     if result.get("blockers"):
         print("Blockers:")
         for blocker in result["blockers"]:

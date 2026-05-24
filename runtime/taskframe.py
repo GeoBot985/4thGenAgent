@@ -107,6 +107,7 @@ def create_taskframe(
     trigger: dict[str, Any] | None = None,
     inputs: dict[str, Any] | None = None,
     raw_input: str = "",
+    metadata: dict[str, Any] | None = None,
 ) -> TaskFrame:
     timestamp = utc_now()
     steps = [
@@ -147,6 +148,7 @@ def create_taskframe(
         audit=[],
         created_at=timestamp,
         updated_at=timestamp,
+        metadata=dict(metadata or {}),
         schema_version=1,
         runtime_version=1,
     )
@@ -154,7 +156,7 @@ def create_taskframe(
         frame,
         "TASKFRAME_CREATED",
         "TaskFrame created from manifest.",
-        {"manifest_id": manifest.manifest_id},
+        {"manifest_id": manifest.manifest_id, "metadata": json_safe(frame.metadata)},
     )
     return frame
 
@@ -248,6 +250,7 @@ def to_dict(frame: TaskFrame) -> dict[str, Any]:
         "audit": [asdict(event) for event in frame.audit],
         "created_at": frame.created_at,
         "updated_at": frame.updated_at,
+        "metadata": json_safe(frame.metadata),
     })
 
 
@@ -277,6 +280,7 @@ def build_taskframe_summary(frame: TaskFrame) -> dict[str, Any]:
             "validation_failed_count": sum(1 for item in frame.validations if isinstance(item, dict) and item.get("ok") is False),
             "output_keys": sorted(frame.outputs.keys()),
             "completion_status": completion_status,
+            "metadata": json_safe(frame.metadata),
         }
     )
 

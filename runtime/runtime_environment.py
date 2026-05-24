@@ -17,7 +17,7 @@ LEGACY_PROFILE_ALIASES = {
     "controlled_live_read": "pilot",
 }
 ENVIRONMENT_ALIASES = dict(LEGACY_PROFILE_ALIASES)
-RUNTIME_PROFILE_NAMES = ("demo", "dev", "test", "release", "pilot", "live")
+RUNTIME_PROFILE_NAMES = ("demo", "dev", "test", "release", "pilot", "service", "live")
 ENVIRONMENTS = RUNTIME_PROFILE_NAMES
 PROFILE_SOURCE_ENV_VARS = ("TASKFRAME_PROFILE", "TASKFRAME_ENV")
 RESERVED_LIVE_OVERRIDE_ENV = "TASKFRAME_ENABLE_RESERVED_LIVE_PROFILE"
@@ -48,6 +48,8 @@ class RuntimeProfile:
     safe_for_demo: bool = False
     safe_for_pilot: bool = False
     safe_for_release: bool = False
+    worker_identity_required: bool = False
+    reserved_for_deployment: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -62,6 +64,8 @@ class RuntimeProfile:
         payload["safe_for_demo"] = self.safe_for_demo
         payload["safe_for_pilot"] = self.safe_for_pilot
         payload["safe_for_release"] = self.safe_for_release
+        payload["worker_identity_required"] = self.worker_identity_required
+        payload["reserved_for_deployment"] = self.reserved_for_deployment
         payload["blocked"] = self.activation_blocked
         payload["blocked_reason"] = self.activation_block_reason
         payload["config_source"] = self.source
@@ -138,6 +142,21 @@ _RUNTIME_PROFILE_MATRIX: dict[str, dict[str, Any]] = {
         "evidence_required": True,
         "allow_unknown_toolpacks": False,
         "safe_for_pilot": True,
+    },
+    "service": {
+        "fixture_mode": False,
+        "dry_run_default": True,
+        "allow_live_reads": False,
+        "allow_live_side_effects": False,
+        "require_tool_governance": True,
+        "allowed_toolpacks": [],
+        "blocked_tool_classes": ["rpa", "write", "send", "delete", "mutation", "side_effect"],
+        "llm_provider": "fake",
+        "requires_credentials": False,
+        "evidence_required": True,
+        "allow_unknown_toolpacks": False,
+        "worker_identity_required": True,
+        "reserved_for_deployment": True,
     },
     "live": {
         "fixture_mode": False,
@@ -217,6 +236,8 @@ def list_runtime_profiles() -> list[dict[str, Any]]:
                 "safe_for_demo": profile.safe_for_demo,
                 "safe_for_pilot": profile.safe_for_pilot,
                 "safe_for_release": profile.safe_for_release,
+                "worker_identity_required": profile.worker_identity_required,
+                "reserved_for_deployment": profile.reserved_for_deployment,
             }
         )
     return profiles
@@ -238,6 +259,8 @@ def profile_safety_summary(profile: RuntimeProfile | dict[str, Any]) -> dict[str
         "allow_live_reads": bool(resolved.allow_live_reads),
         "allow_live_side_effects": bool(resolved.allow_live_side_effects),
         "allow_unknown_toolpacks": bool(resolved.allow_unknown_toolpacks),
+        "worker_identity_required": bool(resolved.worker_identity_required),
+        "reserved_for_deployment": bool(resolved.reserved_for_deployment),
     }
 
 
@@ -261,6 +284,8 @@ def check_runtime_profile(profile: RuntimeProfile | dict[str, Any] | None = None
         "requires_credentials": bool(resolved.requires_credentials),
         "evidence_required": bool(resolved.evidence_required),
         "reserved": bool(resolved.reserved),
+        "worker_identity_required": bool(resolved.worker_identity_required),
+        "reserved_for_deployment": bool(resolved.reserved_for_deployment),
         "activation_blocked": bool(resolved.activation_blocked),
         "activation_block_reason": resolved.activation_block_reason,
         "safe_for_demo": bool(resolved.safe_for_demo),
@@ -345,6 +370,8 @@ def _build_runtime_profile(profile_name: str, *, raw: dict[str, Any], source: st
     allow_unknown_toolpacks = _coerce_bool(merged.get("allow_unknown_toolpacks"), preset.get("allow_unknown_toolpacks", False))
     allow_reserved_live_profile = _coerce_bool(merged.get("allow_reserved_live_profile"), False) or _env_bool(RESERVED_LIVE_OVERRIDE_ENV)
     reserved = _coerce_bool(merged.get("reserved"), preset.get("reserved", False))
+    worker_identity_required = _coerce_bool(merged.get("worker_identity_required"), preset.get("worker_identity_required", False))
+    reserved_for_deployment = _coerce_bool(merged.get("reserved_for_deployment"), preset.get("reserved_for_deployment", False))
 
     activation_blocked = False
     activation_block_reason = ""
@@ -376,6 +403,8 @@ def _build_runtime_profile(profile_name: str, *, raw: dict[str, Any], source: st
         safe_for_demo=bool(preset.get("safe_for_demo", False) and normalized in {"demo", "dev", "test", "release"}),
         safe_for_pilot=bool(preset.get("safe_for_pilot", False) and normalized == "pilot"),
         safe_for_release=bool(preset.get("safe_for_release", False) and normalized == "release"),
+        worker_identity_required=worker_identity_required,
+        reserved_for_deployment=reserved_for_deployment,
     )
 
 
@@ -460,6 +489,63 @@ def _runtime_profile_blockers(profile: RuntimeProfile) -> list[dict[str, Any]]:
                 "source": "profile",
             }
         )
+    if profile.profile == "service":
+        if profile.environment != "service":
+            blockers.append(
+                {
+                    "id": "service_environment_mismatch",
+                    "message": "Service profile must resolve to the service environment.",
+                    "source": "profile",
+                }
+            )
+        if profile.fixture_mode:
+            blockers.append(
+                {
+                    "id": "service_fixture_mode_enabled",
+                    "message": "Service profile must not run in fixture mode.",
+                    "source": "profile",
+                }
+            )
+        if not profile.dry_run_default:
+            blockers.append(
+                {
+                    "id": "service_dry_run_default_disabled",
+                    "message": "Service profile must default to dry-run.",
+                    "source": "profile",
+                }
+            )
+        if profile.allow_live_reads:
+            blockers.append(
+                {
+                    "id": "service_live_reads_enabled",
+                    "message": "Service profile must not allow live reads.",
+                    "source": "profile",
+                }
+            )
+        if profile.allow_live_side_effects:
+            blockers.append(
+                {
+                    "id": "service_live_side_effects_enabled",
+                    "message": "Service profile must not allow live side effects.",
+                    "source": "profile",
+                }
+            )
+        if not profile.worker_identity_required:
+            blockers.append(
+                {
+                    "id": "service_worker_identity_disabled",
+                    "message": "Service profile must require worker identity metadata.",
+                    "source": "profile",
+                }
+            )
+        if not profile.reserved_for_deployment:
+            blockers.append(
+                {
+                    "id": "service_reserved_for_deployment_disabled",
+                    "message": "Service profile must be reserved for deployment use.",
+                    "source": "profile",
+                }
+            )
     return blockers
 
 

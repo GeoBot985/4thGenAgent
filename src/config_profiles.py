@@ -150,9 +150,14 @@ def load_config_profile(
         google_data.get("token_path"),
         default=Path.home() / ".taskframe" / "google" / "google_token.json",
     )
+    accounting_sheet_default = (
+        Path.home() / ".taskframe" / "accounting_google_sheet.json"
+        if resolved_profile == "service"
+        else resolve_accounting_config_path(resolved_config_dir)
+    )
     accounting_sheet_path = _resolved_optional_path(
         accounting_data.get("sheet_config_path"),
-        default=resolve_accounting_config_path(resolved_config_dir),
+        default=accounting_sheet_default,
     )
     rpa_user_data_dir = _resolved_optional_path(
         rpa_data.get("browser_user_data_dir"),
@@ -215,6 +220,7 @@ def describe_config_profile(profile: ConfigProfile) -> dict[str, Any]:
         "require_tool_governance": profile.require_tool_governance,
         "blocked_tool_classes": profile.blocked_tool_classes,
         "allowed_toolpacks": profile.allowed_toolpacks,
+        "worker_identity": profile.raw.get("worker_identity", {}) if isinstance(profile.raw, dict) else {},
     }
 
 
@@ -294,6 +300,14 @@ def _default_profile_data(profile: str) -> dict[str, Any]:
         base["accounting"] = {"sheet_config_path": str(Path.home() / ".taskframe" / "accounting_google_sheet.json")}
     if profile == "rpa-local":
         base["rpa"]["enabled"] = True
+    if profile == "service":
+        base["worker_identity"] = {
+            "worker_id": "service-worker-1",
+            "worker_role": "general",
+            "environment": "service",
+            "operator_id": "system",
+            "approval_authority": "system",
+        }
     if profile == "controlled_live_read":
         base["google"]["enabled"] = True
         base["google"]["credentials_path"] = str(Path.home() / ".taskframe" / "google" / "credentials.json")

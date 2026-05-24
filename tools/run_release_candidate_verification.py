@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import tomllib
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,8 @@ DEFAULT_DEMO_BOUNDARY_MD = ROOT / "docs" / "default_demo_boundary.md"
 ADDING_NEW_TOOLS_MD = ROOT / "docs" / "adding_new_tools.md"
 TOOL_CONTRACT_CHECKLIST_MD = ROOT / "docs" / "tool_contract_checklist.md"
 TOOL_RESULT_CONTRACT_MD = ROOT / "docs" / "tool_result_contract.md"
+SERVICE_RUNTIME_PROFILE_MD = ROOT / "docs" / "service_runtime_profile.md"
+PRODUCTION_READINESS_ROADMAP_MD = ROOT / "docs" / "production_readiness_roadmap.md"
 RELEASE_STATUS_JSON = ROOT / "runtime_data" / "audit" / "release_status_latest.json"
 RELEASE_EVIDENCE_JSON = ROOT / "runtime_data" / "audit" / "release_evidence_pack.json"
 PILOT_READINESS_MD = ROOT / "docs" / "pilot_readiness.md"
@@ -285,6 +288,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
             _check_live_execution_default_dry_run(),
             _check_optional_rpa_isolation(),
             _check_config_secrets_hygiene(),
+            _check_service_runtime_profile(),
         ])
 
     checks = {
@@ -324,6 +328,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
         "live_execution_default_dry_run": _status_from_static_mode(static_checks, "live_execution_default_dry_run"),
         "optional_rpa_isolation": _status_from_static_mode(static_checks, "optional_rpa_isolation"),
         "config_secrets_hygiene": _status_from_static_mode(static_checks, "config_secrets_hygiene"),
+        "service_runtime_profile": _status_from_static_mode(static_checks, "service_runtime_profile"),
     }
 
     if mode == "standard":
@@ -383,6 +388,7 @@ def _build_mode_verification_result(mode: str) -> dict[str, Any]:
             "live_execution_default_dry_run",
             "optional_rpa_isolation",
             "config_secrets_hygiene",
+            "service_runtime_profile",
         }:
             release_blockers.append(f"{check['name']} failed")
 
@@ -3267,6 +3273,188 @@ def _check_runtime_profiles() -> dict[str, Any]:
         "live_profile": live_profile,
         "profile_matrix": profile_matrix,
         "missing": missing,
+    }
+
+
+def _check_service_runtime_profile() -> dict[str, Any]:
+    missing: list[str] = []
+    failures: list[str] = []
+
+    doc_paths = [
+        SERVICE_RUNTIME_PROFILE_MD,
+        PRODUCTION_READINESS_ROADMAP_MD,
+        ROOT / "config" / "examples" / "taskframe.service.example.json",
+    ]
+    for path in doc_paths:
+        if not path.is_file():
+            missing.append(_display_path(path))
+
+    if SERVICE_RUNTIME_PROFILE_MD.is_file():
+        doc_text = SERVICE_RUNTIME_PROFILE_MD.read_text(encoding="utf-8").lower()
+        for required in (
+            "service runtime profile",
+            "worker identity",
+            "preflight",
+            "status",
+            "run-once",
+            "not full production readiness",
+        ):
+            if required not in doc_text:
+                missing.append(f"service_runtime_profile_doc_missing:{required}")
+
+    if PRODUCTION_READINESS_ROADMAP_MD.is_file():
+        roadmap_text = PRODUCTION_READINESS_ROADMAP_MD.read_text(encoding="utf-8").lower()
+        for required in (
+            "service",
+            "worker identity",
+            "hardening",
+            "not a production deployment guarantee",
+        ):
+            if required not in roadmap_text:
+                missing.append(f"production_roadmap_doc_missing:{required}")
+
+    if (ROOT / "config" / "examples" / "taskframe.service.example.json").is_file():
+        try:
+            example = json.loads((ROOT / "config" / "examples" / "taskframe.service.example.json").read_text(encoding="utf-8"))
+            worker_identity = example.get("worker_identity", {}) if isinstance(example, dict) else {}
+            if not isinstance(worker_identity, dict) or not worker_identity.get("worker_id"):
+                failures.append("service_example_worker_identity_missing")
+        except Exception as exc:
+            failures.append(f"service_example_invalid:{exc}")
+
+    try:
+        from runtime.runtime_environment import check_runtime_profile, load_runtime_profile
+        from runtime.service_runtime import build_service_preflight, build_service_status, run_service_once
+        from runtime.worker_identity import build_worker_identity, validate_worker_identity
+        from src.taskframe_cli import build_parser
+    except Exception as exc:
+        return {"name": "service_runtime_profile", "status": "FAIL", "error": str(exc)}
+
+    try:
+        profile = load_runtime_profile(profile_name="service")
+        profile_check = check_runtime_profile(profile)
+        if not profile_check.get("ok", False):
+            failures.extend([f"profile_check_failed:{item.get('id', 'unknown')}" for item in profile_check.get("blockers", [])])
+        required_flags = {
+            "fixture_mode": False,
+            "dry_run_default": True,
+            "allow_live_reads": False,
+            "allow_live_side_effects": False,
+            "require_tool_governance": True,
+            "evidence_required": True,
+            "worker_identity_required": True,
+            "reserved_for_deployment": True,
+        }
+        for key, expected in required_flags.items():
+            if bool(profile.get(key)) != bool(expected):
+                failures.append(f"service_profile_{key}_mismatch")
+    except Exception as exc:
+        failures.append(f"service_profile_load_failed:{exc}")
+        profile = {}
+        profile_check = {"ok": False}
+
+    try:
+        identity = build_worker_identity(
+            {
+                "worker_id": "service-worker-1",
+                "worker_role": "general",
+                "environment": "service",
+                "operator_id": "system",
+                "approval_authority": "system",
+            }
+        )
+        identity_validation = validate_worker_identity(identity)
+        if not identity_validation.get("ok", False):
+            failures.append("worker_identity_validation_failed")
+    except Exception as exc:
+        failures.append(f"worker_identity_contract_failed:{exc}")
+
+    try:
+        preflight_sig = build_service_preflight
+        status_sig = build_service_status
+        run_once_sig = run_service_once
+        if not callable(preflight_sig) or not callable(status_sig) or not callable(run_once_sig):
+            failures.append("service_cli_callables_missing")
+    except Exception as exc:
+        failures.append(f"service_runtime_import_failed:{exc}")
+
+    try:
+        parser = build_parser()
+        command_action = next(action for action in parser._actions if isinstance(action, argparse._SubParsersAction))
+        service_parser = command_action.choices.get("service")
+        if service_parser is None:
+            failures.append("service_cli_command_missing")
+        else:
+            service_action = next(action for action in service_parser._actions if isinstance(action, argparse._SubParsersAction))
+            service_commands = set(service_action.choices.keys())
+            for required in ("preflight", "status", "run-once"):
+                    if required not in service_commands:
+                        failures.append(f"service_cli_subcommand_missing:{required}")
+    except Exception as exc:
+        failures.append(f"service_cli_parse_failed:{exc}")
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_root = Path(tmp)
+            config_dir = tmp_root / "config"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            runtime_data_dir = tmp_root / "runtime_data"
+            config_dir.joinpath("taskframe.service.json").write_text(
+                json.dumps(
+                    {
+                        "profile": "service",
+                        "runtime_data_dir": str(runtime_data_dir),
+                        "llm": {"provider": "fake"},
+                        "google": {"enabled": False, "credentials_path": "", "token_path": ""},
+                        "rpa": {"enabled": True, "browser_user_data_dir": "", "browser_profile_dir": ""},
+                        "live_execution": {"enabled": False},
+                        "worker_identity": {
+                            "worker_id": "service-worker-1",
+                            "worker_role": "general",
+                            "environment": "service",
+                            "operator_id": "system",
+                            "approval_authority": "system",
+                        },
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            toolpack_config_path = tmp_root / "enabled_toolpacks.json"
+            toolpack_config_path.write_text(
+                json.dumps({"enabled_toolpacks": [], "disabled_toolpacks": [], "allow_optional_toolpacks": False}, indent=2),
+                encoding="utf-8",
+            )
+            preflight = build_service_preflight(
+                profile_name="service",
+                runtime_data_dir=runtime_data_dir,
+                config_dir=config_dir,
+                manifest_dir="manifests",
+                routes_path="config/event_routes.json",
+                toolpack_config_path=toolpack_config_path,
+            )
+            if not any(blocker.get("id") == "optional_rpa_blocked" for blocker in preflight.get("blockers", [])):
+                failures.append("service_profile_optional_rpa_not_blocked")
+    except Exception as exc:
+        failures.append(f"service_profile_optional_rpa_check_failed:{exc}")
+
+    if profile.get("allow_live_side_effects", False):
+        failures.append("service_profile_allows_live_side_effects")
+    if profile.get("allow_live_reads", True):
+        failures.append("service_profile_allows_live_reads")
+    if profile.get("fixture_mode", True):
+        failures.append("service_profile_fixture_mode_enabled")
+
+    all_issues = missing + failures
+    status = "PASS" if not all_issues else "FAIL"
+    return {
+        "name": "service_runtime_profile",
+        "status": status,
+        "profile": profile,
+        "profile_check": profile_check,
+        "missing": missing,
+        "failures": failures,
+        "details": all_issues,
     }
 
 
