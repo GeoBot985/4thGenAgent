@@ -288,6 +288,7 @@ class OperatorConsole:
         self.live_safety_preflight: dict[str, object] = {}
         self.lr_proof_status_var = tk.StringVar(value="Status not loaded. Click 'Check Live Read Status'.")
         self.lse_status_var = tk.StringVar(value="Status: No execution attempted. Only sheet/write_rows is executable in v1.")
+        self.iolsp_status_var = tk.StringVar(value="Status: No posting attempted. Pending operator approval required.")
         self.root.title(TITLE)
         self.root.geometry("1280x820")
         self.root.minsize(1180, 720)
@@ -627,6 +628,22 @@ class OperatorConsole:
         ttk.Button(lse_button_row, text="Show Ledger Report", command=self._show_live_execution_ledger).pack(side="left", padx=(0, 6))
         ttk.Button(lse_button_row, text="Open Execution Report", command=self._open_live_execution_report).pack(side="left", padx=(0, 6))
 
+        # Spec 156 — InvoiceOps Live Posting Pilot panel
+        iolsp_card = ttk.Frame(detail_card, style="Card.TFrame", padding=(0, 8, 0, 0))
+        iolsp_card.grid(row=10, column=0, sticky="ew", pady=(10, 0))
+        iolsp_card.columnconfigure(0, weight=1)
+        ttk.Label(iolsp_card, text="InvoiceOps Live Posting Pilot (v1: allowlisted registers only)", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        self.iolsp_status_var = tk.StringVar(value="Status: No posting attempted. Pending operator approval required.")
+        iolsp_status_label = ttk.Label(iolsp_card, textvariable=self.iolsp_status_var, style="Body.TLabel", wraplength=700, justify="left")
+        iolsp_status_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        self.iolsp_details_text = self._make_text_widget(iolsp_card, height=6)
+        self.iolsp_details_text.grid(row=2, column=0, sticky="nsew", pady=(6, 8))
+        iolsp_button_row = ttk.Frame(iolsp_card, style="Card.TFrame")
+        iolsp_button_row.grid(row=3, column=0, sticky="w")
+        ttk.Button(iolsp_button_row, text="Check Posting Profile", command=self._check_invoiceops_posting_profile).pack(side="left", padx=(0, 6))
+        ttk.Button(iolsp_button_row, text="Show Posting Ledger", command=self._show_invoiceops_posting_ledger).pack(side="left", padx=(0, 6))
+        ttk.Button(iolsp_button_row, text="Open Posting Report", command=self._open_invoiceops_posting_report).pack(side="left", padx=(0, 6))
+
         confirmation_row = ttk.Frame(live_safety_card, style="Card.TFrame")
         confirmation_row.grid(row=5, column=0, sticky="ew", pady=(8, 0))
         ttk.Label(confirmation_row, text="Typed confirmation:", style="Meta.TLabel").pack(side="left")
@@ -930,6 +947,69 @@ class OperatorConsole:
                 self.lse_status_var.set(f"Opened: {report_path.name}")
                 return
         self.lse_status_var.set("No execution report found. Run a live side-effect execution first.")
+
+    def _check_invoiceops_posting_profile(self) -> None:
+        try:
+            from runtime.invoiceops_live_posting import V1_ALLOWED_TARGETS, V1_BLOCKED_TARGETS
+            from src.controlled_live_profile import CONTROLLED_LIVE_WRITE_PROFILE, is_live_write_tool_executable
+            executable, _ = is_live_write_tool_executable("sheet/write_rows")
+            lines = [
+                f"Profile: {CONTROLLED_LIVE_WRITE_PROFILE.get('profile_id')}",
+                f"sheet/write_rows executable: {executable}",
+                f"Allowed targets ({len(V1_ALLOWED_TARGETS)}): {', '.join(sorted(V1_ALLOWED_TARGETS))}",
+                f"Blocked targets ({len(V1_BLOCKED_TARGETS)}): {', '.join(sorted(V1_BLOCKED_TARGETS))}",
+                "Batch posting: NOT allowed. One action at a time.",
+                "Auto-approval: NOT allowed. Operator approval required.",
+                "Auto-rollback: NOT allowed. Rollback is display-only in v1.",
+            ]
+            self.iolsp_status_var.set(f"Profile OK | {len(V1_ALLOWED_TARGETS)} allowed targets | sheet/write_rows: {executable}")
+            self._set_text(self.iolsp_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.iolsp_status_var.set(f"Posting profile error: {exc}")
+
+    def _show_invoiceops_posting_ledger(self) -> None:
+        try:
+            from runtime.invoiceops_posting_ledger import build_posting_ledger_report
+            report = build_posting_ledger_report(runtime_data_dir=self.runtime_root)
+            lines = [
+                f"Total ledger entries: {report['total_entries']}",
+                f"Executed+Verified: {report['executed_verified_count']}",
+                f"Executed+Unverified: {report['executed_unverified_count']}",
+                f"Blocked: {report['blocked_count']}",
+                f"Failed: {report['failed_count']}",
+                f"Side effects performed: {report['side_effects_performed_count']}",
+                f"Ledger: {report['ledger_path']}",
+                "",
+                "Recent entries:",
+            ]
+            for entry in report.get("recent_entries", [])[:5]:
+                lines.append(
+                    f"  [{entry.get('status')}] {entry.get('invoice_number')} "
+                    f"→ {entry.get('target_register')} | {entry.get('action_id')}"
+                )
+            self.iolsp_status_var.set(
+                f"Ledger: {report['total_entries']} entries | Verified: {report['executed_verified_count']} | Side effects: {report['side_effects_performed_count']}"
+            )
+            self._set_text(self.iolsp_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.iolsp_status_var.set(f"Posting ledger error: {exc}")
+
+    def _open_invoiceops_posting_report(self) -> None:
+        import os as _os
+        import pathlib
+        report_dir = pathlib.Path(self.runtime_root) / "invoiceops" / "live_posting"
+        if report_dir.is_dir():
+            md_files = sorted(report_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if md_files:
+                report_path = md_files[0]
+                try:
+                    _os.startfile(str(report_path))  # type: ignore[attr-defined]
+                except AttributeError:
+                    import subprocess as _sp
+                    _sp.run(["xdg-open", str(report_path)], check=False)
+                self.iolsp_status_var.set(f"Opened: {report_path.name}")
+                return
+        self.iolsp_status_var.set("No posting report found. Run an InvoiceOps live posting first.")
 
     def _copy_dry_run_cli_command(self) -> None:
         self._copy_to_clipboard(self._live_dry_run_command())

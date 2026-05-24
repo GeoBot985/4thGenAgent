@@ -1,0 +1,97 @@
+{
+  "manifest_id": "invoiceops.live_sheet_posting_pilot_v1",
+  "name": "InvoiceOps Live Sheet Posting Pilot v1",
+  "version": 1,
+  "description": "Builds live-posting pending actions from a completed InvoiceOps frame. Does NOT execute live writes. Stops at WAITING_FOR_EXECUTE.",
+  "trigger": {
+    "type": "manual"
+  },
+  "inputs": [
+    "frame_id",
+    "invoice_id",
+    "invoice_number",
+    "supplier_name",
+    "po_number",
+    "match_status",
+    "prepared_writes"
+  ],
+  "sample_inputs": {
+    "frame_id": "frame_invoiceops_pilot_001",
+    "invoice_id": "INV-2026-001",
+    "invoice_number": "INV-2026-001",
+    "supplier_name": "Acme Supplies Ltd",
+    "po_number": "PO-2026-042",
+    "match_status": "matched",
+    "prepared_writes": []
+  },
+  "side_effect_policy": {
+    "has_side_effects": false,
+    "live_side_effects_allowed": false,
+    "note": "This manifest only builds posting plans and pending actions. No live write is executed here. Live execution requires operator approval and separate CLI command."
+  },
+  "completion": {
+    "success_state": "WAITING_FOR_EXECUTE",
+    "pending_actions_min": 1,
+    "allow_pending_approval": true,
+    "success_pending_actions": ["posting_plan"],
+    "success_outputs": ["posting_plan", "preflight_result", "approval_pack"]
+  },
+  "steps": [
+    {
+      "id": "build_posting_plan",
+      "kind": "tool",
+      "command": "[t:invoiceops/build_live_posting_plan -> posting_plan] frame_id=$inputs.frame_id invoice_id=$inputs.invoice_id invoice_number=$inputs.invoice_number supplier_name=$inputs.supplier_name po_number=$inputs.po_number match_status=$inputs.match_status prepared_writes=$inputs.prepared_writes"
+    },
+    {
+      "id": "run_posting_preflight",
+      "kind": "tool",
+      "command": "[t:invoiceops/run_live_posting_preflight -> preflight_result] posting_plan=$posting_plan frame_id=$inputs.frame_id profile=controlled_live_write"
+    },
+    {
+      "id": "build_approval_pack",
+      "kind": "tool",
+      "command": "[t:invoiceops/build_posting_approval_pack -> approval_pack] posting_plan=$posting_plan"
+    },
+    {
+      "id": "write_posting_plan_report",
+      "kind": "tool",
+      "command": "[t:invoiceops/write_posting_report -> report_result] posting_plan=$posting_plan"
+    }
+  ],
+  "validations": [
+    {
+      "id": "no_errors",
+      "type": "no_errors"
+    },
+    {
+      "id": "posting_plan_exists",
+      "type": "output_exists",
+      "output": "posting_plan"
+    },
+    {
+      "id": "preflight_result_exists",
+      "type": "output_exists",
+      "output": "preflight_result"
+    },
+    {
+      "id": "approval_pack_exists",
+      "type": "output_exists",
+      "output": "approval_pack"
+    }
+  ],
+  "outputs": {
+    "posting_plan": "$posting_plan",
+    "preflight_result": "$preflight_result",
+    "approval_pack": "$approval_pack",
+    "report_result": "$report_result"
+  },
+  "notes": [
+    "This manifest does not execute any live write.",
+    "It builds a posting_plan with pending_actions in PENDING_APPROVAL state.",
+    "The operator must review the approval_pack, approve each pending_action, then run: taskframe invoiceops live-posting execute --frame-id <id> --action-id <id> --confirm '<phrase>'",
+    "Only sheet/write_rows is executable via the live side-effect model (Spec 155).",
+    "Gmail, Calendar, RPA, and all mutation tools remain blocked.",
+    "Allowed targets: invoice_register, match_register, exception_register, ledger_register.",
+    "Blocked targets: supplier_master, po_register, goods_receipt_register, bank_register, payment_register."
+  ]
+}

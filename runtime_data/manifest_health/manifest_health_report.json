@@ -1,18 +1,18 @@
 {
   "ok": true,
   "status": "HEALTHY",
-  "generated_at": "2026-05-24T09:51:55.983820Z",
+  "generated_at": "2026-05-24T11:46:10.160462Z",
   "manifest_dir": "manifests",
   "summary": {
-    "total": 19,
+    "total": 20,
     "healthy": 0,
     "warnings": 0,
     "failed": 0,
-    "validation_passed": 19,
+    "validation_passed": 20,
     "validation_failed": 0,
     "smoke_passed": 0,
     "smoke_failed": 0,
-    "smoke_skipped": 19,
+    "smoke_skipped": 20,
     "repairable": 9,
     "manual_fix_required": 0,
     "critical": 0,
@@ -43,8 +43,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'event_id' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -52,8 +52,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -237,6 +237,48 @@
       "manifest_id": "invoiceops.process_supplier_invoice_v1",
       "name": "InvoiceOps Process Supplier Invoice v1",
       "path": "manifests\\invoiceops.process_supplier_invoice_v1.manifest.json",
+      "health": "SMOKE_SKIPPED",
+      "validation": {
+        "ok": true,
+        "errors": []
+      },
+      "repair_guidance": {
+        "status": "NO_FINDINGS",
+        "severity": "info",
+        "finding_count": 0,
+        "top_findings": [],
+        "findings": []
+      },
+      "smoke": {
+        "status": "SKIPPED",
+        "classification": "NOT_RUN",
+        "reason": "smoke disabled or smoke_limit reached",
+        "state": ""
+      },
+      "strict_contract": {
+        "ok": true,
+        "status": "PASS",
+        "errors": [],
+        "warnings": [],
+        "findings": []
+      },
+      "autofix": {
+        "proposal_count": 0,
+        "supported_count": 0,
+        "unsupported_count": 0,
+        "low_risk_applyable": 0,
+        "top_supported": [],
+        "top_unsupported": [],
+        "proposals": []
+      },
+      "repairable": false,
+      "manual_fix_required": false,
+      "next_action": "Run smoke test manually with sample inputs."
+    },
+    {
+      "manifest_id": "invoiceops.live_sheet_posting_pilot_v1",
+      "name": "InvoiceOps Live Sheet Posting Pilot v1",
+      "path": "manifests\\invoiceops_live_sheet_posting_pilot.manifest.json",
       "health": "SMOKE_SKIPPED",
       "validation": {
         "ok": true,
@@ -1538,8 +1580,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'event_id' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
+            "message": "Input 'received_at' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
             "example": "",
             "source": "static_manifest_check"
           },
@@ -1547,8 +1589,8 @@
             "id": "input_declared_but_not_used",
             "severity": "warning",
             "location": "inputs",
-            "message": "Input 'received_at' is declared but not referenced in any step command.",
-            "suggested_fix": "Remove 'received_at' from inputs if unused, or reference it in a command as $inputs.received_at.",
+            "message": "Input 'event_id' is declared but not referenced in any step command.",
+            "suggested_fix": "Remove 'event_id' from inputs if unused, or reference it in a command as $inputs.event_id.",
             "example": "",
             "source": "static_manifest_check"
           },

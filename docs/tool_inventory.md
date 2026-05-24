@@ -1,17 +1,17 @@
 # Tool Inventory Report
 
-Generated: 2026-05-24T09:52:34.549008Z
+Generated: 2026-05-24T11:46:49.592358Z
 
-Report JSON: D:/Temp/pytest-of-GeorgeC/pytest-2314/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.json
-Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2314/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.md
+Report JSON: D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.json
+Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.md
 
 ## Summary
 
 | Metric | Count |
 |---|---:|
-| Total tools | 114 |
+| Total tools | 118 |
 | Migrated tool-pack tools | 4 |
-| Legacy fallback tools | 110 |
+| Legacy fallback tools | 114 |
 | External enabled tools | 0 |
 | Total tool packs | 2 |
 | Optional disabled tools | 10 |
@@ -58,7 +58,9 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2314/test_inventory_includes_t
 | invoiceops/build_exception_action_plan | legacy_fallback |  | no | no | no | invoiceops_exception_action_plan |
 | invoiceops/build_exception_report | legacy_fallback |  | no | no | no | invoiceops_report |
 | invoiceops/build_ledger_posting_summary | legacy_fallback |  | no | no | no | invoiceops_report |
+| invoiceops/build_live_posting_plan | legacy_fallback |  | no | no | no | invoiceops_posting_plan |
 | invoiceops/build_match_report | legacy_fallback |  | no | no | no | invoiceops_report |
+| invoiceops/build_posting_approval_pack | legacy_fallback |  | no | no | no | invoiceops_approval_pack |
 | invoiceops/build_rollback_summary | legacy_fallback |  | no | no | no | invoiceops_report |
 | invoiceops/check_duplicate_invoice | legacy_fallback |  | no | no | no | invoiceops_match_check |
 | invoiceops/check_tax | legacy_fallback |  | no | no | no | invoiceops_match_check |
@@ -80,10 +82,12 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2314/test_inventory_includes_t
 | invoiceops/read_po_register | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
 | invoiceops/read_receipt_register | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
 | invoiceops/read_supplier_master | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
+| invoiceops/run_live_posting_preflight | legacy_fallback |  | no | no | no | invoiceops_preflight_result |
 | invoiceops/search_po_fallback | legacy_fallback |  | no | no | no | invoiceops_fallback_result |
 | invoiceops/search_receipt_fallback | legacy_fallback |  | no | no | no | invoiceops_fallback_result |
 | invoiceops/search_supplier_fallback | legacy_fallback |  | no | no | no | invoiceops_fallback_result |
 | invoiceops/validate_invoice_fields | legacy_fallback |  | no | no | no | invoiceops_invoice_validation |
+| invoiceops/write_posting_report | legacy_fallback |  | no | no | no | invoiceops_report |
 | memory/set | migrated_toolpack | core_memory | yes | yes | no | memory_set_result |
 | message/validate_customer_status_reply | legacy_fallback |  | no | no | no | reply_validation |
 | message/validate_supplier_reorder_message | legacy_fallback |  | no | no | no | supplier_message_validation |
@@ -141,5 +145,5 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2314/test_inventory_includes_t
 
 | Tool Pack | Status | Environments | Classification | Tool Count | Last Check | Lifecycle Report |
 |---|---|---|---|---:|---|---|
-| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-24T09:52:34.487003Z | D:/Temp/pytest-of-GeorgeC/pytest-2314/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
-| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-24T09:52:34.517532Z | D:/Temp/pytest-of-GeorgeC/pytest-2314/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |
+| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-24T11:46:49.530774Z | D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
+| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-24T11:46:49.561830Z | D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |

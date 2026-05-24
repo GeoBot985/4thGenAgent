@@ -869,6 +869,36 @@
 - `ledger_rows` (str)
 
 ---
+## invoiceops/build_live_posting_plan
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_live_posting_plan |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_posting_plan` |
+
+### Command form
+
+```text
+[t:invoiceops/build_live_posting_plan -> output_name] frame_id=$inputs.frame_id
+```
+
+### Required arguments
+
+- `frame_id` (str)
+
+### Optional arguments
+
+- `invoice_id` (str)
+- `invoice_number` (str)
+- `supplier_name` (str)
+- `po_number` (str)
+- `match_status` (str)
+- `prepared_writes` (str)
+
+---
 ## invoiceops/build_match_report
 
 | Field | Value |
@@ -889,6 +919,33 @@
 
 - `invoice` (str)
 - `match_result` (str)
+
+---
+## invoiceops/build_posting_approval_pack
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | build_posting_approval_pack |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_approval_pack` |
+
+### Command form
+
+```text
+[t:invoiceops/build_posting_approval_pack -> output_name] posting_plan=$inputs.posting_plan
+```
+
+### Required arguments
+
+- `posting_plan` (str)
+
+### Optional arguments
+
+- `invoice` (str)
+- `match_result` (str)
+- `exceptions` (str)
 
 ---
 ## invoiceops/build_rollback_summary
@@ -1363,6 +1420,32 @@
 - `_fixture_dir` (str)
 
 ---
+## invoiceops/run_live_posting_preflight
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | run_live_posting_preflight |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_preflight_result` |
+
+### Command form
+
+```text
+[t:invoiceops/run_live_posting_preflight -> output_name] posting_plan=$inputs.posting_plan
+```
+
+### Required arguments
+
+- `posting_plan` (str)
+
+### Optional arguments
+
+- `frame_id` (str)
+- `profile` (str)
+
+---
 ## invoiceops/search_po_fallback
 
 | Field | Value |
@@ -1448,6 +1531,27 @@
 ### Required arguments
 
 - `invoice` (str)
+
+---
+## invoiceops/write_posting_report
+
+| Field | Value |
+|---|---|
+| Namespace | invoiceops |
+| Action | write_posting_report |
+| Side effect | false |
+| Requires approval | false |
+| Output type | `invoiceops_report` |
+
+### Command form
+
+```text
+[t:invoiceops/write_posting_report -> output_name] posting_plan=$inputs.posting_plan
+```
+
+### Required arguments
+
+- `posting_plan` (str)
 
 ---
 ## memory/set

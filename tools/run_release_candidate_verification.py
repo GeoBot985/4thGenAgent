@@ -721,6 +721,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         _check_gmail_send_tool(),
         _check_governed_live_read_proof(),
         _check_live_side_effect_approval_execution_model(),
+        _check_invoiceops_live_sheet_write_pilot(),
     ])
     # manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     manifest_health_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "manifest_catalog_health"), {})
@@ -6312,6 +6313,199 @@ def _check_live_side_effect_approval_execution_model() -> dict[str, Any]:
     status = "PASS" if not all_issues else "FAIL"
     return {
         "name": "live_side_effect_approval_execution_model",
+        "status": status,
+        "missing": missing,
+        "failures": failures,
+        "details": all_issues,
+    }
+
+
+def _check_invoiceops_live_sheet_write_pilot() -> dict[str, Any]:
+    """
+    Spec 156 — InvoiceOps Live Sheet Write Pilot v1.
+
+    Validates the InvoiceOps live posting boundary without requiring real Google credentials.
+    All checks are boundary-only (import, static analysis, in-memory logic).
+    """
+    failures: list[str] = []
+    missing: list[str] = []
+
+    # 1. Core runtime module exists with required symbols
+    posting_module = ROOT / "runtime" / "invoiceops_live_posting.py"
+    if not posting_module.is_file():
+        missing.append("runtime/invoiceops_live_posting.py")
+    else:
+        content = posting_module.read_text(encoding="utf-8")
+        for symbol in (
+            "build_invoiceops_live_posting_plan",
+            "validate_invoiceops_prepared_writes_for_live",
+            "run_invoiceops_live_posting_preflight",
+            "execute_invoiceops_live_sheet_posting",
+            "verify_invoiceops_live_posting",
+            "V1_ALLOWED_TARGETS",
+            "V1_BLOCKED_TARGETS",
+        ):
+            if symbol not in content:
+                failures.append(f"symbol_missing:{symbol}")
+
+    # 2. Approval pack module exists
+    approval_module = ROOT / "runtime" / "invoiceops_posting_approval_pack.py"
+    if not approval_module.is_file():
+        missing.append("runtime/invoiceops_posting_approval_pack.py")
+    else:
+        content = approval_module.read_text(encoding="utf-8")
+        for symbol in ("build_invoiceops_posting_approval_pack", "APPROVAL_CHECKLIST_ITEMS"):
+            if symbol not in content:
+                failures.append(f"approval_pack_symbol_missing:{symbol}")
+
+    # 3. Posting ledger module exists
+    ledger_module = ROOT / "runtime" / "invoiceops_posting_ledger.py"
+    if not ledger_module.is_file():
+        missing.append("runtime/invoiceops_posting_ledger.py")
+    else:
+        content = ledger_module.read_text(encoding="utf-8")
+        for symbol in ("append_posting_ledger_entry", "read_posting_ledger_entries", "build_posting_ledger_entry", "record_posting_execution"):
+            if symbol not in content:
+                failures.append(f"ledger_symbol_missing:{symbol}")
+
+    # 4. Manifest exists and stops at WAITING_FOR_EXECUTE
+    manifest_path = ROOT / "manifests" / "invoiceops_live_sheet_posting_pilot.manifest.json"
+    if not manifest_path.is_file():
+        missing.append("manifests/invoiceops_live_sheet_posting_pilot.manifest.json")
+    else:
+        try:
+            import json as _json
+            manifest = _json.loads(manifest_path.read_text(encoding="utf-8"))
+            if manifest.get("completion", {}).get("success_state") != "WAITING_FOR_EXECUTE":
+                failures.append("manifest_success_state_not_WAITING_FOR_EXECUTE")
+            policy = manifest.get("side_effect_policy", {})
+            if policy.get("live_side_effects_allowed"):
+                failures.append("manifest_allows_live_side_effects_must_be_false")
+        except Exception as exc:
+            failures.append(f"manifest_parse_error:{exc}")
+
+    # 5. CLI has invoiceops live-posting commands
+    cli_path = ROOT / "src" / "taskframe_cli.py"
+    if cli_path.is_file():
+        content = cli_path.read_text(encoding="utf-8")
+        for cmd in ("invoiceops", "live-posting", "approval-pack", "_run_invoiceops"):
+            if cmd not in content:
+                failures.append(f"cli_missing:{cmd}")
+    else:
+        missing.append("src/taskframe_cli.py")
+
+    # 6. Import test — allowlist/blocklist importable, no external API call
+    try:
+        from runtime.invoiceops_live_posting import V1_ALLOWED_TARGETS, V1_BLOCKED_TARGETS
+        for required_target in ("invoice_register", "match_register", "exception_register", "ledger_register"):
+            if required_target not in V1_ALLOWED_TARGETS:
+                failures.append(f"allowed_target_missing:{required_target}")
+        for blocked_target in ("supplier_master", "po_register", "bank_register", "payment_register"):
+            if blocked_target not in V1_BLOCKED_TARGETS:
+                failures.append(f"blocked_target_missing:{blocked_target}")
+    except Exception as exc:
+        failures.append(f"invoiceops_posting_import_error:{exc}")
+
+    # 7. Posting plan builder works with empty prepared_writes (no live calls)
+    try:
+        from runtime.invoiceops_live_posting import build_invoiceops_live_posting_plan
+        plan = build_invoiceops_live_posting_plan(
+            frame_id="rc_frame_001",
+            invoice_id="INV-RC-001",
+            invoice_number="INV-RC-001",
+            supplier_name="RC Test Supplier",
+            po_number="PO-RC-001",
+            match_status="matched",
+            prepared_writes=[],
+        )
+        if "posting_plan_id" not in plan:
+            failures.append("posting_plan_missing_posting_plan_id")
+        if plan.get("eligible_write_count", 0) != 0:
+            failures.append("empty_prepared_writes_should_yield_zero_eligible")
+        if "pending_actions" not in plan:
+            failures.append("posting_plan_missing_pending_actions")
+    except Exception as exc:
+        failures.append(f"posting_plan_builder_error:{exc}")
+
+    # 8. Blocked target is rejected (no live execution)
+    try:
+        from runtime.invoiceops_live_posting import validate_invoiceops_prepared_writes_for_live
+        result = validate_invoiceops_prepared_writes_for_live(
+            prepared_write={
+                "target": "supplier_master",
+                "rows": [{"col": "val"}],
+                "rollback_plan": {"rollback_id": "rp1"},
+                "invoice_number": "INV-RC-001",
+            },
+        )
+        if result.get("eligible"):
+            failures.append("blocked_target_supplier_master_passed_eligibility")
+        if not result.get("errors"):
+            failures.append("blocked_target_should_have_errors")
+    except Exception as exc:
+        failures.append(f"blocked_target_check_error:{exc}")
+
+    # 9. Approval pack builds without live calls
+    try:
+        from runtime.invoiceops_live_posting import build_invoiceops_live_posting_plan
+        from runtime.invoiceops_posting_approval_pack import build_invoiceops_posting_approval_pack
+        plan = build_invoiceops_live_posting_plan(
+            frame_id="rc_frame_002",
+            invoice_id="INV-RC-002",
+            invoice_number="INV-RC-002",
+            supplier_name="RC Supplier",
+            po_number="PO-RC-002",
+            match_status="matched",
+            prepared_writes=[],
+        )
+        pack = build_invoiceops_posting_approval_pack(posting_plan=plan)
+        if "approval_checklist" not in pack:
+            failures.append("approval_pack_missing_approval_checklist")
+        if "risk_summary" not in pack:
+            failures.append("approval_pack_missing_risk_summary")
+        if len(pack.get("approval_checklist", [])) < 8:
+            failures.append("approval_checklist_has_fewer_than_8_items")
+    except Exception as exc:
+        failures.append(f"approval_pack_build_error:{exc}")
+
+    # 10. Posting ledger boundary test (in-memory, no live write)
+    try:
+        from runtime.invoiceops_posting_ledger import (
+            build_posting_ledger_entry,
+            append_posting_ledger_entry,
+            read_posting_ledger_entries,
+            STATUS_EXECUTED_VERIFIED,
+        )
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            entry = build_posting_ledger_entry(
+                frame_id="rc_frame_001",
+                posting_plan_id="pp_rc_001",
+                invoice_id="INV-RC-001",
+                invoice_number="INV-RC-001",
+                supplier_name="RC Supplier",
+                target_register="invoice_register",
+                action_id="pa_rc_001",
+                approved_by="rc_operator",
+                worker_identity={"worker_id": "rc_worker"},
+                idempotency_key="ikey_rc_001",
+                payload_hash="hash_rc_001",
+                status=STATUS_EXECUTED_VERIFIED,
+                side_effect_performed=True,
+            )
+            append_posting_ledger_entry(entry, runtime_data_dir=tmpdir)
+            entries = read_posting_ledger_entries(runtime_data_dir=tmpdir)
+            if len(entries) != 1:
+                failures.append(f"ledger_should_have_1_entry_got_{len(entries)}")
+            if entries[0].get("status") != STATUS_EXECUTED_VERIFIED:
+                failures.append("ledger_entry_status_wrong")
+    except Exception as exc:
+        failures.append(f"posting_ledger_boundary_error:{exc}")
+
+    all_issues = missing + failures
+    status = "PASS" if not all_issues else "FAIL"
+    return {
+        "name": "invoiceops_live_sheet_write_pilot",
         "status": status,
         "missing": missing,
         "failures": failures,

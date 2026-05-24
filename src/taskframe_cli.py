@@ -787,6 +787,56 @@ def build_parser() -> argparse.ArgumentParser:
     lse_rollback.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     lse_rollback.add_argument("--json", action="store_true")
 
+    # Spec 156 — InvoiceOps Live Sheet Write Pilot
+    invoiceops = sub.add_parser("invoiceops", help="InvoiceOps bookkeeping workflow commands.")
+    invoiceops_sub = invoiceops.add_subparsers(dest="invoiceops_command", required=True)
+
+    iolsp = invoiceops_sub.add_parser("live-posting", help="InvoiceOps live sheet posting pilot commands.")
+    iolsp_sub = iolsp.add_subparsers(dest="iolsp_command", required=True)
+
+    iolsp_plan = iolsp_sub.add_parser("plan", help="Build a live posting plan from completed InvoiceOps outputs.")
+    iolsp_plan.add_argument("--frame-id", required=True)
+    iolsp_plan.add_argument("--invoice-id", default="")
+    iolsp_plan.add_argument("--invoice-number", default="")
+    iolsp_plan.add_argument("--supplier-name", default="")
+    iolsp_plan.add_argument("--po-number", default="")
+    iolsp_plan.add_argument("--match-status", default="matched", choices=["matched", "exception", "blocked"])
+    iolsp_plan.add_argument("--profile", default="controlled_live_write")
+    iolsp_plan.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iolsp_plan.add_argument("--json", action="store_true")
+
+    iolsp_preflight = iolsp_sub.add_parser("preflight", help="Run live posting preflight (no execution).")
+    iolsp_preflight.add_argument("--frame-id", required=True)
+    iolsp_preflight.add_argument("--action-id", default="")
+    iolsp_preflight.add_argument("--profile", default="controlled_live_write")
+    iolsp_preflight.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iolsp_preflight.add_argument("--json", action="store_true")
+
+    iolsp_approval = iolsp_sub.add_parser("approval-pack", help="Build an approval pack for operator review.")
+    iolsp_approval.add_argument("--frame-id", required=True)
+    iolsp_approval.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iolsp_approval.add_argument("--json", action="store_true")
+
+    iolsp_execute = iolsp_sub.add_parser("execute", help="Execute one approved posting action (requires typed confirmation).")
+    iolsp_execute.add_argument("--frame-id", required=True)
+    iolsp_execute.add_argument("--action-id", required=True)
+    iolsp_execute.add_argument("--profile", default="controlled_live_write")
+    iolsp_execute.add_argument("--confirm", required=True, help="Typed confirmation phrase.")
+    iolsp_execute.add_argument("--dry-run-fallback", action="store_true")
+    iolsp_execute.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iolsp_execute.add_argument("--json", action="store_true")
+
+    iolsp_verify = iolsp_sub.add_parser("verify", help="Post-execution verification for a live posting.")
+    iolsp_verify.add_argument("--frame-id", required=True)
+    iolsp_verify.add_argument("--action-id", required=True)
+    iolsp_verify.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iolsp_verify.add_argument("--json", action="store_true")
+
+    iolsp_report = iolsp_sub.add_parser("report", help="Show the InvoiceOps live posting ledger report.")
+    iolsp_report.add_argument("--frame-id", default="")
+    iolsp_report.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iolsp_report.add_argument("--json", action="store_true")
+
     # Spec 154 — Governed Live Read Proof Pack
     live_read = sub.add_parser("live-read", help="Governed live-read proof and boundary checks.")
     live_read_sub = live_read.add_subparsers(dest="live_read_command", required=True)
@@ -892,6 +942,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_worker(args)
     if args.command == "live-side-effect":
         return _run_live_side_effect(args)
+    if args.command == "invoiceops":
+        return _run_invoiceops(args)
     if args.command == "live-read":
         return _run_live_read(args)
     parser.print_help()
@@ -4819,6 +4871,125 @@ def _run_worker(args: Any) -> int:
             print(f"Could not clear lock: {result.get('message') or result.get('error', 'unknown')}")
         return 0 if result.get("ok") else 1
 
+    return 2
+
+
+def _run_invoiceops(args: Any) -> int:
+    from runtime.invoiceops_live_posting import (
+        build_invoiceops_live_posting_plan,
+        run_invoiceops_live_posting_preflight,
+        execute_invoiceops_live_sheet_posting,
+        verify_invoiceops_live_posting,
+        render_invoiceops_live_posting_markdown,
+        write_invoiceops_live_posting_report,
+    )
+    from runtime.invoiceops_posting_approval_pack import build_invoiceops_posting_approval_pack
+    from runtime.invoiceops_posting_ledger import build_posting_ledger_report
+
+    cmd = str(getattr(args, "invoiceops_command", "") or "")
+    rd = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    as_json = bool(getattr(args, "json", False))
+
+    if cmd == "live-posting":
+        sub_cmd = str(getattr(args, "iolsp_command", "") or "")
+        frame_id = str(getattr(args, "frame_id", "") or "")
+
+        if sub_cmd == "plan":
+            result = build_invoiceops_live_posting_plan(
+                frame_id=frame_id,
+                invoice_id=str(getattr(args, "invoice_id", "") or ""),
+                invoice_number=str(getattr(args, "invoice_number", "") or ""),
+                supplier_name=str(getattr(args, "supplier_name", "") or ""),
+                po_number=str(getattr(args, "po_number", "") or ""),
+                match_status=str(getattr(args, "match_status", "matched") or "matched"),
+                prepared_writes=[],
+            )
+            if as_json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                print(f"InvoiceOps Live Posting Plan: {result.get('posting_plan_id')}")
+                print(f"  Eligible writes: {result.get('eligible_write_count', 0)}")
+                print(f"  Blocked writes: {result.get('blocked_write_count', 0)}")
+                print(f"  Pending actions: {len(result.get('pending_actions', []))}")
+            return 0
+
+        if sub_cmd == "preflight":
+            empty_plan = build_invoiceops_live_posting_plan(
+                frame_id=frame_id,
+                prepared_writes=[],
+            )
+            result = run_invoiceops_live_posting_preflight(
+                posting_plan=empty_plan,
+                action_id=str(getattr(args, "action_id", "") or "") or None,
+                profile_name=str(getattr(args, "profile", "controlled_live_write") or "controlled_live_write"),
+                runtime_data_dir=rd,
+            )
+            if as_json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                ok_str = "PASS" if result.get("plan_ok") else "FAIL"
+                print(f"InvoiceOps Live Posting Preflight: {ok_str}")
+                for b in result.get("plan_blockers", []):
+                    print(f"  BLOCKED: {b}")
+            return 0
+
+        if sub_cmd == "approval-pack":
+            empty_plan = build_invoiceops_live_posting_plan(
+                frame_id=frame_id,
+                prepared_writes=[],
+            )
+            result = build_invoiceops_posting_approval_pack(posting_plan=empty_plan)
+            if as_json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                print(f"InvoiceOps Approval Pack: {result.get('posting_plan_id')}")
+                print(f"  Summary: {result.get('human_summary', '')}")
+                print(f"  Checklist items: {len(result.get('approval_checklist', []))}")
+            return 0
+
+        if sub_cmd == "execute":
+            action_id = str(getattr(args, "action_id", "") or "")
+            confirm = str(getattr(args, "confirm", "") or "")
+            dry_run_fallback = bool(getattr(args, "dry_run_fallback", False))
+            empty_plan = build_invoiceops_live_posting_plan(
+                frame_id=frame_id,
+                prepared_writes=[],
+            )
+            result = execute_invoiceops_live_sheet_posting(
+                posting_plan=empty_plan,
+                action_id=action_id,
+                typed_confirmation=confirm,
+                runtime_data_dir=rd,
+                dry_run_fallback=dry_run_fallback,
+            )
+            if as_json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                status = "EXECUTED" if result.get("executed") else "BLOCKED/FAILED"
+                print(f"InvoiceOps Live Posting Execution: {status}")
+                print(f"  Error: {result.get('error_code', '') or 'none'}")
+            return 0 if result.get("ok") else 1
+
+        if sub_cmd == "verify":
+            action_id = str(getattr(args, "action_id", "") or "")
+            result = {"ok": False, "verified": False, "errors": ["No execution result found."]}
+            if as_json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                print(f"InvoiceOps Verify: {'PASS' if result.get('verified') else 'FAIL'}")
+            return 0 if result.get("ok") else 1
+
+        if sub_cmd == "report":
+            report = build_posting_ledger_report(runtime_data_dir=rd)
+            if as_json:
+                print(json.dumps(report, indent=2, default=str))
+            else:
+                print(f"InvoiceOps Live Posting Ledger: {report['total_entries']} entries")
+                print(f"  Verified: {report['executed_verified_count']}")
+                print(f"  Failed: {report['failed_count']}")
+            return 0
+
+        return 2
     return 2
 
 
