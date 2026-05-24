@@ -1,6 +1,10 @@
 ﻿from __future__ import annotations
 
+import argparse
 import json
+import os
+import sys
+import traceback
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
@@ -89,7 +93,7 @@ from runtime.tool_capability_registry import list_tool_capabilities
 from runtime.tool_health import check_all_tool_health, check_tool_health, load_latest_tool_health_snapshot
 from runtime.tool_setup import get_tool_setup_instructions, run_safe_setup_action
 from runtime.run_report import generate_demo_run_report
-from runtime.monitoring_snapshot import build_monitoring_snapshot, write_monitoring_snapshot
+from runtime.monitoring_snapshot import build_monitoring_snapshot, load_latest_monitoring_snapshot, write_monitoring_snapshot
 from runtime.operational_monitoring import build_monitoring_summary, build_operational_monitoring_report
 from runtime.recovery import assess_recovery
 from src.config_profiles import load_config_profile
@@ -214,9 +218,14 @@ def create_scroll_card(parent: ttk.Widget, title: str, height: int = 8) -> tuple
 
 
 class OperatorConsole:
-    def __init__(self, root: tk.Tk, runtime_root: str = "runtime_data"):
+    def __init__(self, root: tk.Tk, runtime_root: str = "runtime_data", *, safe_start: bool = False, debug_startup: bool = False):
         self.root = root
         self.runtime_root = runtime_root
+        self.safe_start = bool(safe_start)
+        self.debug_startup = bool(debug_startup or os.environ.get("TASKFRAME_UI_DEBUG_STARTUP", "").strip().lower() in {"1", "true", "yes", "on"})
+        self.startup_log_path = Path(self.runtime_root) / "logs" / "operator_ui_startup.log"
+        self.startup_state_var = tk.StringVar(value="Loading runtime data...")
+        self.startup_detail_var = tk.StringVar(value="Shell rendered. Deferred refresh scheduled.")
         self.last_snapshot: dict = {}
         self.last_action_result: dict | None = None
         self.current_run: dict | None = None
@@ -292,9 +301,12 @@ class OperatorConsole:
         self.root.title(TITLE)
         self.root.geometry("1280x820")
         self.root.minsize(1180, 720)
+        self._startup_log("[ui-startup] creating root")
         self._configure_styles()
+        self._startup_log("[ui-startup] constructing app shell")
         self._build_layout()
-        self.refresh_runtime_data()
+        self._render_startup_banner("Loading runtime data...", "Shell rendered. Cached runtime data will load shortly.")
+        self._schedule_initial_refresh()
 
     def _configure_styles(self) -> None:
         self.root.configure(bg="#e9edf2")
@@ -314,12 +326,13 @@ class OperatorConsole:
         self.outer = ttk.Frame(self.root, style="Workspace.TFrame", padding=16)
         self.outer.pack(fill="both", expand=True)
         self.outer.columnconfigure(0, weight=1)
-        self.outer.rowconfigure(1, weight=1)
+        self.outer.rowconfigure(1, weight=0)
+        self.outer.rowconfigure(2, weight=1)
 
         self._build_header(self.outer)
 
         self.view_stack = ttk.Frame(self.outer, style="Workspace.TFrame")
-        self.view_stack.grid(row=1, column=0, sticky="nsew", pady=(12, 12))
+        self.view_stack.grid(row=2, column=0, sticky="nsew", pady=(12, 12))
         self.view_stack.columnconfigure(0, weight=1)
         self.view_stack.rowconfigure(0, weight=1)
 
@@ -347,6 +360,7 @@ class OperatorConsole:
         header.grid(row=0, column=0, columnspan=2, sticky="ew")
         header.columnconfigure(0, weight=1)
         header.columnconfigure(1, weight=0)
+        header.rowconfigure(1, weight=0)
 
         left = ttk.Frame(header, style="Workspace.TFrame")
         left.grid(row=0, column=0, sticky="w")
@@ -360,6 +374,15 @@ class OperatorConsole:
         ttk.Label(mode_block, text="View Mode", style="Meta.TLabel").grid(row=0, column=0, columnspan=3, sticky="e")
         for column, mode in enumerate(("Demo", "Operator", "Inspector", "Manifest Workbench")):
             ttk.Radiobutton(mode_block, text=mode, value=mode, variable=self.view_mode_var, command=self._switch_view_mode).grid(row=1, column=column, sticky="e", padx=(0, 8) if mode != "Inspector" else (0, 0))
+
+        startup = ttk.Frame(header, style="Card.TFrame", padding=(10, 8))
+        startup.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        startup.columnconfigure(0, weight=1)
+        ttk.Label(startup, textvariable=self.startup_state_var, style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(startup, textvariable=self.startup_detail_var, style="Meta.TLabel", wraplength=1160, justify="left").grid(row=1, column=0, sticky="w", pady=(2, 0))
+        self.startup_error_text = tk.Text(startup, height=6, wrap="word", background="#fff7ed", foreground="#7c2d12", relief="flat")
+        self.startup_error_text.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        self.startup_error_text.configure(state="disabled")
 
     def _build_demo_view(self, parent: ttk.Frame) -> None:
         parent.columnconfigure(0, weight=1)
@@ -2314,6 +2337,57 @@ class OperatorConsole:
         for child in container.winfo_children():
             child.destroy()
 
+    def load_cached_runtime_data(self) -> None:
+        self._startup_log("[ui-startup] loading cached runtime data")
+        try:
+            self.last_snapshot = build_operator_snapshot(self.runtime_root)
+        except Exception as exc:
+            self.last_snapshot = {"ok": False, "errors": [str(exc)], "trace_lines": []}
+        try:
+            self.customer_messages = load_customer_messages(self.runtime_root)
+        except Exception:
+            self.customer_messages = []
+        try:
+            self.business_dataset_manifest = load_dataset_manifest(self.runtime_root)
+        except Exception:
+            self.business_dataset_manifest = {}
+        try:
+            self.business_dataset_validation = validate_business_dataset(self.runtime_root)
+        except Exception:
+            self.business_dataset_validation = {"ok": False, "status": "not_run", "summary": "Dataset validation unavailable."}
+        self.tool_health_snapshot = load_latest_tool_health_snapshot(self.runtime_root)
+        if not self.tool_health_snapshot.get("results"):
+            self.tool_health_snapshot = {
+                "generated_at": "",
+                "include_optional": False,
+                "live_rpa": False,
+                "results": [],
+                "by_tool": {},
+                "summary": {},
+                "ok": False,
+                "status": "not_run",
+                "message": "Tool health has not been run yet. Click 'Run Safe Health Checks' to refresh.",
+            }
+        self.monitoring_snapshot = load_latest_monitoring_snapshot(self.runtime_root)
+        if not self.monitoring_snapshot.get("generated_at"):
+            self.monitoring_snapshot = self._placeholder_monitoring_snapshot()
+        self.monitoring_report = {}
+        self.monitoring_alert_candidates = list(self.monitoring_snapshot.get("alert_candidates", []))
+        self.recovery_snapshot = self._placeholder_recovery_snapshot()
+        self.toolpack_discovery_snapshot = {"ok": False, "toolpacks": [], "enabled_count": 0, "disabled_count": 0, "registered_tool_count": 0, "status": "not_run"}
+        self.last_action_result = None
+        self.current_run = None
+        self.timeline = []
+        self.playback_timeline = self.timeline
+        self.playback_index = -1
+        self.playing = False
+        self.playback_running = self.playing
+        self.playback_paused = False
+        self._cancel_playback_timer()
+        self._render_snapshot()
+        self._update_dataset_validation_label()
+        self._render_tool_capabilities_panel()
+
     def refresh_runtime_data(self) -> None:
         self.last_snapshot = build_operator_snapshot(self.runtime_root)
         self.customer_messages = load_customer_messages(self.runtime_root)
@@ -2337,6 +2411,86 @@ class OperatorConsole:
         self._render_snapshot()
         self._update_dataset_validation_label()
         self._render_tool_capabilities_panel()
+
+    def _schedule_initial_refresh(self) -> None:
+        self._startup_log("[ui-startup] scheduling deferred refresh")
+        self.root.after(100, self.safe_initial_refresh)
+
+    def safe_initial_refresh(self) -> None:
+        self._startup_log("[ui-startup] safe initial refresh starting")
+        try:
+            self.load_cached_runtime_data()
+            self._render_startup_banner(
+                "Runtime data loaded.",
+                "Cached snapshots were loaded without generating tool health or monitoring data.",
+            )
+        except Exception as exc:
+            self.render_startup_error(exc)
+
+    def render_startup_error(self, exc: Exception) -> None:
+        error_type = type(exc).__name__
+        message = str(exc)
+        tb = traceback.format_exc()
+        self._startup_log(f"[ui-startup] error: {error_type}: {message}")
+        self._render_startup_banner(
+            "Startup refresh failed.",
+            f"{error_type}: {message}",
+            error_text=tb,
+            path_note=f"Startup log: {self.startup_log_path}",
+        )
+
+    def _render_startup_banner(self, title: str, detail: str, *, error_text: str = "", path_note: str = "") -> None:
+        self.startup_state_var.set(title)
+        self.startup_detail_var.set(f"{detail}\n{path_note}".strip())
+        if hasattr(self, "startup_error_text"):
+            self.startup_error_text.configure(state="normal")
+            self.startup_error_text.delete("1.0", "end")
+            self.startup_error_text.insert("end", error_text or "No startup error.")
+            self.startup_error_text.configure(state="disabled")
+
+    def _placeholder_monitoring_snapshot(self) -> dict[str, object]:
+        return {
+            "ok": False,
+            "status": "BLOCKED",
+            "profile": "service",
+            "generated_at": "",
+            "worker_identity": {},
+            "sections": {},
+            "alert_candidates": [],
+            "blockers": ["Monitoring snapshot has not been run yet."],
+            "warnings": [],
+            "report_paths": {},
+        }
+
+    def _placeholder_recovery_snapshot(self) -> dict[str, object]:
+        return {
+            "ok": False,
+            "frame_id": "",
+            "manifest_id": "",
+            "state": "",
+            "recovery_status": "not_run",
+            "safe_to_retry": False,
+            "safe_to_resume": False,
+            "side_effect_risk": "unknown",
+            "reason": "Recovery assessment has not been run yet.",
+            "recommended_action": "Select a run and click Refresh Operational Health.",
+            "command_suggestion": "",
+        }
+
+    def _startup_log(self, message: str) -> None:
+        if not (self.debug_startup or message.startswith("[ui-startup] error")):
+            return
+        try:
+            self.startup_log_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.startup_log_path.open("a", encoding="utf-8") as handle:
+                handle.write(message + "\n")
+        except Exception:
+            pass
+        if self.debug_startup:
+            try:
+                print(message, file=sys.stderr)
+            except Exception:
+                pass
 
     def _ensure_tool_health_snapshot(self) -> None:
         self.tool_health_snapshot = load_latest_tool_health_snapshot(self.runtime_root)
@@ -5699,17 +5853,25 @@ class OperatorConsole:
         self.update_approval_button_states()
 
 
-def build_operator_ui(root: tk.Tk | None = None, runtime_root: str = "runtime_data") -> tk.Tk:
+def build_operator_ui(root: tk.Tk | None = None, runtime_root: str = "runtime_data", *, safe_start: bool = False, debug_startup: bool = False) -> tk.Tk:
     created_root = root is None
     app_root = root or tk.Tk()
-    app_root.operator_console = OperatorConsole(app_root, runtime_root=runtime_root)  # type: ignore[attr-defined]
+    app_root.operator_console = OperatorConsole(app_root, runtime_root=runtime_root, safe_start=safe_start, debug_startup=debug_startup)  # type: ignore[attr-defined]
     if created_root:
         app_root.protocol("WM_DELETE_WINDOW", app_root.destroy)
     return app_root
 
 
-def main() -> int:
-    root = build_operator_ui()
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="operator_ui", add_help=True)
+    parser.add_argument("--runtime-data-dir", default="runtime_data")
+    parser.add_argument("--safe-start", action="store_true")
+    parser.add_argument("--debug-startup", action="store_true")
+    args = parser.parse_args(argv)
+    root = build_operator_ui(runtime_root=args.runtime_data_dir, safe_start=args.safe_start, debug_startup=args.debug_startup)
+    console = getattr(root, "operator_console", None)
+    if isinstance(console, OperatorConsole):
+        console._startup_log("[ui-startup] mainloop starting")
     root.mainloop()
     return 0
 

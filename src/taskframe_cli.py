@@ -52,6 +52,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     ui = sub.add_parser("ui", help="Launch the operator UI.")
     ui.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    ui.add_argument("--safe-start", action="store_true")
+    ui.add_argument("--debug-startup", action="store_true")
 
     demo = sub.add_parser("demo", help="Run a safe default operator demo scenario.")
     demo.add_argument("demo_command", nargs="?", default="run", choices=["run", "cross-workflow-v2"])
@@ -929,7 +931,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"taskframe-runtime {VERSION}")
         return 0
     if args.command == "ui":
-        return _run_ui(args.runtime_data_dir)
+        return _run_ui(args)
     if args.command == "demo":
         return _run_demo(args)
     if args.command == "golden-demo":
@@ -1004,11 +1006,15 @@ def main(argv: list[str] | None = None) -> int:
     return 2
 
 
-def _run_ui(runtime_data_dir: str) -> int:
+def _run_ui(args: argparse.Namespace) -> int:
     try:
         from src.operator_ui import build_operator_ui
 
-        root = build_operator_ui(runtime_root=runtime_data_dir)
+        root = build_operator_ui(
+            runtime_root=str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR),
+            safe_start=bool(getattr(args, "safe_start", False)),
+            debug_startup=bool(getattr(args, "debug_startup", False)),
+        )
         root.mainloop()
         return 0
     except Exception as exc:

@@ -39,6 +39,51 @@ _MONITORING_STATUSES = ("HEALTHY", "DEGRADED", "ATTENTION_REQUIRED", "BLOCKED")
 _SECTION_STATUSES = ("OK", "WARN", "FAIL", "SKIPPED")
 
 
+def load_latest_monitoring_snapshot(runtime_data_dir: str | Path = "runtime_data") -> dict[str, Any]:
+    runtime_root = Path(runtime_data_dir)
+    path = runtime_root / MONITORING_DIR_NAME / MONITORING_SNAPSHOT_JSON
+    if not path.is_file():
+        return {
+            "ok": False,
+            "status": "BLOCKED",
+            "profile": "service",
+            "generated_at": "",
+            "worker_identity": {},
+            "sections": {},
+            "alert_candidates": [],
+            "blockers": ["Monitoring snapshot has not been generated yet."],
+            "warnings": [],
+            "report_paths": {},
+        }
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            "ok": False,
+            "status": "BLOCKED",
+            "profile": "service",
+            "generated_at": "",
+            "worker_identity": {},
+            "sections": {},
+            "alert_candidates": [],
+            "blockers": ["Monitoring snapshot could not be loaded."],
+            "warnings": [],
+            "report_paths": {},
+        }
+    return payload if isinstance(payload, dict) else {
+        "ok": False,
+        "status": "BLOCKED",
+        "profile": "service",
+        "generated_at": "",
+        "worker_identity": {},
+        "sections": {},
+        "alert_candidates": [],
+        "blockers": ["Monitoring snapshot could not be loaded."],
+        "warnings": [],
+        "report_paths": {},
+    }
+
+
 def build_monitoring_snapshot(
     runtime_data_dir: str | Path = "runtime_data",
     *,
