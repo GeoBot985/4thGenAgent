@@ -77,3 +77,22 @@ python -c "from runtime.invoiceops_gallery import run_invoiceops_gallery; import
 ```
 
 Gallery outputs are written under `runtime_data/invoiceops_demo_outputs/` when the runner is executed.
+
+## Live Showcase Demo (Spec 158)
+
+For a full live bookkeeping demonstration with real Google Sheets, see the [InvoiceOps Showcase Demo](invoiceops_showcase_demo.md).
+
+The showcase replaces the dry-run gallery with:
+- 8 curated invoice scenarios including clean match, duplicates, exceptions, and mismatches
+- Live Google Sheets posting (with `controlled_live_write` profile and typed confirmation)
+- Professional-formatted Google Sheet workbook with 13 tabs
+- Dashboard, ledger, reconciliation, evidence, and rollback tabs
+- Post-write reconciliation and accounting evidence pack
+
+Showcase commands:
+
+```bash
+# Boundary-only (no Google credentials needed)
+python -m src.taskframe_cli invoiceops showcase status --json
+python -m src.taskframe_cli invoiceops showcase run --profile controlled_live_write --invoice-limit 1 --json
+```

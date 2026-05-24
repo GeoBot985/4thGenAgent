@@ -265,6 +265,46 @@ Exit codes:
 - `0` when the evidence pack is generated successfully
 - non-zero when the underlying reconciliation result is blocked or missing evidence
 
+### `taskframe invoiceops showcase status`
+
+Shows the showcase demo configuration status. No API calls.
+
+- `--runtime-data-dir runtime_data`
+- `--config-dir <path>`
+- `--spreadsheet-id <id>`
+- `--json`
+
+### `taskframe invoiceops showcase run`
+
+Runs the showcase invoice batch (boundary mode by default).
+
+- `--profile controlled_live_write`
+- `--runtime-data-dir runtime_data`
+- `--config-dir <path>`
+- `--spreadsheet-id <id>`
+- `--invoice-limit <n>` (0 = all)
+- `--live` (enable live Google Sheets writes)
+- `--reset-sheet` (clear sheet before run)
+- `--confirm "EXECUTE LIVE INVOICEOPS SHOWCASE <spreadsheet_id>"` (required for live)
+- `--write-report`
+- `--json`
+
+### `taskframe invoiceops showcase setup-sheet`
+
+Seeds the demo Google Sheet with supplier master, PO register, and goods receipt data.
+
+- `--profile controlled_live_write`
+- `--spreadsheet-id <id>` (required)
+- `--confirm "EXECUTE LIVE INVOICEOPS SHOWCASE <id>"` (required)
+- `--json`
+
+### `taskframe invoiceops showcase open-report`
+
+Opens the latest showcase demo Markdown report.
+
+- `--runtime-data-dir runtime_data`
+- `--json`
+
 ### `taskframe gmail-send dry-run`
 
 Validates a pending Gmail send action without calling the Gmail API.

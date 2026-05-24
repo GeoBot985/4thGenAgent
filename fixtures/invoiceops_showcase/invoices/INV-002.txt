@@ -1,0 +1,36 @@
+INVOICE
+
+Invoice Number: INV-002
+Invoice Date: 2026-05-03
+Due Date: 2026-06-02
+
+Supplier:
+  Name: Acme Office Supplies (Pty) Ltd
+  VAT Number: 4123456789
+  Address: 12 Supplier Park, Johannesburg, 2001
+
+Bill To:
+  Company: TaskFrame Holdings
+  Address: 1 Innovation Drive, Cape Town, 8001
+
+Line Items:
+  1. Office Paper A4 (500 sheets x 10 boxes)   QTY: 10   UNIT: ZAR 85.00   TOTAL: ZAR 850.00
+  2. Printer Cartridges HP 305A (x5)            QTY: 5    UNIT: ZAR 320.00  TOTAL: ZAR 1,600.00
+  3. Ballpoint Pens (Box of 50)                 QTY: 3    UNIT: ZAR 95.00   TOTAL: ZAR 285.00
+
+Subtotal:    ZAR 2,735.00
+VAT (15%):   ZAR 410.25
+TOTAL:       ZAR 3,145.25
+
+Purchase Order Reference: PO-2026-0042
+Goods Receipt Reference: GR-2026-0042
+
+NOTE: This invoice is a re-submission of INV-001 (same PO, same amounts, different invoice date).
+
+Payment Terms: 30 days net
+Bank: First National Bank
+Account: 62345678901
+Branch Code: 250655
+
+Authorised by: J. Smith
+Date: 2026-05-03

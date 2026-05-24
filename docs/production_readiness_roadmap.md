@@ -16,6 +16,7 @@ The roadmap below shows the next hardening steps after the `service` runtime pro
 - Spec 152 added worker hardening, stale-lock recovery evidence, and the bounded soak harness.
 - Spec 153 added the consolidated operational monitoring snapshot and alert-candidate pack.
 - Spec 157 added post-write reconciliation and accounting evidence packs for InvoiceOps live posting.
+- Spec 158 added the InvoiceOps Live Bookkeeping Showcase Demo Pack: 8 invoice scenarios, live Google Sheets posting under `controlled_live_write` profile, formatted demo workbook, dashboard, and accounting evidence trail.
 - These changes improve operational evidence and failure recovery without enabling live side effects.
 
 ## Next Hardening Specs

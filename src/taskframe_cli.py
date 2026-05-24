@@ -857,6 +857,40 @@ def build_parser() -> argparse.ArgumentParser:
     invoiceops_evidence.add_argument("--write-report", action="store_true")
     invoiceops_evidence.add_argument("--json", action="store_true")
 
+    # Spec 158 — InvoiceOps Live Bookkeeping Showcase Demo Pack
+    iosc = invoiceops_sub.add_parser("showcase", help="InvoiceOps live bookkeeping showcase demo commands.")
+    iosc_sub = iosc.add_subparsers(dest="iosc_command", required=True)
+
+    iosc_status = iosc_sub.add_parser("status", help="Show showcase configuration status (no API calls).")
+    iosc_status.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iosc_status.add_argument("--config-dir", default="")
+    iosc_status.add_argument("--spreadsheet-id", default="")
+    iosc_status.add_argument("--json", action="store_true")
+
+    iosc_run = iosc_sub.add_parser("run", help="Run the showcase demo (boundary mode by default; live requires confirmation).")
+    iosc_run.add_argument("--profile", default="controlled_live_write")
+    iosc_run.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iosc_run.add_argument("--config-dir", default="")
+    iosc_run.add_argument("--spreadsheet-id", default="")
+    iosc_run.add_argument("--invoice-limit", type=int, default=0)
+    iosc_run.add_argument("--live", action="store_true", help="Execute live Google Sheets writes (requires --confirm).")
+    iosc_run.add_argument("--reset-sheet", action="store_true", help="Reset showcase sheet before run.")
+    iosc_run.add_argument("--confirm", default="", help="Typed confirmation phrase for live execution.")
+    iosc_run.add_argument("--write-report", action="store_true")
+    iosc_run.add_argument("--json", action="store_true")
+
+    iosc_setup = iosc_sub.add_parser("setup-sheet", help="Seed the showcase Google Sheet with master data (requires confirmation).")
+    iosc_setup.add_argument("--profile", default="controlled_live_write")
+    iosc_setup.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iosc_setup.add_argument("--config-dir", default="")
+    iosc_setup.add_argument("--spreadsheet-id", required=True)
+    iosc_setup.add_argument("--confirm", required=True, help="Typed confirmation phrase.")
+    iosc_setup.add_argument("--json", action="store_true")
+
+    iosc_report = iosc_sub.add_parser("open-report", help="Open the latest showcase demo report.")
+    iosc_report.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    iosc_report.add_argument("--json", action="store_true")
+
     # Spec 154 — Governed Live Read Proof Pack
     live_read = sub.add_parser("live-read", help="Governed live-read proof and boundary checks.")
     live_read_sub = live_read.add_subparsers(dest="live_read_command", required=True)
@@ -5049,6 +5083,132 @@ def _run_invoiceops(args: Any) -> int:
             return 0
 
         return 2
+
+    if cmd == "showcase":
+        return _run_invoiceops_showcase(args, rd=rd, as_json=as_json, profile=profile)
+
+    return 2
+
+
+def _run_invoiceops_showcase(args: Any, *, rd: str, as_json: bool, profile: str) -> int:
+    from runtime.invoiceops_showcase_demo import (
+        get_showcase_status,
+        run_showcase_invoice_batch,
+        build_showcase_demo_dataset,
+    )
+
+    sub_cmd = str(getattr(args, "iosc_command", "") or "")
+    spreadsheet_id = str(getattr(args, "spreadsheet_id", "") or "")
+    config_dir = str(getattr(args, "config_dir", "") or "")
+
+    if sub_cmd == "status":
+        result = get_showcase_status(
+            runtime_data_dir=rd,
+            config_dir=config_dir,
+            spreadsheet_id=spreadsheet_id,
+        )
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            print(f"InvoiceOps Showcase Status: {result.get('status', '')}")
+            print(f"  Spreadsheet ID: {result.get('spreadsheet_id', '') or '(not configured)'}")
+            print(f"  Fixture invoices: {result.get('invoice_fixture_count', 0)}")
+            print(f"  Allowed tabs: {len(result.get('allowed_tabs', []))}")
+            if result.get("needs_config"):
+                print("  NOTE: Configure spreadsheet_id in ~/.taskframe/invoiceops_showcase.json")
+        return 0 if result.get("ok") else 1
+
+    if sub_cmd == "run":
+        live_mode = bool(getattr(args, "live", False))
+        confirm = str(getattr(args, "confirm", "") or "")
+        invoice_limit = int(getattr(args, "invoice_limit", 0) or 0)
+        write_report = bool(getattr(args, "write_report", False))
+        result = run_showcase_invoice_batch(
+            profile=profile,
+            runtime_data_dir=rd,
+            config_dir=config_dir,
+            spreadsheet_id=spreadsheet_id,
+            invoice_limit=invoice_limit,
+            live_mode=live_mode,
+            confirm=confirm,
+            write_report=write_report,
+        )
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            ok_str = "OK" if result.get("ok") else "FAIL"
+            print(f"InvoiceOps Showcase Run: {ok_str}")
+            print(f"  Run ID: {result.get('demo_run_id', '')}")
+            print(f"  Invoices: {result.get('invoice_count', 0)}")
+            print(f"  Matched: {result.get('matched_count', 0)}")
+            print(f"  Exceptions: {result.get('exception_count', 0)}")
+            print(f"  Blocked: {result.get('blocked_count', 0)}")
+            print(f"  Live writes: {result.get('live_writes_performed', 0)}")
+            if result.get("blockers"):
+                for b in result["blockers"]:
+                    print(f"  BLOCKED: {b}")
+        return 0 if result.get("ok") else 1
+
+    if sub_cmd == "setup-sheet":
+        confirm = str(getattr(args, "confirm", "") or "")
+        from runtime.invoiceops_showcase_demo import (
+            CONFIRMATION_TEMPLATE,
+            build_showcase_demo_dataset,
+            create_or_reset_showcase_google_sheet,
+        )
+        expected = CONFIRMATION_TEMPLATE.format(spreadsheet_id=spreadsheet_id)
+        if confirm != expected:
+            result = {
+                "ok": False,
+                "error": "CONFIRMATION_REQUIRED",
+                "expected": expected,
+                "received": confirm,
+            }
+            if as_json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                print(f"Showcase setup blocked: confirmation required.")
+                print(f"  Expected: {expected!r}")
+            return 1
+        sheet_spec = create_or_reset_showcase_google_sheet(
+            spreadsheet_id=spreadsheet_id,
+            allow_reset=True,
+            live_mode=True,
+        )
+        dataset = build_showcase_demo_dataset()
+        result = {
+            "ok": True,
+            "spreadsheet_id": spreadsheet_id,
+            "sheet_spec": sheet_spec,
+            "supplier_count": len(dataset["supplier_master"]),
+            "po_count": len(dataset["po_register"]),
+            "gr_count": len(dataset["goods_receipts"]),
+            "note": "Sheet structure spec returned. Actual Google Sheets API calls require credentials.",
+        }
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            print(f"InvoiceOps Showcase Setup: {'OK' if result.get('ok') else 'FAIL'}")
+            print(f"  Spreadsheet: {spreadsheet_id}")
+            print(f"  Tabs to create: {len(sheet_spec.get('tabs_to_create', []))}")
+        return 0 if result.get("ok") else 1
+
+    if sub_cmd == "open-report":
+        import os as _os
+        from pathlib import Path as _Path
+        report_dir = _Path(rd) / "invoiceops" / "showcase"
+        latest = report_dir / "showcase_demo_latest.md"
+        if latest.is_file():
+            _os.startfile(str(latest)) if hasattr(_os, "startfile") else print(str(latest))
+            result = {"ok": True, "path": str(latest)}
+        else:
+            result = {"ok": False, "error": "no_report_found", "report_dir": str(report_dir)}
+        if as_json:
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            print(result.get("path") or result.get("error", ""))
+        return 0 if result.get("ok") else 1
+
     return 2
 
 

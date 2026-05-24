@@ -723,6 +723,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         _check_live_side_effect_approval_execution_model(),
         _check_invoiceops_live_sheet_write_pilot(),
         _check_invoiceops_post_write_reconciliation(),
+        _check_invoiceops_live_showcase_demo_pack(),
     ])
     # manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     manifest_health_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "manifest_catalog_health"), {})
@@ -6655,6 +6656,179 @@ def _check_invoiceops_post_write_reconciliation() -> dict[str, Any]:
     status = "PASS" if not all_issues else "FAIL"
     return {
         "name": "invoiceops_post_write_reconciliation",
+        "status": status,
+        "missing": missing,
+        "failures": failures,
+        "details": all_issues,
+    }
+
+
+def _check_invoiceops_live_showcase_demo_pack() -> dict[str, Any]:
+    """Spec 158 — InvoiceOps Live Bookkeeping Showcase Demo Pack boundary check."""
+    missing: list[str] = []
+    failures: list[str] = []
+
+    # 1. Core modules exist
+    for path_str, required_symbols in [
+        (
+            "runtime/invoiceops_showcase_demo.py",
+            [
+                "build_showcase_demo_dataset",
+                "create_or_reset_showcase_google_sheet",
+                "apply_showcase_sheet_formatting",
+                "run_showcase_invoice_batch",
+                "build_showcase_posting_plan",
+                "execute_showcase_live_posting",
+                "run_showcase_reconciliation",
+                "build_showcase_dashboard_data",
+                "write_showcase_demo_report",
+                "render_showcase_demo_markdown",
+                "get_showcase_status",
+                "REQUIRED_PROFILE",
+                "CONFIRMATION_TEMPLATE",
+                "SHOWCASE_TABS",
+            ],
+        ),
+        (
+            "runtime/invoiceops_showcase_sheet_formatting.py",
+            ["build_showcase_formatting_spec", "get_tab_headers", "get_all_tab_headers"],
+        ),
+    ]:
+        full_path = ROOT / path_str
+        if not full_path.is_file():
+            missing.append(path_str)
+        else:
+            content = full_path.read_text(encoding="utf-8")
+            for sym in required_symbols:
+                if sym not in content:
+                    failures.append(f"{path_str}:symbol_missing:{sym}")
+
+    # 2. Fixture invoices exist
+    fixture_dir = ROOT / "fixtures" / "invoiceops_showcase" / "invoices"
+    if not fixture_dir.is_dir():
+        missing.append("fixtures/invoiceops_showcase/invoices/")
+    else:
+        txt_files = list(fixture_dir.glob("INV-*.txt"))
+        if len(txt_files) < 8:
+            failures.append(f"fixture_invoice_count_too_low:{len(txt_files)}")
+
+    # 3. Config example exists
+    config_example = ROOT / "config" / "examples" / "invoiceops_showcase.example.json"
+    if not config_example.is_file():
+        missing.append("config/examples/invoiceops_showcase.example.json")
+
+    # 4. CLI has showcase commands
+    cli_path = ROOT / "src" / "taskframe_cli.py"
+    if cli_path.is_file():
+        content = cli_path.read_text(encoding="utf-8")
+        for token in ("showcase", "_run_invoiceops_showcase", "iosc_command", "setup-sheet"):
+            if token not in content:
+                failures.append(f"cli_missing:{token}")
+
+    # 5. Operator UI has showcase panel
+    ui_path = ROOT / "src" / "operator_ui.py"
+    if ui_path.is_file():
+        content = ui_path.read_text(encoding="utf-8")
+        for token in (
+            "_check_invoiceops_showcase_config",
+            "_run_invoiceops_showcase_boundary",
+            "InvoiceOps Showcase Demo",
+        ):
+            if token not in content:
+                failures.append(f"operator_ui_missing:{token}")
+
+    # 6. Import check — no external API calls
+    try:
+        from runtime.invoiceops_showcase_demo import (
+            SHOWCASE_TABS,
+            REQUIRED_PROFILE,
+            CONFIRMATION_TEMPLATE,
+            build_showcase_demo_dataset,
+        )
+        if REQUIRED_PROFILE != "controlled_live_write":
+            failures.append(f"required_profile_wrong:{REQUIRED_PROFILE}")
+        if "Dashboard" not in SHOWCASE_TABS:
+            failures.append("showcase_tabs_missing_dashboard")
+        dataset = build_showcase_demo_dataset()
+        if not dataset.get("ok"):
+            failures.append("dataset_build_failed")
+        if dataset.get("invoice_count", 0) < 8:
+            failures.append(f"dataset_invoice_count_low:{dataset.get('invoice_count')}")
+    except Exception as exc:
+        failures.append(f"showcase_demo_import_error:{exc}")
+
+    # 7. Boundary-only run performs no live writes
+    try:
+        from runtime.invoiceops_showcase_demo import run_showcase_invoice_batch
+        result = run_showcase_invoice_batch(live_mode=False, invoice_limit=1)
+        if not result.get("ok"):
+            failures.append("boundary_run_failed")
+        if result.get("live_side_effects_performed"):
+            failures.append("boundary_run_performed_live_writes")
+        if result.get("live_writes_performed", 0) != 0:
+            failures.append("boundary_run_live_write_count_nonzero")
+    except Exception as exc:
+        failures.append(f"boundary_run_error:{exc}")
+
+    # 8. Live mode blocked without correct confirmation
+    try:
+        from runtime.invoiceops_showcase_demo import run_showcase_invoice_batch, REQUIRED_PROFILE
+        blocked = run_showcase_invoice_batch(
+            live_mode=True,
+            profile=REQUIRED_PROFILE,
+            spreadsheet_id="RC_SHEET_001",
+            confirm="wrong confirmation",
+        )
+        if blocked.get("ok"):
+            failures.append("live_mode_not_blocked_without_confirmation")
+        if blocked.get("live_side_effects_performed"):
+            failures.append("live_mode_performed_writes_without_confirmation")
+    except Exception as exc:
+        failures.append(f"live_mode_block_check_error:{exc}")
+
+    # 9. CLI boundary commands
+    try:
+        import tempfile
+        with tempfile.TemporaryDirectory(prefix="rc_showcase_") as tmpdir:
+            import subprocess as _sub
+            status_result = _sub.run(
+                [sys.executable, "-m", "src.taskframe_cli", "invoiceops", "showcase", "status",
+                 "--runtime-data-dir", tmpdir, "--json"],
+                capture_output=True, text=True, timeout=30, cwd=str(ROOT),
+            )
+            if status_result.returncode not in (0, 1):
+                failures.append(f"showcase_status_cli_bad_returncode:{status_result.returncode}")
+            else:
+                try:
+                    import json as _json
+                    data = _json.loads(status_result.stdout)
+                    if "status" not in data:
+                        failures.append("showcase_status_cli_missing_status_key")
+                except Exception as exc:
+                    failures.append(f"showcase_status_cli_json_parse_error:{exc}")
+
+            run_result = _sub.run(
+                [sys.executable, "-m", "src.taskframe_cli", "invoiceops", "showcase", "run",
+                 "--profile", "controlled_live_write", "--invoice-limit", "1",
+                 "--runtime-data-dir", tmpdir, "--json"],
+                capture_output=True, text=True, timeout=60, cwd=str(ROOT),
+            )
+            if run_result.returncode not in (0, 1):
+                failures.append(f"showcase_run_cli_bad_returncode:{run_result.returncode}")
+            else:
+                try:
+                    data = _json.loads(run_result.stdout)
+                    if data.get("live_side_effects_performed"):
+                        failures.append("showcase_run_cli_performed_live_writes_in_boundary_mode")
+                except Exception as exc:
+                    failures.append(f"showcase_run_cli_json_parse_error:{exc}")
+    except Exception as exc:
+        failures.append(f"showcase_cli_boundary_check_error:{exc}")
+
+    all_issues = missing + failures
+    status = "PASS" if not all_issues else "FAIL"
+    return {
+        "name": "invoiceops_live_showcase_demo_pack",
         "status": status,
         "missing": missing,
         "failures": failures,

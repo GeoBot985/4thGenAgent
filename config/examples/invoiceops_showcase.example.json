@@ -1,0 +1,26 @@
+{
+  "_comment": "InvoiceOps Showcase Demo configuration. Copy to ~/.taskframe/invoiceops_showcase.json and fill in your spreadsheet_id.",
+  "spreadsheet_id": "",
+  "spreadsheet_url": "",
+  "sheet_name_prefix": "TaskFrame InvoiceOps Showcase",
+  "allow_reset": true,
+  "allowed_tabs": [
+    "Dashboard",
+    "Invoices",
+    "PO Register",
+    "Goods Receipts",
+    "Supplier Master",
+    "Match Results",
+    "Exceptions",
+    "Ledger",
+    "Posting Ledger",
+    "Reconciliation",
+    "Rollback Plans",
+    "Evidence Index",
+    "Demo Run Log"
+  ],
+  "demo_currency": "ZAR",
+  "invoice_fixture_dir": "fixtures/invoiceops_showcase/invoices",
+  "report_output_dir": "runtime_data/invoiceops/showcase",
+  "confirmation_phrase_template": "EXECUTE LIVE INVOICEOPS SHOWCASE {spreadsheet_id}"
+}

@@ -1,0 +1,35 @@
+INVOICE
+
+Invoice Number: INV-003
+Invoice Date: 2026-05-05
+Due Date: 2026-06-04
+
+Supplier:
+  Name: BlueSky Catering Services
+  VAT Number: 4987654321
+  Address: 55 Catering Lane, Durban, 4001
+
+Bill To:
+  Company: TaskFrame Holdings
+  Address: 1 Innovation Drive, Cape Town, 8001
+
+Line Items:
+  1. Staff Canteen Catering - April 2026        QTY: 1    UNIT: ZAR 12,500.00  TOTAL: ZAR 12,500.00
+  2. Event Catering - Board Meeting 22 April    QTY: 1    UNIT: ZAR 3,800.00   TOTAL: ZAR 3,800.00
+
+Subtotal:    ZAR 16,300.00
+VAT (15%):   ZAR 2,445.00
+TOTAL:       ZAR 18,745.00
+
+Purchase Order Reference: PO-2026-9999
+Goods Receipt Reference: GR-2026-0051
+
+NOTE: PO-2026-9999 does not exist in the PO register. Supplier claims verbal authorisation was given.
+
+Payment Terms: 14 days net
+Bank: Standard Bank
+Account: 07112345678
+Branch Code: 051001
+
+Authorised by: B. Dlamini
+Date: 2026-05-05

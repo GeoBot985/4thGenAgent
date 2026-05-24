@@ -1,0 +1,37 @@
+INVOICE
+
+Invoice Number: INV-006
+Invoice Date: 2026-05-11
+Due Date: 2026-06-10
+
+Supplier:
+  Name: FastPrint Signage & Printing
+  VAT Number: 4332211009
+  Address: 22 Print Works, Cape Town, 8001
+
+Bill To:
+  Company: TaskFrame Holdings
+  Address: 1 Innovation Drive, Cape Town, 8001
+
+Line Items:
+  1. Company Banners (2m x 1m) x10             QTY: 10   UNIT: ZAR 1,850.00  TOTAL: ZAR 18,500.00
+  2. Business Card Printing (500 cards x 8)    QTY: 8    UNIT: ZAR 380.00    TOTAL: ZAR 3,040.00
+  3. Roller Banners x4                          QTY: 4    UNIT: ZAR 950.00    TOTAL: ZAR 3,800.00
+
+Subtotal:    ZAR 25,340.00
+VAT (15%):   ZAR 3,801.00
+TOTAL:       ZAR 29,141.00
+
+Purchase Order Reference: PO-2026-0061
+Goods Receipt Reference: GR-2026-0061
+
+NOTE: PO-2026-0061 approved unit price for Company Banners at ZAR 1,500.00 (not ZAR 1,850.00).
+      Price variance of ZAR 350.00 per unit (23.3% above PO price). Requires authorisation.
+
+Payment Terms: 14 days net
+Bank: Capitec Business
+Account: 1050099887
+Branch Code: 470010
+
+Authorised by: K. Naidoo
+Date: 2026-05-11

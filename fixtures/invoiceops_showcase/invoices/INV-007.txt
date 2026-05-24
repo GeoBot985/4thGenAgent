@@ -1,0 +1,36 @@
+INVOICE
+
+Invoice Number: INV-007
+Invoice Date: 2026-05-13
+Due Date: 2026-06-12
+
+Supplier:
+  Name: Hydro-Flow Bottled Water
+  VAT Number: 4765432109
+  Address: 3 Spring Road, Stellenbosch, 7600
+
+Bill To:
+  Company: TaskFrame Holdings
+  Address: 1 Innovation Drive, Cape Town, 8001
+
+Line Items:
+  1. 5L Water Bottles x Case of 6              QTY: 50   UNIT: ZAR 95.00     TOTAL: ZAR 4,750.00
+  2. Water Cooler Rental - May 2026            QTY: 1    UNIT: ZAR 350.00    TOTAL: ZAR 350.00
+
+Subtotal:    ZAR 5,100.00
+VAT (15%):   ZAR 765.00
+TOTAL:       ZAR 5,865.00
+
+Purchase Order Reference: PO-2026-0033
+Goods Receipt Reference: GR-2026-0033
+
+NOTE: GR-2026-0033 records 40 cases received, not 50. Quantity discrepancy of 10 cases.
+      Invoice claims 50 cases delivered but warehouse signed for 40 cases only.
+
+Payment Terms: 30 days net
+Bank: FNB Business
+Account: 62001122334
+Branch Code: 250655
+
+Authorised by: L. Botha
+Date: 2026-05-13

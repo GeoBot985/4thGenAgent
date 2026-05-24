@@ -660,6 +660,21 @@ class OperatorConsole:
         ttk.Button(ior_button_row, text="Open Reconciliation Report", command=self._open_invoiceops_reconciliation_report).pack(side="left", padx=(0, 6))
         ttk.Button(ior_button_row, text="Open Evidence Pack", command=self._open_invoiceops_accounting_evidence_pack).pack(side="left", padx=(0, 6))
 
+        # Spec 158 — InvoiceOps Showcase Demo Pack panel
+        iosc_card = ttk.Frame(detail_card, style="Card.TFrame", padding=(0, 8, 0, 0))
+        iosc_card.grid(row=12, column=0, sticky="ew", pady=(10, 0))
+        iosc_card.columnconfigure(0, weight=1)
+        ttk.Label(iosc_card, text="InvoiceOps Showcase Demo", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        self.iosc_status_var = tk.StringVar(value="Status: No showcase run yet. Configure spreadsheet_id to enable live mode.")
+        ttk.Label(iosc_card, textvariable=self.iosc_status_var, style="Body.TLabel", wraplength=700, justify="left").grid(row=1, column=0, sticky="w", pady=(4, 0))
+        self.iosc_details_text = self._make_text_widget(iosc_card, height=6)
+        self.iosc_details_text.grid(row=2, column=0, sticky="nsew", pady=(6, 8))
+        iosc_button_row = ttk.Frame(iosc_card, style="Card.TFrame")
+        iosc_button_row.grid(row=3, column=0, sticky="w")
+        ttk.Button(iosc_button_row, text="Check Showcase Config", command=self._check_invoiceops_showcase_config).pack(side="left", padx=(0, 6))
+        ttk.Button(iosc_button_row, text="Run Boundary-Only Showcase", command=self._run_invoiceops_showcase_boundary).pack(side="left", padx=(0, 6))
+        ttk.Button(iosc_button_row, text="Open Showcase Report", command=self._open_invoiceops_showcase_report).pack(side="left", padx=(0, 6))
+
         confirmation_row = ttk.Frame(live_safety_card, style="Card.TFrame")
         confirmation_row.grid(row=5, column=0, sticky="ew", pady=(8, 0))
         ttk.Label(confirmation_row, text="Typed confirmation:", style="Meta.TLabel").pack(side="left")
@@ -1115,6 +1130,74 @@ class OperatorConsole:
                 self.invoiceops_reconciliation_status_var.set(f"Opened: {report_path.name}")
                 return
         self.invoiceops_reconciliation_status_var.set("No evidence pack found. Build an accounting evidence pack first.")
+
+    def _check_invoiceops_showcase_config(self) -> None:
+        try:
+            from runtime.invoiceops_showcase_demo import get_showcase_status, SHOWCASE_TABS
+            status = get_showcase_status(runtime_data_dir=self.runtime_root)
+            sid = status.get("spreadsheet_id", "") or "(not configured)"
+            fixture_count = status.get("invoice_fixture_count", 0)
+            self.iosc_status_var.set(
+                f"Showcase: {status.get('status', 'unknown')} | Spreadsheet: {sid} | Fixtures: {fixture_count} invoices"
+            )
+            lines = [
+                f"Status: {status.get('status', '')}",
+                f"Spreadsheet ID: {sid}",
+                f"Spreadsheet URL: {status.get('spreadsheet_url', '') or '(not configured)'}",
+                f"Invoice fixtures: {fixture_count}",
+                f"Allowed tabs: {len(SHOWCASE_TABS)}",
+                f"Required profile: {status.get('required_profile', '')}",
+                f"Last run ID: {status.get('last_run_id', '') or '(none)'}",
+            ]
+            self._update_text(self.iosc_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.iosc_status_var.set(f"Showcase config error: {exc}")
+
+    def _run_invoiceops_showcase_boundary(self) -> None:
+        try:
+            from runtime.invoiceops_showcase_demo import run_showcase_invoice_batch, build_showcase_dashboard_data
+            result = run_showcase_invoice_batch(
+                live_mode=False,
+                write_report=True,
+                runtime_data_dir=self.runtime_root,
+            )
+            dashboard = build_showcase_dashboard_data(batch_result=result)
+            cards = dashboard["summary_cards"]
+            self.iosc_status_var.set(
+                f"Showcase (boundary): {result.get('invoice_count', 0)} invoices | "
+                f"Matched: {cards['matched']} | Exceptions: {cards['exceptions']} | Blocked: {cards['blocked']}"
+            )
+            lines = [
+                f"Run ID: {result.get('demo_run_id', '')}",
+                f"Invoices processed: {cards['invoices_processed']}",
+                f"Matched: {cards['matched']}",
+                f"Exceptions: {cards['exceptions']}",
+                f"Blocked: {cards['blocked']}",
+                f"Total invoice value: ZAR {cards['total_invoice_value']:,.2f}",
+                f"Live writes performed: {cards['live_writes_performed']} (boundary mode: 0)",
+                f"Reports: {result.get('reports', {}).get('markdown_latest', '(not written)')}",
+            ]
+            self._update_text(self.iosc_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.iosc_status_var.set(f"Showcase run error: {exc}")
+
+    def _open_invoiceops_showcase_report(self) -> None:
+        import os as _os
+        import pathlib
+
+        report_dir = pathlib.Path(self.runtime_root) / "invoiceops" / "showcase"
+        if report_dir.is_dir():
+            md_files = sorted(report_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if md_files:
+                report_path = md_files[0]
+                try:
+                    _os.startfile(str(report_path))  # type: ignore[attr-defined]
+                except AttributeError:
+                    import subprocess as _sp
+                    _sp.run(["xdg-open", str(report_path)], check=False)
+                self.iosc_status_var.set(f"Opened: {report_path.name}")
+                return
+        self.iosc_status_var.set("No showcase report found. Run the showcase first.")
 
     def _copy_dry_run_cli_command(self) -> None:
         self._copy_to_clipboard(self._live_dry_run_command())

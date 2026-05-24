@@ -1,0 +1,36 @@
+INVOICE
+
+Invoice Number: INV-004
+Invoice Date: 2026-05-07
+Due Date: 2026-06-06
+
+Supplier:
+  Name: TechGear Distribution
+  VAT Number: 4556677889
+  Address: 88 Tech Road, Pretoria, 0001
+
+Bill To:
+  Company: TaskFrame Holdings
+  Address: 1 Innovation Drive, Cape Town, 8001
+
+Line Items:
+  1. Laptop Dell Latitude 5540 x3              QTY: 3    UNIT: ZAR 18,500.00  TOTAL: ZAR 55,500.00
+  2. USB-C Docking Station x3                  QTY: 3    UNIT: ZAR 2,200.00   TOTAL: ZAR 6,600.00
+  3. Laptop Bags (Standard) x3                 QTY: 3    UNIT: ZAR 450.00     TOTAL: ZAR 1,350.00
+
+Subtotal:    ZAR 63,450.00
+VAT (15%):   ZAR 9,517.50
+TOTAL:       ZAR 72,967.50
+
+Purchase Order Reference: PO-2026-0078
+Goods Receipt Reference: (PENDING - not yet received)
+
+NOTE: Goods have not yet been received. No GR number available. Supplier requesting early payment.
+
+Payment Terms: 30 days net
+Bank: ABSA Bank
+Account: 40987654321
+Branch Code: 632005
+
+Authorised by: T. Govender
+Date: 2026-05-07

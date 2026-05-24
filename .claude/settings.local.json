@@ -8,7 +8,13 @@
       "Bash(echo \"exit: $?\")",
       "Bash(python -c \"from runtime.tool_registry import TOOL_REGISTRY; import json; r = next\\(\\(v for k,v in TOOL_REGISTRY.items\\(\\) if v.get\\('side_effect'\\)\\), {}\\); print\\(json.dumps\\(r, indent=2\\)\\)\")",
       "Bash(python -c ' *)",
-      "Bash(python -m pytest tests/test_toolpack_scaffold_docs.py -q)"
+      "Bash(python -m pytest tests/test_toolpack_scaffold_docs.py -q)",
+      "Bash(python -m pytest tests/test_manifest_health.py tests/test_manifest_contracts.py tests/test_event_router.py -q)",
+      "Bash(python -m pytest tests/test_manifest_contracts.py::ManifestContractTests::test_all_manifests_load_and_comply -q)",
+      "Bash(python -m pytest tests/test_invoiceops_showcase_dataset.py tests/test_invoiceops_showcase_sheet_config.py tests/test_invoiceops_showcase_sheet_formatting.py tests/test_invoiceops_showcase_run_boundary.py tests/test_invoiceops_showcase_live_write_safety.py tests/test_invoiceops_showcase_dashboard.py tests/test_invoiceops_showcase_reports.py tests/test_operator_invoiceops_showcase_panel.py tests/test_invoiceops_showcase_release_verifier.py -v)",
+      "Bash(python -m pytest tests/test_invoiceops_showcase_cli.py -v)",
+      "Bash(python -m src.taskframe_cli invoiceops showcase status --json)",
+      "Bash(python -m src.taskframe_cli invoiceops showcase run --profile controlled_live_write --invoice-limit 1 --json)"
     ]
   }
 }
