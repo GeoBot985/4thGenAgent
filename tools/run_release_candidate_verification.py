@@ -514,6 +514,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
             "pilot_readiness_gate": "PENDING",
             "live_side_effect_contract": "PENDING",
             "gmail_send_tool": "PENDING",
+            "governed_live_read_proof": "PENDING",
         },
         "workflow_checks": {
             "customer": {"status": "PENDING", "count": 0},
@@ -718,6 +719,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         _check_pilot_readiness_gate(),
         _check_live_side_effect_contract(),
         _check_gmail_send_tool(),
+        _check_governed_live_read_proof(),
     ])
     # manifest_health_check = next((check for check in static_checks if check.get("name") == "manifest_catalog_health"), {})
     manifest_health_check = next((check for check in static_checks if isinstance(check, dict) and check.get("name") == "manifest_catalog_health"), {})
@@ -901,6 +903,8 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
                 release_blockers.append("gmail send tool check failed")
             elif check["name"] == "local_worker_supervisor":
                 release_blockers.append("local worker supervisor validation failed")
+            elif check["name"] == "governed_live_read_proof":
+                release_blockers.append("governed live-read proof check failed")
 
     for name, blocker in [
         ("toolpack_scaffold_tests", "scaffold tests failed"),
@@ -1069,6 +1073,7 @@ def build_verification_result(mode: str = "release") -> dict[str, Any]:
         "portfolio_evidence_pack_v1": _status_from_static(static_checks, "portfolio_evidence_pack_v1"),
         "pilot_readiness_gate": _status_from_static(static_checks, "pilot_readiness_gate"),
         "live_side_effect_contract": _status_from_static(static_checks, "live_side_effect_contract"),
+        "governed_live_read_proof": _status_from_static(static_checks, "governed_live_read_proof"),
         "supplier_invoice_manifest_exists": _status_from_static(static_checks, "supplier_invoice_manifest_exists"),
         "supplier_invoice_routes_exist": _status_from_static(static_checks, "supplier_invoice_routes_exist"),
         "supplier_invoice_tools_registered": _status_from_static(static_checks, "supplier_invoice_tools_registered"),
@@ -5966,6 +5971,150 @@ def _check_gmail_send_tool() -> dict[str, Any]:
     status = "PASS" if not all_issues else "FAIL"
     return {
         "name": "gmail_send_tool",
+        "status": status,
+        "missing": missing,
+        "failures": failures,
+        "details": all_issues,
+    }
+
+
+def _check_governed_live_read_proof() -> dict[str, Any]:
+    failures: list[str] = []
+    missing: list[str] = []
+
+    # 1. CLI module exists
+    cli_path = ROOT / "src" / "taskframe_cli.py"
+    if cli_path.is_file():
+        content = cli_path.read_text(encoding="utf-8")
+        if "live-read" not in content:
+            failures.append("live-read_command_missing_from_cli")
+        if "live_read_command" not in content:
+            failures.append("live_read_subparser_missing")
+    else:
+        missing.append("src/taskframe_cli.py")
+
+    # 2. Proof module exists
+    proof_module = ROOT / "runtime" / "live_read_proof.py"
+    if not proof_module.is_file():
+        missing.append("runtime/live_read_proof.py")
+    else:
+        content = proof_module.read_text(encoding="utf-8")
+        for symbol in (
+            "build_live_read_proof_plan",
+            "run_live_read_probe",
+            "run_live_read_proof_pack",
+            "validate_live_read_boundary",
+            "write_live_read_proof_report",
+            "render_live_read_proof_markdown",
+            "build_live_read_status",
+            "redact_credential_evidence",
+            "redact_proof_result",
+        ):
+            if symbol not in content:
+                failures.append(f"symbol_missing:{symbol}")
+
+    # 3. Controlled live profile must still be present
+    profile_module = ROOT / "src" / "controlled_live_profile.py"
+    if not profile_module.is_file():
+        missing.append("src/controlled_live_profile.py")
+
+    # 4. Run boundary-only proof via CLI (no credentials required)
+    try:
+        import subprocess
+        r = subprocess.run(
+            [
+                sys.executable, "-m", "src.taskframe_cli",
+                "live-read", "proof",
+                "--profile", "controlled_live_read",
+                "--no-live-probes",
+                "--json",
+            ],
+            capture_output=True, text=True, timeout=60, cwd=str(ROOT),
+        )
+        if r.returncode != 0:
+            failures.append(f"boundary_only_proof_failed: exit={r.returncode}")
+        else:
+            try:
+                payload = json.loads(r.stdout)
+                if not payload.get("ok"):
+                    failures.append(f"boundary_only_proof_not_ok: {payload.get('blockers', [])}")
+                if payload.get("live_side_effects_performed"):
+                    failures.append("boundary_only_proof_performed_side_effects")
+            except Exception as exc:
+                failures.append(f"boundary_only_proof_json_parse_error:{exc}")
+    except Exception as exc:
+        failures.append(f"boundary_only_proof_subprocess_error:{exc}")
+
+    # 5. Blocked-side-effects check via CLI
+    try:
+        r2 = subprocess.run(
+            [
+                sys.executable, "-m", "src.taskframe_cli",
+                "live-read", "blocked-side-effects",
+                "--profile", "controlled_live_read",
+                "--json",
+            ],
+            capture_output=True, text=True, timeout=60, cwd=str(ROOT),
+        )
+        if r2.returncode != 0:
+            failures.append(f"blocked_side_effects_check_failed: exit={r2.returncode}")
+        else:
+            try:
+                payload2 = json.loads(r2.stdout)
+                if not payload2.get("ok"):
+                    failures.append("blocked_side_effects_check_not_ok")
+                if payload2.get("live_side_effects_performed"):
+                    failures.append("blocked_side_effects_performed_side_effects")
+                if not payload2.get("rpa_blocked", True):
+                    failures.append("rpa_not_blocked")
+            except Exception as exc:
+                failures.append(f"blocked_side_effects_json_parse_error:{exc}")
+    except Exception as exc:
+        failures.append(f"blocked_side_effects_subprocess_error:{exc}")
+
+    # 6. Profile import check
+    try:
+        from src.controlled_live_profile import (
+            CONTROLLED_LIVE_READ_PROFILE,
+            ALLOWED_LIVE_READ_TOOLS,
+            BLOCKED_LIVE_SIDE_EFFECT_TOOLS,
+            is_live_side_effect_blocked,
+        )
+        if not CONTROLLED_LIVE_READ_PROFILE.get("allow_live_reads"):
+            failures.append("profile_allow_live_reads_not_true")
+        if CONTROLLED_LIVE_READ_PROFILE.get("allow_live_side_effects"):
+            failures.append("profile_allow_live_side_effects_not_false")
+        # Verify known side-effect tools are blocked
+        for tool in ("gmail/send", "calendar/create", "sheet/write"):
+            blocked, _ = is_live_side_effect_blocked(tool)
+            if not blocked:
+                failures.append(f"side_effect_tool_not_blocked:{tool}")
+    except Exception as exc:
+        failures.append(f"controlled_live_profile_import_error:{exc}")
+
+    # 7. Module import check
+    try:
+        from runtime.live_read_proof import (
+            build_live_read_proof_plan,
+            run_live_read_proof_pack,
+            validate_live_read_boundary,
+        )
+        plan = build_live_read_proof_plan(no_live_probes=True)
+        if not isinstance(plan, dict):
+            failures.append("build_live_read_proof_plan_not_dict")
+        boundary = validate_live_read_boundary()
+        if not isinstance(boundary, list):
+            failures.append("validate_live_read_boundary_not_list")
+        side_effects_performed = any(c.get("side_effect_performed") for c in boundary)
+        if side_effects_performed:
+            failures.append("validate_live_read_boundary_performed_side_effects")
+    except Exception as exc:
+        failures.append(f"live_read_proof_import_error:{exc}")
+
+    all_issues = missing + failures
+    status = "PASS" if not all_issues else "FAIL"
+    return {
+        "name": "governed_live_read_proof",
         "status": status,
         "missing": missing,
         "failures": failures,

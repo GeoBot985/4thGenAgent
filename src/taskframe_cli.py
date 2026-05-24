@@ -749,6 +749,33 @@ def build_parser() -> argparse.ArgumentParser:
     wkr_clear_lock.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     wkr_clear_lock.add_argument("--json", action="store_true")
 
+    # Spec 154 — Governed Live Read Proof Pack
+    live_read = sub.add_parser("live-read", help="Governed live-read proof and boundary checks.")
+    live_read_sub = live_read.add_subparsers(dest="live_read_command", required=True)
+
+    lr_status = live_read_sub.add_parser("status", help="Show live-read profile status (no API calls).")
+    lr_status.add_argument("--profile", default="controlled_live_read")
+    lr_status.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    lr_status.add_argument("--config-dir", default="")
+    lr_status.add_argument("--json", action="store_true")
+
+    lr_proof = live_read_sub.add_parser("proof", help="Run the governed live-read proof pack.")
+    lr_proof.add_argument("--profile", default="controlled_live_read")
+    lr_proof.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    lr_proof.add_argument("--config-dir", default="")
+    lr_proof.add_argument("--spreadsheet-range", default="Sheet1!A1:D10")
+    lr_proof.add_argument("--gmail-query", default="in:inbox")
+    lr_proof.add_argument("--calendar-query", default="upcoming")
+    lr_proof.add_argument("--no-live-probes", action="store_true", help="Validate config/profile/tool boundaries only (no API calls).")
+    lr_proof.add_argument("--write-report", action="store_true", help="Write JSON and Markdown reports to runtime_data/live_read_proof/.")
+    lr_proof.add_argument("--json", action="store_true")
+
+    lr_blocked = live_read_sub.add_parser("blocked-side-effects", help="Prove that side-effect tools are blocked (no real API calls).")
+    lr_blocked.add_argument("--profile", default="controlled_live_read")
+    lr_blocked.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
+    lr_blocked.add_argument("--config-dir", default="")
+    lr_blocked.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -825,6 +852,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_schedule(args)
     if args.command == "worker":
         return _run_worker(args)
+    if args.command == "live-read":
+        return _run_live_read(args)
     parser.print_help()
     return 2
 
@@ -4750,6 +4779,102 @@ def _run_worker(args: Any) -> int:
             print(f"Could not clear lock: {result.get('message') or result.get('error', 'unknown')}")
         return 0 if result.get("ok") else 1
 
+    return 2
+
+
+def _run_live_read(args: Any) -> int:
+    from runtime.live_read_proof import (
+        build_live_read_status,
+        run_live_read_proof_pack,
+        validate_live_read_boundary,
+        write_live_read_proof_report,
+    )
+
+    cmd = str(getattr(args, "live_read_command", "") or "")
+    profile = str(getattr(args, "profile", "controlled_live_read") or "controlled_live_read")
+    rd = str(getattr(args, "runtime_data_dir", DEFAULT_RUNTIME_DATA_DIR) or DEFAULT_RUNTIME_DATA_DIR)
+    use_json = bool(getattr(args, "json", False))
+
+    if cmd == "status":
+        result = build_live_read_status(profile=profile, runtime_data_dir=rd)
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0
+        print(f"Profile: {result.get('profile', '')}")
+        print(f"Credential status: {result.get('credential_status', '')}")
+        print(f"Live reads allowed: {result.get('profile_config', {}).get('allow_live_reads', False)}")
+        print(f"Live side effects allowed: {result.get('live_side_effects_allowed', False)}")
+        print(f"RPA allowed: {result.get('rpa_allowed', False)}")
+        print(f"Latest proof available: {result.get('latest_proof_available', False)}")
+        if result.get("latest_proof_ok") is not None:
+            print(f"Latest proof ok: {result.get('latest_proof_ok')}")
+        return 0
+
+    if cmd == "proof":
+        no_live = bool(getattr(args, "no_live_probes", False))
+        write_report = bool(getattr(args, "write_report", False))
+        result = run_live_read_proof_pack(
+            profile=profile,
+            runtime_data_dir=rd,
+            config_dir=str(getattr(args, "config_dir", "") or ""),
+            spreadsheet_range=str(getattr(args, "spreadsheet_range", "Sheet1!A1:D10") or "Sheet1!A1:D10"),
+            gmail_query=str(getattr(args, "gmail_query", "in:inbox") or "in:inbox"),
+            calendar_query=str(getattr(args, "calendar_query", "upcoming") or "upcoming"),
+            no_live_probes=no_live,
+        )
+        if write_report:
+            report = write_live_read_proof_report(result, runtime_data_dir=rd)
+            result["report_paths"] = report.get("paths", {})
+        if use_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0 if result.get("ok") else 1
+        status_str = "PASS" if result.get("ok") else "FAIL"
+        print(f"Live-read proof: {status_str}")
+        print(f"Profile: {result.get('profile', '')}")
+        print(f"Live reads attempted: {result.get('live_reads_attempted', False)}")
+        print(f"Live side effects performed: {result.get('live_side_effects_performed', False)}")
+        print(f"Probes run: {len(result.get('probes', []))}")
+        print(f"Side-effect checks: {len(result.get('blocked_side_effect_checks', []))}")
+        print(f"RPA blocked: {result.get('rpa_blocked', True)}")
+        if result.get("blockers"):
+            print(f"Blockers: {result['blockers']}")
+        if result.get("warnings"):
+            print(f"Warnings: {result['warnings']}")
+        if write_report and result.get("report_paths"):
+            paths = result["report_paths"]
+            print(f"Report JSON: {paths.get('live_read_proof_json', '')}")
+            print(f"Report MD: {paths.get('live_read_proof_md', '')}")
+        return 0 if result.get("ok") else 1
+
+    if cmd == "blocked-side-effects":
+        checks = validate_live_read_boundary(profile=profile)
+        blocked_count = sum(1 for c in checks if c.get("status") == "BLOCKED")
+        fail_count = sum(1 for c in checks if c.get("status") != "BLOCKED")
+        ok = fail_count == 0
+        payload = {
+            "ok": ok,
+            "profile": profile,
+            "checks": checks,
+            "blocked_count": blocked_count,
+            "fail_count": fail_count,
+            "live_side_effects_performed": False,
+            "rpa_blocked": all(
+                c.get("status") == "BLOCKED"
+                for c in checks
+                if "rpa" in str(c.get("tool", "")).lower()
+            ),
+        }
+        if use_json:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            return 0 if ok else 1
+        print(f"Blocked side-effect checks: {'PASS' if ok else 'FAIL'}")
+        print(f"Checks run: {len(checks)}")
+        print(f"Confirmed blocked: {blocked_count}")
+        for c in checks:
+            print(f"  [{c.get('status', '')}] {c.get('tool', '')} — {c.get('reason', '')}")
+        return 0 if ok else 1
+
+    print(f"Unknown live-read command: {cmd!r}")
     return 2
 
 

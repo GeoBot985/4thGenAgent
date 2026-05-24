@@ -286,6 +286,7 @@ class OperatorConsole:
         self.live_execution_confirmation_var = tk.StringVar(value="")
         self.live_safety_status_var = tk.StringVar(value="Dry-run only. No live-ready pending actions.")
         self.live_safety_preflight: dict[str, object] = {}
+        self.lr_proof_status_var = tk.StringVar(value="Status not loaded. Click 'Check Live Read Status'.")
         self.root.title(TITLE)
         self.root.geometry("1280x820")
         self.root.minsize(1180, 720)
@@ -593,6 +594,22 @@ class OperatorConsole:
         ttk.Button(clr_button_row, text="Controlled Live Read Status", command=self._run_controlled_live_read_status).pack(side="left", padx=(0, 6))
         ttk.Button(clr_button_row, text="Run Live Read Preflight", command=self._run_live_read_preflight).pack(side="left", padx=(0, 6))
 
+        # Spec 154 — Governed Live Read Proof panel
+        lr_proof_card = ttk.Frame(detail_card, style="Card.TFrame", padding=(0, 8, 0, 0))
+        lr_proof_card.grid(row=8, column=0, sticky="ew", pady=(10, 0))
+        lr_proof_card.columnconfigure(0, weight=1)
+        ttk.Label(lr_proof_card, text="Governed Live Read Proof", style="Section.TLabel").grid(row=0, column=0, sticky="w")
+        self.lr_proof_status_var = tk.StringVar(value="Status not loaded. Click 'Check Live Read Status'.")
+        self.lr_proof_status_label = ttk.Label(lr_proof_card, textvariable=self.lr_proof_status_var, style="Body.TLabel", wraplength=700, justify="left")
+        self.lr_proof_status_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        self.lr_proof_details_text = self._make_text_widget(lr_proof_card, height=5)
+        self.lr_proof_details_text.grid(row=2, column=0, sticky="nsew", pady=(6, 8))
+        lr_button_row = ttk.Frame(lr_proof_card, style="Card.TFrame")
+        lr_button_row.grid(row=3, column=0, sticky="w")
+        ttk.Button(lr_button_row, text="Check Live Read Status", command=self._check_live_read_status).pack(side="left", padx=(0, 6))
+        ttk.Button(lr_button_row, text="Run Boundary-Only Proof", command=self._run_live_read_boundary_proof).pack(side="left", padx=(0, 6))
+        ttk.Button(lr_button_row, text="Open Live Read Proof Report", command=self._open_live_read_proof_report).pack(side="left", padx=(0, 6))
+
         confirmation_row = ttk.Frame(live_safety_card, style="Card.TFrame")
         confirmation_row.grid(row=5, column=0, sticky="ew", pady=(8, 0))
         ttk.Label(confirmation_row, text="Typed confirmation:", style="Meta.TLabel").pack(side="left")
@@ -761,6 +778,75 @@ class OperatorConsole:
             self._set_text(self.live_safety_details_text, "\n".join(lines))
         except Exception as exc:
             self.live_safety_status_var.set(f"Live read preflight error: {exc}")
+
+    def _check_live_read_status(self) -> None:
+        try:
+            from runtime.live_read_proof import build_live_read_status
+            status = build_live_read_status(runtime_data_dir=self.runtime_root)
+            cred_status = status.get("credential_status", "unknown")
+            lines = [
+                "Governed Live Read Proof — Status",
+                "---",
+                f"Profile: {status.get('profile', '')}",
+                f"Credential status: {cred_status}",
+                f"Live reads allowed: {status.get('profile_config', {}).get('allow_live_reads', False)}",
+                f"Live side effects allowed: {status.get('live_side_effects_allowed', False)}",
+                f"RPA allowed: {status.get('rpa_allowed', False)}",
+                f"Latest proof available: {status.get('latest_proof_available', False)}",
+            ]
+            if status.get("latest_proof_ok") is not None:
+                lines.append(f"Latest proof result: {'PASS' if status.get('latest_proof_ok') else 'FAIL'}")
+            if status.get("latest_proof_path"):
+                lines.append(f"Report: {status.get('latest_proof_path')}")
+            self.lr_proof_status_var.set(f"Profile: {status.get('profile', '')} | Credentials: {cred_status}")
+            self._set_text(self.lr_proof_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.lr_proof_status_var.set(f"Live read status error: {exc}")
+
+    def _run_live_read_boundary_proof(self) -> None:
+        try:
+            from runtime.live_read_proof import run_live_read_proof_pack, write_live_read_proof_report
+            result = run_live_read_proof_pack(
+                no_live_probes=True,
+                runtime_data_dir=self.runtime_root,
+            )
+            write_live_read_proof_report(result, runtime_data_dir=self.runtime_root)
+            ok = result.get("ok", False)
+            blocked_count = sum(
+                1 for c in result.get("blocked_side_effect_checks", [])
+                if c.get("status") == "BLOCKED"
+            )
+            lines = [
+                f"Boundary-Only Proof: {'PASS' if ok else 'FAIL'}",
+                "---",
+                f"Profile: {result.get('profile', '')}",
+                f"Live reads attempted: {result.get('live_reads_attempted', False)}",
+                f"Live side effects performed: {result.get('live_side_effects_performed', False)}",
+                f"Side-effect checks blocked: {blocked_count}/{len(result.get('blocked_side_effect_checks', []))}",
+                f"RPA blocked: {result.get('rpa_blocked', True)}",
+            ]
+            if result.get("blockers"):
+                lines += ["", "Blockers:"] + [f"  {b}" for b in result["blockers"]]
+            if result.get("warnings"):
+                lines += ["", "Warnings:"] + [f"  {w}" for w in result["warnings"]]
+            self.lr_proof_status_var.set("Boundary proof: " + ("PASS" if ok else "FAIL"))
+            self._set_text(self.lr_proof_details_text, "\n".join(lines))
+        except Exception as exc:
+            self.lr_proof_status_var.set(f"Boundary proof error: {exc}")
+
+    def _open_live_read_proof_report(self) -> None:
+        import os as _os
+        import pathlib
+        report_path = pathlib.Path(self.runtime_root) / "live_read_proof" / "live_read_proof_latest.md"
+        if report_path.is_file():
+            try:
+                _os.startfile(str(report_path))  # type: ignore[attr-defined]
+            except AttributeError:
+                import subprocess as _sp
+                _sp.run(["xdg-open", str(report_path)], check=False)
+            self.lr_proof_status_var.set(f"Opened: {report_path.name}")
+        else:
+            self.lr_proof_status_var.set("No proof report found. Run 'Run Boundary-Only Proof' first.")
 
     def _copy_dry_run_cli_command(self) -> None:
         self._copy_to_clipboard(self._live_dry_run_command())
