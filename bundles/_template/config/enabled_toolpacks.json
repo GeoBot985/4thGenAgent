@@ -1,0 +1,9 @@
+{
+  "enabled_toolpacks": [
+    "tool_packs/core_business/toolpack.json",
+    "tool_packs/core_memory/toolpack.json",
+    "tool_packs/core_reports/toolpack.json"
+  ],
+  "disabled_toolpacks": [],
+  "allow_optional_toolpacks": false
+}

@@ -10,11 +10,19 @@ readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Geo" }]
 license = { text = "Proprietary / license pending" }
-dependencies = []
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "uvicorn[standard]>=0.34,<1.0",
+  "pydantic>=2.7,<3.0",
+  "pytz>=2024.1",
+]
 
 [project.optional-dependencies]
 dev = [
   "pytest",
+]
+pdf = [
+  "PyMuPDF>=1.24",
 ]
 google = [
   "google-api-python-client",
@@ -32,6 +40,7 @@ all = [
   "google-auth-oauthlib",
   "google-auth-httplib2",
   "playwright",
+  "PyMuPDF>=1.24",
 ]
 
 [project.scripts]

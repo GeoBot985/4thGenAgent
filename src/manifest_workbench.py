@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -870,10 +871,26 @@ def restore_archived_manifest(
     return {"ok": True, "manifest_id": manifest_id, "archive_path": str(archive_file), "restored_path": str(restored_path), "error": ""}
 
 
+def _config_dir_manifest_path() -> str | None:
+    """Return TASKFRAME_CONFIG_DIR/manifests when the env var is set.
+
+    Lets a mounted customer bundle (TASKFRAME_CONFIG_DIR=/bundle/config) ship its own
+    manifests without baking them into the core image. Discovery/read-only — authoring
+    still writes to the primary manifest_dir.
+    """
+    config_dir = os.getenv("TASKFRAME_CONFIG_DIR", "").strip()
+    if not config_dir:
+        return None
+    return str(Path(config_dir).expanduser() / "manifests")
+
+
 def _candidate_manifest_dirs(manifest_dir: str) -> list[str]:
     dirs = [manifest_dir]
     if Path(manifest_dir).name == "manifests":
         dirs.extend(MANIFEST_DIRS[1:])
+        bundle_dir = _config_dir_manifest_path()
+        if bundle_dir:
+            dirs.append(bundle_dir)
     ordered: list[str] = []
     for item in dirs:
         normalized = str(item).strip()

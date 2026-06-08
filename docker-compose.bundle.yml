@@ -1,0 +1,27 @@
+# Customer-bundle overlay for docker-compose.yml.
+#
+# Mounts a single customer's bundle into the core image at /bundle and points the
+# engine's config/runtime dirs at it. The core image is unchanged across customers;
+# everything customer-specific lives in the mounted bundle.
+#
+# Usage (from repo root):
+#   CUSTOMER=acme docker compose -f docker-compose.yml -f docker-compose.bundle.yml up -d --build
+#
+# Expects:
+#   bundles/${CUSTOMER}/                     created from bundles/_template
+#   bundles/${CUSTOMER}/.env                 backend tokens (copied from .env.example)
+
+services:
+  api:
+    env_file:
+      # Bundle-specific secrets override the repo-root .env.
+      - ./bundles/${CUSTOMER:?set CUSTOMER to the bundle name}/.env
+    environment:
+      TASKFRAME_CONFIG_DIR: "/bundle/config"
+      TASKFRAME_RUNTIME_DIR: "/bundle/runtime_data"
+      TASKFRAME_PROFILE: "service"
+      TASKFRAME_BACKEND_AUTH_CONFIG_PATH: "/bundle/config/taskframe.backend.json"
+      TASKFRAME_ENABLE_LIVE_EXECUTION: "0"
+    volumes:
+      # The whole bundle is mounted; runtime_data inside it is the persisted state.
+      - ./bundles/${CUSTOMER:?set CUSTOMER to the bundle name}:/bundle

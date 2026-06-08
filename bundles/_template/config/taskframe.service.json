@@ -1,0 +1,32 @@
+{
+  "profile": "service",
+  "runtime_data_dir": "/bundle/runtime_data",
+  "llm": {
+    "provider": "fake",
+    "ollama_model": "granite3.3:8b",
+    "ollama_base_url": "http://127.0.0.1:11434"
+  },
+  "google": {
+    "enabled": false,
+    "credentials_path": "/bundle/config/google/credentials.json",
+    "token_path": "/bundle/config/google/token.json"
+  },
+  "rpa": {
+    "enabled": false,
+    "browser_user_data_dir": "",
+    "browser_profile_dir": ""
+  },
+  "live_execution": {
+    "enabled": false
+  },
+  "accounting": {
+    "sheet_config_path": "/bundle/config/accounting_google_sheet.json"
+  },
+  "worker_identity": {
+    "worker_id": "CUSTOMER-worker-1",
+    "worker_role": "general",
+    "environment": "service",
+    "operator_id": "system",
+    "approval_authority": "system"
+  }
+}

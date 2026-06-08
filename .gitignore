@@ -32,6 +32,11 @@ token.json
 secrets.json
 bits/secrets.json
 
+# Local environment files (deployment secrets)
+.env
+.env.*
+!.env.example
+
 # Repo-local generated artifacts
 consolidated_sources_part_*.txt
 tmp-e2e/

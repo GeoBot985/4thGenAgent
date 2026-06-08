@@ -55,8 +55,8 @@
     "enabled": false,
     "allowed_tools": [],
     "allowed_actions": [],
-    "max_live_actions": 0,
-    "requires_approval": false,
-    "requires_operator_confirmation": false
+    "max_live_actions": 1,
+    "requires_approval": true,
+    "requires_operator_confirmation": true
   }
 }

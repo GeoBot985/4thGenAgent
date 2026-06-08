@@ -1,0 +1,40 @@
+# TaskFrame Runtime — on-prem pilot stack.
+#
+# Usage:
+#   cp .env.example .env        # then fill in strong bearer tokens
+#   docker compose up -d --build
+#   docker compose logs -f api
+#
+# The API listens on 127.0.0.1:8000 by default so it is NOT exposed beyond the
+# host. Put it behind the customer's own TLS-terminating reverse proxy for any
+# access beyond localhost.
+
+services:
+  api:
+    build:
+      context: .
+      args:
+        # Set to "1" to include PDF/invoice extraction support (PyMuPDF).
+        INSTALL_PDF: "0"
+    image: taskframe-runtime:pilot
+    restart: unless-stopped
+    env_file:
+      # Optional: for a plain (non-bundle) run, copy .env.example to .env.
+      # Bundle runs supply secrets via docker-compose.bundle.yml instead.
+      - path: .env
+        required: false
+    environment:
+      APP_HOST: "0.0.0.0"
+      APP_PORT: "8000"
+      APP_WORKERS: "2"
+      # Use the in-repo example config unless the customer mounts their own.
+      TASKFRAME_BACKEND_AUTH_CONFIG_PATH: "/app/config/examples/taskframe.backend.example.json"
+    ports:
+      # Bind to loopback only. Change to "0.0.0.0:8000:8000" only behind a proxy.
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # Persist audit trail, runs, and stores across restarts.
+      - taskframe_runtime_data:/app/runtime_data
+
+volumes:
+  taskframe_runtime_data:

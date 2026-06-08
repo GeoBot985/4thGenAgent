@@ -20,6 +20,7 @@ def test_runtime_store_contract_exposes_expected_folders(tmp_path: Path) -> None
         "cleanup",
         "recovery",
         "migrations",
+        "locks",
     }
 
     ensured = ensure_runtime_store_layout(runtime_root)
