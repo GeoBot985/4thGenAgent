@@ -1,3 +1,4 @@
+import os
 import sys
 import tempfile
 import time
@@ -15,6 +16,13 @@ from runtime.validation import run_validation
 
 class ExecutionMetricsTests(unittest.TestCase):
     def setUp(self):
+        # These tests execute fake tools live (dry_run=False) to exercise timing,
+        # timeout, and retry mechanics. The safety-default ``demo`` profile blocks
+        # all live execution, so run under ``dev`` (live reads allowed, no live side
+        # effects, still fixture-safe). Restored in tearDown.
+        self._profile_backup = os.environ.get("TASKFRAME_PROFILE")
+        os.environ["TASKFRAME_PROFILE"] = "dev"
+
         self._registry_backup = dict(TOOL_REGISTRY)
         self._modules_to_cleanup: list[str] = []
 
@@ -99,6 +107,10 @@ class ExecutionMetricsTests(unittest.TestCase):
         TOOL_REGISTRY.update(self._registry_backup)
         for module_name in self._modules_to_cleanup:
             sys.modules.pop(module_name, None)
+        if self._profile_backup is None:
+            os.environ.pop("TASKFRAME_PROFILE", None)
+        else:
+            os.environ["TASKFRAME_PROFILE"] = self._profile_backup
 
     def _register_tool(self, key: str, spec: dict) -> None:
         TOOL_REGISTRY[key] = spec

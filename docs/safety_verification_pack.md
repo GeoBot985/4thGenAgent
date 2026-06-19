@@ -4,7 +4,7 @@
 
 **PASS**
 
-Generated: 2026-05-22T11:38:03.236757Z
+Generated: 2026-06-19T11:11:59.893740Z
 
 ## Summary
 
@@ -21,7 +21,7 @@ Generated: 2026-05-22T11:38:03.236757Z
 | approval_required_before_execution | PASS | Pending action state machine: PENDING_APPROVAL → APPROVED → EXECUTING → EXECUTED. Live execution blocked unless action i |
 | dry_run_execution_auditable | PASS | Golden demo audit exists with verdict='READY'. Dry-run execution is auditable. |
 | live_execution_blocked_by_default | PASS | TASKFRAME_ENABLE_LIVE_EXECUTION not set. default_mode='dry_run'. Live execution is blocked by default. |
-| manifest_policy_blocks_live_execution | PASS | All 61 manifest(s) have live_execution.enabled=false or unset. Manifest policy blocks live execution. |
+| manifest_policy_blocks_live_execution | PASS | All 63 manifest(s) have live_execution.enabled=false or unset. Manifest policy blocks live execution. |
 | tool_policy_blocks_live_side_effects | PASS | 25 side-effect tool(s) all have live side-effects blocked or require approval. Tool policy enforces the safety boundary. |
 | cli_live_guardrails_enforced | PASS | TASKFRAME_ENABLE_LIVE_EXECUTION not set. CLI has live guardrails (--i-understand-live-side-effects, --confirm): True. |
 | optional_rpa_excluded_from_default_path | PASS | rpa_google_messages: core_or_optional=optional, excluded_from_default_release=True, rpa_live_probe_required=True. Option |

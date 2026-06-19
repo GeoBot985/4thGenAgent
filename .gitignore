@@ -10,6 +10,11 @@ htmlcov/
 *.pyo
 *.pyd
 
+# Python build / packaging metadata (regenerated; do not track)
+*.egg-info/
+build/
+dist/
+
 # Virtual environments
 .venv/
 venv/

@@ -23,6 +23,22 @@ taskframe monitor alerts --profile service --json
 
 The snapshot and alert commands are read-only. They do not run worker cycles, clear locks, execute pending actions, or send alerts.
 
+### Run Health Query Commands
+
+Beyond the full snapshot, focused read-only queries report run health classifications for the runs in the store:
+
+```bash
+taskframe monitor summary   # counts by run health classification
+taskframe monitor failed    # runs classified as failed
+taskframe monitor pending   # runs awaiting operator action
+taskframe monitor stuck     # stuck-run detection (runs with no progress)
+taskframe monitor blocked   # runs blocked by safety/governance
+taskframe monitor tools     # tool health rollup
+taskframe monitor report    # write the consolidated operator report
+```
+
+Each run is given a run health classification (`healthy`, `pending`, `failed`, `blocked`, or `stuck`). Stuck-run detection flags runs that have made no forward progress within the expected window so an operator can review them; the runtime does not do automatically anything to those runs.
+
 ## Sections
 
 The snapshot includes these sections:
@@ -80,6 +96,6 @@ Operational monitoring does not:
 
 ## Production Readiness Boundary
 
-This snapshot improves the evidence boundary for production-style operation, but it does not claim full production readiness. The runtime still keeps live side effects blocked in service mode and relies on explicit operator review for alert candidates.
+This snapshot improves the evidence boundary for production-style operation, but it does not claim full production readiness. It supports controlled pilot readiness review (see [pilot_readiness.md](pilot_readiness.md)): the runtime still keeps live side effects blocked in service mode and relies on explicit operator review for alert candidates.
 
 See [alert_candidates.md](alert_candidates.md) for the alert-candidate model.

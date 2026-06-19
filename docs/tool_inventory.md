@@ -1,17 +1,17 @@
 # Tool Inventory Report
 
-Generated: 2026-05-24T11:46:49.592358Z
+Generated: 2026-06-19T11:11:27.498931Z
 
-Report JSON: D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.json
-Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_toolpa0/runtime_data/tool_inventory/tool_inventory.md
+Report JSON: D:/Projects/COMPLETED/4thGenAgent/runtime_data/tool_inventory/tool_inventory.json
+Report Markdown: D:/Projects/COMPLETED/4thGenAgent/runtime_data/tool_inventory/tool_inventory.md
 
 ## Summary
 
 | Metric | Count |
 |---|---:|
-| Total tools | 118 |
+| Total tools | 120 |
 | Migrated tool-pack tools | 4 |
-| Legacy fallback tools | 114 |
+| Legacy fallback tools | 116 |
 | External enabled tools | 0 |
 | Total tool packs | 2 |
 | Optional disabled tools | 10 |
@@ -66,6 +66,7 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_t
 | invoiceops/check_tax | legacy_fallback |  | no | no | no | invoiceops_match_check |
 | invoiceops/check_totals | legacy_fallback |  | no | no | no | invoiceops_match_check |
 | invoiceops/classify_exceptions | legacy_fallback |  | no | no | no | invoiceops_exception_classification |
+| invoiceops/evidence_pack | legacy_fallback |  | no | no | no | invoiceops_accounting_evidence_pack |
 | invoiceops/extract_invoice_fields | legacy_fallback |  | no | no | no | invoiceops_invoice |
 | invoiceops/lookup_goods_receipt | legacy_fallback |  | no | no | no | invoiceops_match_check |
 | invoiceops/lookup_purchase_order | legacy_fallback |  | no | no | no | invoiceops_match_check |
@@ -82,6 +83,7 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_t
 | invoiceops/read_po_register | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
 | invoiceops/read_receipt_register | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
 | invoiceops/read_supplier_master | legacy_fallback |  | no | no | no | invoiceops_sheet_rows |
+| invoiceops/reconcile | legacy_fallback |  | no | no | no | invoiceops_reconciliation_result |
 | invoiceops/run_live_posting_preflight | legacy_fallback |  | no | no | no | invoiceops_preflight_result |
 | invoiceops/search_po_fallback | legacy_fallback |  | no | no | no | invoiceops_fallback_result |
 | invoiceops/search_receipt_fallback | legacy_fallback |  | no | no | no | invoiceops_fallback_result |
@@ -145,5 +147,5 @@ Report Markdown: D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_t
 
 | Tool Pack | Status | Environments | Classification | Tool Count | Last Check | Lifecycle Report |
 |---|---|---|---|---:|---|---|
-| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-05-24T11:46:49.530774Z | D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
-| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-05-24T11:46:49.561830Z | D:/Temp/pytest-of-GeorgeC/pytest-2342/test_inventory_includes_toolpa0/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |
+| demo_echo | UNTESTED | demo, dev, test | optional | 3 | 2026-06-19T11:11:27.443370Z | D:/Projects/COMPLETED/4thGenAgent/runtime_data/toolpacks/lifecycle/demo_echo_lifecycle.md |
+| google_workspace | UNTESTED | dev, test | optional | 7 | 2026-06-19T11:11:27.470456Z | D:/Projects/COMPLETED/4thGenAgent/runtime_data/toolpacks/lifecycle/google_workspace_lifecycle.md |

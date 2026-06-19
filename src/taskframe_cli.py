@@ -114,7 +114,7 @@ def build_parser() -> argparse.ArgumentParser:
     mh.add_argument("--strict", action="store_true")
     mh.add_argument("--json", action="store_true")
 
-    readiness = sub.add_parser("readiness", help="Build the 90% readiness scorecard.")
+    readiness = sub.add_parser("readiness", help="Build the 90%% readiness scorecard.")
     readiness.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     readiness.add_argument("--strict", action="store_true")
     readiness.add_argument("--threshold", type=int, default=90)
@@ -285,7 +285,7 @@ def build_parser() -> argparse.ArgumentParser:
     tools_gov_report = tools_sub.add_parser("governance-report", help="Generate a tool pack governance report.")
     tools_gov_report.add_argument("--json", action="store_true")
 
-    readiness_gate = sub.add_parser("readiness-gate", help="Evaluate the 90%+ controlled demo readiness evidence gate.")
+    readiness_gate = sub.add_parser("readiness-gate", help="Evaluate the 90%%+ controlled demo readiness evidence gate.")
     readiness_gate.add_argument("--runtime-data-dir", default=DEFAULT_RUNTIME_DATA_DIR)
     readiness_gate.add_argument("--threshold", type=int, default=90)
     readiness_gate.add_argument("--strict", action="store_true", help="Fail if release verifier evidence is missing.")

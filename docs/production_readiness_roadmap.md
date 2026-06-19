@@ -17,6 +17,7 @@ The roadmap below shows the next hardening steps after the `service` runtime pro
 - Spec 153 added the consolidated operational monitoring snapshot and alert-candidate pack.
 - Spec 157 added post-write reconciliation and accounting evidence packs for InvoiceOps live posting.
 - Spec 158 added the InvoiceOps Live Bookkeeping Showcase Demo Pack: 8 invoice scenarios, live Google Sheets posting under `controlled_live_write` profile, formatted demo workbook, dashboard, and accounting evidence trail.
+- Pilot release packaging delivered the on-prem Docker bundle: a self-contained core image (`src.production_backend:app` via uvicorn, non-root, healthcheck, loopback bind, auth on / dev-bypass off, live execution disabled) plus the per-customer bundle overlay (`docker-compose.bundle.yml`, `bundles/_template`, onboarding gate). See [deployment_onprem.md](deployment_onprem.md).
 - These changes improve operational evidence and failure recovery without enabling live side effects.
 
 ## Next Hardening Specs
@@ -30,7 +31,6 @@ The roadmap below shows the next hardening steps after the `service` runtime pro
 
 ## Deferred Work
 
-- Docker packaging
 - Windows service or systemd support
 - multi-user tenancy
 - cloud infrastructure
